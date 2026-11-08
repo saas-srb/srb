@@ -22,23 +22,23 @@
     },
     {
       "path": "/api/viralpulse-ai/publisher/cron",
-      "schedule": "*/5 * * * *"
+      "schedule": "30 7 * * *"
     },
     {
       "path": "/api/viralpulse-ai/ugc/cron",
-      "schedule": "*/2 * * * *"
+      "schedule": "0 8 * * *"
     },
     {
       "path": "/api/viralpulse-ai/ads/cron",
-      "schedule": "*/30 * * * *"
+      "schedule": "30 8 * * *"
     },
     {
       "path": "/api/viralpulse-ai/metrics/cron",
-      "schedule": "0 */3 * * *"
+      "schedule": "0 9 * * *"
     },
     {
       "path": "/api/viralpulse-ai/accounts/cron",
-      "schedule": "*/30 * * * *"
+      "schedule": "30 9 * * *"
     },
     {
       "path": "/api/evaliq/cron",
@@ -62,11 +62,11 @@
     },
     {
       "path": "/api/agentos/cron",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 10 * * *"
     },
     {
       "path": "/api/dealflow-ai/meetings/cron",
-      "schedule": "*/5 * * * *"
+      "schedule": "30 10 * * *"
     },
     {
       "path": "/api/apps/builds/cron",

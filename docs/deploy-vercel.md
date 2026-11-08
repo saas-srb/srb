@@ -680,7 +680,7 @@ Until 15.6 is done, builds wait in the queue ("Waiting for the build service") a
 
 ⏱ *read only · nothing to set up*
 
-`vercel.json` registers 12 jobs, all daily, so it fits Vercel's Hobby plan. They start automatically after deployment and are protected by `CRON_SECRET` (without it every call is refused). The list lives in one place, `src/lib/cron/registry.ts`; `vercel.json` is generated from it (`npm run cron:sync`) and `npm run test:cron` fails if the two, or the routes on disk, ever disagree.
+`vercel.json` registers 18 jobs, all daily, so it fits Vercel's Hobby plan. They start automatically after deployment and are protected by `CRON_SECRET` (without it every call is refused). The list lives in one place, `src/lib/cron/registry.ts`; `vercel.json` is generated from it (`npm run cron:sync`) and `npm run test:cron` fails if the two, or the routes on disk, ever disagree.
 
 | Job | Time (UTC) | Does |
 | --- | --- | --- |
@@ -771,7 +771,7 @@ every product). No setting or code change can bring that under 12; a deploy on H
 - **Your own server or AWS**: run the same app with `next start` and the in-app scheduler (`RUN_SCHEDULER=1`). There is no function limit. Follow [deploy-aws.md](./deploy-aws.md).
 
 Separately, Hobby is meant for personal, non-commercial projects, and a SaaS that bills customers normally belongs on Pro (check Vercel's current terms).
-Hobby also allows only **daily** cron schedules (the 12 jobs in step 16 are all daily, so that part fits) and has lower limits on function duration, domains and team members.
+Hobby also allows only **daily** cron schedules (the 18 jobs in step 16 are all daily, so that part fits) and has lower limits on function duration, domains and team members.
 
 ---
 
