@@ -1,0 +1,4 @@
+Noto Sans and Noto Sans Devanagari (Regular, Bold)
+Copyright 2012 Google Inc. All Rights Reserved. Noto is a trademark of Google Inc.
+Licensed under the SIL Open Font License, Version 1.1 (https://openfontlicense.org).
+The fonts are bundled unmodified so that text on images renders the same on every server, without depending on system fonts.

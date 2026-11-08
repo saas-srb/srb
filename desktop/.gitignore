@@ -1,0 +1,6 @@
+node_modules/
+dist/
+dist-company/
+# written by `npm run build:company` for one company's build
+brand.json
+build/company-*

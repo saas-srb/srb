@@ -1,0 +1,6 @@
+Noto Sans (Regular, Bold, Italic, Bold Italic), full character set, from the Noto project (github.com/notofonts/notofonts.github.io, fonts/NotoSans/full/ttf).
+Noto Serif (Regular, Bold, Italic, Bold Italic), from the same project (fonts/NotoSerif/googlefonts/ttf).
+Copyright 2012 Google Inc. All Rights Reserved. Noto is a trademark of Google Inc.
+Licensed under the SIL Open Font License, Version 1.1 (https://openfontlicense.org).
+The fonts are bundled unmodified so that generated PDF and Word documents carry the same typeface on every server, without depending on system fonts.
+They include the Indian rupee sign (U+20B9). Embedding in generated documents is permitted by the OFL.

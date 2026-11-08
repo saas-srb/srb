@@ -1,0 +1,76 @@
+{
+  "crons": [
+    {
+      "path": "/api/backup/cron",
+      "schedule": "30 1 * * *"
+    },
+    {
+      "path": "/api/wallet/expiry-sweep",
+      "schedule": "30 2 * * *"
+    },
+    {
+      "path": "/api/playbook-ai/cron",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/rankmax-ai/cron",
+      "schedule": "30 3 * * *"
+    },
+    {
+      "path": "/api/cybervault/cron",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/viralpulse-ai/publisher/cron",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/viralpulse-ai/ugc/cron",
+      "schedule": "*/2 * * * *"
+    },
+    {
+      "path": "/api/viralpulse-ai/ads/cron",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/viralpulse-ai/metrics/cron",
+      "schedule": "0 */3 * * *"
+    },
+    {
+      "path": "/api/viralpulse-ai/accounts/cron",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/evaliq/cron",
+      "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/platform/domains/cron",
+      "schedule": "30 5 * * *"
+    },
+    {
+      "path": "/api/platform/billing/trials/cron",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/platform/billing/subscriptions/cron",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/notify/cron",
+      "schedule": "15 6 * * *"
+    },
+    {
+      "path": "/api/agentos/cron",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/dealflow-ai/meetings/cron",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/apps/builds/cron",
+      "schedule": "0 7 * * *"
+    }
+  ]
+}

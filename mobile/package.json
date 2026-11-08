@@ -1,0 +1,17 @@
+{
+  "name": "selfrun-mobile",
+  "version": "1.0.0",
+  "description": "Builds the Android and iOS apps of a SelfRun Business workspace: a native shell around the company's own app, named, iconed and coloured as the company.",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "build:company": "node scripts/build-company-mobile.mjs"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2",
+    "jszip": "^3.10.2"
+  }
+}

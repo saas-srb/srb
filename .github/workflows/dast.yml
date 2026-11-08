@@ -1,0 +1,24 @@
+name: DAST (OWASP ZAP baseline)
+
+# Dynamic testing of the running site. Set the repository variable DAST_TARGET_URL (for example the staging or production address) to turn it on;
+# without it the job does nothing. A baseline scan only observes (it does not attack), so it is safe to run against production.
+on:
+  schedule:
+    - cron: "41 4 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  zap:
+    name: ZAP baseline
+    runs-on: ubuntu-latest
+    if: ${{ vars.DAST_TARGET_URL != '' }}
+    steps:
+      - uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: ${{ vars.DAST_TARGET_URL }}
+          allow_issue_writing: false
+          fail_action: false

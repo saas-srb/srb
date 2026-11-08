@@ -1,0 +1,124 @@
+// PMS + FMS demo data — clients, projects, milestones, shared documents, invoices, receipts, credit notes.
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { rng, rint, pick, chance, weighted, ago, audit, dayAgo, dayAhead, personName, slug, phone, COMPANIES, INDUSTRIES, CITIES, insertAll } from "./lib.mjs";
+
+const PROJECT_NAMES = ["Customer Portal Revamp", "Mobile Banking App", "AI Support Chatbot", "ERP Integration Suite", "Analytics Dashboard", "Inventory Management System", "E-Commerce Platform", "Booking Engine", "HR Automation Bots", "Data Warehouse Migration", "Marketing Website Rebuild", "Field Service App"];
+const MILESTONES = ["Discovery & requirements", "UX design sign-off", "Architecture & setup", "Core module build", "Integrations", "UAT & fixes", "Go-live & handover"];
+const TECH = ["React", "Next.js", "Node.js", "MongoDB", "Python", "OpenAI", "AWS", "React Native", "PostgreSQL", "Docker"];
+
+export async function seedPmsFms(db) {
+  const clients = [];
+  const projects = [];
+  const milestones = [];
+  const documents = [];
+  const invoices = [];
+  const receipts = [];
+  const creditNotes = [];
+
+  const docDir = path.join(process.cwd(), "uploads", "pms-documents");
+  await mkdir(docDir, { recursive: true });
+
+  let inv = 0;
+  let rc = 0;
+  for (const [ci, company] of COMPANIES.entries()) {
+    const cid = `demo-client-${ci + 1}`;
+    const contact = personName();
+    clients.push({
+      _id: cid, clientCode: `CL-${String(ci + 1).padStart(3, "0")}`, companyName: company, industry: pick(INDUSTRIES), website: `https://www.${slug(company).replace(/\./g, "")}.com`, status: ci % 8 === 7 ? "prospect" : "active",
+      primaryContact: { name: contact, email: `${slug(contact)}@${slug(company).replace(/\./g, "")}.com`, phone: phone(), designation: pick(["CTO", "Head of Product", "Founder", "VP Engineering", "Operations Head"]) },
+      billing: { addressLine: `${rint(10, 999)} Business Park`, city: pick(CITIES), country: "India", gstin: `29ABCDE${rint(1000, 9999)}F1Z${rint(1, 9)}`, currency: "INR", paymentTermsDays: pick([15, 30, 45]) },
+      notes: null, tags: [pick(["strategic", "enterprise", "smb", "retainer"])], ...audit(ago(rint(150, 420))),
+    });
+
+    const nProj = 2 + (ci % 3);
+    const clientProjects = [];
+    for (let p = 0; p < nProj; p++) {
+      const pid = `demo-proj-${ci + 1}-${p + 1}`;
+      const state = p === 0 ? "in_progress" : weighted([["completed", 3], ["in_progress", 3], ["review", 1], ["planning", 1], ["on_hold", 0.5]]);
+      const startAgo = state === "planning" ? -10 : rint(40, 260);
+      const durDays = rint(90, 200);
+      const budget = pick([450000, 720000, 980000, 1500000, 2200000, 3400000]);
+      const progress = state === "completed" ? 100 : state === "planning" ? rint(0, 10) : state === "review" ? rint(80, 95) : rint(20, 78);
+      const proj = {
+        _id: pid, projectCode: `PRJ-${String(ci + 1).padStart(2, "0")}${p + 1}-2026`, name: `${PROJECT_NAMES[(ci + p * 5) % PROJECT_NAMES.length]}`, clientId: cid, category: pick(["Web", "Mobile", "AI", "Integration"]),
+        description: "Delivered in agile sprints with weekly demos and milestone-based billing.", priority: pick(["medium", "high", "medium", "critical", "low"]), status: state, startDate: dayAgo(startAgo), endDate: dayAhead(durDays - startAgo),
+        estimatedBudget: budget, estimatedHours: Math.round(budget / 2200), currency: "INR", projectManagerId: null, technologies: [pick(TECH), pick(TECH), pick(TECH)], progressPercent: progress, ...audit(ago(startAgo + 5)),
+      };
+      projects.push(proj);
+      clientProjects.push(proj);
+
+      // milestones
+      const nm = rint(4, 6);
+      for (let m = 0; m < nm; m++) {
+        const frac = (m + 1) / nm;
+        const status = progress >= frac * 100 ? "completed" : progress >= (m / nm) * 100 ? "in_progress" : "pending";
+        const due = dayAhead(Math.round(durDays * frac - startAgo));
+        milestones.push({
+          _id: `demo-ms-${ci + 1}-${p + 1}-${m + 1}`, projectId: pid, name: MILESTONES[m % MILESTONES.length], description: null, dueDate: due, status, manualProgressPercent: status === "completed" ? 100 : status === "in_progress" ? rint(30, 80) : 0,
+          linkedTaskIds: [], orderKey: m + 1, completedAt: status === "completed" ? ago(Math.max(1, Math.round(startAgo - durDays * frac))) : null, ...audit(ago(startAgo)),
+        });
+      }
+
+      // shared documents (a few per project; real tiny files so downloads work)
+      for (const [cat, title] of [["proposal", "Project proposal"], ["srs", "Software requirements (SRS)"], ["design", "UX design pack"], ["testing", "UAT test report"]].slice(0, rint(2, 4))) {
+        const did = `demo-doc-${documents.length + 1}`;
+        const storageKey = `${did}.txt`;
+        await writeFile(path.join(docDir, storageKey), `${title}\nProject: ${proj.name}\nClient: ${company}\n\nDemo document generated by the Demo Company demo seeder.\n`);
+        documents.push({ _id: did, projectId: pid, rootId: did, category: cat, title: `${title} — ${proj.projectCode}`, notes: null, storageKey, filename: `${slug(title)}.txt`, contentType: "text/plain", size: 140, version: 1, supersededById: null, uploadedBy: "demo", uploadedByEmail: "pm@example.com", createdAt: ago(rint(3, 90)), deletedAt: null });
+      }
+    }
+
+    // invoices across the last ~11 months, tied to the client's projects
+    const nInv = rint(4, 8);
+    for (let k = 0; k < nInv; k++) {
+      inv++;
+      const projRef = pick(clientProjects);
+      const invDaysAgo = rint(5, 330);
+      const invDate = dayAgo(invDaysAgo);
+      const terms = 30;
+      const due = dayAhead(terms - invDaysAgo);
+      const qty = rint(1, 4);
+      const unit = pick([45000, 80000, 120000, 200000, 350000]);
+      const taxRate = 18;
+      const lineTotal = qty * unit;
+      const taxAmount = Math.round(lineTotal * (taxRate / 100));
+      const total = lineTotal + taxAmount;
+      const pastDue = due < dayAgo(0);
+      const behavior = pastDue ? weighted([["paid", 5], ["partial", 2], ["unpaid", 2]]) : weighted([["paid", 2], ["partial", 1], ["unpaid", 3]]);
+      const paid = behavior === "paid" ? total : behavior === "partial" ? Math.round(total * pick([0.3, 0.5, 0.7])) : 0;
+      const credited = chance(0.08) ? Math.round(total * 0.05) : 0;
+      const balance = total - paid - credited;
+      const status = balance <= 0.01 ? "paid" : paid > 0 ? "partially_paid" : pastDue ? "overdue" : "sent";
+      const number = `INV-2026-D${String(inv).padStart(4, "0")}`;
+      const _id = `demo-inv-${inv}`;
+      invoices.push({
+        _id, invoiceNumber: number, customerId: cid, customerName: company, projectId: projRef._id, invoiceDate: invDate, dueDate: due,
+        items: [{ description: `${projRef.name} — milestone billing`, quantity: qty, unitPrice: unit, taxRate, lineTotal, taxAmount }], discount: 0, subtotal: lineTotal, taxAmount, totalAmount: total, amountPaid: paid, amountCredited: credited, currency: "INR",
+        paymentTerms: "Net 30", poNumber: chance(0.4) ? `PO-${rint(1000, 9999)}` : null, status, notes: null, ...audit(ago(invDaysAgo)),
+      });
+      if (paid > 0) {
+        rc++;
+        receipts.push({
+          _id: `demo-rcpt-${rc}`, receiptNumber: `RCT-2026-D${String(rc).padStart(4, "0")}`, customerId: cid, customerName: company, receiptDate: new Date(Date.now() - Math.max(1, invDaysAgo - rint(3, 25)) * 86400000), amount: paid,
+          method: pick(["bank_transfer", "upi", "neft", "cheque"]), transactionReference: `UTR${rint(10000000, 99999999)}`, allocations: [{ invoiceId: _id, invoiceNumber: number, amount: paid }], advanceAmount: 0, currency: "INR", status: "completed", transactionId: null, notes: null, ...audit(ago(Math.max(1, invDaysAgo - 10))),
+        });
+      }
+      if (credited > 0) {
+        creditNotes.push({ _id: `demo-cn-${creditNotes.length + 1}`, creditNoteNumber: `CRN-2026-D${String(creditNotes.length + 1).padStart(4, "0")}`, invoiceId: _id, invoiceNumber: number, customerId: cid, customerName: company, amount: credited, reason: "Goodwill adjustment on milestone billing", status: "issued", issuedAt: ago(Math.max(1, invDaysAgo - 15)), ...audit(ago(Math.max(1, invDaysAgo - 15))) });
+      }
+    }
+  }
+
+  const wipe = (name) => db.collection(name).deleteMany({ _id: /^demo-/ });
+  for (const c of ["pms_clients", "pms_projects", "pms_milestones", "pms_documents", "fms_invoices", "fms_receipts", "fms_credit_notes"]) await wipe(c);
+  await insertAll(db.collection("pms_clients"), clients);
+  await insertAll(db.collection("pms_projects"), projects);
+  await insertAll(db.collection("pms_milestones"), milestones);
+  await insertAll(db.collection("pms_documents"), documents);
+  await insertAll(db.collection("fms_invoices"), invoices);
+  await insertAll(db.collection("fms_receipts"), receipts);
+  await insertAll(db.collection("fms_credit_notes"), creditNotes);
+  console.log(`  ✓ PMS/FMS: ${clients.length} clients, ${projects.length} projects, ${milestones.length} milestones, ${documents.length} documents, ${invoices.length} invoices, ${receipts.length} receipts, ${creditNotes.length} credit notes`);
+  return { clients, projects, milestones, invoices };
+}

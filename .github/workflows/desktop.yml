@@ -1,0 +1,164 @@
+name: Apps (desktop and mobile)
+
+# Builds a company's apps: Windows, macOS and Linux (Electron, in desktop/) and Android and iOS (Capacitor, in mobile/).
+#  - Started by the platform (a company finished onboarding, changed its name or icon, or pressed Generate): inputs build_id, origin,
+#    version, platforms and callback_url are filled in. Each platform builds an app named and iconed as that company, publishes it to a
+#    GitHub release in the public releases repository, then reports the download links back to the platform. Nobody has to do anything.
+#  - Started by hand with an "address" (a workspace name or domain): the same for desktop, without reporting back.
+#  - Started by hand with nothing filled in: the apps open straight on the platform's own app (https://app.selfrunbusiness.com, or the
+#    repository variable SELFRUN_APP_ORIGIN). Tick "generic" for the desktop app that asks for the workspace address at first start.
+#
+# Repository settings needed for the automatic flow:
+#   secrets.DESKTOP_BUILD_SECRET   same value as DESKTOP_BUILD_SECRET on the platform
+#   secrets.RELEASES_TOKEN         a token that can create releases in the releases repository
+#   vars.DESKTOP_RELEASES_REPO     `owner/repo` of the (public) releases repository
+on:
+  workflow_dispatch:
+    inputs:
+      build_id:
+        description: "Set by the platform"
+        required: false
+        default: ""
+      origin:
+        description: "Company panels address, e.g. https://acme-app.selfrunbusiness.com (set by the platform)"
+        required: false
+        default: ""
+      version:
+        description: "Version number"
+        required: false
+        default: ""
+      platforms:
+        description: "Which apps to build: win,mac,linux,android,ios (empty = desktop only for manual runs, all for the platform)"
+        required: false
+        default: ""
+      callback_url:
+        description: "Where to report progress (set by the platform)"
+        required: false
+        default: ""
+      address:
+        description: "By hand: company workspace name or domain (empty = generic desktop app)"
+        required: false
+        default: ""
+      generic:
+        description: "Desktop only: build the app that asks \"Connect your workspace\" instead of opening on the platform's app"
+        required: false
+        type: boolean
+        default: false
+      root_domain:
+        description: "Platform domain for workspace names"
+        required: false
+        default: "selfrunbusiness.com"
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+    steps:
+      - id: m
+        shell: bash
+        env:
+          WANTED: ${{ inputs.platforms }}
+          HAS_ORIGIN: ${{ inputs.origin != '' || inputs.address != '' }}
+        run: |
+          if [ -z "$WANTED" ]; then
+            WANTED="win,mac,linux,android,ios"
+          fi
+          python3 - <<PY >> "$GITHUB_OUTPUT"
+          import json, os
+          meta = {
+            "win":     {"os": "windows-latest", "dir": "desktop"},
+            "mac":     {"os": "macos-latest",   "dir": "desktop"},
+            "linux":   {"os": "ubuntu-latest",  "dir": "desktop"},
+            "android": {"os": "ubuntu-latest",  "dir": "mobile"},
+            "ios":     {"os": "macos-latest",   "dir": "mobile"},
+          }
+          wanted = [p.strip() for p in "$WANTED".split(",") if p.strip() in meta]
+          print("matrix=" + json.dumps({"include": [{"platform": p, **meta[p]} for p in wanted]}))
+          PY
+
+  build:
+    needs: plan
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 75
+    defaults:
+      run:
+        working-directory: ${{ matrix.dir }}
+    env:
+      BUILD_ID: ${{ inputs.build_id }}
+      CALLBACK_URL: ${{ inputs.callback_url }}
+      DESKTOP_BUILD_SECRET: ${{ secrets.DESKTOP_BUILD_SECRET }}
+      PLATFORM: ${{ matrix.platform }}
+      RELEASES_REPO: ${{ vars.DESKTOP_RELEASES_REPO }}
+      GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+      DIST: ${{ github.workspace }}/app-dist
+      APP_ORIGIN: ${{ vars.SELFRUN_APP_ORIGIN || 'https://app.selfrunbusiness.com' }}
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ${{ matrix.dir }}/package-lock.json
+      - name: Tell the platform the build started
+        run: node ../desktop/scripts/ci-report.mjs building
+      - uses: actions/setup-java@v4
+        if: ${{ matrix.platform == 'android' }}
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+        if: ${{ matrix.dir == 'desktop' }}
+      - run: npm install
+        if: ${{ matrix.dir == 'mobile' }}
+
+      - name: Desktop app (opens on the platform's app)
+        if: ${{ matrix.dir == 'desktop' && inputs.origin == '' && inputs.address == '' }}
+        shell: bash
+        run: |
+          if [ "${{ inputs.generic }}" != "true" ]; then
+            printf '{ "address": "%s", "appId": "com.selfrun.desktop", "built": "%s" }\n' "$APP_ORIGIN" "$(date -u +%FT%TZ)" > brand.json
+            echo "App address built in: $APP_ORIGIN"
+          fi
+          VER=()
+          if [ -n "${{ inputs.version }}" ]; then VER=(--config.extraMetadata.version="${{ inputs.version }}"); fi
+          npx electron-builder --publish never --${{ matrix.platform }} --config.directories.output="$DIST" "${VER[@]}"
+      - name: Company desktop app
+        if: ${{ matrix.dir == 'desktop' && (inputs.origin != '' || inputs.address != '') }}
+        shell: bash
+        run: |
+          if [ -n "${{ inputs.origin }}" ]; then SRC=(--origin "${{ inputs.origin }}"); else SRC=(--address "${{ inputs.address }}"); fi
+          VER=()
+          if [ -n "${{ inputs.version }}" ]; then VER=(--version "${{ inputs.version }}"); fi
+          node scripts/build-company.mjs "${SRC[@]}" "${VER[@]}" --root-domain "${{ inputs.root_domain }}" --platform ${{ matrix.platform }} --out "$DIST"
+      - name: Company mobile app
+        if: ${{ matrix.dir == 'mobile' }}
+        shell: bash
+        run: |
+          ORIGIN="${{ inputs.origin }}"
+          if [ -z "$ORIGIN" ]; then ORIGIN="$APP_ORIGIN"; fi
+          node scripts/build-company-mobile.mjs --origin "$ORIGIN" --platform ${{ matrix.platform }} --version "${{ inputs.version || '1.0.0' }}" --out "$DIST"
+
+      - name: Publish and report the download links
+        if: ${{ inputs.build_id != '' }}
+        run: node ../desktop/scripts/publish-build.mjs
+      - name: Keep the files (manual runs)
+        if: ${{ inputs.build_id == '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-${{ matrix.platform }}
+          path: |
+            app-dist/*.dmg
+            app-dist/*.zip
+            app-dist/*.exe
+            app-dist/*.AppImage
+            app-dist/*.deb
+            app-dist/*.apk
+          if-no-files-found: warn
+      - name: Tell the platform it failed
+        if: ${{ failure() && inputs.build_id != '' }}
+        run: node ../desktop/scripts/ci-report.mjs failed "The build failed. See the run log."

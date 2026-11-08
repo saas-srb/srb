@@ -1,0 +1,65 @@
+{
+  "name": "selfrun-desktop",
+  "productName": "SelfRun Business",
+  "version": "1.0.0",
+  "description": "Desktop app (Windows, macOS, Linux) for a SelfRun Business workspace. Its name, icon and colours come from the company's own settings at run time.",
+  "author": "SelfRun Business <support@selfrunbusiness.com>",
+  "homepage": "https://selfrunbusiness.com",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "src/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --publish never",
+    "build:company": "node scripts/build-company.mjs",
+    "test": "node scripts/selftest.cjs"
+  },
+  "devDependencies": {
+    "electron": "^40.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.selfrun.desktop",
+    "productName": "SelfRun Business",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "brand.json",
+      "package.json"
+    ],
+    "asar": true,
+    "mac": {
+      "category": "public.app-category.business",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "hardenedRuntime": true
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Office",
+      "maintainer": "SelfRun Business <support@selfrunbusiness.com>",
+      "syncDesktopName": true,
+      "executableName": "selfrun-desktop",
+      "icon": "build/icon.png"
+    }
+  },
+  "desktopName": "selfrun-desktop.desktop"
+}

@@ -1,0 +1,814 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+  
+  /* The active theme's supporting colours (set per company by the theme — see themeCssBlock). */
+  --color-brand-accent: var(--brand-gradient);
+  --color-brand-deep: var(--brand-deep);
+  --color-canvas: var(--canvas);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #0b1020;
+  --card: #ffffff;
+  --card-foreground: #0b1020;
+  --popover: #ffffff;
+  --popover-foreground: #0b1020;
+  --primary: #4338ca;
+  --primary-foreground: #ffffff;
+  --secondary: #eef0ff;
+  --secondary-foreground: #312e81;
+  --muted: #f3f4fa;
+  --muted-foreground: #5b6478;
+  --accent: #e6f8f1;
+  --accent-foreground: #0b6b4f;
+  --destructive: #dc2626;
+  --border: #e4e7f0;
+  --input: #e4e7f0;
+  --ring: #4338ca;
+  --radius: 0.75rem;
+  /* Supporting colours + the panels' page canvas. These are the default theme's values; every other theme
+     sets its own through the theme CSS (themeCssBlock). */
+  --brand-gradient: color-mix(in oklch, var(--primary) 72%, white);
+  --brand-deep: color-mix(in oklch, var(--primary) 50%, black);
+  --canvas: #e9ebee;
+}
+
+.dark {
+  --canvas: var(--background);
+  --background: #0b1020;
+  --foreground: #eef0ff;
+  --card: #111833;
+  --card-foreground: #eef0ff;
+  --popover: #111833;
+  --popover-foreground: #eef0ff;
+  --primary: #7c75f5;
+  --primary-foreground: #0b1020;
+  --secondary: #1d2350;
+  --secondary-foreground: #eef0ff;
+  --muted: #1a2142;
+  --muted-foreground: #a3acc9;
+  --accent: #0f3a31;
+  --accent-foreground: #a7f3d0;
+  --destructive: #f87171;
+  --border: #27305a;
+  --input: #27305a;
+  --ring: #7c75f5;
+}
+
+/* LMS panel only: dark mode's --card/--popover otherwise equal --background
+   (#1b1a1a), so cards/dropdowns have zero color separation from the page and
+   rely on shadow/blur alone. Elevate them a step for a readable, layered dark
+   surface — and tint that elevation toward the brand blue (--secondary,
+   #1D428A) so the LMS panel's dark surfaces carry the same coral+blue palette the
+   Services page does (where dark cards sit on `dark:bg-muted/10`). Scoped to
+   .lms-shell so the public site's dark mode is untouched. */
+.dark .lms-shell {
+  --card: color-mix(in oklch, var(--background) 82%, var(--secondary) 18%);
+  --popover: color-mix(in oklch, var(--background) 82%, var(--secondary) 18%);
+}
+
+/* Light mode's --border/--muted-foreground are plain cool Tailwind slate
+   (#e2e8f0 / #64748b) — barely visible on the Services page because its
+   cards sit over colorful hero/section backdrops, but exposed constantly in
+   the LMS panel's dense borders/labels, where the coldness reads as generic
+   "corporate dashboard gray". Mix a touch of --primary into each so the same
+   neutral role reads warm, scoped to .lms-shell so the public site's own
+   gray tokens are untouched.
+   --muted stays plain neutral (not warmed) — it backs FILLED surfaces
+   (loading skeletons, table row hover, badge hover) where a coral tint reads
+   as a stray pink cast rather than a neutral "not loaded yet"/"hovered" state. */
+
+/* ---------------------------------------------------------------------------
+   LMS panel theme — matches the public Services Listing page
+   (src/components/sections/ListingCard.tsx / FeaturedListingCard.tsx /
+   ListingHero.tsx / DetailCTA.tsx). Every LMS surface uses the same card
+   treatment, the same coral -> blue hover glow, and the same ambient blob
+   background the Services page does, in both Light and Dark mode.
+   --------------------------------------------------------------------------- */
+
+@layer components {
+
+/* A whisper of brand warmth layered UNDER the Services card face
+   (bg-background/90). Far lighter than the old login-hero wash — the card's
+   own translucent surface + border + shadow do the real work, exactly like a
+   ListingCard. Applied to cards, the sidebar and the topbar.
+   Light mode: flat, no gradient — dark mode keeps the wash. */
+.lms-surface {
+  background-image: none;
+}
+.dark .lms-surface {
+  background-image: linear-gradient(
+    to bottom right,
+    color-mix(in oklch, var(--primary) 3%, transparent),
+    transparent 55%,
+    color-mix(in oklch, var(--secondary) 6%, transparent)
+  );
+}
+
+/* The Services ListingHero ambient background: three brand blobs + a faint
+   grid, `mix-blend-multiply` in light and `screen` in dark. One element,
+   dropped once into the LMS workspace.
+   Light mode: off entirely — flat gray canvas, no gradient. Dark mode keeps
+   the glow since it wasn't the ask. */
+.lms-ambient {
+  display: none;
+}
+.dark .lms-ambient {
+  display: block;
+}
+.lms-ambient::before,
+.lms-ambient::after {
+  content: "";
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(120px);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+:is(.dark) .lms-ambient::before,
+:is(.dark) .lms-ambient::after {
+  mix-blend-mode: screen;
+}
+/* Light mode's page canvas is now a neutral gray (Stripe/Linear-style: gray
+   canvas + white floating cards), not white — so the same blob opacity that
+   read as a tasteful glow on a white/hero backdrop turns into a much
+   stronger `multiply`-blended pink wash on gray. Keep it as a faint whisper
+   in light mode; dark mode (`screen` blend, still on a near-black canvas)
+   keeps the fuller strength since that's already well-calibrated. */
+.lms-ambient::before {
+  top: -15%;
+  left: 12%;
+  width: 55%;
+  height: 55%;
+  background: color-mix(in oklch, var(--primary) 5%, transparent);
+  animation: blob 7s infinite;
+}
+.lms-ambient::after {
+  bottom: -20%;
+  right: 8%;
+  width: 55%;
+  height: 55%;
+  background: color-mix(in oklch, var(--color-brand-accent) 5%, transparent);
+  animation: blob 7s infinite;
+  animation-delay: 4s;
+}
+.dark .lms-ambient::before {
+  background: color-mix(in oklch, var(--primary) 15%, transparent);
+}
+.dark .lms-ambient::after {
+  background: color-mix(in oklch, var(--color-brand-accent) 15%, transparent);
+}
+.lms-ambient > .lms-ambient-mid {
+  position: absolute;
+  top: 15%;
+  right: 22%;
+  width: 45%;
+  height: 45%;
+  border-radius: 9999px;
+  background: color-mix(in oklch, var(--secondary) 5%, transparent);
+  filter: blur(120px);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  animation: blob 7s infinite;
+  animation-delay: 2s;
+}
+.dark .lms-ambient > .lms-ambient-mid {
+  background: color-mix(in oklch, var(--secondary) 15%, transparent);
+  mix-blend-mode: screen;
+}
+
+/* The Services pill/tag chip (bg-background/70 + border + rounded-full). */
+.lms-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in oklch, var(--border) 50%, transparent);
+  background: color-mix(in oklch, var(--background) 70%, transparent);
+  padding: 0.25rem 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  backdrop-filter: blur(4px);
+  transition: color 0.2s, border-color 0.2s, background-color 0.2s;
+}
+.lms-chip:hover {
+  border-color: color-mix(in oklch, var(--primary) 30%, transparent);
+  background: color-mix(in oklch, var(--primary) 5%, transparent);
+  color: var(--foreground);
+}
+
+} /* @layer components */
+
+/* Primitive nudges, scoped to the LMS shell only so the public site's
+   inputs/buttons are untouched. Radii + border tint to match the Services
+   page's softer, rounder controls; primary buttons get the same coral->coral
+   gradient + lift the site's own CTAs use (DetailCTA / FeaturedListingCard's
+   `shadow-primary/20` + `hover:scale-105`), and outline/ghost buttons get the
+   same coral hover tint as `.lms-chip` and the ListingCard highlight tags. */
+.lms-shell [data-slot="input"],
+.lms-shell [data-slot="textarea"],
+.lms-shell [data-slot="select-trigger"] {
+  border-radius: var(--radius-xl);
+  /* Plain neutral gray, not the warm coral-tinted --border used elsewhere —
+     input borders read as a stray pink cast when tinted. */
+  border-color: var(--border);
+}
+.dark .lms-shell [data-slot="input"],
+.dark .lms-shell [data-slot="textarea"],
+.dark .lms-shell [data-slot="select-trigger"] {
+  border-color: var(--border);
+}
+.lms-shell [data-slot="button"] {
+  border-radius: var(--radius-xl);
+  transition: background-color 0.2s ease, background-image 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+.lms-shell [data-slot="button"].bg-primary {
+  background-image: linear-gradient(135deg, var(--primary), var(--color-brand-accent));
+  box-shadow: 0 10px 25px -8px color-mix(in oklch, var(--primary) 50%, transparent);
+}
+.lms-shell [data-slot="button"].bg-primary:hover {
+  box-shadow: 0 14px 32px -8px color-mix(in oklch, var(--primary) 60%, transparent);
+  transform: translateY(-1px);
+}
+.lms-shell [data-slot="button"][data-variant="outline"]:hover {
+  border-color: color-mix(in oklch, var(--primary) 35%, transparent);
+  background: color-mix(in oklch, var(--primary) 6%, transparent);
+  color: var(--primary);
+}
+.lms-shell [data-slot="button"][data-variant="ghost"]:hover {
+  background: color-mix(in oklch, var(--primary) 8%, transparent);
+  color: var(--primary);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+@layer utilities {
+  .bg-grid-slate-900 {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='rgb(15 23 42 / 0.04)'%3e%3cpath d='M0 .5H31.5V32'/%3e%3c/svg%3e");
+  }
+  .dark .dark\:bg-grid-slate-400 {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='rgb(148 163 184 / 0.05)'%3e%3cpath d='M0 .5H31.5V32'/%3e%3c/svg%3e");
+  }
+  .bg-300\% {
+    background-size: 300% 300%;
+  }
+  .animate-gradient {
+    animation: gradient 8s ease infinite;
+  }
+  .animate-blob {
+    animation: blob 7s infinite;
+  }
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+}
+
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes blob {
+  0% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+/* SOP panel: print / "Save as PDF" shows only the document, not the app chrome. */
+@media print {
+  .sop-shell {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+  .sop-shell > div:last-child,
+  .sop-shell main {
+    display: block !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+  .sop-print-hide {
+    display: none !important;
+  }
+}
+
+/* Dark mode of every theme except the default (data-ui="modern"; the default theme and light mode are untouched).
+   The page is a light, theme-coloured gradient; everything that sits on it — cards, KPI tiles, tables, sidebar, top bar,
+   headers — is a clearly darker layer of the same theme, so content reads as dark panels floating on the gradient.
+   (Every color-mix uses ONE percentage: percentages summing below 100% would make the colour translucent.) */
+html[data-ui="modern"].dark {
+  --surface: color-mix(in oklch, color-mix(in oklch, var(--background) 84%, var(--secondary)) 50%, black);
+  /* The exact tone Company setup shows its sections in: the card colour at 70% over the page colour. Used for every section. */
+  --section-bg: color-mix(in oklch, var(--surface) 70%, var(--background));
+  --card: var(--surface);
+  --popover: color-mix(in oklch, var(--surface) 94%, white);
+  --chrome: color-mix(in oklch, var(--surface) 58%, black);
+  --bar: color-mix(in oklch, var(--surface) 40%, black);
+  --muted: color-mix(in oklch, var(--surface) 82%, var(--primary));
+  --border: color-mix(in oklch, color-mix(in oklch, var(--surface) 80%, white) 88%, var(--primary));
+  --input: var(--border);
+}
+html[data-ui="modern"].dark .lms-shell {
+  --card: var(--surface);
+  --popover: color-mix(in oklch, var(--surface) 94%, white);
+}
+html[data-ui="modern"].dark .bg-canvas,
+html[data-ui="modern"].dark body {
+  /* The same gradient the buttons wear (primary → brand accent), a touch deeper so light text stays readable on it. */
+  background-color: color-mix(in oklch, var(--primary) 42%, black);
+  background-image:
+    radial-gradient(60rem 34rem at 92% -8%, color-mix(in oklch, white 5%, transparent), transparent 60%),
+    linear-gradient(135deg, color-mix(in oklch, var(--primary) 42%, black), color-mix(in oklch, var(--color-brand-accent) 42%, black));
+  background-attachment: fixed;
+}
+/* Page headings and their descriptions sit straight on the gradient: pure foreground colour plus a soft shadow so they never wash out. */
+html[data-ui="modern"].dark .bg-canvas main :is(h1, h2, h3):not([data-slot] *),
+html[data-ui="modern"].dark .bg-canvas main :is(h1, h2) + p {
+  color: var(--foreground);
+  text-shadow: 0 1px 14px color-mix(in oklch, black 45%, transparent);
+}
+/* Cards, KPI tiles, tables */
+html[data-ui="modern"].dark [data-slot="card"],
+html[data-ui="modern"].dark .lms-surface {
+  background-color: var(--section-bg);
+  background-image: linear-gradient(150deg, color-mix(in oklch, white 5%, transparent), transparent 55%);
+  border-color: color-mix(in oklch, var(--primary) 20%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in oklch, white 6%, transparent), 0 18px 40px -22px black;
+}
+html[data-ui="modern"].dark [data-slot="table-container"],
+html[data-ui="modern"].dark table {
+  background-color: var(--section-bg);
+}
+html[data-ui="modern"].dark [data-slot="table-header"],
+html[data-ui="modern"].dark [data-slot="table-header"] [data-slot="table-row"],
+html[data-ui="modern"].dark [data-slot="card-header"] {
+  background-color: transparent;
+}
+/* Sidebar + top bar: the deepest layer */
+html[data-ui="modern"].dark .lms-surface.shrink-0,
+html[data-ui="modern"].dark .lms-surface:has(> header) {
+  background-color: var(--section-bg);
+  border-color: color-mix(in oklch, var(--primary) 24%, transparent);
+}
+
+/* The public website, same treatment as the panels (every theme except the default).
+   Dark: the gradient page shows between sections; everything card-like is the same dark section tone; header and footer match. */
+html[data-ui="modern"].dark body > main :is(.bg-card, [class*="bg-card/"], .bg-background, [class*="bg-background/"], [data-slot="card"]):not(section) {
+  background-color: var(--section-bg);
+  border-color: color-mix(in oklch, var(--primary) 20%, transparent);
+}
+html[data-ui="modern"].dark body > main :is(.bg-card, [class*="bg-card/"], [data-slot="card"]) {
+  background-image: linear-gradient(150deg, color-mix(in oklch, white 5%, transparent), transparent 55%);
+  box-shadow: inset 0 1px 0 color-mix(in oklch, white 6%, transparent), 0 18px 40px -22px black;
+}
+html[data-ui="modern"].dark body > main :is(h1, h2, h3):not(:is(.bg-card, [class*="bg-card/"], [data-slot="card"]) *),
+html[data-ui="modern"].dark body > main :is(h1, h2) + p {
+  text-shadow: 0 1px 14px color-mix(in oklch, black 45%, transparent);
+}
+html[data-ui="modern"].dark body > main section.bg-background,
+html[data-ui="modern"].dark body > main > div.bg-background {
+  background-color: transparent;
+}
+html[data-ui="modern"].dark body > header,
+html[data-ui="modern"].dark body > footer:not(.bg-foreground) {
+  background-color: var(--section-bg);
+  border-color: color-mix(in oklch, var(--primary) 24%, transparent);
+}
+/* Light: a soft light-gray page, with white sections letting it show and white cards on top. */
+html[data-ui="modern"]:not(.dark) body {
+  background-color: var(--canvas);
+}
+html[data-ui="modern"]:not(.dark) body > main section.bg-background,
+html[data-ui="modern"]:not(.dark) body > main > div.bg-background {
+  background-color: transparent;
+}
+
+/* Sidebar: the selected item gets a slightly stronger left-to-right fade of the theme colour (text stays as it was). */
+html[data-ui="modern"].dark aside span[class*="from-primary/15"] {
+  background-image: linear-gradient(90deg, color-mix(in oklch, var(--primary) 38%, transparent), color-mix(in oklch, var(--color-brand-accent) 8%, transparent));
+}
+
+/* Website: the FAQ and the closing "Have a project in mind?" call-to-action sit on a slightly deeper band than the page around them. */
+html[data-ui="modern"]:not(.dark) body > main :is(#faqs, [data-site-cta]) {
+  background-color: color-mix(in oklch, var(--canvas) 90%, black);
+}
+html[data-ui="modern"].dark body > main :is(#faqs, [data-site-cta]) {
+  background-color: color-mix(in oklch, var(--section-bg) 82%, black);
+}
+
+/* Indeterminate progress bar of the panel loading screen and the navigation indicator. */
+@keyframes app-loading {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(420%); }
+}
+
+/* App-opening screen: a light sweep over placeholders, a gentle rise-in, a turning ring and a fading message. */
+@keyframes skeleton-shine {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skeleton-shine {
+  background-image: linear-gradient(100deg, transparent 30%, color-mix(in oklab, var(--primary) 12%, var(--background)) 50%, transparent 70%);
+  background-size: 200% 100%;
+  animation: skeleton-shine 1.8s ease-in-out infinite;
+}
+@keyframes app-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.app-rise { animation: app-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes app-fade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.app-fade { animation: app-fade 0.35s ease-out both; }
+@keyframes app-ring { to { transform: rotate(360deg); } }
+.app-ring { animation: app-ring 0.9s linear infinite; }
+
+/* Brand splash: the mark pops in, a halo breathes, the aurora drifts slowly. */
+@keyframes app-pop {
+  0% { opacity: 0; transform: scale(0.82); }
+  60% { transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.app-pop { animation: app-pop 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes app-halo {
+  0%, 100% { opacity: 0.55; transform: scale(0.92); }
+  50% { opacity: 1; transform: scale(1.12); }
+}
+.app-halo { animation: app-halo 2.4s ease-in-out infinite; }
+@keyframes app-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(60px, 40px) scale(1.12); }
+}
+.app-drift { animation: app-drift 14s ease-in-out infinite; }
+
+/* The faint grid behind the brand splash. */
+.app-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--border) 45%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--border) 45%, transparent) 1px, transparent 1px);
+  background-size: 44px 44px;
+  -webkit-mask-image: radial-gradient(ellipse 55% 50% at 50% 50%, #000 20%, transparent 100%);
+  mask-image: radial-gradient(ellipse 55% 50% at 50% 50%, #000 20%, transparent 100%);
+}
+
+/* Brand splash extras: tilt-able tile, orbiting lights, a periodic light sweep across the logo tile. */
+.app-tile {
+  transform: perspective(500px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.18s ease-out;
+  will-change: transform;
+}
+@keyframes app-orbit { to { transform: rotate(360deg); } }
+.app-orbit { animation: app-orbit 4.5s linear infinite; }
+@keyframes app-sweep {
+  0%, 55% { transform: translateX(-130%) skewX(-18deg); }
+  100% { transform: translateX(130%) skewX(-18deg); }
+}
+.app-sweep {
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, white 55%, transparent), transparent);
+  width: 45%;
+  animation: app-sweep 3.2s ease-in-out infinite;
+}
+
+/* The cartoon runner of the app-opening screen (components/ui/RunnerLoader). One loop = 3 s: the crate slides in, the runner hops it. */
+.run-thigh, .run-shin, .run-arm, .run-forearm { transform-origin: 0 0; transform-box: view-box; animation-duration: 0.6s; animation-iteration-count: infinite; animation-timing-function: ease-in-out; }
+.run-thigh { animation-name: run-thigh; }
+.run-shin { animation-name: run-shin; }
+.run-arm { animation-name: run-arm; }
+.run-forearm { animation-name: run-forearm; }
+@keyframes run-thigh { 0%, 100% { transform: rotate(38deg); } 50% { transform: rotate(-52deg); } }
+@keyframes run-shin { 0%, 100% { transform: rotate(14deg); } 25% { transform: rotate(92deg); } 50% { transform: rotate(8deg); } 75% { transform: rotate(24deg); } }
+@keyframes run-arm { 0%, 100% { transform: rotate(-58deg); } 50% { transform: rotate(48deg); } }
+@keyframes run-forearm { 0%, 100% { transform: rotate(-78deg); } 50% { transform: rotate(-52deg); } }
+.run-bob { animation: run-bob 0.3s ease-in-out infinite; }
+@keyframes run-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3.5px); } }
+.run-jump { animation: run-jump 3s linear infinite; transform-box: view-box; }
+@keyframes run-jump {
+  0%, 50% { transform: translateY(0); animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1); }
+  59% { transform: translateY(-30px); animation-timing-function: cubic-bezier(0.7, 0, 0.8, 0.4); }
+  68%, 100% { transform: translateY(0); }
+}
+.run-shadow { transform-box: fill-box; transform-origin: center; animation: run-shadow 3s linear infinite; }
+@keyframes run-shadow { 0%, 50%, 68%, 100% { transform: scaleX(1); opacity: 1; } 59% { transform: scaleX(0.55); opacity: 0.5; } }
+.run-crate { animation: run-crate 3s linear infinite; }
+@keyframes run-crate { from { transform: translateX(350px); } to { transform: translateX(-40px); } }
+.run-ground { animation: run-ground 0.5s linear infinite; }
+@keyframes run-ground { to { stroke-dashoffset: -30; } }
+.run-dust { transform-box: fill-box; transform-origin: center; animation: run-dust 0.6s ease-out infinite; }
+@keyframes run-dust { 0% { transform: translate(0, 0) scale(0.4); opacity: 0.8; } 100% { transform: translate(-26px, -6px) scale(1.7); opacity: 0; } }
+.run-speed { animation: run-speed 0.5s linear infinite; }
+@keyframes run-speed { 0% { transform: translateX(10px); opacity: 0; } 40% { opacity: 1; } 100% { transform: translateX(-22px); opacity: 0; } }
+.run-cloud { animation: run-cloud 9s linear infinite; }
+@keyframes run-cloud { from { transform: translateX(0); } to { transform: translateX(-380px); } }
+
+/* "Lost" scene of the cartoon runner (404 / no workspace): it stands, scratches its head, wonders; the old signpost sways. */
+.run-wonder { animation: run-wonder 2.6s ease-in-out infinite; transform-box: view-box; transform-origin: 0 92px; }
+@keyframes run-wonder { 0%, 100% { transform: rotate(0deg) translateY(0); } 50% { transform: rotate(-2deg) translateY(-1.5px); } }
+.run-scratch { animation: run-scratch 0.5s ease-in-out infinite alternate; transform-origin: 0 0; transform-box: view-box; }
+@keyframes run-scratch { from { transform: rotate(-146deg); } to { transform: rotate(-158deg); } }
+.run-scratch-fore { animation: run-scratch-fore 0.5s ease-in-out infinite alternate; transform-origin: 0 0; transform-box: view-box; }
+@keyframes run-scratch-fore { from { transform: rotate(-52deg); } to { transform: rotate(-30deg); } }
+.run-wonder-q { animation: run-q 2.1s ease-out infinite; transform-box: fill-box; transform-origin: center; opacity: 0; }
+@keyframes run-q { 0% { transform: translateY(8px) scale(0.5) rotate(-12deg); opacity: 0; } 25% { opacity: 1; } 100% { transform: translateY(-34px) scale(1.15) rotate(10deg); opacity: 0; } }
+.run-sign { transform-origin: 0 92px; transform-box: view-box; animation: run-sign 3.4s ease-in-out infinite; }
+@keyframes run-sign { 0%, 100% { transform: rotate(-1.2deg); } 50% { transform: rotate(1.6deg); } }
+
+/* Cartoon runner paint: plain classes (no dependency on utility-class generation), all from the theme's tokens. */
+.rl { display: block; width: min(var(--rl-w, 22rem), 88vw); height: auto; overflow: visible; }
+.rl-f-primary { fill: var(--primary); }
+.rl-s-primary { stroke: var(--primary); }
+.rl-f-primary-10 { fill: color-mix(in oklab, var(--primary) 10%, transparent); }
+.rl-s-primary-10 { stroke: color-mix(in oklab, var(--primary) 10%, transparent); }
+.rl-f-primary-15 { fill: color-mix(in oklab, var(--primary) 15%, transparent); }
+.rl-s-primary-15 { stroke: color-mix(in oklab, var(--primary) 15%, transparent); }
+.rl-f-primary-40 { fill: color-mix(in oklab, var(--primary) 40%, transparent); }
+.rl-s-primary-40 { stroke: color-mix(in oklab, var(--primary) 40%, transparent); }
+.rl-f-primary-50 { fill: color-mix(in oklab, var(--primary) 50%, transparent); }
+.rl-s-primary-50 { stroke: color-mix(in oklab, var(--primary) 50%, transparent); }
+.rl-f-primary-60 { fill: color-mix(in oklab, var(--primary) 60%, transparent); }
+.rl-s-primary-60 { stroke: color-mix(in oklab, var(--primary) 60%, transparent); }
+.rl-f-foreground { fill: var(--foreground); }
+.rl-s-foreground { stroke: var(--foreground); }
+.rl-f-foreground-10 { fill: color-mix(in oklab, var(--foreground) 10%, transparent); }
+.rl-s-foreground-10 { stroke: color-mix(in oklab, var(--foreground) 10%, transparent); }
+.rl-f-foreground-15 { fill: color-mix(in oklab, var(--foreground) 15%, transparent); }
+.rl-s-foreground-15 { stroke: color-mix(in oklab, var(--foreground) 15%, transparent); }
+.rl-f-foreground-40 { fill: color-mix(in oklab, var(--foreground) 40%, transparent); }
+.rl-s-foreground-40 { stroke: color-mix(in oklab, var(--foreground) 40%, transparent); }
+.rl-f-foreground-50 { fill: color-mix(in oklab, var(--foreground) 50%, transparent); }
+.rl-s-foreground-50 { stroke: color-mix(in oklab, var(--foreground) 50%, transparent); }
+.rl-f-foreground-60 { fill: color-mix(in oklab, var(--foreground) 60%, transparent); }
+.rl-s-foreground-60 { stroke: color-mix(in oklab, var(--foreground) 60%, transparent); }
+.rl-f-muted-foreground { fill: var(--muted-foreground); }
+.rl-s-muted-foreground { stroke: var(--muted-foreground); }
+.rl-f-muted-foreground-10 { fill: color-mix(in oklab, var(--muted-foreground) 10%, transparent); }
+.rl-s-muted-foreground-10 { stroke: color-mix(in oklab, var(--muted-foreground) 10%, transparent); }
+.rl-f-muted-foreground-15 { fill: color-mix(in oklab, var(--muted-foreground) 15%, transparent); }
+.rl-s-muted-foreground-15 { stroke: color-mix(in oklab, var(--muted-foreground) 15%, transparent); }
+.rl-f-muted-foreground-40 { fill: color-mix(in oklab, var(--muted-foreground) 40%, transparent); }
+.rl-s-muted-foreground-40 { stroke: color-mix(in oklab, var(--muted-foreground) 40%, transparent); }
+.rl-f-muted-foreground-50 { fill: color-mix(in oklab, var(--muted-foreground) 50%, transparent); }
+.rl-s-muted-foreground-50 { stroke: color-mix(in oklab, var(--muted-foreground) 50%, transparent); }
+.rl-f-muted-foreground-60 { fill: color-mix(in oklab, var(--muted-foreground) 60%, transparent); }
+.rl-s-muted-foreground-60 { stroke: color-mix(in oklab, var(--muted-foreground) 60%, transparent); }
+.rl-f-card { fill: var(--card); }
+.rl-s-card { stroke: var(--card); }
+.rl-f-card-10 { fill: color-mix(in oklab, var(--card) 10%, transparent); }
+.rl-s-card-10 { stroke: color-mix(in oklab, var(--card) 10%, transparent); }
+.rl-f-card-15 { fill: color-mix(in oklab, var(--card) 15%, transparent); }
+.rl-s-card-15 { stroke: color-mix(in oklab, var(--card) 15%, transparent); }
+.rl-f-card-40 { fill: color-mix(in oklab, var(--card) 40%, transparent); }
+.rl-s-card-40 { stroke: color-mix(in oklab, var(--card) 40%, transparent); }
+.rl-f-card-50 { fill: color-mix(in oklab, var(--card) 50%, transparent); }
+.rl-s-card-50 { stroke: color-mix(in oklab, var(--card) 50%, transparent); }
+.rl-f-card-60 { fill: color-mix(in oklab, var(--card) 60%, transparent); }
+.rl-s-card-60 { stroke: color-mix(in oklab, var(--card) 60%, transparent); }
+.rl-f-border { fill: var(--border); }
+.rl-s-border { stroke: var(--border); }
+.rl-f-border-10 { fill: color-mix(in oklab, var(--border) 10%, transparent); }
+.rl-s-border-10 { stroke: color-mix(in oklab, var(--border) 10%, transparent); }
+.rl-f-border-15 { fill: color-mix(in oklab, var(--border) 15%, transparent); }
+.rl-s-border-15 { stroke: color-mix(in oklab, var(--border) 15%, transparent); }
+.rl-f-border-40 { fill: color-mix(in oklab, var(--border) 40%, transparent); }
+.rl-s-border-40 { stroke: color-mix(in oklab, var(--border) 40%, transparent); }
+.rl-f-border-50 { fill: color-mix(in oklab, var(--border) 50%, transparent); }
+.rl-s-border-50 { stroke: color-mix(in oklab, var(--border) 50%, transparent); }
+.rl-f-border-60 { fill: color-mix(in oklab, var(--border) 60%, transparent); }
+.rl-s-border-60 { stroke: color-mix(in oklab, var(--border) 60%, transparent); }
+
+/* Brand stage backdrop (components/ui/BrandBackdrop): drifting glows and a grid, kept as plain CSS so it never depends on utility generation. */
+.app-backdrop { pointer-events: none; position: absolute; inset: 0; overflow: hidden; }
+.app-glow { position: absolute; border-radius: 9999px; filter: blur(64px); }
+.app-glow-a { left: -6rem; top: -6rem; width: 26rem; height: 26rem; background: color-mix(in oklab, var(--primary) 20%, transparent); animation: app-drift 14s ease-in-out infinite; }
+.app-glow-b { right: -5rem; bottom: -8rem; width: 30rem; height: 30rem; background: color-mix(in oklab, var(--primary) 15%, transparent); animation: app-drift 14s ease-in-out -6s infinite reverse; }
+
+/*
+ * Reduced motion: the loading and not-found screens stay alive (the runner keeps running in place, the ring turns, the status moves on:
+ * small, contained movement) but everything that travels across the screen or jumps is switched off — the drifting glows and clouds, the
+ * orbiting lights, the hop over the crate (the crate is not drawn).
+ */
+@media (prefers-reduced-motion: reduce) {
+  .app-drift, .app-glow, .run-cloud, .app-orbit, .run-jump, .run-shadow { animation: none; }
+  .run-crate { display: none; }
+}
+
+/* Instant feedback on a click (components/pwa/NavigationProgress): a bar runs along the top and a pill at the bottom says "Opening…". */
+.app-nav-bar { pointer-events: none; position: fixed; inset: 0 0 auto 0; z-index: 10000; height: 3px; overflow: hidden; background: color-mix(in oklab, var(--primary) 12%, transparent); }
+.app-nav-bar-fill { height: 100%; width: 35%; border-radius: 9999px; background: var(--primary); animation: app-loading 1s ease-in-out infinite; }
+.app-nav-pill { pointer-events: none; position: fixed; bottom: 22px; left: 50%; z-index: 10000; display: flex; align-items: center; gap: 8px; transform: translateX(-50%); padding: 6px 14px 6px 10px; border-radius: 9999px; border: 1px solid color-mix(in oklab, var(--border) 70%, transparent); background: color-mix(in oklab, var(--card) 92%, transparent); color: var(--foreground); font-size: 12px; font-weight: 600; box-shadow: 0 8px 24px color-mix(in oklab, var(--primary) 14%, transparent); backdrop-filter: blur(8px); animation: app-nav-pill 0.25s ease-out 0.12s both; }
+.app-nav-spin { width: 14px; height: 14px; border-radius: 9999px; border: 2px solid color-mix(in oklab, var(--primary) 25%, transparent); border-top-color: var(--primary); animation: app-ring 0.7s linear infinite; }
+@keyframes app-nav-pill { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* Panel opening: the full splash on the first load, the panel's frame (sidebar + header) once the app has been on screen (see AppLoading). */
+.app-shell-wrap { display: none; }
+html[data-app-shell-seen] .app-splash-wrap { display: none; }
+html[data-app-shell-seen] .app-shell-wrap { display: block; }
+
+/* Platform maintenance: sticky banner, and the countdown tiles of the full maintenance screen (components/platform/Maintenance*). */
+.mt-banner { position: sticky; top: 0; z-index: 9990; display: flex; align-items: center; gap: 12px; padding: 8px 16px; color: var(--primary-foreground); background: linear-gradient(90deg, var(--primary), color-mix(in oklab, var(--primary) 70%, #000)); box-shadow: 0 6px 20px color-mix(in oklab, var(--primary) 25%, transparent); animation: mt-slide 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes mt-slide { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.mt-banner-icon { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; border-radius: 9999px; background: color-mix(in oklab, #fff 20%, transparent); animation: mt-wiggle 2.4s ease-in-out infinite; flex-shrink: 0; }
+@keyframes mt-wiggle { 0%, 70%, 100% { transform: rotate(0); } 78% { transform: rotate(-18deg); } 86% { transform: rotate(14deg); } 94% { transform: rotate(-8deg); } }
+.mt-banner-time { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; background: color-mix(in oklab, #000 22%, transparent); }
+.mt-banner-time b { font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+.mt-banner-dot { width: 8px; height: 8px; border-radius: 9999px; background: #fff; animation: mt-pulse 1.4s ease-in-out infinite; }
+@keyframes mt-pulse { 0%, 100% { opacity: 0.35; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.15); } }
+.mt-countdown { display: flex; align-items: flex-start; justify-content: center; gap: 8px; }
+.mt-tile { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 64px; }
+.mt-digit { display: block; width: 100%; padding: 12px 8px; border-radius: 16px; font-size: 34px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; color: var(--primary); background: color-mix(in oklab, var(--primary) 9%, var(--card)); border: 1px solid color-mix(in oklab, var(--primary) 22%, transparent); box-shadow: 0 8px 22px color-mix(in oklab, var(--primary) 12%, transparent); animation: mt-roll 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes mt-roll { from { transform: translateY(-8px) scale(0.96); opacity: 0.4; } to { transform: translateY(0) scale(1); opacity: 1; } }
+.mt-label { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted-foreground); }
+.mt-colon { padding-top: 10px; font-size: 28px; font-weight: 900; color: color-mix(in oklab, var(--primary) 55%, transparent); animation: mt-pulse 1s ease-in-out infinite; }
+@media (max-width: 480px) { .mt-tile { min-width: 54px; } .mt-digit { font-size: 28px; } .mt-banner-time { display: none; } }
+.mt-banner-float { position: fixed; top: auto; bottom: 20px; left: 50%; right: auto; width: min(760px, calc(100vw - 24px)); border-radius: 18px; transform: translateX(-50%); animation: mt-float-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes mt-float-in { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* The maintenance master switch (Platform Panel → Maintenance): a pill with a sliding knob and a LIVE / OFF label. */
+.mt-switch { position: relative; display: inline-flex; align-items: center; width: 92px; height: 40px; padding: 0 12px 0 40px; border-radius: 9999px; border: 1px solid var(--border); background: color-mix(in oklab, var(--muted) 80%, transparent); color: var(--muted-foreground); font-size: 12px; font-weight: 800; letter-spacing: 0.08em; cursor: pointer; transition: background 0.25s, border-color 0.25s, color 0.25s, padding 0.25s; flex-shrink: 0; }
+.mt-switch:disabled { opacity: 0.7; cursor: progress; }
+.mt-switch:focus-visible { outline: 2px solid color-mix(in oklab, var(--primary) 60%, transparent); outline-offset: 2px; }
+.mt-switch-knob { position: absolute; left: 4px; top: 4px; width: 30px; height: 30px; border-radius: 9999px; background: var(--card); box-shadow: 0 2px 8px rgb(0 0 0 / 0.22); transition: left 0.28s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.mt-switch-on { padding: 0 40px 0 12px; border-color: transparent; color: var(--primary-foreground); background: linear-gradient(135deg, var(--primary), color-mix(in oklab, var(--primary) 65%, #000)); box-shadow: 0 6px 18px color-mix(in oklab, var(--primary) 35%, transparent); }
+.mt-switch-on .mt-switch-knob { left: calc(100% - 34px); }
+.mt-switch-on .mt-switch-label { animation: mt-pulse 1.6s ease-in-out infinite; }
+
+/* Pricing: the price pops when the billing cycle changes; the offer badge shimmers. */
+@keyframes plan-price-pop { from { opacity: 0; transform: translateY(6px) scale(0.96); } to { opacity: 1; transform: none; } }
+.plan-price-pop { display: inline-block; animation: plan-price-pop 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.plan-offer { background-image: linear-gradient(100deg, transparent 30%, color-mix(in oklab, #fff 55%, transparent) 50%, transparent 70%); background-size: 200% 100%; animation: skeleton-shine 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .plan-price-pop, .plan-offer { animation: none; } }
+
+/* Pricing cards (components/billing/PlanShowcase): sliding switch, team-size slider, pointer spotlight, ribbon, bars. Plain CSS so it never depends on utility generation. */
+.pc-switch { position: relative; display: inline-flex; padding: 4px; border-radius: 9999px; border: 1px solid var(--border); background: color-mix(in oklab, var(--card) 85%, transparent); box-shadow: 0 4px 18px color-mix(in oklab, var(--primary) 8%, transparent); }
+.pc-switch-pill { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: 9999px; background: linear-gradient(135deg, var(--primary), color-mix(in oklab, var(--primary) 60%, #000)); box-shadow: 0 6px 16px color-mix(in oklab, var(--primary) 35%, transparent); transition: transform 0.35s cubic-bezier(0.34, 1.4, 0.64, 1); }
+.pc-switch[data-yearly="true"] .pc-switch-pill { transform: translateX(100%); }
+.pc-switch-btn { position: relative; z-index: 1; flex: 1; min-width: 7.5rem; padding: 0.55rem 1.1rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 800; color: var(--muted-foreground); transition: color 0.2s; white-space: nowrap; }
+.pc-switch-btn.is-on { color: var(--primary-foreground); }
+.pc-save { margin-left: 0.4rem; padding: 0.1rem 0.45rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 900; background: color-mix(in oklab, #10b981 22%, transparent); color: #047857; }
+.pc-switch-btn.is-on .pc-save { background: color-mix(in oklab, #fff 25%, transparent); color: inherit; }
+.pc-fit { display: grid; gap: 0.6rem; padding: 1rem 1.25rem; border-radius: 1.25rem; border: 1px solid var(--border); background: color-mix(in oklab, var(--card) 85%, transparent); }
+.pc-range { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; border-radius: 9999px; outline: none; background: linear-gradient(to right, var(--primary) var(--pc-fill, 0%), color-mix(in oklab, var(--muted) 90%, transparent) var(--pc-fill, 0%)); }
+.pc-range::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 9999px; background: var(--card); border: 3px solid var(--primary); box-shadow: 0 2px 10px color-mix(in oklab, var(--primary) 40%, transparent); cursor: grab; transition: transform 0.15s; }
+.pc-range::-webkit-slider-thumb:active { transform: scale(1.2); cursor: grabbing; }
+.pc-range::-moz-range-thumb { width: 18px; height: 18px; border-radius: 9999px; background: var(--card); border: 3px solid var(--primary); cursor: grab; }
+.pc-card { --mx: 50%; --my: 0px; position: relative; display: flex; flex-direction: column; gap: 1.1rem; padding: 1.5rem; border-radius: 1.75rem; border: 1px solid var(--border); background: color-mix(in oklab, var(--card) 92%, transparent); overflow: hidden; isolation: isolate; transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s, border-color 0.35s; }
+.pc-card::before { content: ""; position: absolute; inset: 0; z-index: -1; opacity: 0; background: radial-gradient(320px circle at var(--mx) var(--my), color-mix(in oklab, var(--primary) 16%, transparent), transparent 70%); transition: opacity 0.3s; }
+.pc-card:hover { transform: translateY(-6px); box-shadow: 0 22px 50px -22px color-mix(in oklab, var(--primary) 55%, transparent); border-color: color-mix(in oklab, var(--primary) 45%, var(--border)); }
+.pc-card:hover::before { opacity: 1; }
+.pc-card.is-popular { border-color: transparent; background: linear-gradient(var(--card), var(--card)) padding-box, linear-gradient(135deg, var(--primary), #f59e0b, var(--primary)) border-box; border: 2px solid transparent; box-shadow: 0 18px 44px -24px color-mix(in oklab, var(--primary) 60%, transparent); }
+.pc-card.is-fit { box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 35%, transparent), 0 22px 50px -24px color-mix(in oklab, var(--primary) 60%, transparent); transform: translateY(-4px); }
+.pc-card.is-current { outline: 2px solid var(--primary); outline-offset: 2px; }
+.pc-icon { display: inline-flex; width: 2.75rem; height: 2.75rem; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 1rem; color: var(--primary-foreground); background: linear-gradient(135deg, var(--primary), color-mix(in oklab, var(--primary) 55%, #000)); box-shadow: 0 8px 18px -6px color-mix(in oklab, var(--primary) 55%, transparent); transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.pc-card:hover .pc-icon { transform: rotate(-8deg) scale(1.1); }
+.pc-ribbon { position: absolute; top: 1.15rem; right: -2.4rem; transform: rotate(35deg); width: 9rem; padding: 0.2rem 0; text-align: center; font-size: 0.7rem; font-weight: 900; letter-spacing: 0.05em; color: #fff; background: linear-gradient(90deg, #059669, #10b981); box-shadow: 0 4px 10px rgb(0 0 0 / 0.18); }
+.pc-popular { position: absolute; top: 0; left: 1.5rem; display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.2rem 0.7rem; border-radius: 0 0 0.75rem 0.75rem; font-size: 0.7rem; font-weight: 900; color: var(--primary-foreground); background: var(--primary); }
+.pc-fitbadge { background: color-mix(in oklab, var(--primary) 85%, #000); }
+.pc-price { display: inline-block; font-size: 2.5rem; font-weight: 900; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.pc-price-text { font-size: 1.75rem; font-weight: 900; letter-spacing: -0.02em; line-height: 1.15; }
+.pc-per { font-size: 0.85rem; color: var(--muted-foreground); }
+.pc-was { font-size: 1.05rem; font-weight: 700; color: var(--muted-foreground); text-decoration: line-through; text-decoration-color: color-mix(in oklab, #ef4444 70%, transparent); text-decoration-thickness: 2px; }
+.pc-btn { position: relative; display: inline-flex; height: 2.9rem; align-items: center; justify-content: center; border-radius: 1rem; font-size: 0.9rem; font-weight: 800; overflow: hidden; transition: transform 0.2s, filter 0.2s, border-color 0.2s; }
+.pc-btn:active:not(:disabled) { transform: scale(0.97); }
+.pc-btn-primary { color: var(--primary-foreground); background: linear-gradient(135deg, var(--primary), color-mix(in oklab, var(--primary) 65%, #000)); box-shadow: 0 10px 22px -10px color-mix(in oklab, var(--primary) 70%, transparent); }
+.pc-btn-primary::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, color-mix(in oklab, #fff 40%, transparent) 50%, transparent 65%); transform: translateX(-120%); transition: transform 0.7s; }
+.pc-btn-primary:hover::after { transform: translateX(120%); }
+.pc-btn-ghost { border: 1px solid var(--border); }
+.pc-btn-ghost:hover:not(:disabled) { border-color: color-mix(in oklab, var(--primary) 55%, var(--border)); color: var(--primary); }
+.pc-btn-ghost:disabled { color: var(--muted-foreground); border-style: dashed; cursor: default; }
+.pc-btn-current { color: var(--primary); background: color-mix(in oklab, var(--primary) 12%, transparent); cursor: default; }
+.pc-rule { height: 1px; background: var(--border); margin: 0.1rem 0; }
+.pc-bar { height: 5px; border-radius: 9999px; background: color-mix(in oklab, var(--muted) 90%, transparent); overflow: hidden; }
+.pc-bar > span { display: block; height: 100%; border-radius: 9999px; background: linear-gradient(90deg, color-mix(in oklab, var(--primary) 70%, transparent), var(--primary)); transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
+@media (prefers-reduced-motion: reduce) { .pc-card, .pc-card:hover, .pc-card.is-fit, .pc-switch-pill, .pc-bar > span, .pc-icon, .pc-btn-primary::after { transition: none; } .pc-card:hover { transform: none; } }
+
+/* Plan & billing page (components/platform/billing/BillingManager): hero, sections, checkout and receipt. */
+.bl-hero { position: relative; overflow: hidden; padding: 1.75rem; border-radius: 1.75rem; border: 1px solid var(--border); background: color-mix(in oklab, var(--card) 92%, transparent); isolation: isolate; }
+.bl-aurora { position: absolute; inset: -40% -10% auto auto; width: 34rem; height: 22rem; z-index: -1; border-radius: 9999px; filter: blur(70px); background: radial-gradient(circle at 30% 30%, color-mix(in oklab, var(--primary) 38%, transparent), transparent 65%); animation: app-drift 16s ease-in-out infinite; }
+.bl-hero-icon { display: inline-flex; width: 3.75rem; height: 3.75rem; align-items: center; justify-content: center; border-radius: 1.25rem; color: var(--primary-foreground); background: linear-gradient(135deg, var(--primary), color-mix(in oklab, var(--primary) 55%, #000)); box-shadow: 0 14px 30px -12px color-mix(in oklab, var(--primary) 65%, transparent); }
+.bl-tile { display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; border-radius: 1.1rem; border: 1px solid var(--border); background: color-mix(in oklab, var(--card) 80%, transparent); transition: transform 0.25s, border-color 0.25s; }
+.bl-tile:hover { transform: translateY(-2px); border-color: color-mix(in oklab, var(--primary) 40%, var(--border)); }
+.bl-track { height: 8px; border-radius: 9999px; overflow: hidden; background: color-mix(in oklab, var(--muted) 90%, transparent); }
+.bl-track > span { display: block; height: 100%; border-radius: 9999px; background: linear-gradient(90deg, #38bdf8, var(--primary)); transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
+.bl-section { padding: 1.75rem; border-radius: 1.75rem; border: 1px solid var(--border); background: color-mix(in oklab, var(--card) 88%, transparent); scroll-margin-top: 1rem; }
+.bl-alert { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.7rem 0.9rem; border-radius: 0.9rem; font-size: 0.875rem; border: 1px solid transparent; }
+.bl-alert-info { background: color-mix(in oklab, var(--primary) 8%, transparent); border-color: color-mix(in oklab, var(--primary) 22%, transparent); }
+.bl-alert-warn { background: color-mix(in oklab, #f59e0b 12%, transparent); border-color: color-mix(in oklab, #f59e0b 35%, transparent); }
+.bl-alert-bad { background: color-mix(in oklab, #ef4444 9%, transparent); border-color: color-mix(in oklab, #ef4444 30%, transparent); color: #b91c1c; }
+.bl-alert-good { background: color-mix(in oklab, #10b981 10%, transparent); border-color: color-mix(in oklab, #10b981 30%, transparent); color: #047857; }
+.bl-chip { display: block; width: 100%; padding: 1rem; text-align: left; border-radius: 1.1rem; border: 1px solid var(--border); background: color-mix(in oklab, var(--card) 90%, transparent); transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.25s, box-shadow 0.25s; }
+.bl-chip:hover:not(:disabled) { transform: translateY(-3px); border-color: color-mix(in oklab, var(--primary) 50%, var(--border)); }
+.bl-chip.is-on { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 22%, transparent), 0 14px 30px -18px color-mix(in oklab, var(--primary) 60%, transparent); background: color-mix(in oklab, var(--primary) 6%, var(--card)); }
+.bl-chip:disabled { opacity: 0.5; cursor: not-allowed; }
+.bl-receipt { align-self: start; padding: 1.4rem; border-radius: 1.5rem; border: 1px dashed color-mix(in oklab, var(--primary) 40%, var(--border)); background: linear-gradient(180deg, color-mix(in oklab, var(--primary) 5%, var(--card)), var(--card)); }
+.bl-total { display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; margin-top: 0.4rem; padding-top: 0.8rem; border-top: 1px solid var(--border); font-weight: 900; }
+.bl-total > span:last-child { font-size: 1.6rem; letter-spacing: -0.02em; }
+@media (prefers-reduced-motion: reduce) { .bl-aurora, .bl-tile, .bl-chip, .bl-track > span { animation: none; transition: none; } }
+.pc-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Plan & billing: section navigator, numbered section heads, details panel. */
+.bl-nav { position: sticky; top: 0.5rem; z-index: 30; display: flex; gap: 0.35rem; overflow-x: auto; padding: 0.4rem; border-radius: 9999px; border: 1px solid var(--border); background: color-mix(in oklab, var(--card) 88%, transparent); backdrop-filter: blur(12px); box-shadow: 0 10px 30px -18px color-mix(in oklab, var(--primary) 40%, transparent); scrollbar-width: none; }
+.bl-nav::-webkit-scrollbar { display: none; }
+.bl-nav-link { display: inline-flex; align-items: center; gap: 0.5rem; flex-shrink: 0; padding: 0.45rem 0.95rem; border-radius: 9999px; font-size: 0.85rem; font-weight: 700; color: var(--muted-foreground); transition: background 0.25s, color 0.25s; }
+.bl-nav-link:hover { color: var(--foreground); }
+.bl-nav-link.is-on { color: var(--primary-foreground); background: linear-gradient(135deg, var(--primary), color-mix(in oklab, var(--primary) 60%, #000)); box-shadow: 0 6px 16px -8px color-mix(in oklab, var(--primary) 70%, transparent); }
+.bl-nav-n { display: inline-flex; width: 1.25rem; height: 1.25rem; align-items: center; justify-content: center; border-radius: 9999px; font-size: 0.7rem; font-weight: 900; background: color-mix(in oklab, currentColor 14%, transparent); }
+.bl-step { position: relative; display: inline-flex; width: 2.9rem; height: 2.9rem; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 1rem; color: var(--primary); background: color-mix(in oklab, var(--primary) 12%, transparent); border: 1px solid color-mix(in oklab, var(--primary) 25%, transparent); }
+.bl-step > i { position: absolute; top: -0.4rem; right: -0.4rem; display: inline-flex; width: 1.2rem; height: 1.2rem; align-items: center; justify-content: center; border-radius: 9999px; font-style: normal; font-size: 0.65rem; font-weight: 900; color: var(--primary-foreground); background: var(--primary); }
+.bl-section { position: relative; scroll-margin-top: 4.5rem; }
+.bl-section::before { content: ""; position: absolute; inset: 0 2rem auto 2rem; height: 3px; border-radius: 0 0 9999px 9999px; background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--primary) 60%, transparent), transparent); }
+.bl-info { display: flex; flex-direction: column; gap: 0.75rem; padding: 1.25rem; border-radius: 1.25rem; background: color-mix(in oklab, var(--primary) 6%, var(--card)); border: 1px solid color-mix(in oklab, var(--primary) 18%, var(--border)); align-self: start; }
+.bl-form { padding: 1.25rem; border-radius: 1.25rem; border: 1px solid var(--border); background: color-mix(in oklab, var(--card) 70%, transparent); }
+
+/* Pricing card refinements: a grid that always fits 5 cards without cramping, a % OFF pill, and compact service rows. */
+.pc-grid { display: grid; gap: 1.1rem; grid-template-columns: repeat(auto-fit, minmax(205px, 1fr)); align-items: stretch; }
+.pc-card { padding: 1.25rem; gap: 1rem; }
+.pc-card.has-badge { padding-top: 2.2rem; }
+.pc-off { display: inline-flex; align-items: center; padding: 0.12rem 0.5rem; border-radius: 9999px; font-size: 0.68rem; font-weight: 900; letter-spacing: 0.04em; color: #fff; background: linear-gradient(90deg, #059669, #10b981); }
+.pc-row { display: grid; grid-template-columns: 1fr auto; gap: 0.15rem 0.5rem; align-items: center; font-size: 0.8rem; }
+.pc-row .pc-bar { grid-column: 1 / -1; }
+.pc-price { font-size: 2.2rem; }
+.pc-popular { top: 0; }
+.pc-wrap { container-type: inline-size; }
+.pc-grid { grid-template-columns: minmax(0, 1fr); }
+@container (min-width: 520px) { .pc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container (min-width: 780px) { .pc-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@container (min-width: 1040px) { .pc-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+
+/* The mini-game card (components/game/RunnerGame) on the 404, no-workspace and maintenance pages. */
+.game-card { display: grid; gap: 0.85rem; width: 100%; padding: 1.1rem; border-radius: 1.5rem; border: 1px solid color-mix(in oklab, var(--border) 80%, transparent); background: color-mix(in oklab, var(--card) 82%, transparent); backdrop-filter: blur(10px); box-shadow: 0 18px 40px -26px color-mix(in oklab, var(--primary) 45%, transparent); }
+.game-stage { position: relative; border-radius: 1rem; overflow: hidden; border: 1px solid var(--border); background: linear-gradient(180deg, color-mix(in oklab, var(--primary) 5%, var(--card)), var(--card)); }
+.game-canvas { display: block; width: 100%; touch-action: manipulation; cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent; user-select: none; }
+.game-canvas:focus-visible { box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--primary) 60%, transparent); }
+.game-newbest { position: absolute; left: 50%; top: 0.9rem; transform: translateX(-50%); padding: 0.2rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 900; color: #fff; background: linear-gradient(90deg, #f59e0b, #ef4444); animation: app-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.game-chip { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.65rem; border-radius: 9999px; background: color-mix(in oklab, var(--primary) 10%, transparent); color: var(--primary); }
+.game-btn { display: inline-flex; align-items: center; gap: 0.4rem; height: 2.4rem; padding: 0 1rem; border-radius: 0.9rem; font-size: 0.85rem; font-weight: 800; border: 1px solid var(--border); transition: transform 0.15s, border-color 0.2s; }
+.game-btn:hover { border-color: color-mix(in oklab, var(--primary) 50%, var(--border)); }
+.game-btn:active { transform: scale(0.96); }
+.game-btn-primary { color: var(--primary-foreground); border-color: transparent; background: linear-gradient(135deg, var(--primary), color-mix(in oklab, var(--primary) 65%, #000)); }
+.game-input { width: 7.5rem; height: 2rem; padding: 0 0.6rem; border-radius: 0.7rem; border: 1px solid var(--border); background: var(--background); color: var(--foreground); font-size: 0.8rem; }
+.game-board { display: grid; gap: 0.35rem; }
+.game-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.7rem; border-radius: 0.8rem; font-size: 0.82rem; background: color-mix(in oklab, var(--muted) 45%, transparent); }
+.game-row.is-you { background: color-mix(in oklab, var(--primary) 12%, transparent); outline: 1px solid color-mix(in oklab, var(--primary) 35%, transparent); }
+.game-rank { display: inline-flex; width: 1.4rem; justify-content: center; font-weight: 900; color: var(--primary); }
+
+/* The game as the page's centrepiece: one wide stage with a slim bar under it (replaces the separate card). */
+.game-hero { width: 100%; overflow: hidden; border-radius: 1.75rem; border: 1px solid color-mix(in oklab, var(--border) 80%, transparent); background: color-mix(in oklab, var(--card) 85%, transparent); backdrop-filter: blur(10px); box-shadow: 0 30px 60px -34px color-mix(in oklab, var(--primary) 55%, transparent); }
+.game-hero .game-stage { border: 0; border-radius: 0; }
+.game-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 1rem; border-top: 1px solid var(--border); }
+.game-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.4rem; flex: 1; min-width: 12rem; font-size: 0.75rem; font-weight: 700; }
+.game-chip-soft { background: color-mix(in oklab, var(--muted) 60%, transparent); color: var(--foreground); }
+.game-chip-soft.is-you { background: color-mix(in oklab, var(--primary) 14%, transparent); color: var(--primary); }
+.arcade-chip { display: inline-flex; align-items: center; padding: 0.15rem 0.65rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; color: var(--primary); background: color-mix(in oklab, var(--primary) 12%, transparent); }
+.arcade-message { padding: 0.9rem 1.25rem; text-align: center; border-radius: 1.75rem; border: 1px solid color-mix(in oklab, var(--border) 80%, transparent); background: color-mix(in oklab, var(--card) 85%, transparent); backdrop-filter: blur(10px); }

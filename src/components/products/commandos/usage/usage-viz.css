@@ -1,0 +1,14 @@
+/* Usage charts: categorical slots 1–2 from the shared palette, stepped for each surface (light / dark). Status colours are fixed. */
+.usage-viz {
+  --viz-1: #2a78d6;
+  --viz-2: #eb6834;
+  --viz-1-soft: color-mix(in srgb, #2a78d6 38%, transparent);
+  --viz-good: #0ca30c;
+  --viz-warn: #fab219;
+  --viz-bad: #d03b3b;
+}
+.dark .usage-viz {
+  --viz-1: #3987e5;
+  --viz-2: #d95926;
+  --viz-1-soft: color-mix(in srgb, #3987e5 42%, transparent);
+}

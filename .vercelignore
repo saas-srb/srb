@@ -1,0 +1,5 @@
+# Not part of the web app: the desktop/mobile wrappers, docs and maintenance/test scripts. Leaving them out makes the upload and the build smaller.
+/desktop
+/mobile
+/docs
+/scripts
