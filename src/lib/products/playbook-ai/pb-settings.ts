@@ -36,6 +36,17 @@ export interface PbSettings {
   categoryRoles: Record<string, string[]>;
   /** Months a document of a type must be kept after it was issued, before it may be purged. No default period exists: nothing is retained unless the company sets it. */
   retentionMonths: { default: number | null; byType: Record<string, number | null> };
+  /** AI drafting: switch, model and the limits that keep use (and cost) under control. Every number is the company's setting. */
+  ai: AiSettings;
+}
+export interface AiSettings {
+  enabled: boolean;
+  /** The model to ask for; empty means the platform's default text model. */
+  model: string | null;
+  perUserPerMinute: number;
+  perUserPerDay: number;
+  perCompanyPerDay: number;
+  maxOutputTokens: number;
 }
 
 export const DEFAULT_SETTINGS: PbSettings = {
@@ -44,6 +55,7 @@ export const DEFAULT_SETTINGS: PbSettings = {
   legalTypes: [],
   categoryRoles: {},
   retentionMonths: { default: null, byType: {} },
+  ai: { enabled: true, model: null, perUserPerMinute: 6, perUserPerDay: 100, perCompanyPerDay: 1000, maxOutputTokens: 4000 },
 };
 
 interface Stored extends Partial<PbSettings> { _id: "main"; updatedAt?: Date; updatedBy?: string | null }
@@ -61,6 +73,7 @@ export async function getPbSettings(): Promise<PbSettings> {
     legalTypes: row.legalTypes ?? [],
     categoryRoles: row.categoryRoles ?? {},
     retentionMonths: { default: row.retentionMonths?.default ?? null, byType: row.retentionMonths?.byType ?? {} },
+    ai: { ...DEFAULT_SETTINGS.ai, ...row.ai },
   };
 }
 
@@ -158,12 +171,26 @@ export function validateSettings(input: unknown): { ok: true; value: PbSettings 
     if (!TYPE_RE.test(t)) { errors.push(`"${t}" is not a document type.`); continue; }
     retByType[t] = months(v, `Retention for ${t}`);
   }
+  const retDefault = months(ret.default, "Default retention");
+  const aiIn = (o.ai ?? {}) as Record<string, unknown>;
+  const aiInt = (k: keyof AiSettings, min: number, max: number): number => {
+    const v = aiIn[k];
+    if (v === undefined) return DEFAULT_SETTINGS.ai[k] as number;
+    if (typeof v === "number" && Number.isInteger(v) && v >= min && v <= max) return v;
+    errors.push(`AI: ${k} is a whole number from ${min} to ${max}.`);
+    return DEFAULT_SETTINGS.ai[k] as number;
+  };
+  const ai: AiSettings = {
+    enabled: aiIn.enabled === undefined ? true : typeof aiIn.enabled === "boolean" ? aiIn.enabled : (errors.push("AI: enabled must be yes or no."), true),
+    model: aiIn.model === undefined || aiIn.model === null || aiIn.model === "" ? null : typeof aiIn.model === "string" && /^[A-Za-z0-9._:-]{1,80}$/.test(aiIn.model) ? aiIn.model : (errors.push("AI: the model name is not valid."), null),
+    perUserPerMinute: aiInt("perUserPerMinute", 1, 60), perUserPerDay: aiInt("perUserPerDay", 1, 5000), perCompanyPerDay: aiInt("perCompanyPerDay", 1, 100000), maxOutputTokens: aiInt("maxOutputTokens", 500, 16000),
+  };
   if (errors.length) return { ok: false, errors };
   return {
     ok: true,
     value: {
       numbering: { default: numDefault, byType: numByType }, approval: { default: appDefault, byType: appByType },
-      legalTypes: [...new Set(legalTypes as string[])], categoryRoles, retentionMonths: { default: months(ret.default, "Default retention"), byType: retByType },
+      legalTypes: [...new Set(legalTypes as string[])], categoryRoles, retentionMonths: { default: retDefault, byType: retByType }, ai,
     },
   };
 }

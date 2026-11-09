@@ -38,16 +38,18 @@ function useCountUp(target: number, durationMs = 600) {
   return value;
 }
 
-function TrendBadge({ value }: { value: number }) {
+function TrendBadge({ value, invert = false }: { value: number; invert?: boolean }) {
   const isUp = value > 0;
   const isFlat = value === 0;
+  // `invert`: for a figure where lower is better (a rise is shown in red, a fall in green); the arrow still follows the sign.
+  const good = invert ? !isUp : isUp;
   return (
     <Badge
       className={cn(
         "h-5 px-1.5 text-[11px] font-semibold",
         isFlat
           ? "bg-muted text-muted-foreground"
-          : isUp
+          : good
             ? "bg-green-500/15 text-green-600 dark:text-green-400"
             : "bg-destructive/15 text-destructive"
       )}
@@ -65,6 +67,7 @@ export default function KpiCard({
   accent = false,
   icon,
   trend,
+  trendInvert,
   suffix,
   tone,
   format,
@@ -80,6 +83,8 @@ export default function KpiCard({
   icon?: ReactNode;
   /** Growth % vs the previous period; null means "no prior period to compare" (badge is hidden). */
   trend?: number | null;
+  /** Lower is better for this figure (for example days to sign): the badge colours a rise red and a fall green. */
+  trendInvert?: boolean;
   /** Appended after the animated number, e.g. `"%"`. Ignored for string values — format those into the string itself. */
   suffix?: string;
   /** Colors the value green/red directly — for metrics where the sign itself is the signal (e.g. ROI), distinct from `trend`'s period-over-period badge. */
@@ -120,7 +125,7 @@ export default function KpiCard({
               >
                 {displayValue}
               </p>
-              {typeof trend === "number" && <TrendBadge value={trend} />}
+              {typeof trend === "number" && <TrendBadge value={trend} invert={trendInvert} />}
             </div>
           </div>
         </CardContent>

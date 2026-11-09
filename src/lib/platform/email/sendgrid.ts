@@ -20,7 +20,12 @@ export function createSendgridEmailProvider(apiKey: string): EmailProvider {
             { type: "text/html", value: message.html },
             ...(message.calendar ? [{ type: `text/calendar; method=${message.calendar.method}; charset=UTF-8`, value: message.calendar.ics }] : []),
           ],
-          ...(message.calendar ? { attachments: [{ content: Buffer.from(message.calendar.ics, "utf8").toString("base64"), type: "application/ics", filename: "invite.ics", disposition: "attachment" }] } : {}),
+          ...(message.calendar || message.files?.length
+            ? { attachments: [
+                ...(message.calendar ? [{ content: Buffer.from(message.calendar.ics, "utf8").toString("base64"), type: "application/ics", filename: "invite.ics", disposition: "attachment" }] : []),
+                ...(message.files ?? []).map((f) => ({ content: f.content.toString("base64"), type: f.contentType, filename: f.filename, disposition: "attachment" })),
+              ] }
+            : {}),
         }),
         signal: AbortSignal.timeout(15_000),
       });

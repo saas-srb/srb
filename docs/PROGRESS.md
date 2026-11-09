@@ -12,7 +12,7 @@ How to read this: **Code done** = written and passing its own automated tests (f
 | Meetings (schedule, guests, live room, AI agents) | ~100% | 0% | real LiveKit test, browser check |
 | ViralPulse: sidebar, dashboard, posts, ads, studios, analytics | ~95% | 0% | `npm run build`, browser, UGC wizard steps 3-5 AI buttons, developer-app approvals |
 | ViralPulse: real publishing and real Meta ads | ~100% code | 0% | company developer approvals (Meta, YouTube, LinkedIn, X, Google) |
-| Playbook AI + ContractFlow rebuild | **~5%** | 0% | see below |
+| Playbook AI + ContractFlow rebuild (simple structure, plan: docs/playbook-simple-plan.md) | ~90% (P1-P10 built; P11 and some P10 details pending) | 0% | owner click-through; P11 (stamp upload, bulk send); sealing/placement details |
 
 ## Playbook AI + ContractFlow (single agent, one feature at a time)
 Plan and decisions: `docs/playbook-audit-and-plan.md` (Build log at the end is updated after every feature).
@@ -30,6 +30,16 @@ Track B: ContractFlow and handoff
 - B0 reset, B1 clone store and editor, H1 send for signature, H2 status back to Playbook
 - B2 request model, B3 OTP (email default, SMS after DLT), B4 signer experience, B5a stamp rulebook, B5b stamp certificate upload, B6 sealing and certificate
 - B7 company controls, B8 bulk send, B9 party model, B10 vault, B11 renewals and retention, B12 employee letters in TalentOS portal
+
+Playbook dashboard (new home of Playbook AI): DONE, owner click-through pending
+- `/playbook-ai/dashboard` (first item in the sidebar; `/playbook-ai` redirects to it): KPI cards with change against the previous period, created over time, signing funnel, category, department, turnaround, AI use, library vs scratch, top templates, versions, downloads, needs-attention lists, activity, team, brand status, quick actions, date range (7, 30, 90 days, this FY, custom) and CSV export.
+- Code: `src/lib/products/playbook-ai/dashboard/` (pure aggregation, ranges, CSV; `fetch.ts` for the scoped reads and a 60 second cache), `components/products/playbook-ai/dashboard/`. Test: `scripts/test-pb-dashboard.ts`.
+
+ContractFlow dashboard (own page): DONE, owner click-through pending
+- `/contractflow-ai/dashboard` is the first sidebar item and `/contractflow-ai` redirects to it. Shared kit: `src/components/dashboard-kit/` (charts and blocks used by both dashboards). Code: `src/lib/products/contractflow-ai/dashboard/`. Test: `scripts/test-cf-dashboard.ts`.
+
+Form popups as pages: DONE (owner click-through pending)
+- Send to ContractFlow, Send for signature, Void and Save as version are pages (sidebar "Current task"); previews, details, confirms and editor tools stay popups. Inventory in the Build log of `docs/playbook-simple-plan.md`.
 
 Hardening: Z1 security and tenancy, Z2 performance, Z3 legal and content review
 

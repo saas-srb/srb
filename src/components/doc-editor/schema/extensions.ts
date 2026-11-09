@@ -15,6 +15,7 @@ import { Plugin, PluginKey, type EditorState, type Transaction } from "@tiptap/p
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { liftListItem, sinkListItem, splitListItem, wrapInList } from "@tiptap/pm/schema-list";
 import { randomId } from "@/lib/products/playbook-ai/doc/ids";
+import { evalCondition } from "@/lib/products/playbook-ai/doc/variables";
 import { CALLOUT_VARIANTS, FIELD_KINDS, HIGHLIGHT_COLORS, LIST_STYLES, PARTY_ROLES, TEXT_COLORS, VARIABLE_FORMATS } from "@/lib/products/playbook-ai/doc/types";
 import { safeHref } from "@/components/doc-editor/core/links";
 import { SHORTCUTS, shortcutKeys } from "@/components/doc-editor/core/shortcuts";
@@ -147,7 +148,7 @@ export const PbTable = Table.extend({
     const colgroup = ["colgroup", {}, ...Array.from({ length: cols }, (_, i) => ["col", { style: `width:${widths.length === cols ? widths[i] : 100 / Math.max(cols, 1)}%` }])];
     return ["table", mergeAttributes(HTMLAttributes, { class: "pb-table", "data-header-row": String(node.attrs.headerRow) }), colgroup, ["tbody", 0]];
   },
-}).configure({ resizable: false, allowTableNodeSelection: true });
+}).configure({ resizable: false, View: null, allowTableNodeSelection: true });
 
 const cellAttrs = () => ({
   ...idAttr,
@@ -214,10 +215,13 @@ export const SignatureBlock = Node.create({
   parseHTML: () => [{ tag: 'div[data-type="signature"]' }],
   renderHTML({ node, HTMLAttributes }) {
     const a = node.attrs;
-    const lines: unknown[] = [["div", { class: "pb-sig-label" }, String(a.label)], ["div", { class: "pb-sig-line" }, ["span", {}, `Signature (${PARTY_LABEL[String(a.partyRole)] ?? ""})`]]];
-    if (a.showName) lines.push(["div", { class: "pb-sig-line" }, ["span", {}, "Name"]]);
-    if (a.showDesignation) lines.push(["div", { class: "pb-sig-line" }, ["span", {}, "Designation"]]);
-    if (a.showDate) lines.push(["div", { class: "pb-sig-line" }, ["span", {}, "Date"]]);
+    // The same arrangement as the PDF: the heading, then one row per field (Signature, Name, Designation, Date): the label on the left and its line to
+    // the right on the same baseline. The signature row is taller, with room to sign above the line.
+    const row = (t: string, cls = "") => ["div", { class: `pb-sig-row${cls}` }, ["span", { class: "pb-sig-rl" }, t], ["span", { class: "pb-sig-rline" }]];
+    const lines: unknown[] = [["div", { class: "pb-sig-label" }, String(a.label)], row("Signature", " pb-sig-tall")];
+    if (a.showName) lines.push(row("Name"));
+    if (a.showDesignation) lines.push(row("Designation"));
+    if (a.showDate) lines.push(row("Date"));
     return ["div", mergeAttributes(HTMLAttributes, { "data-type": "signature", class: "pb-signature" }), ...(lines as never[])];
   },
 });
@@ -448,6 +452,15 @@ export const Integrity = Extension.create({
 
 // ---- view state plugin (labels, previews, find, comments) -----------------------------------------------------------
 
+export interface ViewBreak {
+  pos: number;
+  height: number;
+  /** Position inside a paragraph (a split between lines): the spacer is inline. */
+  inline?: boolean;
+  /** A table row after which a sheet starts: the header row at this position is repeated after the spacer. */
+  repeatPos?: number;
+  side?: number;
+}
 export interface PbViewState {
   /** "template" shows {{key}}; "preview" shows the resolved value or the fallback. */
   mode: "template" | "preview";
@@ -456,32 +469,128 @@ export interface PbViewState {
   findActive: number;
   /** Block ids that have comments (host-provided): only marked, never edited here. */
   commented: ReadonlySet<string>;
+  /** Display names of variables, for the highlighted blank shown when a value is not known ("[ Effective date ]"). */
+  labels: Record<string, string>;
+  /** Page spacers computed by the sheet view (never saved). */
+  breaks: ViewBreak[];
+  /** Read-only front and back matter the export adds (title block, control table, contents, approval), rendered to markup. */
+  front: { key: string; html: string }[];
+  back: { key: string; html: string }[];
+  /** Hide the editor's own contents block (the export's standard one replaces it). */
+  hideToc: boolean;
+  /** Ids of conditional blocks the author chose to show although the export hides them. */
+  reveal: string[];
+  /** Show conditional text even when its condition does not apply. */
+  showAll: boolean;
 }
 export const viewKey = new PluginKey<PbViewState>("pbView");
-const EMPTY_VIEW: PbViewState = { mode: "template", values: {}, find: [], findActive: -1, commented: new Set() };
+const EMPTY_VIEW: PbViewState = { mode: "template", values: {}, find: [], findActive: -1, commented: new Set(), labels: {}, breaks: [], front: [], back: [], hideToc: false, reveal: [], showAll: false };
 
-export function viewDecorations(state: EditorState, view: PbViewState): DecorationSet {
+const humanize = (key: string): string => { const t = (key.split(".").pop() ?? key).replace(/_/g, " "); return t.charAt(0).toUpperCase() + t.slice(1); };
+const known = (v: unknown): boolean => v !== undefined && v !== null && String(v).trim() !== "";
+
+
+/** A view-only spacer between sheets. Inside a paragraph it is an inline block, so the text continues on the next sheet; in a table it is a row. */
+function spacerDom(br: ViewBreak, view: { nodeDOM(pos: number): unknown }, cols: number): HTMLElement {
+  const wrap = (tag: string): HTMLElement => {
+    const d = document.createElement(tag);
+    d.className = "pb-pagespacer";
+    d.setAttribute("contenteditable", "false");
+    d.setAttribute("aria-hidden", "true");
+    return d;
+  };
+  if (br.inline) { const d = wrap("span"); d.style.height = `${br.height}px`; return d; }
+  if (cols > 0) {
+    const tr = wrap("tr"); tr.className = "pb-pagespacer pb-pagespacer-row";
+    const td = document.createElement("td"); td.colSpan = cols; td.style.cssText = `height:${br.height}px;padding:0;border:0;background:transparent`;
+    tr.appendChild(td);
+    return tr;
+  }
+  const d = wrap("div"); d.style.height = `${br.height}px`; return d;
+}
+
+function repeatedHeader(pos: number, view: { nodeDOM(pos: number): unknown }): HTMLElement {
+  const src = view.nodeDOM(pos) as HTMLElement | null;
+  const row = (src && src.nodeType === 1 ? src.cloneNode(true) : document.createElement("tr")) as HTMLElement;
+  row.className = "pb-pagespacer pb-pagerepeat";
+  row.setAttribute("contenteditable", "false");
+  row.setAttribute("aria-hidden", "true");
+  row.removeAttribute("data-id");
+  return row;
+}
+
+/** A small non-printing dot in the margin outside the sheet, beside a conditional block the export would not print for the current values. */
+function conditionMarker(key: string): HTMLElement {
+  const d = document.createElement("div");
+  d.className = "pb-cond-handle";
+  d.setAttribute("contenteditable", "false");
+  const dot = document.createElement("span");
+  dot.className = "pb-cond-dot";
+  dot.textContent = "alt";
+  dot.title = `Conditional text: the export leaves it out for the current value of ${key}`;
+  d.appendChild(dot);
+  return d;
+}
+
+const hashOf = (t: string): string => { let h = 0; for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0; return String(h); };
+
+function matterDom(html: string, key: string): HTMLElement {
+  const d = document.createElement("div");
+  d.className = "pb-matter";
+  d.setAttribute("contenteditable", "false");
+  d.setAttribute("data-matter", key);
+  d.innerHTML = html;
+  return d;
+}
+
+/** A conditional block the export would not print for the known values and that the author has not chosen to show. */
+export function isHiddenConditional(n: { attrs: Record<string, unknown> }, view: PbViewState): boolean {
+  if (view.mode !== "preview" || view.showAll || Object.keys(view.values).length === 0) return false;
+  const holds = evalCondition({ key: String(n.attrs.key), op: n.attrs.op as never, value: n.attrs.value === null || n.attrs.value === undefined ? undefined : String(n.attrs.value) }, (k) => view.values[k]);
+  return !holds && !view.reveal.includes(String(n.attrs.id ?? ""));
+}
+
+function viewDecorations(state: EditorState, view: PbViewState): DecorationSet {
   const decos: Decoration[] = [];
-  const labels = clauseLabelsFromPm(state.doc);
+  const labels = clauseLabelsFromPm(state.doc, (n) => n.type.name === "conditional" && isHiddenConditional(n, view));
   state.doc.descendants((node, pos) => {
     const name = node.type.name;
     if (name === "clause" && node.attrs.numbered) {
       const l = labels.get(String(node.attrs.id));
       if (l) decos.push(Decoration.node(pos, pos + node.nodeSize, { "data-label": l }));
     } else if (name === "variable") {
+      // The value as the export will print it; a blank that is highlighted like the export's when it is not known yet.
       const key = String(node.attrs.key);
-      if (view.mode === "preview") {
-        const v = view.values[key];
-        const shown = v && v.trim() ? v : node.attrs.fallback ? String(node.attrs.fallback) : "";
-        decos.push(Decoration.node(pos, pos + 1, shown ? { "data-display": shown, class: "pb-var--resolved" } : { "data-display": `{{${key}}}`, class: "pb-var--missing" }));
-      }
-    } else if (name === "placeholder" && view.mode === "preview") {
+      const v = view.values[key];
+      const shown = known(v) ? String(v) : node.attrs.fallback ? String(node.attrs.fallback) : "";
+      decos.push(Decoration.node(pos, pos + 1, shown ? { "data-display": shown, class: "pb-var--resolved", title: key } : { "data-display": `[ ${view.labels[key] ?? humanize(key)} ]`, class: "pb-var--missing", title: key }));
+    } else if (name === "placeholder") {
       const v = view.values[String(node.attrs.key)];
-      if (v && v.trim()) decos.push(Decoration.node(pos, pos + 1, { "data-display": v, class: "pb-var--resolved" }));
+      decos.push(Decoration.node(pos, pos + 1, known(v) ? { "data-display": String(v), class: "pb-var--resolved" } : { "data-display": `[ ${String(node.attrs.label)} ]`, class: "pb-var--missing" }));
+    } else if (name === "toc" && view.hideToc) {
+      decos.push(Decoration.node(pos, pos + node.nodeSize, { class: "pb-cond-off" }));
+    } else if (name === "conditional" && Object.keys(view.values).length > 0) {
+      // The export's own evaluator. Print/Export view hides a branch that does not apply, exactly as the export does; the editing view shows ALL text
+      // and marks such a branch with a small dot in the margin outside the sheet.
+      const holds = evalCondition({ key: String(node.attrs.key), op: node.attrs.op as never, value: node.attrs.value === null || node.attrs.value === undefined ? undefined : String(node.attrs.value) }, (k) => view.values[k]);
+      if (!holds && view.mode === "preview") decos.push(Decoration.node(pos, pos + node.nodeSize, { class: "pb-cond-off" }));
+      else if (!holds) decos.push(Decoration.widget(pos, () => conditionMarker(String(node.attrs.key)), { side: -50, key: `cm-${String(node.attrs.id ?? pos)}`, ignoreSelection: true }));
     }
     if (view.commented.size && node.attrs.id && view.commented.has(String(node.attrs.id))) decos.push(Decoration.node(pos, pos + node.nodeSize, { class: "pb-commented" }));
     return true;
   });
+  const size = state.doc.content.size;
+  view.front.forEach((m, j) => decos.push(Decoration.widget(0, () => matterDom(m.html, m.key), { side: -100 + 2 * j, key: `front-${m.key}-${hashOf(m.html)}`, ignoreSelection: true })));
+  view.back.forEach((m, j) => decos.push(Decoration.widget(size, () => matterDom(m.html, m.key), { side: 50 + 2 * j, key: `back-${m.key}-${hashOf(m.html)}`, ignoreSelection: true })));
+  for (const br of view.breaks) {
+    if (br.pos < 0 || br.pos > size) continue;
+    const $p = state.doc.resolve(br.pos);
+    const inTable = !br.inline && $p.parent.type.name === "table";
+    const cols = inTable ? ($p.parent.firstChild?.childCount ?? 1) : 0;
+    const side = br.side ?? -1;
+    decos.push(Decoration.widget(br.pos, (v) => spacerDom(br, v, cols), { side, key: `pg-${br.pos}-${br.height}-${br.inline ? "i" : "b"}-${cols}`, ignoreSelection: true }));
+    if (inTable && br.repeatPos !== undefined) decos.push(Decoration.widget(br.pos, (v) => repeatedHeader(br.repeatPos as number, v), { side: side + 0.5, key: `pgr-${br.pos}-${br.repeatPos}`, ignoreSelection: true }));
+  }
   view.find.forEach((m, i) => decos.push(Decoration.inline(m.from, m.to, { class: i === view.findActive ? "pb-find pb-find-active" : "pb-find" })));
   return DecorationSet.create(state.doc, decos);
 }
@@ -497,6 +606,7 @@ export const ViewState = Extension.create({
           apply: (tr, prev) => {
             const meta = tr.getMeta(viewKey) as Partial<PbViewState> | undefined;
             let next = meta ? { ...prev, ...meta } : prev;
+            if (tr.docChanged && next.breaks.length && !meta?.breaks) next = { ...next, breaks: next.breaks.map((b) => ({ ...b, pos: tr.mapping.map(b.pos), repeatPos: b.repeatPos === undefined ? undefined : tr.mapping.map(b.repeatPos) })) };
             if (tr.docChanged && next.find.length && !meta?.find) next = { ...next, find: next.find.map((m) => ({ from: tr.mapping.map(m.from), to: tr.mapping.map(m.to) })).filter((m) => m.to > m.from) };
             return next;
           },

@@ -31,6 +31,8 @@ export interface RequestDoc {
   updatedAt: Date;
   voidedAt: Date | null;
   voidReason: string | null;
+  /** Hash of the clone content the signers were shown (the clone's frozen hash when the request was made). Null when the clone is not in this store. */
+  contentSha256?: string | null;
 }
 
 export interface SignerDoc {
@@ -56,6 +58,16 @@ export interface SignerDoc {
   otpVerifiedAt?: Date | null;
   /** While set and in the future, no code can be requested or checked for this signer (too many wrong codes). */
   otpLockedUntil?: Date | null;
+  /** When the signer first opened the document itself (B4). Signing needs it. */
+  documentViewedAt?: Date | null;
+  /** What the signer typed as the name they sign under, and their role or title. */
+  signedName?: string | null;
+  designation?: string | null;
+  signature?: SignatureArtefact | null;
+  /** The consent the signer accepted (version and hash of the exact text shown). */
+  consent?: { version: string; textSha256: string; at: Date } | null;
+  /** The content hash the signer signed. */
+  signedContentSha256?: string | null;
   createdAt: Date;
   /** Set by the public resolver; the row's company, read back so nothing downstream trusts the host. */
   companyId?: string;
@@ -69,6 +81,7 @@ export const EVENT_TYPES = [
   "link_rejected",
   "request_voided",
   "request_expired",
+  "document_viewed",
   "otp_sent",
   "otp_verified",
   "otp_failed",
@@ -133,4 +146,16 @@ export interface DltDetails {
   confirmed: boolean;
   confirmedBy: string | null;
   confirmedAt: Date | null;
+}
+
+export interface SignatureArtefact {
+  kind: "drawn" | "typed" | "uploaded";
+  /** Private storage key of the PNG (drawn and uploaded). Never served by a public URL. */
+  storageKey: string | null;
+  sha256: string | null;
+  widthPx: number | null;
+  heightPx: number | null;
+  /** Typed signatures: the text and the style key chosen. */
+  typedText: string | null;
+  style: string | null;
 }

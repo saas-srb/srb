@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Calendar, Filter, RotateCcw, Search, Sparkles } from "lucide-react";
 
@@ -25,12 +25,23 @@ const INPUT = "w-full rounded-xl border border-border/50 bg-background px-3 py-2
  * quick date presets, then one control per field. URL-driven — each field writes its own `key` query param, and the
  * presets write `from` / `to` — so the server page reads the values from `searchParams`.
  */
+export interface PanelRangeChips {
+  /** Query parameter that carries the chosen range (default `range`). */
+  param?: string;
+  options: readonly { value: string; label: string }[];
+  /** The range used when the parameter is absent. */
+  defaultValue: string;
+  /** The option that shows the two date inputs (writes `from` and `to`). */
+  customValue?: string;
+}
+
 export default function PanelFilterBar({
   title = "Search & Filters",
   description = "Refine the dashboard by date range and parameters in real time",
   fields,
   presets,
   trailing,
+  ranges,
 }: {
   title?: string;
   description?: string;
@@ -39,6 +50,8 @@ export default function PanelFilterBar({
   presets?: boolean;
   /** Extra actions in the card's header, next to Reset (e.g. an Export link). */
   trailing?: React.ReactNode;
+  /** Named range chips (Today, Last 7 Days ...) that write one query parameter; "custom" shows two date inputs. */
+  ranges?: PanelRangeChips;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -46,7 +59,11 @@ export default function PanelFilterBar({
   const [pending, start] = useTransition();
   const [text, setText] = useState<Record<string, string>>(() => Object.fromEntries(fields.filter((f) => f.type === "search").map((f) => [f.key, params.get(f.key) ?? ""])));
 
-  const showPresets = presets ?? (fields.some((f) => f.key === "from") && fields.some((f) => f.key === "to"));
+  const rangeParam = ranges?.param ?? "range";
+  const rangeNow = ranges ? params.get(rangeParam) || ranges.defaultValue : null;
+  const showPresets = !ranges && (presets ?? (fields.some((f) => f.key === "from") && fields.some((f) => f.key === "to")));
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   const active = fields.filter((f) => params.get(f.key)).length;
 
   function set(updates: Record<string, string | null>) {
@@ -87,6 +104,21 @@ export default function PanelFilterBar({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {ranges && (
+            <div role="group" aria-label="Date range" className="flex flex-wrap items-center gap-1 rounded-xl border border-border/40 bg-muted/30 p-1 text-xs">
+              {ranges.options.map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  aria-pressed={rangeNow === o.value}
+                  onClick={() => set(o.value === ranges.customValue ? { [rangeParam]: o.value } : { [rangeParam]: o.value === ranges.defaultValue ? null : o.value, from: null, to: null })}
+                  className={`rounded-lg px-2.5 py-1 font-medium transition-colors ${rangeNow === o.value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-primary/10 hover:text-primary"}`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          )}
           {showPresets && (
             <div className="flex items-center gap-1 rounded-xl border border-border/40 bg-muted/30 p-1 text-xs">
               {PRESETS.map((p) => (
@@ -102,12 +134,13 @@ export default function PanelFilterBar({
               type="button"
               onClick={() => {
                 setText({});
-                start(() => router.replace(pathname, { scroll: false }));
+                if (ranges) set(Object.fromEntries(fields.map((f) => [f.key, null])));
+                else start(() => router.replace(pathname, { scroll: false }));
               }}
               className="flex items-center gap-1.5 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-1.5 text-xs font-medium text-rose-600 transition-all hover:bg-rose-500/20 dark:text-rose-400"
             >
               <RotateCcw className="size-3.5" />
-              Reset Filters
+              {ranges ? "Clear filters" : "Reset Filters"}
             </button>
           )}
         </div>
@@ -137,7 +170,7 @@ export default function PanelFilterBar({
                   maxLength={80}
                   placeholder={f.placeholder ?? `Search ${f.label.toLowerCase()}…`}
                   value={text[f.key] ?? ""}
-                  onChange={(e) => setText((t) => ({ ...t, [f.key]: e.target.value }))}
+                  onChange={(e) => { const v = e.target.value; setText((t) => ({ ...t, [f.key]: v })); if (timer.current) clearTimeout(timer.current); timer.current = setTimeout(() => set({ [f.key]: v }), 450); }}
                   onBlur={() => set({ [f.key]: text[f.key] ?? "" })}
                   className={INPUT}
                 />
@@ -156,6 +189,12 @@ export default function PanelFilterBar({
             </div>
           );
         })}
+        {ranges?.customValue && rangeNow === ranges.customValue && (["from", "to"] as const).map((k) => (
+          <div key={k}>
+            <label htmlFor={`pf-${k}`} className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><Calendar className="size-3.5 text-primary" />{k === "from" ? "From" : "To"}</label>
+            <input id={`pf-${k}`} type="date" value={params.get(k) ?? ""} onChange={(e) => set({ [k]: e.target.value })} className={INPUT} />
+          </div>
+        ))}
         <button type="submit" className="sr-only">Apply</button>
       </form>
     </div>

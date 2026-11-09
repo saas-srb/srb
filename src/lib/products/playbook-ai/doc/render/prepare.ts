@@ -6,6 +6,7 @@ import { allBlocks, countBlocks, walkBlocks } from "@/lib/products/playbook-ai/d
 import { clauseLabels } from "@/lib/products/playbook-ai/doc/numbering";
 import { formatIsoDateIndia } from "@/lib/products/playbook-ai/doc/format";
 import { buildTokens, type RenderBrand, type StyleTokens } from "@/lib/products/playbook-ai/doc/render/tokens";
+import { BRAND_LOGO_ID } from "@/lib/products/playbook-ai/doc/layout";
 import { IMAGE_LIMITS, sniffImage, type ImageAsset } from "@/lib/products/playbook-ai/doc/render/images";
 
 /**
@@ -61,6 +62,8 @@ export interface Prepared {
   watermark: string | null;
   images: Map<string, ImageAsset>;
   logo: { asset: ImageAsset; align: "left" | "center" | "right"; widthMm: number } | null;
+  /** The identity block carries the logo and page 1 has no running header. */
+  identity: boolean;
   toc: TocEntry[];
   /** Levels the table of contents shows (from the document's `toc` block), or 0 when there is none. */
   tocLevels: number;
@@ -159,6 +162,7 @@ export function estimatePages(doc: PBDoc, tokens: StyleTokens, images: Map<strin
         case "image": { const a = images.get(b.fileId); mm += a ? imageSizeMm(a, b.widthPct, tokens).heightMm + 3 : 0; break; }
         case "callout": mm += 4; walk(b.content); break;
         case "signatureBlock": mm += 38; break;
+        case "letterhead": mm += 32; break;
         case "spacer": mm += b.heightMm; break;
         case "divider": mm += 3; break;
         case "toc": mm += 40; break;
@@ -225,10 +229,11 @@ export function prepareRender(input: PBDoc, opts: RenderOptions): Prepared {
   const images = new Map<string, ImageAsset>();
   let total = 0;
   const wanted = new Set<string>();
-  for (const b of allBlocks(doc)) if (b.type === "image") wanted.add(b.fileId);
+  for (const b of allBlocks(doc)) { if (b.type === "image") wanted.add(b.fileId); else if (b.type === "letterhead" && b.logoFileId) wanted.add(b.logoFileId); }
   if (wanted.size > IMAGE_LIMITS.maxImages) reasons.push({ code: "image", detail: `more than ${IMAGE_LIMITS.maxImages} images` });
   for (const id of wanted) {
-    const raw = opts.images?.[id];
+    const raw = id === BRAND_LOGO_ID ? opts.brand?.logo?.bytes : opts.images?.[id];
+    if (!raw && id === BRAND_LOGO_ID) continue; // the brand logo file is missing: the block is simply not drawn
     if (!raw) { reasons.push({ code: "image", detail: `image ${id} was not provided` }); continue; }
     const s = sniffImage(raw);
     if (!s.ok) { reasons.push({ code: "image", detail: `image ${id}: ${s.reason}` }); continue; }
@@ -236,12 +241,8 @@ export function prepareRender(input: PBDoc, opts: RenderOptions): Prepared {
     images.set(id, s.asset);
   }
   if (total > IMAGE_LIMITS.maxTotalBytes) reasons.push({ code: "image", detail: `images total more than ${IMAGE_LIMITS.maxTotalBytes / 1024 / 1024} MB` });
-  let logo: Prepared["logo"] = null;
-  if (opts.brand?.logo) {
-    const s = sniffImage(opts.brand.logo.bytes);
-    if (s.ok) logo = { asset: s.asset, align: opts.brand.logo.align, widthMm: Math.min(Math.max(opts.brand.logo.widthMm, 10), 80) };
-    else reasons.push({ code: "image", detail: `logo: ${s.reason}` });
-  }
+  // The logo is printed by the company details block (an image block); there is no header logo any more.
+  const logo = null as Prepared["logo"];
   if (reasons.length) throw new RenderBlockedError("An image in the document cannot be used.", reasons);
 
   const tokens = buildTokens(doc.page, opts.brand);
@@ -267,7 +268,7 @@ export function prepareRender(input: PBDoc, opts: RenderOptions): Prepared {
   const warnings: string[] = [];
   if (estimatedPages > RENDER_LIMITS.warnEstimatedPages) warnings.push(`This is a long document (about ${estimatedPages} pages); exporting it may take a minute.`);
   const g = tokens.page;
-  if ((opts.brand?.letterhead ?? "all") !== "none" && estimateZoneMm(doc.header, images, tokens) + (logo ? (logo.widthMm * logo.asset.heightPx) / logo.asset.widthPx : 0) > g.headerHeightMm + 0.5) {
+  if ((opts.brand?.letterhead ?? "all") !== "none" && estimateZoneMm(doc.header, images, tokens) > g.headerHeightMm + 0.5) {
     warnings.push("The header is taller than its reserved zone; body text will start lower on every page.");
   }
   if (estimateZoneMm(doc.footer, images, tokens) > g.footerHeightMm + 0.5) warnings.push("The footer is taller than its reserved zone and may crowd the body text.");
@@ -276,7 +277,7 @@ export function prepareRender(input: PBDoc, opts: RenderOptions): Prepared {
   // A document with gaps is never exported as if it were final: it always carries a watermark.
   const watermark = opts.watermark && opts.watermark.trim() ? opts.watermark : hasGaps ? "DRAFT" : null;
   return {
-    doc, tokens, meta: opts.meta, watermark: watermark && watermark.trim() ? watermark.trim().slice(0, 24).toUpperCase() : null, images, logo, toc, tocLevels,
+    doc, tokens, meta: opts.meta, watermark: watermark && watermark.trim() ? watermark.trim().slice(0, 24).toUpperCase() : null, images, logo, toc, tocLevels, identity: !!opts.brand?.identity,
     clauseLabels: clauseLabels(doc.body), flagged, warnings, footerText: opts.brand?.footerText?.trim() || null, letterhead: opts.brand?.letterhead ?? "all", estimatedPages,
   };
 }

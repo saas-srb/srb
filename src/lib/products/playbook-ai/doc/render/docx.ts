@@ -1,3 +1,4 @@
+import { groupSignatureRows } from "@/lib/products/playbook-ai/doc/signature-rows";
 import "server-only";
 import { createHash } from "node:crypto";
 import JSZip from "jszip";
@@ -290,32 +291,74 @@ function calloutBlock(c: Ctx, b: Extract<AnyBlock, { type: "callout" }>): Table 
   });
 }
 
-function signatureBlock(c: Ctx, b: Extract<AnyBlock, { type: "signatureBlock" }>): Paragraph[] {
+function signatureBlock(c: Ctx, b: Extract<AnyBlock, { type: "signatureBlock" }>, width?: number): Paragraph[] {
   const t = c.t;
-  const rightIndent = Math.round(t.page.textWidthTwips * 0.38);
-  const lineEnd = t.page.textWidthTwips - rightIndent;
+  const w = width ?? t.page.textWidthTwips;
+  const rightIndent = width ? Math.round(w * 0.1) : Math.round(w * 0.38);
+  const lineEnd = w - rightIndent;
   const out: Paragraph[] = [];
   out.push(new Paragraph({ children: [new TextRun({ text: b.label, bold: true })], keepNext: true, keepLines: true, spacing: { before: TW(8), after: 0 }, ...(takeBreak(c) ? { pageBreakBefore: true } : {}) }));
-  out.push(new Paragraph({
-    children: [], keepNext: true, keepLines: true,
-    spacing: { before: 0, after: 0, line: mmToTwips(t.signatureGapMm), lineRule: LineRuleType.EXACT },
-    indent: { right: rightIndent },
-    border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: hex(t.colors.text), space: 1 } },
-  }));
-  const rows: [string, boolean][] = [["Name", b.showName], ["Designation", b.showDesignation], ["Date", b.showDate]];
+  // Every field is one row: the label, then a line to the right edge on the same baseline. The signature row has room above its line to sign.
+  const rows: [string, boolean][] = [["Signature", true], ["Name", b.showName], ["Designation", b.showDesignation], ["Date", b.showDate]];
   const active = rows.filter(([, on]) => on);
-  out.push(new Paragraph({ children: [new TextRun({ text: "Signature", size: HALF(t.basePt - 1.5), color: hex(t.colors.muted) })], keepNext: active.length > 0, spacing: { before: 20, after: 40 } }));
   active.forEach(([label], i) => {
     out.push(new Paragraph({
       keepNext: i < active.length - 1,
       keepLines: true,
-      spacing: { before: TW(6), after: 0 },
+      spacing: { before: label === "Signature" ? mmToTwips(t.signatureGapMm) - TW(12) : TW(6), after: 0 },
       tabStops: [{ type: TabStopType.LEFT, position: mmToTwips(24) }, { type: TabStopType.RIGHT, position: lineEnd, leader: LeaderType.UNDERSCORE }],
       children: [new TextRun({ text: label, size: HALF(t.basePt - 1), color: hex(t.colors.muted) }), new TextRun({ children: [new Tab(), new Tab()] })],
     }));
   });
   out.push(new Paragraph({ children: [], spacing: { before: 0, after: TW(10) } }));
   return out;
+}
+
+/** Two signature blocks side by side (borderless columns); the row stays on one page. */
+function signatureRowTable(c: Ctx, blocksIn: Extract<AnyBlock, { type: "signatureBlock" }>[]): Table {
+  const none = { style: BorderStyle.NONE, size: 0, color: "auto" };
+  const total = c.t.page.textWidthTwips;
+  const half = Math.floor(total / 2);
+  const cell = (b: Extract<AnyBlock, { type: "signatureBlock" }> | undefined) => new TableCell({
+    width: { size: half, type: WidthType.DXA }, margins: { top: 0, bottom: 0, left: 0, right: 120 }, borders: { top: none, bottom: none, left: none, right: none },
+    children: b ? signatureBlock(c, b, half - 120) : [new Paragraph({ children: [] })],
+  });
+  return new Table({
+    width: { size: half * 2, type: WidthType.DXA }, columnWidths: [half, half], layout: TableLayoutType.FIXED,
+    borders: { top: none, bottom: none, left: none, right: none, insideHorizontal: none, insideVertical: none },
+    rows: [new TableRow({ cantSplit: true, children: [cell(blocksIn[0]), cell(blocksIn[1])] })],
+  });
+}
+
+/** The company details block: two borderless columns (brand side: logo, name, address; details side: "Label: value" lines). */
+function letterheadTable(c: Ctx, b: Extract<AnyBlock, { type: "letterhead" }>): Table {
+  const t = c.t;
+  const none = { style: BorderStyle.NONE, size: 0, color: "auto" };
+  const right = b.align === "right";
+  const total = t.page.textWidthTwips;
+  const detailW = b.details.length ? Math.min(mmToTwips(62), Math.round(total * 0.45)) : 0;
+  const brandW = total - detailW;
+  const asset = b.logoFileId ? c.p.images.get(b.logoFileId) : undefined;
+  const al = right ? AlignmentType.RIGHT : AlignmentType.LEFT;
+  const brandKids: Paragraph[] = [];
+  if (asset && b.logoWidthMm) brandKids.push(imageParagraph(c, asset, b.logoWidthMm, (b.logoWidthMm * asset.heightPx) / asset.widthPx, right ? "right" : "left", "Company logo", "logo"));
+  if (b.name) brandKids.push(new Paragraph({ alignment: al, spacing: { before: 0, after: 20 }, children: [new TextRun({ text: b.name, bold: true, size: HALF(14), color: hex(t.colors.primary) })] }));
+  for (const l of b.address) brandKids.push(new Paragraph({ alignment: al, spacing: { before: 0, after: 0 }, children: [new TextRun({ text: l, size: HALF(t.basePt - 1.5), color: hex(t.colors.muted) })] }));
+  if (!brandKids.length) brandKids.push(new Paragraph({ children: [] }));
+  const detailKids: Paragraph[] = b.details.map((d) => new Paragraph({
+    alignment: right ? AlignmentType.LEFT : AlignmentType.RIGHT, spacing: { before: 0, after: 10 },
+    children: [new TextRun({ text: `${d.label}: `, size: HALF(t.basePt - 2.5), color: hex(t.colors.muted) }), new TextRun({ text: d.value, size: HALF(t.basePt - 1.5) })],
+  }));
+  const cell = (w: number, kids: Paragraph[]) => new TableCell({ width: { size: w, type: WidthType.DXA }, margins: { top: 0, bottom: 0, left: 0, right: 0 }, borders: { top: none, bottom: none, left: none, right: none }, children: kids });
+  const cells = b.details.length ? (right ? [cell(detailW, detailKids), cell(brandW, brandKids)] : [cell(brandW, brandKids), cell(detailW, detailKids)]) : [cell(total, brandKids)];
+  const widths = b.details.length ? (right ? [detailW, brandW] : [brandW, detailW]) : [total];
+  return new Table({
+    width: { size: total, type: WidthType.DXA },
+    columnWidths: widths,
+    layout: TableLayoutType.FIXED,
+    borders: { top: none, bottom: none, left: none, right: none, insideHorizontal: none, insideVertical: none },
+    rows: [new TableRow({ cantSplit: true, children: cells })],
+  });
 }
 
 function imageParagraph(c: Ctx, asset: { bytes: Buffer; mime: string; widthPx: number; heightPx: number }, wMm: number, hMm: number, align: "left" | "center" | "right", alt: string, name: string): Paragraph {
@@ -331,7 +374,7 @@ function imageParagraph(c: Ctx, asset: { bytes: Buffer; mime: string; widthPx: n
 function blocks(c: Ctx, list: readonly AnyBlock[], opts: { small?: boolean } = {}): Out[] {
   const out: Out[] = [];
   const t = c.t;
-  for (const b of list) {
+  for (const b of groupSignatureRows(list)) {
     // A page break is carried by the next paragraph-like block; anything else gets a zero-height paragraph that carries it.
     if (c.pendingBreak && !["paragraph", "heading", "clause", "pageBreak", "section", "conditional", "repeat"].includes(b.type)) {
       out.push(new Paragraph({ children: [], pageBreakBefore: true, spacing: { before: 0, after: 0, line: 20, lineRule: LineRuleType.EXACT } }));
@@ -352,7 +395,9 @@ function blocks(c: Ctx, list: readonly AnyBlock[], opts: { small?: boolean } = {
         break;
       }
       case "callout": out.push(calloutBlock(c, b), new Paragraph({ children: [], spacing: { before: 0, after: TW(6) } })); break;
-      case "signatureBlock": out.push(...signatureBlock(c, b)); break;
+      case "signatureBlock": break; // always inside a row (see groupSignatureRows)
+      case "signatureRow": out.push(signatureRowTable(c, b.blocks as Extract<AnyBlock, { type: "signatureBlock" }>[]), new Paragraph({ children: [], spacing: { before: 0, after: TW(4) } })); break;
+      case "letterhead": out.push(letterheadTable(c, b), new Paragraph({ children: [], spacing: { before: 0, after: TW(2) } })); break;
       case "pageBreak": c.pendingBreak = true; break;
       case "divider": out.push(new Paragraph({ children: [], spacing: { before: 60, after: 60 }, border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: hex(t.colors.rule), space: 1 } } })); break;
       case "spacer": out.push(new Paragraph({ children: [], spacing: { before: 0, after: 0, line: Math.max(20, mmToTwips(b.heightMm)), lineRule: LineRuleType.EXACT } })); break;
@@ -542,12 +587,17 @@ export async function renderDocx(doc: PBDoc, opts: DocxOptions): Promise<DocxRes
   const hdr = (kids: Out[]) => (kids.length ? new Header({ children: kids as Paragraph[] }) : emptyHeader());
   const hasFooter = p.doc.footer.length > 0 || !!p.footerText;
   const wmOnly = watermarkKids();
-  const headers = scope === "first"
+  const compactKids = (): Out[] => zoneChildren(c, p.doc.header);
+  const headers = p.identity
+    ? (scope === "all" && p.doc.header.length
+        ? { first: hdr(wmOnly), default: hdr([...watermarkKids(), ...compactKids()]) }
+        : wmOnly.length ? { default: hdr(wmOnly) } : undefined)
+    : scope === "first"
     ? { first: hdr([...watermarkKids(), ...letterheadKids()]), default: hdr(wmOnly) }
     : (wmOnly.length || p.doc.header.length || p.logo) && scope === "all"
       ? { default: hdr([...watermarkKids(), ...letterheadKids()]) }
       : wmOnly.length ? { default: hdr(wmOnly) } : undefined;
-  const footers = !hasFooter ? undefined : scope === "first"
+  const footers = !hasFooter ? undefined : scope === "first" || (p.identity && scope === "all")
     ? { first: new Footer({ children: footerKids() as Paragraph[] }), default: new Footer({ children: footerKids() as Paragraph[] }) }
     : { default: new Footer({ children: footerKids() as Paragraph[] }) };
 
@@ -563,7 +613,7 @@ export async function renderDocx(doc: PBDoc, opts: DocxOptions): Promise<DocxRes
     fonts: embeddedFonts(embed, t),
     sections: [{
       properties: {
-        ...(scope === "first" ? { titlePage: true } : {}),
+        ...(scope === "first" || (p.identity && scope === "all" && p.doc.header.length) ? { titlePage: true } : {}),
         page: {
           size: { width: t.page.widthTwips, height: t.page.heightTwips, orientation: p.doc.page.orientation === "landscape" ? "landscape" : "portrait" } as never,
           margin: { top: mmToTwips(m.top), right: mmToTwips(m.right), bottom: mmToTwips(m.bottom), left: mmToTwips(m.left), header: mmToTwips(g.headerTopMm), footer: mmToTwips(g.footerBottomMm) },

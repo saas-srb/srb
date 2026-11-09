@@ -16,6 +16,7 @@ import { getDocument, attachSealedExport } from "@/lib/products/playbook-ai/docu
 import { getVersionByNumber } from "@/lib/products/playbook-ai/versions";
 import { loadVariableValues } from "@/lib/products/playbook-ai/variables-adapters";
 import { indiaDateParts } from "@/lib/products/playbook-ai/variables-registry";
+import { layoutInputFor } from "@/lib/products/playbook-ai/items-layout";
 import { recordPbAudit } from "@/lib/products/playbook-ai/pb-audit";
 import type { PbActor, PbDocumentRecord, PbError, PbResult, PbVersionRecord, TemplateRef } from "@/lib/products/playbook-ai/documents-types";
 
@@ -259,7 +260,7 @@ async function sealedFile(actor: PbActor, d: PbDocumentRecord, v: PbVersionRecor
   const rendered = await guarded(async () => {
     const input = await buildRenderInput(actor, d, v, true);
     const brand = await loadBrand();
-    const doc = applyBrandToDoc(input.doc, brand.settings, input.values, { docNumber: input.docNumber });
+    const doc = applyBrandToDoc(input.doc, brand.settings, input.values, { docNumber: input.docNumber, layout: layoutInputFor({ kind: d.kind, title: input.title, docTypeId: d.docTypeId, docNumber: input.docNumber, meta: d.meta, version: v.number, authorName: v.authorName, dateIso: input.dateIso }) });
     return renderNow(format, doc, {
       meta: { title: input.title, docNumber: input.docNumber ?? "", version: String(v.number), dateIso: input.dateIso },
       values: input.values, lists: input.lists, images: await imageLoader(doc), brand: brandRenderOptions(brand), watermark: null,
@@ -284,8 +285,9 @@ async function liveFile(actor: PbActor, d: PbDocumentRecord, v: PbVersionRecord 
     const input = await buildRenderInput(actor, d, v, false);
     const brand = await loadBrand();
     // Never an unmarked copy: a document that is not issued is a draft, whatever its status, and unreviewed legal wording says so.
-    const watermark = brandWatermark(brand.settings, reviewed === false ? "unreviewed" : "draft") ?? (reviewed === false ? "UNREVIEWED" : "DRAFT");
-    const doc = applyBrandToDoc(input.doc, brand.settings, input.values, { docNumber: input.docNumber });
+    const ownContent = (d.kind === "sop" || d.kind === "kpi" || (d.kind === "document" && !d.docTypeId)) && reviewed !== false;
+    const watermark = ownContent ? null : brandWatermark(brand.settings, reviewed === false ? "unreviewed" : "draft") ?? (reviewed === false ? "UNREVIEWED" : "DRAFT");
+    const doc = applyBrandToDoc(input.doc, brand.settings, input.values, { docNumber: input.docNumber, layout: layoutInputFor({ kind: d.kind, title: input.title, docTypeId: d.docTypeId, docNumber: input.docNumber, meta: d.meta, version: input.versionNo ?? d.versionSeq + 1, authorName: d.lastEditor?.name ?? null, dateIso: input.dateIso }) });
     return renderNow(format, doc, {
       meta: { title: input.title, docNumber: input.docNumber ?? "", version: input.versionNo ? String(input.versionNo) : "", dateIso: input.dateIso },
       values: input.values, lists: input.lists, images: await imageLoader(doc), brand: brandRenderOptions(brand), watermark, allowUnresolved: true,

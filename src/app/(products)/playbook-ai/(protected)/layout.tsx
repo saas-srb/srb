@@ -41,6 +41,9 @@ export default async function ProtectedSopLayout({ children }: { children: React
     settings: sopCan(ctx, "MANAGE_PERMISSIONS"),
     documents: playbookCan(ctx, "SETTINGS"),
     brand: playbookCan(ctx, "MANAGE_BRAND"),
+    create: playbookCan(ctx, "CREATE"),
+    templateLibrary: playbookCan(ctx, "CREATE") || playbookCan(ctx, "MANAGE_TEMPLATES"),
+    myTemplates: playbookCan(ctx, "MANAGE_TEMPLATES"),
     assignedOpen: assigned.filter((a) => a.state !== "acknowledged").length,
   };
 

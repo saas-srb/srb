@@ -1,13 +1,16 @@
+import { layoutInputFor } from "@/lib/products/playbook-ai/items-layout";
 import { notFound, redirect } from "next/navigation";
-import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import PlaybookDocEditor from "@/components/products/playbook-ai/editor/PlaybookDocEditor";
+import { sendInfoFor } from "@/lib/products/playbook-ai/items";
+import { type ItemKind } from "@/lib/products/playbook-ai/items-types";
+import { playbookCan } from "@/lib/playbook-roles";
 import { getViewer } from "@/lib/products/playbook-ai/viewer";
 import { acquireLock, getDocument } from "@/lib/products/playbook-ai/documents";
 import type { PbActor } from "@/lib/products/playbook-ai/documents-types";
 import { variableCatalogue } from "@/lib/products/playbook-ai/variables-registry";
 import { listCustomVariables } from "@/lib/products/playbook-ai/variables-custom";
 import { loadVariableValues } from "@/lib/products/playbook-ai/variables-adapters";
-import { loadBrand, applyBrandToDoc } from "@/lib/products/playbook-ai/brand/apply";
+import { loadBrand, applyBrandToDoc, identityFor } from "@/lib/products/playbook-ai/brand/apply";
 import type { VariableDef } from "@/components/doc-editor/core/variables";
 
 export const dynamic = "force-dynamic";
@@ -17,8 +20,9 @@ const NS_LABEL: Record<string, string> = {
   input: "Fill-in fields", custom: "Company variables", date: "Date", author: "Author", project: "Project",
 };
 
-export default async function DocumentEditorPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function DocumentEditorPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ wizard?: string }> }) {
   const { id } = await params;
+  const wizard = (await searchParams).wizard === "1";
   const viewer = await getViewer();
   if (!viewer) redirect("/playbook-ai/login");
   const actor: PbActor = { id: viewer.userId, email: viewer.email, name: viewer.name, roles: viewer.roles, permissionOverrides: viewer.overrides };
@@ -49,24 +53,30 @@ export default async function DocumentEditorPage({ params }: { params: Promise<{
   const variables: VariableDef[] = variableCatalogue(custom).map((v) => ({ key: v.key, label: v.label, group: NS_LABEL[v.namespace] ?? v.namespace, description: v.description, formats: [v.format] }));
   const previewValues: Record<string, string> = {};
   for (const [k, v] of Object.entries(loaded.values)) if (v !== null && v !== undefined && String(v).trim()) previewValues[k] = String(v);
-  const branded = applyBrandToDoc(d.pbdoc, brand.settings, loaded.values, { docNumber: d.docNumber });
+  const layout = layoutInputFor({ kind: d.kind, title: d.title, docTypeId: d.docTypeId, docNumber: d.docNumber, meta: d.meta, version: d.versionSeq + 1, authorName: d.lastEditor?.name ?? null });
+  const branded = applyBrandToDoc(d.pbdoc, brand.settings, loaded.values, { docNumber: d.docNumber, layout });
+
+  const sendInfo = (await sendInfoFor([d._id])).get(d._id) ?? null;
+  const pctx = { roles: actor.roles, permissionOverrides: actor.permissionOverrides ?? undefined };
+  const kind: ItemKind = (d.kind as ItemKind | undefined) ?? "document";
 
   return (
-    <div className="space-y-3">
-      <PanelPageHeader
-        breadcrumbs={[{ label: "Playbook", href: "/playbook-ai" }, { label: "Documents", href: "/playbook-ai/documents" }, { label: d.title }]}
-        title={<>{d.title}</>}
-      />
+    <div className="flex h-full min-h-[30rem] flex-col gap-3">
       <PlaybookDocEditor
+        key={d.rev}
+        className="min-h-0 flex-1"
         documentId={d._id}
         initial={{ id: d._id, doc: d.pbdoc, version: String(d.rev) }}
         variables={variables}
         previewValues={previewValues}
         zoneValues={{ docNumber: d.docNumber ?? undefined, title: d.title }}
         brand={{ primaryColor: brand.settings.colors.primary, accentColor: brand.settings.colors.secondary }}
-        view={{ page: branded.page, header: branded.header, footer: branded.footer }}
+        view={{ page: branded.page, header: branded.header, footer: branded.footer, layout: { ...layout, identity: identityFor(brand.settings, loaded.values) } }}
+        logoUrl={brand.logo ? `data:image/png;base64,${brand.logo.bytes.toString("base64")}` : undefined}
+        brandHref="/playbook-ai/brand"
         readOnly={readOnly}
         readOnlyReason={reason}
+        host={{ title: d.title, kind, canSend: playbookCan(pctx, "SEND_FOR_SIGNATURE"), canExport: playbookCan(pctx, "EXPORT"), canUseAi: playbookCan(pctx, "USE_AI"), canTrash: playbookCan(pctx, "EDIT"), send: sendInfo, wizard, version: d.latestVersion ?? d.versionSeq, status: d.status, userLabel: viewer.name || viewer.email }}
       />
     </div>
   );

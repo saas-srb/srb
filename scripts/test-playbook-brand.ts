@@ -14,6 +14,7 @@ import type { PBDoc } from "../src/lib/products/playbook-ai/doc";
 import { renderPdf } from "../src/lib/products/playbook-ai/doc/render/pdf";
 import { renderDocx } from "../src/lib/products/playbook-ai/doc/render/docx";
 import { DEFAULT_BRAND, validateBrandInput, type BrandSettings } from "../src/lib/products/playbook-ai/brand/types";
+import { DEFAULT_IDENTITY } from "../src/lib/products/playbook-ai/brand/identity";
 import { BRAND_IMAGE_LIMITS, deleteUnreferencedAssets, getBrandAsset, setBrandAssetStore, type BrandAssetStore } from "../src/lib/products/playbook-ai/brand/assets";
 import { getBrand, saveBrand, uploadBrandImage } from "../src/lib/products/playbook-ai/brand/store";
 import { applyBrandToDoc, brandRenderOptions, brandWatermark, loadBrand } from "../src/lib/products/playbook-ai/brand/apply";
@@ -232,14 +233,15 @@ const fontsOf = (buf: Buffer) => { const f = path.join(tmp, "f.pdf"); writeFileS
   console.log("applying the brand to documents");
   await runAsCompany("co_brand_a", async () => {
     const values = await loadCompanyValues();
-    await t("letterhead and footer lines come from the company values and skip empty ones", async () => {
+    await t("there is no running header: the company details block on page 1 carries the company values and skips empty ones; the footer comes from the values", async () => {
       const b = await getBrand();
-      const d = applyBrandToDoc(doc(minimalRaw()), { ...b, headerLines: [...b.headerLines, { key: "company.tan", text: "TAN: ", bold: false }, { key: null, text: "Registered office, Mumbai", bold: false }] }, values, { docNumber: "OFR/2026-27/0007" });
-      const text = JSON.stringify(d.header);
-      assert.ok(text.includes("Orbit Software Private Limited") && text.includes("CIN: U72900MH2020PTC123456") && text.includes("GSTIN: 27AAPFU0939F1ZV") && text.includes("Registered office, Mumbai"));
-      assert.ok(!text.includes("TAN:"), "no TAN on file, so no TAN line");
+      const d = applyBrandToDoc(doc(minimalRaw()), b, values, { docNumber: "OFR/2026-27/0007" });
+      assert.equal(d.header.length, 0, "no header on any page");
+      assert.equal(d.page.headerHeightMm, 0);
+      const text = JSON.stringify(d.body.slice(0, 6));
+      assert.ok(text.includes("Orbit Software Private Limited") && text.includes("27AAPFU0939F1ZV"), "the block carries the legal name and GSTIN");
+      assert.ok(!text.includes("TAN:") && !text.includes("PAN:"), "no TAN or PAN lines (not on, or not on file)");
       assert.ok(JSON.stringify(d.footer).includes("docNumber") && JSON.stringify(d.footer).includes("totalPages"));
-      assert.equal(d.header.at(-1)?.type, "divider");
     });
     await t("the document number is left out of the footer until the document has one", async () => {
       const b = await getBrand();
@@ -249,19 +251,19 @@ const fontsOf = (buf: Buffer) => { const f = path.join(tmp, "f.pdf"); writeFileS
       const none = applyBrandToDoc(doc(minimalRaw()), { ...b, footer: { ...b.footer, showPageNumbers: false, showDocNumber: false }, footerLines: [] }, values);
       assert.equal(none.footer.length, 0);
     });
-    await t("letterhead 'none' adds no header; the company's margins and zones replace the document's, size and orientation stay", async () => {
+    await t("the company's margins replace the document's (top capped at 15 mm and bottom at 20 mm; no header band); size and orientation stay", async () => {
       const b = await getBrand();
-      const d = applyBrandToDoc(doc(minimalRaw()), { ...b, letterhead: "none", page: { ...b.page, margins: { top: 40, right: 25, bottom: 30, left: 25 }, headerHeightMm: 30 } }, values);
+      const d = applyBrandToDoc(doc(minimalRaw()), { ...b, page: { ...b.page, margins: { top: 40, right: 25, bottom: 30, left: 25 }, headerHeightMm: 30 } }, values);
       assert.equal(d.header.length, 0);
-      assert.deepEqual(d.page.margins, { top: 40, right: 25, bottom: 30, left: 25 });
-      assert.equal(d.page.headerHeightMm, 30);
+      assert.deepEqual(d.page.margins, { top: 15, right: 25, bottom: 20, left: 25 });
+      assert.equal(d.page.headerHeightMm, 0);
       assert.equal(d.page.size, "A4");
       assert.equal(d.page.orientation, "portrait");
     });
-    await t("the document's own header and footer blocks are kept alongside the letterhead", async () => {
+    await t("the brand is the single owner of the running header and footer: it replaces the document's own (never two stacked)", async () => {
       const own = doc({ ...minimalRaw(), header: [{ type: "paragraph", content: [{ type: "text", text: "Confidential" }] }], footer: [{ type: "paragraph", content: [{ type: "text", text: "Internal use" }] }] });
       const d = applyBrandToDoc(own, await getBrand(), values);
-      assert.ok(JSON.stringify(d.header).includes("Confidential") && JSON.stringify(d.footer).includes("Internal use"));
+      assert.ok(!JSON.stringify(d.header).includes("Confidential") && !JSON.stringify(d.footer).includes("Internal use"), "the brand's header and footer replace the document's own");
       const ids = [...d.header, ...d.footer, ...d.body].map((b) => b.id);
       assert.equal(new Set(ids).size, ids.length, "unique ids");
     });
@@ -299,7 +301,7 @@ const long = { ...longDocRaw({ sections: 6, paras: 3, tables: true, clauses: 3 }
     if (poppler) {
       const f = fontsOf(a.pdf);
       assert.ok(/NotoSerif-Bold/.test(f) && /NotoSans-Regular/.test(f));
-      assert.ok(pageText(a.pdf, 1).includes("Orbit Software Private Limited") && pageText(a.pdf, 1).includes("CIN: U72900MH2020PTC123456"));
+      assert.ok(pageText(a.pdf, 1).includes("Orbit Software Private Limited") && pageText(a.pdf, 1).includes("U72900MH2020PTC123456"));
     }
     // DOCX: heading style uses Noto Serif, colour from the brand, both families embedded, letterhead in the header part
     const z = await JSZip.loadAsync(a.docx);
@@ -308,8 +310,11 @@ const long = { ...longDocRaw({ sections: 6, paras: 3, tables: true, clauses: 3 }
     assert.ok(styles.includes("7C2D12"), "primary colour in heading style");
     const ft = await z.file("word/fontTable.xml")!.async("string");
     assert.ok(ft.includes('w:name="Noto Serif"') && ft.includes('w:name="Noto Sans"'));
-    const header = await z.file("word/header1.xml")!.async("string");
-    assert.ok(header.includes("Orbit Software Private Limited") && header.includes("CIN: U72900MH2020PTC123456"));
+    // The company details block is in the body of page 1; the running header (from page 2) is the company name.
+    const headerParts = await Promise.all(Object.keys(z.files).filter((n) => /^word\/header\d+\.xml$/.test(n)).map((n) => z.file(n)!.async("string")));
+    assert.ok(headerParts.every((h) => !h.includes("Orbit Software Private Limited")), "no running header with the company name");
+    const bodyXml = await z.file("word/document.xml")!.async("string");
+    assert.ok(bodyXml.includes("Orbit Software Private Limited") && bodyXml.includes("U72900MH2020PTC123456"), "details block in the body");
     const plainZip = await JSZip.loadAsync(plain.docx);
     assert.ok(!(await plainZip.file("word/styles.xml")!.async("string")).includes("7C2D12"));
   });
@@ -338,28 +343,27 @@ const long = { ...longDocRaw({ sections: 6, paras: 3, tables: true, clauses: 3 }
       const sans = await exportBoth("co_brand_a", long, true);
       assert.ok(!/NotoSerif/.test(sans.pdf.toString("latin1")));
       assert.ok(!(await (await JSZip.loadAsync(sans.docx)).file("word/fontTable.xml")!.async("string")).includes("Noto Serif"));
-      // 3. letterhead first page only: header text on page 1 and not on page 2 (PDF); titlePage with a first header (DOCX)
+      // 3. the company details block is on page 1 only (the old letterhead scope no longer matters); there is no header on page 2
       const b3 = await getBrand();
       assert.ok((await saveBrand(admin, { ...b3, letterhead: "first" })).ok);
       const first = await exportBoth("co_brand_a", long, true);
       if (poppler) {
-        assert.ok(pageText(first.pdf, 1).includes("CIN: U72900MH2020PTC123456"));
-        assert.ok(!pageText(first.pdf, 2).includes("CIN: U72900MH2020PTC123456"), "no letterhead on page 2");
+        assert.ok(pageText(first.pdf, 1).includes("U72900MH2020PTC123456"));
+        assert.ok(!pageText(first.pdf, 2).includes("U72900MH2020PTC123456"), "no letterhead on page 2");
         assert.ok(pageText(first.pdf, 2).includes("Page 2 of"), "the footer still repeats");
       }
       const fz = await JSZip.loadAsync(first.docx);
       const docXml = await fz.file("word/document.xml")!.async("string");
-      assert.ok(docXml.includes("<w:titlePg"), "different first page");
-      assert.ok(docXml.includes('w:type="first"') && docXml.includes('w:type="default"'));
-      // 4. no letterhead
+      assert.ok(!docXml.includes("<w:titlePg"), "no header, so no different first page");
+      // 4. company details block switched off
       const b4 = await getBrand();
-      assert.ok((await saveBrand(admin, { ...b4, letterhead: "none" })).ok);
+      assert.ok((await saveBrand(admin, { ...b4, identity: { ...b4.identity, show: false } })).ok);
       const none = await exportBoth("co_brand_a", long, true);
-      if (poppler) assert.ok(!pageText(none.pdf, 1).includes("CIN: U72900MH2020PTC123456"));
+      if (poppler) assert.ok(!pageText(none.pdf, 1).includes("U72900MH2020PTC123456"));
       assert.ok(!(await (await JSZip.loadAsync(none.docx)).file("word/header1.xml")?.async("string") ?? "").includes("CIN:"));
       // 5. watermark words
       const b5 = await getBrand();
-      assert.ok((await saveBrand(admin, { ...b5, letterhead: "all", watermarks: { draft: "Preview only", unreviewed: "Unchecked" } })).ok);
+      assert.ok((await saveBrand(admin, { ...b5, identity: { ...b5.identity, show: true }, letterhead: "all", watermarks: { draft: "Preview only", unreviewed: "Unchecked" } })).ok);
       const loaded = await loadBrand();
       const wm = await renderPdf(applyBrandToDoc(doc(minimalRaw()), loaded.settings, await loadCompanyValues()), { meta: { title: "t", dateIso: "2026-11-05" }, values: {}, brand: brandRenderOptions(loaded), watermark: brandWatermark(loaded.settings, "draft") });
       if (poppler) {
@@ -380,9 +384,11 @@ const long = { ...longDocRaw({ sections: 6, paras: 3, tables: true, clauses: 3 }
       assert.ok((out.pdf.toString("latin1").match(/\/Subtype\s*\/Image/g) ?? []).length >= 1);
       const z = await JSZip.loadAsync(out.docx);
       assert.ok(Object.keys(z.files).some((n) => n.startsWith("word/media/")));
-      const hdr = await z.file("word/header1.xml")!.async("string");
-      assert.ok(hdr.includes('w:jc w:val="center"'));
-      assert.ok(hdr.includes(`cx="${Math.round((36 / 25.4) * 96) * 9525}"`), "36 mm wide");
+      // The logo is part of the company details block at the top of page 1, aligned like the logo position.
+      const hdr = await z.file("word/document.xml")!.async("string");
+      // The block sizes the logo as a share of the text width, so the printed width is the brand's 36 mm within rounding (under 0.5 mm).
+      const cx = [...hdr.matchAll(/<wp:extent cx="(\d+)"/g)].map((m) => Number(m[1]) / 36000);
+      assert.ok(cx.some((mm) => Math.abs(mm - 36) < 0.5), `36 mm wide (found ${cx.join(", ")} mm)`);
     });
   });
 
@@ -390,10 +396,11 @@ const long = { ...longDocRaw({ sections: 6, paras: 3, tables: true, clauses: 3 }
   await runAsCompany("co_brand_a", async () => {
     await t("the preview is a real PDF of the sample document with the company's letterhead and the brand being edited", async () => {
       const p = await renderBrandPreview();
-      assert.ok(p.pdf.subarray(0, 5).toString() === "%PDF-" && p.pages >= 1 && p.pages <= 2);
+      assert.ok(p.pdf.subarray(0, 5).toString() === "%PDF-" && p.pages >= 1);
       if (poppler) {
         const txt = pageText(p.pdf, 1).replace(/\s+/g, " ");
-        assert.ok(txt.includes("Orbit Software Private Limited") && txt.includes("Sample document") && txt.includes("1. Definitions") && txt.includes("SAMPLE/2026-27/0001"));
+        // The preview is a real library document (see round 8): the company details block opens page 1.
+        assert.ok(txt.includes("Orbit Software Private Limited"));
       }
     });
     await t("an unsaved draft brand previews without being saved, and a watermark state can be previewed", async () => {
@@ -407,7 +414,7 @@ const long = { ...longDocRaw({ sections: 6, paras: 3, tables: true, clauses: 3 }
     });
     await t("a Word preview of the same sample is produced from the same brand", async () => {
       const z = await JSZip.loadAsync(await renderBrandPreviewDocx());
-      assert.ok(Object.keys(z.files).includes("word/header1.xml"));
+      assert.ok(Object.keys(z.files).includes("word/document.xml"));
     });
   });
 

@@ -5,11 +5,16 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   LayoutDashboard,
-  Library,
-  CheckSquare,
+  ClipboardList,
+  FileText,
+  Target,
   Settings,
+  Send,
+  Ban,
+  Archive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { activeCfItem, cfCurrentTask, groupedCfNav, visibleCfNav, type CfNavIcon } from "@/lib/products/contractflow-ai/nav";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 /** Which optional sections this viewer may see — computed on the server from the real permission model. */
@@ -28,7 +33,7 @@ function NavLink({
   href,
   label,
   icon: Icon,
-  exact = false,
+  active,
   collapsed = false,
   badge,
   onNavigate,
@@ -36,14 +41,11 @@ function NavLink({
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  exact?: boolean;
+  active: boolean;
   collapsed?: boolean;
   badge?: string | number;
   onNavigate?: () => void;
 }) {
-  const pathname = usePathname();
-  const active = exact ? pathname === href : pathname?.startsWith(href);
-
   const link = (
     <Link
       href={href}
@@ -85,21 +87,30 @@ function SectionLabel({ children, collapsed }: { children: React.ReactNode; coll
   return <div className="mt-4 mb-1 px-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{children}</div>;
 }
 
+const ICONS: Record<CfNavIcon, React.ComponentType<{ className?: string }>> = { dashboard: LayoutDashboard, documents: FileText, sop: ClipboardList, kpi: Target, archive: Archive, settings: Settings };
+
 export default function LpmsSidebar({ flags, onNavigate, collapsed = false }: { flags: LpmsNavFlags; onNavigate?: () => void; collapsed?: boolean }) {
-  const nav = (props: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean; badge?: string | number }) => (
-    <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />
-  );
+  const pathname = usePathname() ?? "";
+  const navFlags = { settings: flags.canSettings };
+  const groups = groupedCfNav(navFlags);
+  const active = activeCfItem(visibleCfNav(navFlags), pathname);
+  const task = cfCurrentTask(pathname);
 
   return (
-    <nav className="flex h-full flex-col gap-1 p-3">
-      {nav({ href: "/contractflow-ai", label: "Dashboard", icon: LayoutDashboard, exact: true })}
-
-      <SectionLabel collapsed={collapsed}>Earlier version</SectionLabel>
-      {nav({ href: "/contractflow-ai/documents", label: "Old documents", icon: Library })}
-      {flags.canApprove && nav({ href: "/contractflow-ai/approvals", label: "Approvals", icon: CheckSquare, badge: flags.pendingApprovals })}
-
-      {flags.canSettings && <SectionLabel collapsed={collapsed}>Governance</SectionLabel>}
-      {flags.canSettings && nav({ href: "/contractflow-ai/settings", label: "Settings", icon: Settings })}
+    <nav className="flex h-full flex-col gap-1 p-3" aria-label="ContractFlow">
+      {groups.map((g, gi) => (
+        <div key={g.key} role="group" aria-label={g.label} className="flex flex-col gap-1">
+          {gi > 0 && <SectionLabel collapsed={collapsed}>{g.label}</SectionLabel>}
+          {gi === 0 && !collapsed && <div className="mb-1 px-3 pt-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{g.label}</div>}
+          {g.items.map((i) => <NavLink key={i.key} href={i.href} label={i.label} icon={ICONS[i.icon]} active={active?.key === i.key} collapsed={collapsed} onNavigate={onNavigate} />)}
+          {g.key === "overview" && task && (
+            <>
+              <SectionLabel collapsed={collapsed}>Current task</SectionLabel>
+              <NavLink href={pathname} label={task.label} icon={pathname.endsWith("/void") ? Ban : Send} active collapsed={collapsed} onNavigate={onNavigate} />
+            </>
+          )}
+        </div>
+      ))}
     </nav>
   );
 }

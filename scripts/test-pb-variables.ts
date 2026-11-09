@@ -9,10 +9,11 @@ import {
 import { loadVariableValues, buildVariableSnapshot } from "../src/lib/products/playbook-ai/variables-adapters";
 import { deleteCustomVariable, listCustomVariables, resetCustomVariableIndexes, saveCustomVariable } from "../src/lib/products/playbook-ai/variables-custom";
 import {
-  createDocument, getDocument, getDocumentVersion, getMissingDataReport, resetPbDocumentIndexes, saveDraft, transitionDocument,
+  createDocument, getDocument, getDocumentVersion, getMissingDataReport, resetPbDocumentIndexes, saveDraft, setStatusPolicy, transitionDocument,
 } from "../src/lib/products/playbook-ai/documents";
 import { resetPbVersionIndexes } from "../src/lib/products/playbook-ai/versions";
 import { resetPbAuditIndexes } from "../src/lib/products/playbook-ai/pb-audit";
+import { NEUTRAL_STATUS_POLICY } from "../src/lib/products/playbook-ai/status";
 import type { PbActor } from "../src/lib/products/playbook-ai/documents-types";
 
 // Runs only against a throwaway database: MONGODB_URI=mongodb://127.0.0.1:27017/zz_throwaway_<n>. Run with the server-only shim.
@@ -81,6 +82,7 @@ const txt = (s: string) => ({ type: "text", text: s });
   assert.ok(db0.databaseName.startsWith("zz_throwaway_"), "refusing: not a throwaway database");
   await (await getPlatformDb()).dropDatabase();
   resetPbDocumentIndexes(); resetPbVersionIndexes(); resetPbAuditIndexes(); resetCustomVariableIndexes();
+  setStatusPolicy(NEUTRAL_STATUS_POLICY);
 
   const stamp = { createdAt: new Date(), updatedAt: new Date(), createdBy: null, updatedBy: null, deletedAt: null };
   let docId = "";
@@ -141,6 +143,24 @@ const txt = (s: string) => ({ type: "text", text: s });
       assert.equal(own.values["employee.name"], "Meera Kumar", "an employee may read their own record");
       const rd = await loadVariableValues(reader, { doc: { title: "T", docNumber: null, version: 1, status: "draft", issuedAt: null, authorId: null }, links: {}, inputs: {} });
       assert.ok(rd.denied.includes("company") && rd.values["company.name"] === undefined, "a read-only user gets no source data");
+    });
+
+    await t("linking checks access at link time; relinking re-checks; unlinking needs nothing", async () => {
+      const own = ok(await createDocument(author, { title: "Link test", pbdoc: mkDoc([txt("x")]) })).document;
+      bad(await createDocument(author, { title: "No", pbdoc: mkDoc([txt("x")]), links: { employeeId: "e1" } }), "forbidden");
+      bad(await createDocument(author, { title: "No", pbdoc: mkDoc([txt("x")]), links: { clientId: "c1" } }), "forbidden");
+      const save = (links: object, rev: number) => saveDraft(author, { id: own._id, rev, pbdoc: own.pbdoc, links });
+      const e1 = bad(await save({ employeeId: "e1" }, 1), "forbidden");
+      assert.match(String(e1.message), /not allowed/);
+      const r = ok(await save({ employeeId: "e2" }, 1)); // their own employee record
+      bad(await save({ employeeId: "e1" }, r.rev), "forbidden"); // relinking to someone else's record is checked again
+      bad(await save({ employeeId: "nope" }, r.rev), "forbidden");
+      const u = ok(await save({ employeeId: null }, r.rev)); // unlinking needs nothing
+      assert.equal(ok(await getDocument(author, own._id)).document.links.employeeId, null);
+      // HR links freely; a different editor saving without touching the link keeps it
+      const h = ok(await createDocument(hr, { title: "HR link", pbdoc: mkDoc([txt("x")]), links: { employeeId: "e1", clientId: "c1", vendorId: "v1", projectId: "p1" } })).document;
+      assert.equal(h.links.employeeId, "e1");
+      void u;
     });
 
     await t("custom variables: permission, validation, uniqueness, soft delete, appear as custom.*", async () => {

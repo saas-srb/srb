@@ -1,0 +1,28 @@
+Role description v2
+
+Role summary
+
+The {{input.role}} role sits in the {{input.department}} team at {{company.name}} and is based in {{input.location}}. [Role summary]
+
+Key responsibilities
+
+- [Responsibilities]
+
+Qualifications and experience
+
+- [Qualifications]
+
+Skills and competencies
+
+- [Skills]
+
+Reporting and working conditions
+
+Reports to	{{input.reporting_to}}
+Level	{{input.level}}
+Location	{{input.location}}
+Employment type	{{input.employment_type}}
+
+Compensation range
+
+The compensation for this role falls in: {{input.compensation_range}}. The exact offer depends on experience, skills and internal parity, and is stated in the offer letter.

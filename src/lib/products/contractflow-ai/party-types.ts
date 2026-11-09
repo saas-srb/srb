@@ -76,4 +76,6 @@ export interface PickerHit {
   subtitle: string | null;
   /** The cf_parties id when this record is already in the index. */
   partyId: string | null;
+  /** The record's email when it has one (used to prefill the signer). */
+  email?: string | null;
 }

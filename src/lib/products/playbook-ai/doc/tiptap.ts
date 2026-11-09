@@ -95,6 +95,8 @@ export function blockToTiptap(b: AnyBlock): TiptapNode {
     case "image": return { type: "image", attrs: compact({ id: b.id, fileId: b.fileId, alt: b.alt, widthPct: b.widthPct, align: b.align, caption: b.caption }) };
     case "callout": return withContent("callout", { id: b.id, variant: b.variant }, b.content.map(blockToTiptap));
     case "signatureBlock": return { type: "signatureBlock", attrs: { id: b.id, label: b.label, partyRole: b.partyRole, showName: b.showName, showDesignation: b.showDesignation, showDate: b.showDate } };
+    // The company details block is built at render time and never reaches the editor document.
+    case "letterhead": return { type: "paragraph", attrs: { id: b.id }, content: [] };
     case "pageBreak": return { type: "pageBreak", attrs: { id: b.id } };
     case "divider": return { type: "divider", attrs: { id: b.id } };
     case "spacer": return { type: "spacer", attrs: { id: b.id, heightMm: b.heightMm } };

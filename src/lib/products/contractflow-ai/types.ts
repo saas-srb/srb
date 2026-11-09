@@ -258,4 +258,6 @@ export interface LpmsViewer {
   lpmsRoles: string[];
   employeeId: string | null;
   companyId: string;
+  /** Set only by code that has already checked the Playbook right to send documents for signature (SEND_FOR_SIGNATURE). Lets that person pick parties. */
+  sendForSignature?: boolean;
 }

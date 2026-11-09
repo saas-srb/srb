@@ -20,6 +20,10 @@ export const CF_COLLECTIONS = {
   documents: "cf_documents",
   /** Edit history of a clone (B1). */
   cloneEdits: "cf_clone_edits",
+  /** Every saved version of a clone: full content, who, when, summary, and the status each version reached (P8). */
+  cloneVersions: "cf_clone_versions",
+  /** The conversation of the "Edit with AI" panel, one row per message (P9). */
+  cloneChat: "cf_clone_chat",
   /** A request to sign one clone (B2). */
   requests: "cf_requests",
   /** One row per signer of a request; holds the HASH of the signer's link token (B2). */
@@ -45,6 +49,8 @@ export const CF_ID_KIND: Record<CfCollectionName, "fixed" | "uuid"> = {
   cf_parties: "uuid",
   cf_documents: "uuid",
   cf_clone_edits: "uuid",
+  cf_clone_versions: "uuid",
+  cf_clone_chat: "uuid",
   cf_requests: "uuid",
   cf_signers: "uuid",
   cf_events: "uuid",
@@ -59,3 +65,6 @@ export const CF_KEYED_COLLECTIONS: readonly CfCollectionName[] = (Object.keys(CF
 
 /** Platform-level (global) collection owned by this product: the stamp-duty rulebook (B5a). */
 export const STAMP_RULEBOOK_COLLECTION = "stamp_rulebook";
+
+/** Platform-level lookup from a public verification code to the company that sealed the document (the verify page has no signed-in company). */
+export const SEAL_INDEX_COLLECTION = "contractflow_seal_index";

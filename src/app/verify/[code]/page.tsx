@@ -8,6 +8,8 @@ import { getTmsSettings } from "@/lib/products/cohort-ai/settings";
 import { CERTIFICATE_TYPES } from "@/lib/products/cohort-ai/constants";
 import { certificateState, getCertificateByCode as getOtsCertificateByCode, type OtsCertificate } from "@/lib/products/evaliq/certificates";
 import { BrandName } from "@/components/platform/BrandProvider";
+import { getPublicSeal, type PublicSeal } from "@/lib/products/contractflow-ai/seal-public";
+import VerifyFile from "@/components/products/contractflow-ai/VerifyFile";
 import { companySiteHost } from "@/lib/platform/tenancy/site-url";
 
 export const metadata: Metadata = {
@@ -32,6 +34,37 @@ async function loadView(code: string): Promise<CertificateView | null> {
     batchName: batch?.name ?? null,
     typeLabel: CERTIFICATE_TYPES.find((t) => t.value === cert.type)?.label ?? "Certificate",
   };
+}
+
+function SealedVerification({ seal }: { seal: PublicSeal }) {
+  const at = (iso: string | null) => (iso ? new Date(iso).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }) + " IST" : "");
+  return (
+    <div className="lms-shell flex min-h-screen flex-col items-center justify-center gap-6 bg-canvas px-4 py-12">
+      <div className="flex items-center gap-2 text-lg font-bold">
+        <BrandMark className="size-7 shrink-0" />
+        <BrandName /> <span className="text-foreground">Signed documents</span>
+      </div>
+      <div className="w-full max-w-lg space-y-4 rounded-3xl border border-border/40 bg-background/95 p-6 shadow-none backdrop-blur-md dark:bg-card/85">
+        <div className="flex flex-col items-center gap-2 border-b border-border/60 pb-4 text-center">
+          <CheckCircle2 className="size-12 text-green-600 dark:text-green-400" />
+          <h1 className="text-xl font-bold text-foreground">This signed document is on record</h1>
+          <p className="text-sm text-muted-foreground">{seal.title}</p>
+        </div>
+        <dl className="grid grid-cols-3 gap-x-3 gap-y-2 text-sm">
+          <dt className="text-muted-foreground">Issued by</dt><dd className="col-span-2">{seal.companyName}</dd>
+          <dt className="text-muted-foreground">Sealed on</dt><dd className="col-span-2">{at(seal.sealedAt)}</dd>
+          {seal.pages ? <><dt className="text-muted-foreground">Pages</dt><dd className="col-span-2">{seal.pages}</dd></> : null}
+          <dt className="text-muted-foreground">SHA-256</dt><dd className="col-span-2 break-all font-mono text-xs">{seal.sha256}</dd>
+        </dl>
+        <div>
+          <h2 className="mb-1 text-sm font-semibold">Signed by</h2>
+          <ul className="space-y-1 text-sm">{seal.signers.map((s, i) => <li key={i}>{s.name}{s.designation ? `, ${s.designation}` : ""} <span className="text-muted-foreground">· {s.role.replace(/_/g, " ")}{s.signedAt ? ` · ${at(s.signedAt)}` : ""}</span></li>)}</ul>
+        </div>
+        <VerifyFile sha256={seal.sha256} />
+        <p className="text-xs text-muted-foreground">These are simple electronic signatures confirmed by a one-time code. They are not Aadhaar eSign or digital signature certificates.</p>
+      </div>
+    </div>
+  );
 }
 
 const fmtDate = (d: Date) => d.toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
@@ -82,6 +115,8 @@ function OtsVerification({ cert, siteHost }: { cert: OtsCertificate; siteHost: s
 
 export default async function VerifyCertificatePage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
+  const seal = await getPublicSeal(code).catch(() => null);
+  if (seal) return <SealedVerification seal={seal} />;
   const [cert, settings, siteHost] = await Promise.all([loadView(code), getTmsSettings(), companySiteHost()]);
   if (!cert) {
     const ots = await getOtsCertificateByCode(code);

@@ -5,11 +5,14 @@ import type { Editor } from "@tiptap/core";
 import { useEditorState } from "@tiptap/react";
 import { TextSelection } from "@tiptap/pm/state";
 import { buildOutline } from "@/components/doc-editor/core/outline";
+import { isHiddenConditional, viewKey } from "@/components/doc-editor/schema/extensions";
 
 export default function OutlinePanel({ editor }: { editor: Editor }) {
   // The outline is rebuilt only when the document changes (not on every cursor move).
   const doc = useEditorState({ editor, selector: ({ editor: e }) => e.state.doc });
-  const items = useMemo(() => (doc ? buildOutline(doc) : []), [doc]);
+  // Hidden conditional branches are left out, so the numbers match the editor and the export.
+  const view = useEditorState({ editor, selector: ({ editor: e }) => viewKey.getState(e.state) });
+  const items = useMemo(() => (doc ? buildOutline(doc, { skip: (n) => n.type.name === "conditional" && !!view && isHiddenConditional(n, view) }) : []), [doc, view]);
   const go = (pos: number) => {
     const { view } = editor;
     view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(Math.min(pos + 1, view.state.doc.content.size)))).scrollIntoView());

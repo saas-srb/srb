@@ -398,7 +398,7 @@ async function main() {
     const g = groupedNav(ALL).map((s) => [s.label, s.items.map((i) => i.label)]);
     assert.deepEqual(g, [
       [null, ["Dashboard"]],
-      ["Content Studio", ["AI Image Studio", "Generate Image", "AI UGC Studio", "Media Library", "Brand Kit"]],
+      ["Content Studio", ["AI Image Studio", "Generate Image", "AI UGC Studio", "Brochure Builder", "AI Visiting Cards", "Media Library", "Brand Kit"]],
       ["Publish & Advertise", ["Social Media Reels/Posts", "Campaigns & Ads"]],
       ["Insights", ["Analytics"]],
       ["Manage", ["Settings"]],
@@ -409,7 +409,7 @@ async function main() {
     assert.deepEqual(visibleNav(NONE).map((i) => i.key), ["dashboard"]);
     assert.deepEqual(groupedNav(NONE).map((s) => s.key), ["top"]);
     const only = groupedNav({ ...NONE, posts: true, analytics: true });
-    assert.deepEqual(only.map((s) => s.label), [null, "Publish & Advertise", "Insights"]);
+    assert.deepEqual(only.map((s) => s.label), [null, "Content Studio", "Publish & Advertise", "Insights"]); // brochures and visiting cards are open to anyone who can post
     assert.deepEqual(visibleNav({ ...NONE, media: true }).map((i) => i.key), ["dashboard", "image-studio", "library", "brand-kit"]);
     assert.deepEqual(visibleNav({ ...NONE, ai: true }).map((i) => i.key), ["dashboard", "image-studio", "generate-image", "brand-kit"]);
     assert.ok(!visibleNav({ ...NONE, ai: true, ugc: false }).some((i) => i.key === "ugc"));

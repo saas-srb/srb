@@ -26,8 +26,10 @@ import { listPbAudit, recordPbAudit, recordPbAuditThrottled, type PbAuditAction,
 import { buildMissingReport } from "@/lib/products/playbook-ai/variables-registry";
 import { buildVariableSnapshot, checkLinkChanges, loadVariableValues, type DocContext } from "@/lib/products/playbook-ai/variables-adapters";
 import { allocateNumber, type Allocation } from "@/lib/products/playbook-ai/pb-numbering";
-import { approvalFor, deniedCategories, getPbSettings, isLegalType, numberingFor, restrictedRoles, retentionMonthsFor, settingsStatusPolicy } from "@/lib/products/playbook-ai/pb-settings";
+import { deniedCategories, getPbSettings, isLegalType, numberingFor, restrictedRoles, retentionMonthsFor, settingsStatusPolicy } from "@/lib/products/playbook-ai/pb-settings";
 import { pbEvents } from "@/lib/products/playbook-ai/pb-notify";
+import { cleanItemMeta, isItemKind, type ItemKind } from "@/lib/products/playbook-ai/items-types";
+import { hasDraftOnly, stripDraftOnly } from "@/lib/products/playbook-ai/tpl/strip";
 
 /**
  * Documents data layer (`pb_documents`): the head and the editable draft of every Playbook document.
@@ -202,6 +204,8 @@ export interface CreateDocumentInput {
   title: string;
   pbdoc?: unknown;
   docTypeId?: string | null;
+  kind?: ItemKind;
+  meta?: unknown;
   templateRef?: TemplateRef | null;
   inputs?: unknown;
   lists?: unknown;
@@ -221,7 +225,7 @@ export async function createDocument(actor: PbActor, input: CreateDocumentInput)
   const now = new Date();
   const me = person(actor);
   const doc: PbDocumentRecord = {
-    _id: newId(), title, docTypeId: input.docTypeId ?? null, templateRef: input.templateRef ?? null, status: "draft", archivedFrom: null,
+    _id: newId(), title, docTypeId: input.docTypeId ?? null, kind: isItemKind(input.kind) ? input.kind : "document", meta: cleanItemMeta(input.meta), templateRef: input.templateRef ?? null, status: "draft", archivedFrom: null,
     pbdoc: content.doc, contentSha256: contentHash(content.doc), rev: 1, versionSeq: 0, latestVersion: null, issuedVersion: null, docNumber: null,
     inputs: (inputs as { value: InputValues }).value, lists: (lists as { value: VarLists }).value, links: (links as { value: DocLinks }).value,
     acl: [], lock: null, lastEditor: { ...me, at: now }, review: null, legalHold: false,
@@ -243,6 +247,7 @@ export interface ListDocumentsInput {
   status?: DocStatus | DocStatus[];
   q?: string;
   docTypeId?: string;
+  kind?: ItemKind;
   /** Only the documents in the trash (needs EDIT). */
   deleted?: boolean;
   page?: number;
@@ -255,6 +260,7 @@ export async function listDocuments(actor: PbActor, input: ListDocumentsInput = 
   if (!seesAllDocuments(actor)) filter.$or = [{ createdBy: actor.id }, { "acl.userId": actor.id }];
   if (input.status) filter.status = Array.isArray(input.status) ? { $in: input.status } : input.status;
   if (input.docTypeId) filter.docTypeId = input.docTypeId;
+  if (input.kind) filter.kind = input.kind === "document" ? { $in: ["document", null] } : input.kind;
   const denied = deniedCategories(await getPbSettings(), actor);
   const and: unknown[] = [];
   if (denied.length) and.push({ $or: [{ docTypeId: null }, { createdBy: actor.id }, { docTypeId: { $not: new RegExp(`^(${denied.join("|")})\\.`) } }] });
@@ -622,6 +628,8 @@ export async function transitionDocument(actor: PbActor, input: TransitionInput)
           return fail({ code: "invalid", message: e instanceof Error ? e.message : "A document number could not be assigned.", issues: [] });
         }
       }
+      // The drafting notices (legal review, verification) are shown while drafting and are not part of the issued document.
+      if (hasDraftOnly(doc.pbdoc)) { const stripped = stripDraftOnly(doc.pbdoc); set.pbdoc = stripped; set.contentSha256 = contentHash(stripped); }
       set.issuedAt = now;
       set.issuedVersion = nextVersion;
       set.latestVersion = nextVersion;
@@ -738,14 +746,14 @@ export async function setLegalHold(actor: PbActor, input: { id: string; hold: bo
   return { ok: true };
 }
 
-/** Permanently removes a document and all its versions. Needs MANAGE_RETENTION, the document must be in the trash and not on legal hold. */
+/** Permanently removes a document and all its versions. Needs MANAGE_RETENTION; the document must be in the trash or archived, past its retention period, and not on legal hold. */
 export async function purgeDocument(actor: PbActor, id: string, opts: { now?: Date } = {}): Promise<PbResult<{ versionsRemoved: number }>> {
   if (!playbookCan(actor, "MANAGE_RETENTION")) return fail(err.forbidden("purge documents"));
   const c = await col();
   const d = await c.findOne({ _id: id });
   if (!d) return fail(err.notFound());
   if (d.legalHold) return fail({ code: "legal_hold", message: "This document is on legal hold. Lift the hold first." });
-  if (!d.deletedAt) return fail({ code: "bad_status", message: "Move the document to the trash first.", status: d.status });
+  if (!d.deletedAt && d.status !== "archived") return fail({ code: "bad_status", message: "Move the document to the trash or archive it first.", status: d.status });
   const months = retentionMonthsFor(await getPbSettings(), d.docTypeId);
   if (months !== null && d.issuedAt) {
     const until = new Date(d.issuedAt);

@@ -38,7 +38,7 @@ export async function isGeminiImageConfigured(): Promise<boolean> {
 export function defaultImageDeps(): ImageDeps {
   return {
     now: () => new Date(),
-    prompt: getPrompt,
+    prompt: (key, vars) => getPrompt(key, vars),
     settings: getImageSettings,
     async openAiPricing() {
       const { ai } = await getSettings();

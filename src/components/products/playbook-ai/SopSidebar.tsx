@@ -4,20 +4,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  LayoutDashboard,
   Library,
   UserRoundPen,
-  ClipboardCheck,
-  Building2,
-  Tags,
-  LayoutTemplate,
-  ShieldCheck,
-  BarChart3,
-  Settings,
   FileText,
   Palette,
+  FilePlus2,
+  Target,
+  LayoutDashboard,
+  Send,
+  Save,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { activePbItem, groupedPbNav, pbCurrentTask, visiblePbNav, type PbNavIcon } from "@/lib/products/playbook-ai/nav";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 /** Which optional sections this viewer may see — computed on the server from the real permission model. */
@@ -32,6 +30,11 @@ export interface SopNavFlags {
   documents: boolean;
   /** Brand and letterhead: shown to people who may change the company brand. */
   brand: boolean;
+  /** May create SOPs, documents and KPI sheets. */
+  create: boolean;
+  /** Template library (starters) and the company's own templates. */
+  templateLibrary: boolean;
+  myTemplates: boolean;
   /** Number of assignments still awaiting the viewer's acknowledgement. */
   assignedOpen: number;
 }
@@ -40,7 +43,7 @@ function NavLink({
   href,
   label,
   icon: Icon,
-  exact = false,
+  active,
   collapsed = false,
   badge,
   onNavigate,
@@ -48,14 +51,11 @@ function NavLink({
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  exact?: boolean;
+  active: boolean;
   collapsed?: boolean;
   badge?: string | number;
   onNavigate?: () => void;
 }) {
-  const pathname = usePathname();
-  const active = exact ? pathname === href : pathname?.startsWith(href);
-
   const link = (
     <Link
       href={href}
@@ -97,31 +97,30 @@ function SectionLabel({ children, collapsed }: { children: React.ReactNode; coll
   return <div className="mt-4 mb-1 px-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{children}</div>;
 }
 
+const ICONS: Record<PbNavIcon, React.ComponentType<{ className?: string }>> = { dashboard: LayoutDashboard, library: Library, mine: UserRoundPen, create: FilePlus2, document: FileText, kpi: Target, brand: Palette };
+
 export default function SopSidebar({ flags, onNavigate, collapsed = false }: { flags: SopNavFlags; onNavigate?: () => void; collapsed?: boolean }) {
-  const nav = (props: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean; badge?: string | number }) => (
-    <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />
-  );
+  const pathname = usePathname() ?? "";
+  const navFlags = { create: flags.create, brand: flags.brand };
+  const groups = groupedPbNav(navFlags);
+  const active = activePbItem(visiblePbNav(navFlags), pathname);
+  const task = pbCurrentTask(pathname);
 
   return (
-    <nav className="flex h-full flex-col gap-1 p-3">
-      {nav({ href: "/playbook-ai", label: "Dashboard", icon: LayoutDashboard, exact: true })}
-
-      <SectionLabel collapsed={collapsed}>Library</SectionLabel>
-      {nav({ href: "/playbook-ai/library", label: "SOP Library", icon: Library })}
-      {flags.mySops && nav({ href: "/playbook-ai/my", label: "My SOPs", icon: UserRoundPen })}
-      {nav({ href: "/playbook-ai/assigned", label: "Assigned SOPs", icon: ClipboardCheck, badge: flags.assignedOpen })}
-
-      {flags.documents && <SectionLabel collapsed={collapsed}>Documents</SectionLabel>}
-      {flags.documents && nav({ href: "/playbook-ai/documents", label: "Documents (preview)", icon: FileText })}
-
-      <SectionLabel collapsed={collapsed}>Structure</SectionLabel>
-      {nav({ href: "/playbook-ai/departments", label: "Departments", icon: Building2 })}
-      {nav({ href: "/playbook-ai/categories", label: "Categories", icon: Tags })}
-      {flags.templates && nav({ href: "/playbook-ai/templates", label: "Templates", icon: LayoutTemplate })}
-      {flags.brand && nav({ href: "/playbook-ai/brand", label: "Brand & letterhead", icon: Palette })}
-
-      {flags.reports && <SectionLabel collapsed={collapsed}>Governance</SectionLabel>}
-      {flags.reports && nav({ href: "/playbook-ai/reports", label: "Reports & Analytics", icon: BarChart3 })}
+    <nav className="flex h-full flex-col gap-1 p-3" aria-label="Playbook">
+      {groups.map((g, gi) => (
+        <div key={g.key} role="group" aria-label={g.label} className="flex flex-col gap-1">
+          {gi > 0 && <SectionLabel collapsed={collapsed}>{g.label}</SectionLabel>}
+          {gi === 0 && !collapsed && <div className="mb-1 px-3 pt-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{g.label}</div>}
+          {g.items.map((i) => <NavLink key={i.key} href={i.href} label={i.label} icon={ICONS[i.icon]} active={active?.key === i.key} collapsed={collapsed} onNavigate={onNavigate} />)}
+          {g.key === "overview" && task && (
+            <>
+              <SectionLabel collapsed={collapsed}>Current task</SectionLabel>
+              <NavLink href={pathname} label={task.label} icon={pathname.endsWith("/version") ? Save : Send} active collapsed={collapsed} onNavigate={onNavigate} />
+            </>
+          )}
+        </div>
+      ))}
     </nav>
   );
 }

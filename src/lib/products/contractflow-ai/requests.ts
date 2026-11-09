@@ -1,10 +1,11 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { lpmsCan } from "@/lib/lpms-roles";
-import { cfRequests, cfSigners } from "./cf-db";
+import { cfClones, cfRequests, cfSigners } from "./cf-db";
 import { appendEvent } from "./events";
 import { generateToken, hashToken } from "./tokens";
-import { SIGNER_ROLES, type OrderMode, type RequestDoc, type SignerDoc, type SignerRole } from "./sign-types";
+import { SIGNER_ROLES, type OrderMode, type RequestDoc, type SignerDoc } from "./sign-types";
+import type { NewSigner } from "./requests-types";
 import type { LpmsViewer } from "./types";
 
 /**
@@ -27,13 +28,7 @@ export const MAX_SIGNERS = 20;
 export const MAX_EXPIRY_DAYS = 365;
 const DAY = 86_400_000;
 
-export interface NewSigner {
-  role: SignerRole;
-  name: string;
-  email: string;
-  phone?: string;
-  order?: number;
-}
+export type { NewSigner };
 
 export interface CreateRequestInput {
   cloneId: string;
@@ -73,6 +68,10 @@ export async function createRequest(v: LpmsViewer, input: CreateRequestInput, no
     return { s, email, name, phone, order: Number.isInteger(s.order) && (s.order as number) >= 1 ? (s.order as number) : i + 1 };
   });
 
+  // A real clone must be ready (its content frozen) before anyone is asked to sign it; the request then records what they will be shown.
+  const clone = await (await cfClones()).findOne({ _id: cloneId });
+  if (clone && (clone.status !== "ready" || !clone.frozenContentSha256)) throw new RequestError("Mark the document ready before sending it for signature.", "invalid");
+
   const request: RequestDoc = {
     _id: randomUUID(),
     cloneId,
@@ -88,6 +87,7 @@ export async function createRequest(v: LpmsViewer, input: CreateRequestInput, no
     updatedAt: now,
     voidedAt: null,
     voidReason: null,
+    contentSha256: clone?.frozenContentSha256 ?? null,
   };
   const links: IssuedLink[] = [];
   const signers: SignerDoc[] = rows.map((r) => {
@@ -117,6 +117,14 @@ export async function createRequest(v: LpmsViewer, input: CreateRequestInput, no
   });
   await (await cfRequests()).insertOne(request);
   await (await cfSigners()).insertMany(signers);
+  if (clone) {
+    const moved = await (await cfClones()).updateOne({ _id: clone._id, status: "ready", rev: clone.rev }, { $set: { status: "sent", requestId: request._id, updatedAt: now } });
+    if (moved.matchedCount === 0) {
+      await (await cfRequests()).deleteOne({ _id: request._id });
+      await (await cfSigners()).deleteMany({ requestId: request._id });
+      throw new RequestError("The document changed while the request was being made. Try again.", "conflict");
+    }
+  }
   await appendEvent({ requestId: request._id, type: "request_created", actorType: "user", actorId: v.userId, data: { signers: signers.length, orderMode: request.orderMode } });
   for (const s of signers) await appendEvent({ requestId: request._id, signerId: s._id, type: "link_issued", actorType: "user", actorId: v.userId, data: { role: s.role } });
   return { request, links };
@@ -158,13 +166,22 @@ export async function voidRequest(v: LpmsViewer, requestId: string, reason: stri
   if (!mayManage(v)) throw new RequestError("You may not manage signature requests.", "forbidden");
   const why = clean(reason, 500);
   if (why.length < 3) throw new RequestError("A reason is required to void a request.", "invalid");
+  await load(requestId);
+  await closeRequest(requestId, why, { type: "user", id: v.userId });
+}
+
+/**
+ * The void itself, without a permission check: for code that already checked its own (voiding a clone, editing a clone that is out for
+ * signature). Idempotent. A completed request cannot be voided.
+ */
+export async function closeRequest(requestId: string, reason: string, actor: { type: "user" | "system"; id: string | null }): Promise<void> {
   const request = await load(requestId);
   if (request.status === "voided") return;
   if (request.status === "completed") throw new RequestError("A completed request cannot be voided.", "conflict");
   const now = new Date();
-  await (await cfRequests()).updateOne({ _id: requestId }, { $set: { status: "voided", voidedAt: now, voidReason: why, updatedAt: now } });
+  await (await cfRequests()).updateOne({ _id: requestId }, { $set: { status: "voided", voidedAt: now, voidReason: reason, updatedAt: now } });
   await (await cfSigners()).updateMany({ requestId, tokenRevokedAt: null }, { $set: { tokenRevokedAt: now } });
-  await appendEvent({ requestId, type: "request_voided", actorType: "user", actorId: v.userId, data: { reason: why } });
+  await appendEvent({ requestId, type: "request_voided", actorType: actor.type, actorId: actor.id, data: { reason } });
 }
 
 /** Marks an open request expired once its time has passed (also done lazily when a link is opened). */

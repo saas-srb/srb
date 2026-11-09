@@ -24,12 +24,12 @@ const ctx = (v: LpmsViewer) => ({ roles: v.roles, permissionOverrides: v.overrid
 /** Whether the viewer may see parties of this type at all. */
 export function canAccessPartyType(v: LpmsViewer, type: PartyType): boolean {
   if (isLinkedType(type)) return PARTY_ADAPTERS[type].canAccess(v);
-  return lpmsCan(ctx(v), "VIEW") || lpmsCan(ctx(v), "MANAGE_DOCUMENTS");
+  return v.sendForSignature === true || lpmsCan(ctx(v), "VIEW") || lpmsCan(ctx(v), "MANAGE_DOCUMENTS");
 }
 export function visiblePartyTypes(v: LpmsViewer): PartyType[] {
   return PARTY_TYPES.filter((t) => canAccessPartyType(v, t));
 }
-const canCreateManual = (v: LpmsViewer) => lpmsCan(ctx(v), "CREATE") || lpmsCan(ctx(v), "SIGN") || lpmsCan(ctx(v), "MANAGE_DOCUMENTS");
+const canCreateManual = (v: LpmsViewer) => v.sendForSignature === true || lpmsCan(ctx(v), "CREATE") || lpmsCan(ctx(v), "SIGN") || lpmsCan(ctx(v), "MANAGE_DOCUMENTS");
 
 const searchKeyOf = (name: string, extra = "") => `${name} ${extra}`.toLowerCase().replace(/\s+/g, " ").trim();
 const clean = (s: unknown, max: number) => (typeof s === "string" ? s.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max) : "");
@@ -64,10 +64,10 @@ export async function searchParties(v: LpmsViewer, input: { type: PartyType; q?:
     const found = await adapter.search(q, limit);
     const indexed = found.length ? await col.find({ "source.collection": adapter.ref.collection, "source.id": { $in: found.map((f) => f.id) } }).toArray() : [];
     const byId = new Map(indexed.map((p) => [p.source!.id, p._id]));
-    return found.map((f) => ({ type: input.type, recordId: f.id, displayName: f.displayName, subtitle: f.subtitle, partyId: byId.get(f.id) ?? null }));
+    return found.map((f) => ({ type: input.type, recordId: f.id, displayName: f.displayName, subtitle: f.subtitle, partyId: byId.get(f.id) ?? null, email: f.email }));
   }
   const rows = await col.find({ type: input.type, status: { $ne: "archived" }, ...(q ? { searchKey: { $regex: escapeRegex(q.toLowerCase()) } } : {}) }).sort({ searchKey: 1 }).limit(limit).toArray();
-  return rows.map((p) => ({ type: p.type, recordId: p._id, displayName: p.displayName, subtitle: p.contact?.email ?? null, partyId: p._id }));
+  return rows.map((p) => ({ type: p.type, recordId: p._id, displayName: p.displayName, subtitle: p.contact?.email ?? null, partyId: p._id, email: p.contact?.email ?? null }));
 }
 
 /** Links a record of another product into the index. Linking the same record twice returns the same party. */

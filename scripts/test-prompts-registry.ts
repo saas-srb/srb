@@ -3,7 +3,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { PROMPTS } from "../src/lib/prompts/registry";
 import { SECURITY_FOOTER, SECURITY_HEADER, checkCompanyPrompt, companyRequiredVars, withSecurity } from "../src/lib/prompts/guard";
-import { renderPrompt, usedVars, validatePromptText } from "../src/lib/prompts/types";
+import { renderPrompt, usedVars, validatePromptText, withPinned } from "../src/lib/prompts/types";
 
 // Pure file checks: no database. Run with: npx tsx scripts/test-prompts-registry.ts
 const t = (name: string, fn: () => void) => { fn(); console.log("  ✓", name); };
@@ -61,11 +61,34 @@ t("every file that calls an AI model gets its instructions from the registry", (
     "src/lib/products/agentos/knowledge.ts": "embeddings only",
     "src/app/(platform)/console/prompts/actions.ts": "the Test run tab sends the draft the admin is typing",
     "src/app/(products)/commandos/(protected)/settings/prompts/actions.ts": "the Test run tab sends the draft the company is typing, inside the fixed security rules",
+    "src/lib/products/viralpulse-ai/ai/image.ts": "image generation: the prompt is the text the person typed (or generated and then edited by them), sent unchanged; the app adds no instruction of its own",
+    "src/app/(products)/agentos/(protected)/chat-call-actions.ts": "posts a fixed one-line note (voiceCallNote: who called and a link) into the person's own chat conversation as a message; no instruction is sent and no model reply is requested",
   };
+  // Files that only carry the call (client, transport) while the instruction text is built by another file: that file must itself take it from the registry.
+  const delegated: Record<string, string> = {
+    "src/lib/products/viralpulse-ai/images/providers/openai.ts": "src/lib/products/viralpulse-ai/images/engine.ts",
+    "src/app/(products)/api/dealflow-ai/meetings/agent-speak/route.ts": "src/lib/dealflow-ai/meetings/answer.ts",
+  };
+  for (const [file, to] of Object.entries(delegated)) {
+    assert.ok(existsSync(file) && existsSync(to), `${file} -> ${to}`);
+    const src = sources.find((x) => x.file === to);
+    assert.ok(src && /getPrompt\(|promptText\(|defaultPrompt\(/.test(src.text), `${file}: its instructions are built in ${to}, which must use the registry`);
+    allowed[file] = `transport only; instructions are built in ${to}`;
+  }
   for (const s of sources) {
     if (!/getOpenAI\(|withPlatformAi\(|chat\.completions|responses\.create|images\.generate|platformClient\(/.test(s.text)) continue;
     if (allowed[s.file]) continue;
     assert.ok(/getPrompt\(|promptText\(/.test(s.text), `${s.file} calls an AI model but takes no prompt from the registry. Add it, or list it here with the reason.`);
+  }
+});
+t("pinned rules are fixed text that only uses declared variables, and the pinned prompts are listed", () => {
+  const pinned = PROMPTS.filter((p) => p.pinned);
+  assert.ok(pinned.length >= 5);
+  for (const p of pinned) {
+    assert.ok(p.pinned!.trim(), p.key);
+    const declared = p.vars.map((x) => x.name);
+    for (const n of usedVars(p.pinned!)) assert.ok(declared.includes(n), `${p.key}: pinned uses undeclared {{${n}}}`);
+    assert.ok(withPinned(p, "EDITED").endsWith(p.pinned!), p.key);
   }
 });
 t("an async prompt helper is never dropped into a template literal un-awaited", () => {

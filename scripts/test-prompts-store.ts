@@ -100,6 +100,17 @@ const KEY = "support.draft";
     assert.ok(n >= 6, `only ${n}`);
   });
 
+  await t("pinned rules are appended after any platform text and cannot be edited away", async () => {
+    const pk = "meetings.summary";
+    const pd = PROMPT_BY_KEY.get(pk)!;
+    assert.ok(pd.pinned);
+    assert.ok((await getPrompt(pk)).endsWith(pd.pinned!), "default text ends with the pinned rules");
+    assert.equal((await savePrompt(pk, "Write short minutes. Reply with JSON.", "", me)).ok, true);
+    const out = await getPrompt(pk);
+    assert.ok(out.startsWith("Write short minutes.") && out.endsWith(pd.pinned!));
+    assert.equal((await promptText(pk)).text, "Write short minutes. Reply with JSON.", "promptText stays the editable text only");
+  });
+
   await db.dropDatabase();
   console.log("prompt store tests passed");
   process.exit(0);

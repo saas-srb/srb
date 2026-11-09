@@ -42,11 +42,6 @@ export const CRON_JOBS: CronJob[] = [
     configure: { label: "PlayBook settings", href: "/playbook-ai/settings" },
   },
   {
-    key: "rankmax", name: "SEO housekeeping", product: "seo", scope: "each company", path: "/api/rankmax-ai/cron", schedule: "30 3 * * *", maxDurationSec: 300,
-    description: "Syncs Search Console and Analytics, runs the scheduled website audit, re-checks backlinks on Mondays and flags big ranking drops, for the companies that turned those on.",
-    configure: { label: "RankMax settings", href: "/rankmax-ai/settings" },
-  },
-  {
     key: "cybervault", name: "Vault expiry alerts", product: "dlms", scope: "each company", path: "/api/cybervault/cron", schedule: "0 4 * * *", maxDurationSec: 300,
     description: "Tells the vault's owners about credentials and documents that have expired or are about to.",
     configure: { label: "CyberVault settings", href: "/cybervault/settings" },

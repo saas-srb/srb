@@ -26,8 +26,16 @@ export const PB_COLLECTIONS = {
   audit: "pb_audit",
   /** Company-defined custom variables `custom.*` (A8). Random UUID `_id`s. */
   variables: "pb_variables",
+  /** AI drafting runs: who asked, for which section, model, tokens, guard result and the outcome (A11). Random UUID `_id`s. */
+  aiRuns: "pb_ai_runs",
+  /** Immutable published versions of company templates (A9). Random UUID `_id`s. */
+  templateVersions: "pb_template_versions",
+  /** Links between a Playbook version and the ContractFlow clone made from it for signature, with the status coming back (H1, H2). Random UUID `_id`s. */
+  handoffs: "pb_handoffs",
   /** Metadata of brand images (logo, signature and stamp images); the bytes live in private storage under a company-prefixed key (A7). Random UUID `_id`s. */
   brandAssets: "pb_brand_assets",
+  /** The Edit with AI conversation of a Playbook item, one row per message. Random UUID `_id`s. */
+  editChat: "pb_edit_chat",
 } as const;
 
 export type PbCollectionName = (typeof PB_COLLECTIONS)[keyof typeof PB_COLLECTIONS];

@@ -687,7 +687,6 @@ Until 15.6 is done, builds wait in the queue ("Waiting for the build service") a
 | `/api/backup/cron` | 01:30 | Backups & data lifecycle: Makes the weekly backup for each company that is due, removes old backups, and deletes the companies whose 30-day deletion period has ended. |
 | `/api/wallet/expiry-sweep` | 02:30 | Wallet expiry: Expires reward credits that have passed their date and warns people whose credits are about to expire. |
 | `/api/playbook-ai/cron` | 03:00 | Procedure reminders: Moves procedures through their date-driven statuses (review due, expired) and sends acknowledgement reminders. |
-| `/api/rankmax-ai/cron` | 03:30 | SEO housekeeping: Syncs Search Console and Analytics, runs the scheduled website audit, re-checks backlinks on Mondays and flags big ranking drops, for the companies that turned those on. |
 | `/api/cybervault/cron` | 04:00 | Vault expiry alerts: Tells the vault's owners about credentials and documents that have expired or are about to. |
 | `/api/viralpulse-ai/publisher/cron` | every 5 min | Scheduled posts: publishes approved scheduled posts that are due (DB leases, retries with backoff, resumes partly finished publishes), checks media the platforms are still processing, reminds publishers about due posts nobody approved and ads due to go live. |
 | `/api/evaliq/cron` | 05:00 | Test deadlines: Finishes timed-out test attempts, expires missed assignments, sends opens-soon / due-soon / expired notices and releases results after a test closes. |

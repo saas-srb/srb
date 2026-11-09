@@ -44,6 +44,8 @@ export interface RenderBrand {
   /** Where the header (logo and letterhead lines) is printed. Default every page. */
   letterhead?: LetterheadScope;
   logo?: RenderLogo;
+  /** The company details block is in the body of page 1: the logo is drawn there and the running header is left off page 1. */
+  identity?: boolean;
   /** One line printed in the footer zone under the document's own footer (registered office, CIN, GSTIN built from the company profile). */
   footerText?: string;
 }

@@ -111,6 +111,20 @@ export interface SignatureBlock {
   showDesignation: boolean;
   showDate: boolean;
 }
+/**
+ * The company details block at the top of page 1 (built at render time, never stored): the brand side (logo, name, address) on one side and the
+ * company's registration and contact details, one "Label: value" per line, on the other. `align` is the side the brand side sits on.
+ */
+export interface LetterheadBlock {
+  id: string;
+  type: "letterhead";
+  logoFileId?: string;
+  logoWidthMm?: number;
+  name: string;
+  address: string[];
+  details: { label: string; value: string }[];
+  align: "left" | "right";
+}
 export interface PageBreakBlock { id: string; type: "pageBreak" }
 export interface DividerBlock { id: string; type: "divider" }
 export interface SpacerBlock { id: string; type: "spacer"; heightMm: number }
@@ -141,6 +155,7 @@ export type ContentBlock =
   | CalloutBlock
   | SignatureBlock
   | PageBreakBlock
+  | LetterheadBlock
   | DividerBlock
   | SpacerBlock
   | TocBlock
@@ -156,7 +171,7 @@ export type BlockType = ContentBlock["type"];
 
 export const CONTENT_BLOCK_TYPES: readonly BlockType[] = [
   "paragraph", "heading", "clause", "bulletList", "orderedList", "table", "image", "callout", "signatureBlock",
-  "pageBreak", "divider", "spacer", "toc", "conditional", "repeat", "section",
+  "letterhead", "pageBreak", "divider", "spacer", "toc", "conditional", "repeat", "section",
 ];
 export const ZONE_BLOCK_TYPES = ["paragraph", "image", "divider", "table"] as const;
 

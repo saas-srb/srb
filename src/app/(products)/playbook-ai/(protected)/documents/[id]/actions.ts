@@ -2,10 +2,11 @@
 
 import { requireViewer } from "@/lib/products/playbook-ai/viewer";
 import type { PbActor } from "@/lib/products/playbook-ai/documents-types";
-import { getDocument, saveDraft } from "@/lib/products/playbook-ai/documents";
+import { getDocument, saveDraft, saveVersion } from "@/lib/products/playbook-ai/documents";
 import { loadVariableValues } from "@/lib/products/playbook-ai/variables-adapters";
 import { loadBrand, applyBrandToDoc, brandRenderOptions, brandWatermark } from "@/lib/products/playbook-ai/brand/apply";
 import { renderPdf } from "@/lib/products/playbook-ai/doc/render/pdf";
+import { layoutInputFor } from "@/lib/products/playbook-ai/items-layout";
 import { todayIso } from "@/lib/products/playbook-ai/db";
 import type { PBDoc } from "@/lib/products/playbook-ai/doc/types";
 import { parseDoc } from "@/lib/products/playbook-ai/doc/validate";
@@ -65,7 +66,7 @@ export async function renderEditorPreview(input: { id: string; doc: unknown }): 
   try {
     const loaded = await loadVariableValues(a, { doc: { title: d.title, docNumber: d.docNumber, version: d.versionSeq + 1, status: d.status, issuedAt: d.issuedAt, authorId: d.createdBy }, links: d.links, inputs: d.inputs });
     const brand = await loadBrand();
-    const doc = applyBrandToDoc(parsed.doc, brand.settings, loaded.values, { docNumber: d.docNumber ?? undefined });
+    const doc = applyBrandToDoc(parsed.doc, brand.settings, loaded.values, { docNumber: d.docNumber ?? undefined, layout: layoutInputFor({ kind: d.kind, title: d.title, docTypeId: d.docTypeId, docNumber: d.docNumber, meta: d.meta, version: d.versionSeq + 1, authorName: d.lastEditor?.name ?? null }) });
     const out = await renderPdf(doc, {
       meta: { title: d.title, dateIso: todayIso(), docNumber: d.docNumber ?? undefined },
       values: loaded.values,
@@ -78,4 +79,11 @@ export async function renderEditorPreview(input: { id: string; doc: unknown }): 
   } catch (e) {
     return { ok: false, message: e instanceof Error && e.message ? `The PDF could not be made: ${e.message}` : "The PDF could not be made." };
   }
+}
+
+/** "Save as version": a named version of the saved draft (the editor flushes its autosave first). */
+export async function saveNamedVersionAction(input: { id: string; label: string }): Promise<{ ok: true } | { ok: false; message: string }> {
+  const a = await actor();
+  const r = await saveVersion(a, { id: String(input.id), label: String(input.label ?? "").slice(0, 120) || "Saved version", kind: "manual" });
+  return r.ok ? { ok: true } : { ok: false, message: r.error.message };
 }

@@ -16,7 +16,7 @@ const others = (ids: (string | null)[], actor: string) => [...new Set(ids.filter
 
 export const pbEvents = {
   reviewRequested: (d: NotifyDoc, actor: string) =>
-    notifyRoles("sop", REVIEWERS, { type: "sop_doc_review_requested", title: `Approval needed: ${short(d.title, 60)}`, body: label(d), link: link(d.id), priority: "high", dedupeKey: `pbdoc-review:${d.id}:${Date.now() >> 16}` }, actor),
+    notifyRoles("sop", REVIEWERS, { type: "sop_doc_review_requested", title: `Approval needed: ${short(d.title, 60)}`, body: label(d), link: link(d.id), priority: "high" }, actor),
   approved: (d: NotifyDoc, actor: string, auto: boolean) =>
     auto ? Promise.resolve(0) : notifyUsers("sop", others([d.createdBy, d.submittedBy], actor), { type: "sop_doc_approved", title: `Approved: ${short(d.title, 60)}`, body: label(d), link: link(d.id) }),
   rejected: (d: NotifyDoc, actor: string, reason: string) =>

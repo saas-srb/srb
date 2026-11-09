@@ -27,11 +27,12 @@ export function nodeText(node: PMNode): string {
 }
 
 /** Clause labels (1. / 1.1 / (a)) in document order, mirroring `clauseLabels` of the PBDoc model. */
-export function clauseLabelsFromPm(doc: PMNode): Map<string, string> {
+export function clauseLabelsFromPm(doc: PMNode, skip?: (n: PMNode) => boolean): Map<string, string> {
   const out = new Map<string, string>();
   let a = 0, b = 0, c = 0;
   const alpha = (n: number) => { let s = ""; let r = n; while (r > 0) { r -= 1; s = String.fromCharCode(97 + (r % 26)) + s; r = Math.floor(r / 26); } return s; };
   doc.descendants((n, pos) => {
+    if (skip?.(n)) return false;
     if (n.type.name !== "clause" || !n.attrs.numbered) return true;
     const key = String(n.attrs.id ?? `@${pos}`);
     const level = Number(n.attrs.level);
@@ -44,10 +45,11 @@ export function clauseLabelsFromPm(doc: PMNode): Map<string, string> {
 }
 
 /** The navigator list: headings, sections and level-1 clauses with their text, in document order. */
-export function buildOutline(doc: PMNode, opts: { clauses?: boolean } = {}): OutlineItem[] {
+export function buildOutline(doc: PMNode, opts: { clauses?: boolean; skip?: (n: PMNode) => boolean } = {}): OutlineItem[] {
   const items: OutlineItem[] = [];
-  const labels = opts.clauses === false ? new Map<string, string>() : clauseLabelsFromPm(doc);
+  const labels = opts.clauses === false ? new Map<string, string>() : clauseLabelsFromPm(doc, opts.skip);
   doc.descendants((n, pos) => {
+    if (opts.skip?.(n)) return false;
     const id = String(n.attrs.id ?? "");
     switch (n.type.name) {
       case "heading": {
@@ -56,7 +58,8 @@ export function buildOutline(doc: PMNode, opts: { clauses?: boolean } = {}): Out
         return false;
       }
       case "section":
-        items.push({ id, pos, kind: "section", level: 1, text: String(n.attrs.title || n.attrs.key) });
+        // A section whose first block is a heading is listed by that heading, so the same title does not appear twice.
+        if (n.firstChild?.type.name !== "heading") items.push({ id, pos, kind: "section", level: 1, text: String(n.attrs.title || n.attrs.key) });
         return true;
       case "clause": {
         const label = labels.get(id);

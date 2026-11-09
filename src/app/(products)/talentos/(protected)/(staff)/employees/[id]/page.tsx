@@ -14,6 +14,7 @@ import EmployeeDangerZone from "@/components/products/talentos/EmployeeDangerZon
 import AttendanceCalendar from "@/components/products/talentos/AttendanceCalendar";
 import LeaveBalances from "@/components/products/talentos/LeaveBalances";
 import FileLeaveSheet from "@/components/products/talentos/FileLeaveSheet";
+import EmployeeSignedDocuments from "@/components/products/talentos/EmployeeSignedDocuments";
 import EmployeeDocumentsManager from "@/components/products/talentos/EmployeeDocumentsManager";
 import SalaryRevisionManager from "@/components/products/talentos/SalaryRevisionManager";
 import CreatePortalLoginPanel from "@/components/products/talentos/CreatePortalLoginPanel";
@@ -325,6 +326,8 @@ export default async function EmployeeProfilePage({
                 key: "documents",
                 label: "Documents",
                 content: canDocs ? (
+                  <div className="space-y-4">
+                  <EmployeeSignedDocuments employeeId={id} />
                   <EmployeeDocumentsManager
                     employeeId={id}
                     documents={documents.map(serializeDocument).map((d) => ({
@@ -341,6 +344,7 @@ export default async function EmployeeProfilePage({
                       createdAt: d.createdAt,
                     }))}
                   />
+                  </div>
                 ) : (
                   <GlassCard interactive={false}>
                     <CardContent className="py-12 text-center text-sm text-muted-foreground">

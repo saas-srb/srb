@@ -8,6 +8,7 @@
  * the signatory signature and stamp images that later signing features use.
  */
 
+import { DEFAULT_IDENTITY, type IdentitySettings } from "@/lib/products/playbook-ai/brand/identity";
 import { DEFAULT_PAGE, MARGIN_LIMITS, validatePage, type PageSettings } from "@/lib/products/playbook-ai/doc/page";
 import { VAR_KEY_RE } from "@/lib/products/playbook-ai/doc/limits";
 
@@ -28,6 +29,13 @@ export const LETTERHEAD_SCOPES = [
   { id: "none", label: "No letterhead" },
 ] as const;
 export type LetterheadScope = (typeof LETTERHEAD_SCOPES)[number]["id"];
+
+export const PAGE_FORMATS = [
+  { id: "x_of_y", label: "Page 2 of 5" },
+  { id: "x_slash_y", label: "2 / 5" },
+  { id: "x", label: "2" },
+] as const;
+export type PageFormat = (typeof PAGE_FORMATS)[number]["id"];
 
 export const LOGO_POSITIONS = ["left", "center", "right"] as const;
 export type LogoPosition = (typeof LOGO_POSITIONS)[number];
@@ -67,22 +75,27 @@ export interface BrandSignatory {
 export interface BrandSettings {
   /** Increases on every save; part of the audit trail and of cache keys. */
   revision: number;
+  /** The ready-made style this brand started from (`custom` once edited freely). */
+  preset: string;
   colors: { primary: string; secondary: string };
   fontPair: FontPairId;
   logo: { assetId: string | null; position: LogoPosition; widthMm: number };
   letterhead: LetterheadScope;
   headerLines: BrandLine[];
   footerLines: BrandLine[];
-  footer: { showDocNumber: boolean; showPageNumbers: boolean; align: "left" | "center" | "right" };
+  footer: { showDocNumber: boolean; showPageNumbers: boolean; align: "left" | "center" | "right"; pageFormat: PageFormat; confidential: boolean };
   /** Default margins and zone heights. Applied to every export so the company's letterhead geometry is consistent. */
   page: PageSettings;
   watermarks: { draft: string; unreviewed: string };
   signatories: BrandSignatory[];
+  /** The company details block printed once at the top of page 1 (logo, name, address, registrations, website, contact). */
+  identity: IdentitySettings;
 }
 
 /** What a company gets before it configures anything: neutral colours, no logo, its own legal name, address and registrations in the header. */
 export const DEFAULT_BRAND: BrandSettings = {
   revision: 0,
+  preset: "classic",
   colors: { primary: "#1E3A5F", secondary: "#B45309" },
   fontPair: "sans",
   logo: { assetId: null, position: "left", widthMm: 32 },
@@ -93,18 +106,25 @@ export const DEFAULT_BRAND: BrandSettings = {
     { key: "company.cin", text: "CIN: ", bold: false },
     { key: "company.gstin", text: "GSTIN: ", bold: false },
   ],
-  footerLines: [
-    { key: "company.email", text: "", bold: false },
-  ],
-  footer: { showDocNumber: true, showPageNumbers: true, align: "center" },
+  footerLines: [],
+  footer: { showDocNumber: true, showPageNumbers: true, align: "center", pageFormat: "x_of_y", confidential: false },
   // A letterhead with a logo and a few lines needs a taller header zone and top margin than a bare page.
-  page: { ...DEFAULT_PAGE, margins: { top: 30, right: 20, bottom: 25, left: 20 }, headerHeightMm: 28, footerHeightMm: 16 },
+  page: { ...DEFAULT_PAGE, margins: { top: 15, right: 20, bottom: 20, left: 20 }, headerHeightMm: 0, footerHeightMm: 8 },
   watermarks: { draft: "DRAFT", unreviewed: "UNREVIEWED" },
   signatories: [],
+  identity: DEFAULT_IDENTITY,
 };
 
 /** Namespaces a header or footer line may read from. Party and input data belong to one document, not to the letterhead. */
 export const BRAND_LINE_NAMESPACES = ["company", "custom"] as const;
+
+/** WCAG contrast ratio of a #RRGGBB colour against white paper. */
+export function contrastOnWhite(hex: string): number {
+  const ch = (i: number) => { const v = parseInt(hex.slice(i, i + 2), 16) / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  const lum = 0.2126 * ch(1) + 0.7152 * ch(3) + 0.0722 * ch(5);
+  return 1.05 / (lum + 0.05);
+}
+export const MIN_CONTRAST = 4.5;
 
 type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -154,6 +174,7 @@ export function validateBrandInput(input: unknown): BrandValidation {
     return v.toUpperCase();
   };
   const colors = { primary: color("primary"), secondary: color("secondary") };
+  if (HEX_COLOR_RE.test(colors.primary) && contrastOnWhite(colors.primary) < MIN_CONTRAST) errors.push("The main colour is too light to read on white paper. Choose a darker colour.");
   const fontPair = FONT_PAIR_IDS.includes(input.fontPair as FontPairId) ? (input.fontPair as FontPairId) : (errors.push(`The font pair must be one of ${FONT_PAIR_IDS.join(", ")}`), DEFAULT_BRAND.fontPair);
   const l = isObj(input.logo) ? input.logo : {};
   const assetOk = (v: unknown) => v === null || v === undefined || v === "" || (typeof v === "string" && /^[A-Za-z0-9_-]{8,64}$/.test(v));
@@ -166,6 +187,7 @@ export function validateBrandInput(input: unknown): BrandValidation {
   const footerLines = lines(input.footerLines, "Footer", errors);
   const f = isObj(input.footer) ? input.footer : {};
   const align = f.align === "left" || f.align === "center" || f.align === "right" ? f.align : (errors.push("The footer alignment must be left, center or right"), "center" as const);
+  const pageFormat = PAGE_FORMATS.some((p) => p.id === f.pageFormat) ? (f.pageFormat as PageFormat) : "x_of_y";
   const page = validatePage(input.page);
   if (!page.ok) page.errors.forEach((e) => errors.push(`Page: ${e}`));
   const wm = isObj(input.watermarks) ? input.watermarks : {};
@@ -192,13 +214,16 @@ export function validateBrandInput(input: unknown): BrandValidation {
       sigs.push({ id, kind, label, name, designation, assetId: typeof s.assetId === "string" && s.assetId ? s.assetId : null });
     });
   }
+  const idIn = isObj(input.identity) ? input.identity : {};
+  const flag = (k: keyof IdentitySettings) => (typeof idIn[k] === "boolean" ? (idIn[k] as boolean) : DEFAULT_IDENTITY[k]);
+  const identity: IdentitySettings = { show: flag("show"), logo: flag("logo"), address: flag("address"), gstin: flag("gstin"), cin: flag("cin"), pan: flag("pan"), website: flag("website"), contact: flag("contact") };
   if (errors.length || !page.ok) return { ok: false, errors };
   return {
     ok: true,
     value: {
-      revision: 0, colors, fontPair, logo: { assetId: typeof l.assetId === "string" && l.assetId ? l.assetId : null, position, widthMm }, letterhead,
-      headerLines, footerLines, footer: { showDocNumber: f.showDocNumber !== false, showPageNumbers: f.showPageNumbers !== false, align },
-      page: page.value, watermarks: { draft, unreviewed }, signatories: sigs,
+      revision: 0, preset: typeof input.preset === "string" && /^[a-z_]{1,24}$/.test(input.preset) ? input.preset : "custom", colors, fontPair, logo: { assetId: typeof l.assetId === "string" && l.assetId ? l.assetId : null, position, widthMm }, letterhead,
+      headerLines, footerLines, footer: { showDocNumber: f.showDocNumber !== false, showPageNumbers: f.showPageNumbers !== false, align, pageFormat, confidential: f.confidential === true },
+      page: page.value, watermarks: { draft, unreviewed }, signatories: sigs, identity,
     },
   };
 }

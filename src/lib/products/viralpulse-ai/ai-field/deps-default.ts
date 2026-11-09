@@ -178,7 +178,7 @@ export function makeRunDeps(user: { id: string }): RunDeps {
     resolve: resolveField,
     now: () => new Date(),
     classifyError: classifyFieldError,
-    prompt: getPrompt,
+    prompt: (key, vars) => getPrompt(key, vars),
     async reserve({ fieldKey, mode, hash }) {
       const { ai } = await getSettings();
       const col = await runsCollection();

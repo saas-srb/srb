@@ -31,15 +31,18 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
   { id: "orderedList", keys: "Mod-Shift-7", label: "Numbered list", group: "Blocks", scope: "editor" },
   { id: "indent", keys: "Tab", label: "Indent list item or clause", group: "Blocks", scope: "editor" },
   { id: "outdent", keys: "Shift-Tab", label: "Outdent list item or clause", group: "Blocks", scope: "editor" },
-  { id: "exitBlock", keys: "Mod-Enter", label: "Add a paragraph after the current block", group: "Blocks", scope: "editor" },
-  { id: "pageBreak", keys: "Mod-Shift-Enter", label: "Insert page break", group: "Insert", scope: "editor" },
-  { id: "variable", keys: "Mod-Shift-v", label: "Insert variable", group: "Insert", scope: "app" },
+  { id: "exitBlock", keys: "Mod-Shift-Enter", label: "Add a paragraph after the current block", group: "Blocks", scope: "editor" },
+  { id: "pageBreak", keys: "Mod-Enter", label: "Insert page break", group: "Insert", scope: "editor" },
+  { id: "variable", keys: "Mod-Alt-v", label: "Insert variable", group: "Insert", scope: "app" },
+  { id: "aiWrite", keys: "Mod-Alt-i", label: "Help me write (AI)", group: "Insert", scope: "app" },
   { id: "undo", keys: "Mod-z", label: "Undo", group: "Document", scope: "editor" },
   { id: "redo", keys: "Mod-Shift-z", label: "Redo", group: "Document", scope: "editor" },
   { id: "redoAlt", keys: "Mod-y", label: "Redo", group: "Document", scope: "editor" },
   { id: "find", keys: "Mod-f", label: "Find", group: "Document", scope: "app" },
   { id: "replace", keys: "Mod-h", label: "Find and replace", group: "Document", scope: "app" },
   { id: "save", keys: "Mod-s", label: "Save now", group: "Document", scope: "app" },
+  { id: "print", keys: "Mod-p", label: "Print (opens the PDF)", group: "Document", scope: "app" },
+  { id: "shortcuts", keys: "Mod-/", label: "Keyboard shortcuts", group: "Document", scope: "app" },
 ];
 
 export const shortcutKeys = (id: string): string => {

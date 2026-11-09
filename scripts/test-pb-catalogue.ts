@@ -112,13 +112,15 @@ t("listCatalogue filters by category, party, legal and content", () => {
   assert.ok(listCatalogue({ party: "employee" }).every((e) => e.meta.party === "employee"));
   assert.ok(listCatalogue({ legalReview: true }).every((e) => e.meta.legal.review));
   assert.equal(listCatalogue({ withContent: true }).length, ALL_TEMPLATES.length);
-  assert.ok(listCatalogue({ category: "mg" }).every((e) => !e.hasContent), "T2-T5 not authored yet");
+  // Content exists exactly for the types some batch has authored, whichever batches exist right now.
+  const authored = new Set(ALL_TEMPLATES.map((x) => x.id));
+  for (const e of listCatalogue()) assert.equal(e.hasContent, authored.has(e.meta.id), e.meta.id);
 });
 t("getTemplateDef returns full content for HR and null for metadata-only types", () => {
   assert.equal(getTemplateDef("hr.offer")?.id, "hr.offer");
-  assert.equal(getTemplateDef("mg.minutes"), null);
+  assert.equal(getTemplateDef("hr.not_a_type"), null);
   assert.equal(getTemplateDef("nope"), null);
-  assert.ok(getCatalogueMeta("mg.minutes"));
+  assert.ok(getCatalogueMeta("mk.flyer"), "metadata exists for every type, authored or not");
 });
 t("searchCatalogue ranks name matches first and requires every word", () => {
   assert.equal(searchCatalogue("offer letter")[0].meta.id, "hr.offer");
@@ -140,9 +142,23 @@ t("batches are well formed and only contain catalogue ids, once each", () => {
     if (b.complete) for (const c of b.categories) assert.deepEqual(b.templates.filter((x) => x.category === c).map((x) => x.id).sort(), ALL_META.filter((m) => m.category === c).map((m) => m.id).sort(), `${b.id} ${c}`);
   }
 });
-t("batch T1 covers all 47 HR types", () => {
-  const t1 = TEMPLATE_BATCHES.find((b) => b.id === "T1")!;
-  assert.equal(t1.templates.length, 47);
+t("each batch present covers its categories fully (asserted per batch, so batches can be added independently)", () => {
+  const expected: Record<string, number> = { T1: 47, T2: 22, T3: 47, T4: 35, T5: 32 };
+  for (const b of TEMPLATE_BATCHES) {
+    const planned = ALL_META.filter((m) => b.categories.includes(m.category)).length;
+    if (b.complete) assert.equal(b.templates.length, planned, `${b.id} complete`);
+    if (expected[b.id] !== undefined && b.complete) assert.equal(b.templates.length, expected[b.id], `${b.id} count`);
+  }
+  assert.ok(TEMPLATE_BATCHES.some((b) => b.id === "T1") && TEMPLATE_BATCHES.some((b) => b.id === "T4"));
+});
+t("every contract is a legal-review type, unreviewed, with a stamp category and locked clauses", () => {
+  for (const d of ALL_TEMPLATES.filter((x) => x.category === "ct")) {
+    assert.ok(d.legal.review, d.id);
+    assert.ok(d.needsSignature, d.id);
+    assert.ok(d.sections.some((s) => s.key === "execution" || s.key === "acceptance"), d.id);
+    assert.ok(d.sections.some((s) => s.aiMode === "fixed" && s.locked && !s.draftOnly), d.id);
+    assert.ok(d.stamp.rule === "none" || d.stamp.category, d.id);
+  }
 });
 t("every template passes the validator", () => {
   for (const d of ALL_TEMPLATES) {

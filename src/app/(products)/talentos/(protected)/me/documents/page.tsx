@@ -1,5 +1,6 @@
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
+import EmployeeSignedDocuments from "@/components/products/talentos/EmployeeSignedDocuments";
 import MyDocuments from "@/components/products/talentos/MyDocuments";
 import { getCurrentHrmsUser } from "@/lib/hrms-auth";
 import { listDocuments, serializeDocument } from "@/lib/products/talentos/documents";
@@ -10,6 +11,7 @@ export default async function MyDocumentsPage() {
 
   return (
     <div className="space-y-5">
+      <EmployeeSignedDocuments employeeId={user!.employeeId!} title="My signed documents" />
       <PanelPageHeader
         title={<>My Documents</>}
         description={<>Download your records, or upload certificates and proofs.</>}

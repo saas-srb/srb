@@ -62,6 +62,9 @@ const RULES: Rule[] = [
   { re: /^\/api\/cashflow-ai\/payments\/(create-intent|verify)$/, methods: ["POST"], cls: "public" },
   // The customer's own receipt PDF, opened with the link's secret token once the link is paid.
   { re: /^\/api\/cashflow-ai\/payments\/receipt\/[a-f0-9]{32}$/, methods: ["GET"], cls: "public" },
+  // A signer answering a signature request (one-time code, sign, decline). No session: the link's secret token (43 characters) is the credential and
+  // the handlers look it up, rate limit and check everything. Browser origin and the front door's limits still apply.
+  { re: /^\/api\/contractflow-ai\/sign\/[A-Za-z0-9_-]{43}\/(otp-send|otp-check|sign|decline)$/, methods: ["POST"], cls: "public" },
   // The public website talking to its own backend (forms, chat, offers, push sign-up …).
   { re: /^\/api\/(chat|careers|offers|referral|web-push|voice|game|client-error|consent|push\/config|support\/public)(\/|$)/, cls: "public" },
   { re: /^\/api\/leads\/[^/]+$/, methods: ["POST"], cls: "public" },

@@ -119,7 +119,7 @@ t("the documents page, nav entry and layout flag exist and are permission-gated"
   const page = read("src/app/(products)/playbook-ai/(protected)/documents/page.tsx");
   assert.match(page, /playbookCan\(ctx, "SETTINGS"\)/);
   assert.match(page, /redirect\("\/playbook-ai\/login"\)/);
-  assert.match(read("src/components/products/playbook-ai/SopSidebar.tsx"), /\/playbook-ai\/documents/);
+  assert.match(read("src/lib/products/playbook-ai/nav.ts"), /\/playbook-ai\/documents/);
   assert.match(read("src/app/(products)/playbook-ai/(protected)/layout.tsx"), /documents: playbookCan\(ctx, "SETTINGS"\)/);
   assert.ok(existsSync(path.join(ROOT, "src/lib/products/playbook-ai/doc/validate.ts")));
 });

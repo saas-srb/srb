@@ -449,6 +449,14 @@ class Parser {
           showName: this.bool(o, "showName", p, true), showDesignation: this.bool(o, "showDesignation", p, true), showDate: this.bool(o, "showDate", p, true),
         };
       }
+      case "letterhead": {
+        const id = this.id(o, p);
+        const strs = (x: unknown, max: number): string[] => (Array.isArray(x) ? x.filter((y): y is string => typeof y === "string" && y.trim() !== "").slice(0, max).map((y) => y.slice(0, 300)) : []);
+        const details = Array.isArray(o.details) ? o.details.flatMap((d) => (isObj(d) && typeof d.label === "string" && typeof d.value === "string" && d.value.trim() ? [{ label: d.label.slice(0, 40), value: d.value.slice(0, 300) }] : [])).slice(0, 10) : [];
+        const logoOk = typeof o.logoFileId === "string" && FILE_ID_RE.test(o.logoFileId);
+        const w = typeof o.logoWidthMm === "number" && Number.isFinite(o.logoWidthMm) ? Math.min(Math.max(o.logoWidthMm, 8), 80) : 32;
+        return { id, type: "letterhead", ...(logoOk ? { logoFileId: o.logoFileId as string, logoWidthMm: w } : {}), name: typeof o.name === "string" ? o.name.slice(0, 200) : "", address: strs(o.address, 6), details, align: o.align === "right" ? "right" : "left" };
+      }
       case "pageBreak": return { id: this.id(o, p), type: "pageBreak" };
       case "divider": return { id: this.id(o, p), type: "divider" };
       case "spacer": {

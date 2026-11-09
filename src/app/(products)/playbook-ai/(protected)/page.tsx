@@ -43,6 +43,8 @@ function ChartCard({ title, description, children, className }: { title: string;
 
 export default async function SopDashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
+  // The Playbook home is now the Dashboard; the earlier SOP dashboard stays reachable with ?legacy=1.
+  if (sp.legacy !== "1") redirect("/playbook-ai/dashboard");
   const tax = await getTaxonomy();
   const viewer = await getViewer();
   if (!viewer) redirect("/playbook-ai/login");

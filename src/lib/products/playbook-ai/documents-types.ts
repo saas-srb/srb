@@ -7,6 +7,7 @@
 import type { PBDoc } from "@/lib/products/playbook-ai/doc/types";
 import type { AclEntry, DocStatus, VersionKind } from "@/lib/products/playbook-ai/status";
 import type { VarLists, VarValues } from "@/lib/products/playbook-ai/doc/variables";
+import type { ItemKind, ItemMeta } from "@/lib/products/playbook-ai/items-types";
 
 /** The signed-in person, as the data layer needs them. Build it from the session (`id` is the `admin_users` _id as a string). */
 export interface PbActor {
@@ -59,6 +60,9 @@ export interface PbDocumentRecord {
   _id: string;
   title: string;
   docTypeId: string | null;
+  /** SOP, document or KPI sheet. Absent on records made before the three kinds existed: those are documents. */
+  kind?: ItemKind;
+  meta?: ItemMeta;
   templateRef: TemplateRef | null;
   status: DocStatus;
   archivedFrom: DocStatus | null;
@@ -159,7 +163,12 @@ export type PbError =
   | { code: "retention_active"; message: string; keepUntil: string }
   | { code: "too_large"; message: string }
   | { code: "render_failed"; message: string }
-  | { code: "busy"; message: string };
+  | { code: "busy"; message: string }
+  | { code: "ai_disabled"; message: string }
+  | { code: "rate_limited"; message: string; retryAfterSeconds: number }
+  | { code: "ai_failed"; message: string }
+  | { code: "section_locked"; message: string }
+  | { code: "stale_proposal"; message: string };
 
 export type PbResult<T> = ({ ok: true } & T) | { ok: false; error: PbError };
 

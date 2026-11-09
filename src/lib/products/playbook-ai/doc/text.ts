@@ -71,6 +71,8 @@ function blockLines(b: AnyBlock, depth: number, labels: Map<string, string>): st
       return [joinBlocks(b.content, depth, labels)];
     case "signatureBlock":
       return [`Signature: ${b.label}`];
+    case "letterhead":
+      return [b.name, ...b.address, ...b.details.map((d) => `${d.label}: ${d.value}`)].filter(Boolean);
     case "pageBreak":
       return ["\f"];
     case "divider":

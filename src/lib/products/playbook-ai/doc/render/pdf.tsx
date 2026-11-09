@@ -1,3 +1,4 @@
+import { groupSignatureRows } from "@/lib/products/playbook-ai/doc/signature-rows";
 import "server-only";
 import React from "react";
 import { Document, Font, Image, Link, Page, Text, View, renderToBuffer } from "@react-pdf/renderer";
@@ -235,19 +236,61 @@ function toc(c: Ctx) {
   );
 }
 
+/** The company details block: the brand side (logo, name, address) and the details side ("Label: value" lines) in two borderless columns. */
+function letterheadBlock(c: Ctx, b: Extract<ContentBlock, { type: "letterhead" }>) {
+  const t = c.t;
+  const asset = b.logoFileId ? c.p.images.get(b.logoFileId) : undefined;
+  const right = b.align === "right";
+  const ta = right ? "right" : "left";
+  const logo = asset && b.logoWidthMm ? (
+    // eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image, not an HTML img
+    <Image src={{ data: asset.bytes, format: asset.mime === "image/png" ? "png" : "jpg" } as unknown as string} style={{ width: mm(b.logoWidthMm), height: mm((b.logoWidthMm * asset.heightPx) / asset.widthPx), marginBottom: 4 }} />
+  ) : null;
+  const brandSide = (
+    <View key="brand" style={{ flex: 1, alignItems: right ? "flex-end" : "flex-start" }}>
+      {logo}
+      {b.name ? <Text style={{ fontFamily: headFont(t), fontSize: 14, fontWeight: 700, color: t.colors.primary, textAlign: ta, marginBottom: 2 }}>{b.name}</Text> : null}
+      {b.address.map((l, i) => <Text key={i} style={{ fontSize: t.basePt - 1.5, color: t.colors.muted, textAlign: ta, lineHeight: 1.35 }}>{l}</Text>)}
+    </View>
+  );
+  const detailSide = b.details.length ? (
+    <View key="details" style={{ width: mm(62), alignItems: right ? "flex-start" : "flex-end", paddingLeft: right ? 0 : 8, paddingRight: right ? 8 : 0 }}>
+      {b.details.map((d, i) => (
+        <Text key={i} style={{ fontSize: t.basePt - 1.5, textAlign: right ? "left" : "right", lineHeight: 1.45 }}>
+          <Text style={{ color: t.colors.muted, fontSize: t.basePt - 2.5 }}>{d.label}: </Text>{d.value}
+        </Text>
+      ))}
+    </View>
+  ) : null;
+  return (
+    <View key={b.id} wrap={false} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+      {right ? [detailSide, brandSide] : [brandSide, detailSide]}
+    </View>
+  );
+}
+
+/** Blocks in order, with consecutive signature blocks printed two to a row. A row never splits across pages. */
+function blockList(c: Ctx, list: readonly ContentBlock[], depth: number, key: string): React.ReactNode[] {
+  return groupSignatureRows(list).map((b) => (b.type === "signatureRow" ? (
+    <View key={b.id} wrap={false} style={{ flexDirection: "row" }}>
+      {b.blocks.map((s) => <View key={s.id} style={{ width: "50%", paddingRight: 12 }}>{signature(c, s as Extract<ContentBlock, { type: "signatureBlock" }>)}</View>)}
+    </View>
+  ) : blockNode(c, b, depth, key)));
+}
+
 function signature(c: Ctx, b: Extract<ContentBlock, { type: "signatureBlock" }>) {
   const t = c.t;
-  const line = (label: string, key: string) => (
+  // Every field is the same row: the label at the left, its line to the right on the same baseline. The signature row is taller (room to sign above the line).
+  const line = (label: string, key: string, h = 12) => (
     <View key={key} style={{ flexDirection: "row", alignItems: "flex-end", marginTop: 6 }}>
       <Text style={{ width: mm(24), fontSize: t.basePt - 1, color: t.colors.muted }}>{label}</Text>
-      <View style={{ flex: 1, borderBottomWidth: 0.75, borderColor: t.colors.text, height: 12 }} />
+      <View style={{ flex: 1, borderBottomWidth: 0.75, borderColor: t.colors.text, height: h }} />
     </View>
   );
   return (
-    <View key={b.id} wrap={false} style={{ width: "62%", marginBottom: 14, marginTop: 4 }}>
+    <View key={b.id} wrap={false} style={{ width: "100%", marginBottom: 14, marginTop: 4 }}>
       <Text style={{ fontSize: t.basePt, fontWeight: 700, color: t.colors.text }}>{b.label}</Text>
-      <View style={{ height: mm(t.signatureGapMm), borderBottomWidth: 0.75, borderColor: t.colors.text }} />
-      <Text style={{ fontSize: t.basePt - 1.5, color: t.colors.muted, marginTop: 2 }}>Signature</Text>
+      {line("Signature", `${b.id}-s`, mm(t.signatureGapMm))}
       {b.showName ? line("Name", `${b.id}-n`) : null}
       {b.showDesignation ? line("Designation", `${b.id}-d`) : null}
       {b.showDate ? line("Date", `${b.id}-t`) : null}
@@ -288,14 +331,15 @@ function blockNode(c: Ctx, b: AnyBlock | CellChild, depth: number, keyPrefix: st
       );
     }
     case "signatureBlock": return signature(c, b);
+    case "letterhead": return letterheadBlock(c, b);
     case "pageBreak": return <View key={b.id} break />;
     case "divider": return <View key={b.id} style={{ borderBottomWidth: 0.75, borderColor: t.colors.rule, marginVertical: 6 }} />;
     case "spacer": return <View key={b.id} style={{ height: mm(b.heightMm) }} />;
     case "toc": return toc(c);
     // Resolved away before rendering; a section is only a wrapper.
-    case "section": return <React.Fragment key={b.id}>{b.children.map((ch) => blockNode(c, ch, depth, b.id))}</React.Fragment>;
+    case "section": return <React.Fragment key={b.id}>{blockList(c, b.children, depth, b.id)}</React.Fragment>;
     case "conditional":
-    case "repeat": return <React.Fragment key={b.id}>{b.children.map((ch) => blockNode(c, ch, depth, b.id))}</React.Fragment>;
+    case "repeat": return <React.Fragment key={b.id}>{blockList(c, b.children, depth, b.id)}</React.Fragment>;
   }
   void keyPrefix;
 }
@@ -321,7 +365,9 @@ function pdfDocument(c: Ctx) {
   const { p, t } = c;
   const g = zoneGeometry(t);
   const m = t.page.margins;
-  const hasHeader = p.letterhead !== "none" && (p.doc.header.length > 0 || !!p.logo);
+  const hasHeader = !p.identity && p.letterhead !== "none" && (p.doc.header.length > 0 || !!p.logo);
+  // With the company details block on page 1, the running header is a small line in the top margin from page 2 on (never over the block).
+  const runningHeader = p.identity && p.letterhead === "all" && p.doc.header.length > 0;
   const hasFooter = p.doc.footer.length > 0 || !!p.footerText;
   const flagged = p.flagged.unresolved.length + p.flagged.placeholders.length > 0;
   return (
@@ -341,9 +387,12 @@ function pdfDocument(c: Ctx) {
         style={{
           fontFamily: bodyFont(t), fontSize: t.basePt, color: t.colors.text,
           // Letterhead on every page: the fixed header sits above the body area. First page only: the header flows once at the top of page 1.
-          paddingTop: hasHeader && p.letterhead === "all" ? mm(g.headerTopMm) : mm(m.top), paddingBottom: mm(m.bottom), paddingLeft: mm(m.left), paddingRight: mm(m.right),
+          paddingTop: hasHeader && !p.identity && p.letterhead === "all" ? mm(g.headerTopMm) : mm(m.top), paddingBottom: mm(m.bottom), paddingLeft: mm(m.left), paddingRight: mm(m.right),
         }}
       >
+        {runningHeader ? (
+          <View fixed style={{ position: "absolute", top: mm(g.headerTopMm), left: mm(m.left), right: mm(m.right), minHeight: mm(t.page.headerHeightMm) }} render={({ pageNumber }) => (pageNumber > 1 ? <>{zone(c, p.doc.header)}</> : null)} />
+        ) : null}
         {hasHeader ? (
           <View fixed={p.letterhead === "all"} style={{ minHeight: mm(t.page.headerHeightMm), marginBottom: mm(t.gapMm) }}>
             {logoNode(c)}
@@ -357,7 +406,7 @@ function pdfDocument(c: Ctx) {
           </View>
         ) : null}
 
-        {p.doc.body.map((b) => blockNode(c, b, 0, "b"))}
+        {blockList(c, p.doc.body, 0, "b")}
 
         {hasFooter ? (
           <View fixed style={{ position: "absolute", left: mm(m.left), right: mm(m.right), bottom: mm(g.footerBottomMm), minHeight: mm(t.page.footerHeightMm), justifyContent: "flex-end" }}>

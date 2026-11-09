@@ -113,7 +113,7 @@ const reseller = defineTemplate("ct.reseller", {
       c1("The Company shall invoice the Reseller, and the Reseller shall pay within {{input.payment_days|number}} days of receiving each invoice, whether or not the Reseller has been paid by its customer."),
       ...taxes(),
     ], ai("State the pricing and margin terms in clear contractual language, using only the notes supplied.", ["input.pricing_terms"], NEVER_CONTRACT, { minWords: 20, maxWords: 140 })),
-    fixedSection("targets", "Targets", [whenSet("input.target_notes", [c1("The Reseller shall use reasonable efforts to meet the following targets: {{input.target_notes}}")]), c1("The parties shall review performance from time to time. Failure to meet an agreed target is a ground for the Company to change or end exclusivity, if it applies, after discussing the matter with the Reseller.")]),
+    lockedSection("targets", "Targets", [whenSet("input.target_notes", [c1("The Reseller shall use reasonable efforts to meet the following targets: {{input.target_notes}}")]), c1("The parties shall review performance from time to time. Failure to meet an agreed target is a ground for the Company to change or end exclusivity, if it applies, after discussing the matter with the Reseller.")]),
     lockedSection("conduct", "Conduct of business", [
       c1("The Reseller shall comply with all laws that apply to its business and shall not offer or give any bribe or improper advantage to anyone in connection with the Products."),
       c1("The Reseller may use the Company's names and marks only as the Company authorises in writing, and only to market the Products. All goodwill from that use belongs to the Company."),

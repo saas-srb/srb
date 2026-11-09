@@ -94,6 +94,7 @@ const bad = <T extends { ok: boolean }>(r: T, code: string) => {
   assert.ok(db0.databaseName.startsWith("zz_throwaway_"), "refusing: not a throwaway database");
   await (await getPlatformDb()).dropDatabase();
   resetPbDocumentIndexes(); resetPbVersionIndexes(); resetPbAuditIndexes();
+  setStatusPolicy(NEUTRAL_STATUS_POLICY); // the settings-based default (author approves own) is tested in test-pb-approvals
 
   let docId = "";
   await runAsCompany("co_a", async () => {

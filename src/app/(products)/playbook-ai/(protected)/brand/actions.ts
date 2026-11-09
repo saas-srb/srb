@@ -46,13 +46,13 @@ export async function uploadBrandImageAction(form: FormData): Promise<{ ok: true
 }
 
 /** Renders the sample document with the brand being edited (not saved) through the real PDF renderer. */
-export async function previewBrandAction(input: unknown, state: "draft" | "unreviewed" | "final"): Promise<{ ok: true; pdfBase64: string; pages: number; warnings: string[] } | { ok: false; error: string }> {
+export async function previewBrandAction(input: unknown, state: "draft" | "unreviewed" | "final", itemId?: string): Promise<{ ok: true; pdfBase64: string; pages: number; warnings: string[] } | { ok: false; error: string }> {
   const a = await actor();
   if (!a) return DENIED;
   const v = validateBrandInput(input);
   if (!v.ok) return { ok: false, error: v.errors[0] };
   try {
-    const p = await renderBrandPreview(v.value, state === "draft" || state === "unreviewed" ? state : "final");
+    const p = await renderBrandPreview(v.value, state === "draft" || state === "unreviewed" ? state : "final", itemId ? String(itemId).slice(0, 80) : undefined);
     return { ok: true, pdfBase64: p.pdf.toString("base64"), pages: p.pages, warnings: p.warnings };
   } catch {
     return { ok: false, error: "The preview could not be drawn. Check the settings and try again." };

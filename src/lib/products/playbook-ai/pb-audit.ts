@@ -12,10 +12,10 @@ import type { PbActor } from "@/lib/products/playbook-ai/documents-types";
 
 export const PB_AUDIT_ACTIONS = [
   "create", "edit", "page_settings", "save_version", "revert", "submit", "withdraw", "approve", "auto_approve", "reject", "revise", "issue",
-  "archive", "restore", "delete", "undelete", "purge", "legal_hold", "lock", "unlock", "lock_broken", "variable_change", "link_change", "settings", "export", "legal_ack", "brand_change", "brand_asset",
+  "archive", "restore", "delete", "undelete", "purge", "legal_hold", "lock", "unlock", "lock_broken", "variable_change", "link_change", "settings", "export", "legal_ack", "brand_change", "brand_asset", "template_create", "template_edit", "template_publish", "template_review", "template_archive", "template_restore", "template_ack", "send_for_signature", "signature_status",
 ] as const;
 export type PbAuditAction = (typeof PB_AUDIT_ACTIONS)[number];
-export type PbAuditEntity = "document" | "version" | "variable" | "brand" | "settings";
+export type PbAuditEntity = "document" | "version" | "variable" | "brand" | "settings" | "template";
 
 export interface PbAuditEntry {
   _id: string;

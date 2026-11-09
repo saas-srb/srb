@@ -92,6 +92,7 @@ export function diffSummary(a: BrandSettings | null, b: BrandSettings): string[]
   if (!same(x.page, b.page)) out.push("margins");
   if (!same(x.watermarks, b.watermarks)) out.push("watermark words");
   if (!same(x.signatories, b.signatories)) out.push("signatories");
+  if (!same(x.identity, b.identity)) out.push("company details block");
   return out;
 }
 

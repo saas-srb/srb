@@ -8,6 +8,8 @@ export interface EmailMessage {
   replyTo?: string;
   /** A calendar invitation (iCalendar text with METHOD:REQUEST or METHOD:CANCEL). Mail clients show it as an invitation they can accept. */
   calendar?: { method: "REQUEST" | "CANCEL"; ics: string };
+  /** Files attached to the message (for example a signed PDF). Keep them small: providers cap the message size. */
+  files?: { filename: string; content: Buffer; contentType: string }[];
 }
 
 /** Which Notification-center event an email belongs to (and, for platform mail, which company it is for), so it is logged and can be switched off. */

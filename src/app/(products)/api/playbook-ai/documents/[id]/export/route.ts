@@ -16,6 +16,7 @@ export const maxDuration = 60;
 const STATUS: Record<PbError["code"], number> = {
   not_found: 404, forbidden: 403, invalid: 400, bad_status: 409, conflict: 409, locked: 423, unresolved_variables: 422, self_approval: 403,
   legal_hold: 409, reason_required: 400, legal_ack_required: 400, retention_active: 409, too_large: 422, render_failed: 500, busy: 503,
+  ai_disabled: 403, rate_limited: 429, ai_failed: 502, section_locked: 409, stale_proposal: 409,
 };
 
 const json = (status: number, error: { code: string; message: string }, headers: Record<string, string> = {}) =>

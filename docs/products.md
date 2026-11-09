@@ -257,6 +257,8 @@ signature certificate or a licensed signing provider, and none is planned.
 - Old data (`lpms_*` collections) is kept untouched. A read-only report (`planLpmsArchive`) shows what exists and how it would be
   moved into the new model; nothing is moved or deleted without an explicit decision.
 
+**Documents to sign** (`/contractflow-ai/clones`): a Playbook version that was sent for signature is copied here (the Playbook document is never changed). It can be edited with the same editor until the first signature, compared with the Playbook version, downloaded as PDF or Word, marked ready, voided with a reason and replaced by a new copy. Once a signature exists the content is locked. The Playbook "Send for signature" button and the signing screens are not built yet.
+
 **Building blocks already in place (no screens yet)**
 - Company-scoped collections for the new model (`cf_*`), a party index that links to the system of record instead of copying it (clients from
   SprintOS and ClientOS, vendors from SpendIQ, employees and candidates from TalentOS, plus manual partners, freelancers, trainees and others),

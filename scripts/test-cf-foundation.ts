@@ -53,12 +53,12 @@ function walk(dir: string, out: string[] = []): string[] {
     for (const rel of ["src/lib/products/contractflow-ai/ai.ts", "src/lib/products/contractflow-ai/output", "src/app/(products)/api/contractflow-ai/ai"]) assert.equal(existsSync(path.join(ROOT, rel)), false, rel);
     for (const f of walk(path.join(ROOT, "src"))) {
       const s = readFileSync(f, "utf8");
-      assert.ok(!/contractflow-ai\/(ai|output)\b/.test(s) || f.includes("faqs"), `${path.relative(ROOT, f)} still imports a retired stub`);
+      assert.ok(!/contractflow-ai\/(ai|output)(?![-\w])/.test(s) || f.includes("faqs"), `${path.relative(ROOT, f)} still imports a retired stub`);
       assert.ok(!/companyId:\s*[^,\n]*'ctx'/.test(s), `${path.relative(ROOT, f)} still passes the literal 'ctx' as a company`);
     }
   });
   await t("the sidebar offers no authoring routes", () => {
-    const nav = read("src/components/products/contractflow-ai/LpmsSidebar.tsx");
+    const nav = read("src/lib/products/contractflow-ai/nav.ts");
     for (const r of ["/new", "/templates", "/makers", "/workflows", "/categories", "/signatures"]) assert.ok(!nav.includes(`/contractflow-ai${r}"`), `${r} is still in the nav`);
     assert.ok(nav.includes("/contractflow-ai/documents"), "old documents stay reachable");
   });
@@ -73,7 +73,7 @@ function walk(dir: string, out: string[] = []): string[] {
 
   console.log("client safety");
   await t("client-safe modules import nothing server-only; the Console manager reaches the store by type only", () => {
-    const safe = ["src/lib/products/contractflow-ai/cf-collections.ts", "src/lib/products/contractflow-ai/party-types.ts", "src/lib/products/contractflow-ai/sign-types.ts", "src/lib/products/contractflow-ai/stamp/structure.ts"];
+    const safe = ["src/lib/products/contractflow-ai/cf-collections.ts", "src/lib/products/contractflow-ai/party-types.ts", "src/lib/products/contractflow-ai/sign-types.ts", "src/lib/products/contractflow-ai/clone-types.ts", "src/lib/products/contractflow-ai/requests-types.ts", "src/lib/products/contractflow-ai/stamp/structure.ts"];
     for (const rel of safe) {
       const src = read(rel).replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
       assert.ok(!/server-only|from "mongodb"|from "node:|next\/headers|@\/lib\/mongodb|scoped-db/.test(src), `${rel} must stay client-safe`);
@@ -82,7 +82,12 @@ function walk(dir: string, out: string[] = []): string[] {
     const mgr = read("src/app/(platform)/console/stamp-rulebook/StampRulebookManager.tsx");
     assert.ok(mgr.startsWith('"use client"'));
     for (const m of mgr.matchAll(/^import (?!type)[^\n]*from "([^"]+)"/gm)) assert.ok(!/stamp\/store|stamp\/guidance|cf-db|public-access|requests|events|tokens/.test(m[1]), `client file imports ${m[1]}`);
-    for (const rel of ["src/lib/products/contractflow-ai/stamp/store.ts", "src/lib/products/contractflow-ai/stamp/guidance.ts", "src/lib/products/contractflow-ai/tokens.ts", "src/lib/products/contractflow-ai/public-access.ts", "src/lib/products/contractflow-ai/parties.ts", "src/lib/products/contractflow-ai/cf-db.ts"]) assert.ok(read(rel).startsWith('import "server-only"'), `${rel} must be server-only`);
+    for (const rel of ["src/lib/products/contractflow-ai/stamp/store.ts", "src/lib/products/contractflow-ai/stamp/guidance.ts", "src/lib/products/contractflow-ai/tokens.ts", "src/lib/products/contractflow-ai/public-access.ts", "src/lib/products/contractflow-ai/parties.ts", "src/lib/products/contractflow-ai/cf-db.ts", "src/lib/products/contractflow-ai/clones.ts", "src/lib/products/contractflow-ai/clone-render.ts", "src/lib/products/contractflow-ai/otp.ts", "src/lib/products/contractflow-ai/requests.ts"]) assert.ok(read(rel).startsWith('import "server-only"'), `${rel} must be server-only`);
+    for (const rel of ["src/components/products/contractflow-ai/CloneEditor.tsx", "src/components/products/contractflow-ai/CloneActions.tsx"]) {
+      const src = read(rel);
+      assert.ok(src.startsWith('"use client"'), rel);
+      for (const m of src.matchAll(/^import (?!type)[^\n]*from "([^"]+)"/gm)) assert.ok(!/contractflow-ai\/(clones|clone-render|cf-db|otp|requests)"|@\/lib\/mongodb/.test(m[1]), `${rel} imports ${m[1]}`);
+    }
   });
 
   console.log("archive plan (read-only)");

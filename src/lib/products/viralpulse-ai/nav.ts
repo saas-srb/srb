@@ -56,6 +56,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { key: "posts", href: "/viralpulse-ai/posts", label: "Social Media Reels/Posts", icon: "posts", anyOf: ["posts"], badge: "failedPosts", group: "publish" },
   { key: "campaigns", href: "/viralpulse-ai/campaigns", label: "Campaigns & Ads", icon: "campaigns", anyOf: ["campaigns"], badge: "dueAds", group: "publish" },
   { key: "analytics", href: "/viralpulse-ai/analytics", label: "Analytics", icon: "analytics", anyOf: ["analytics"], group: "insights" },
+  { key: "settings", href: "/viralpulse-ai/settings", label: "Settings", icon: "settings", anyOf: ["settings"], group: "manage" },
 ];
 
 /** Visible items split into sections in sidebar order; a section with no visible item is dropped. The dashboard has no label. */

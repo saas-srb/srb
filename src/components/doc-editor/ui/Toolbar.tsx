@@ -5,7 +5,7 @@ import type { Editor } from "@tiptap/core";
 import { useEditorState } from "@tiptap/react";
 import {
   AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Braces, Eye, Italic, Keyboard, Link2, List, ListOrdered, MessageSquarePlus, Plus, Redo2, Search,
-  Strikethrough, Subscript, Superscript, Underline, Undo2,
+  Pencil, Printer, RemoveFormatting, Sparkles, Strikethrough, Subscript, Superscript, Underline, Undo2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -26,6 +26,15 @@ interface Props {
   onFind: (replace: boolean) => void;
   onImageFiles: (files: FileList) => void;
   onComment: () => void;
+  /** Opens the "Edit with AI" tab; the button shows only when the host provides one. */
+  onAi?: () => void;
+  onPrint?: () => void;
+  zoom: number;
+  onZoom: (z: number) => void;
+  viewing: boolean;
+  /** Set when the document is read-only for a reason the person cannot change here (no mode switch then). */
+  modeLocked: boolean;
+  onMode: (viewing: boolean) => void;
 }
 
 function Tool({ label, keys, pressed, disabled, onClick, children }: { label: string; keys?: string; pressed?: boolean; disabled?: boolean; onClick: () => void; children: ReactNode }) {
@@ -38,7 +47,7 @@ function Tool({ label, keys, pressed, disabled, onClick, children }: { label: st
 }
 const Sep = () => <span role="separator" aria-orientation="vertical" className="mx-1 h-5 w-px shrink-0 bg-border" />;
 
-export default function Toolbar({ editor, readOnly, canUpload, canComment, resolved, onResolved, onDialog, onInsert, onFind, onImageFiles, onComment }: Props) {
+export default function Toolbar({ editor, readOnly, canUpload, canComment, resolved, onResolved, onDialog, onInsert, onFind, onImageFiles, onComment, onAi, onPrint, zoom, onZoom, viewing, modeLocked, onMode }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const s = useEditorState({
     editor,
@@ -57,9 +66,15 @@ export default function Toolbar({ editor, readOnly, canUpload, canComment, resol
   }).run();
 
   return (
-    <div role="toolbar" aria-label="Document formatting" className="flex flex-wrap items-center gap-0.5 border-b bg-background px-2 py-1.5">
+    <div role="toolbar" aria-label="Document formatting" className="flex shrink-0 flex-wrap items-center gap-0.5 border-b border-border/50 bg-card px-2 py-1.5">
       <Tool label="Undo" keys={shortcutKeys("undo")} disabled={off || !s.canUndo} onClick={() => editor.chain().focus().undo().run()}><Undo2 /></Tool>
       <Tool label="Redo" keys={shortcutKeys("redo")} disabled={off || !s.canRedo} onClick={() => editor.chain().focus().redo().run()}><Redo2 /></Tool>
+      {onPrint && <Tool label="Print (opens the PDF)" keys={shortcutKeys("print")} onClick={onPrint}><Printer /></Tool>}
+      <Sep />
+      <label className="sr-only" htmlFor="pb-zoom">Zoom</label>
+      <select id="pb-zoom" value={zoom} onChange={(e) => onZoom(Number(e.target.value))} className="h-7 rounded-lg border border-input bg-background px-1.5 text-sm" title="Zoom">
+        <option value={0}>Fit</option>{[50, 75, 100, 125, 150, 200].map((z) => <option key={z} value={z}>{z}%</option>)}
+      </select>
       <Sep />
       <label className="sr-only" htmlFor="pb-block-style">Text style</label>
       <select id="pb-block-style" disabled={off || !s.inText} value={s.block} onChange={(e) => setBlockType(editor, e.target.value)} className="h-7 rounded-lg border border-input bg-background px-1.5 text-sm">
@@ -75,6 +90,7 @@ export default function Toolbar({ editor, readOnly, canUpload, canComment, resol
       <Tool label="Superscript" keys={shortcutKeys("superscript")} pressed={s.sup} disabled={off} onClick={() => editor.chain().focus().toggleMark("superscript").run()}><Superscript /></Tool>
       <Tool label="Subscript" keys={shortcutKeys("subscript")} pressed={s.sub} disabled={off} onClick={() => editor.chain().focus().toggleMark("subscript").run()}><Subscript /></Tool>
       <Tool label="Link" keys={shortcutKeys("link")} pressed={s.link} disabled={off} onClick={() => onDialog("link")}><Link2 /></Tool>
+      <Tool label="Clear formatting" disabled={off} onClick={() => editor.chain().focus().unsetAllMarks().run()}><RemoveFormatting /></Tool>
       <Sep />
       <Tool label="Align left" keys={shortcutKeys("alignLeft")} pressed={s.alignL} disabled={off || !s.inText} onClick={() => align("left")}><AlignLeft /></Tool>
       <Tool label="Align centre" keys={shortcutKeys("alignCenter")} pressed={s.alignC} disabled={off || !s.inText} onClick={() => align("center")}><AlignCenter /></Tool>
@@ -119,9 +135,15 @@ export default function Toolbar({ editor, readOnly, canUpload, canComment, resol
       <input ref={fileRef} type="file" accept="image/png,image/jpeg" hidden onChange={(e) => { if (e.target.files?.length) onImageFiles(e.target.files); e.target.value = ""; }} aria-label="Choose an image" />
       <Sep />
       <Tool label="Find and replace" keys={shortcutKeys("replace")} onClick={() => onFind(true)}><Search /></Tool>
+      {onAi && <Button type="button" size="sm" variant="ghost" onClick={onAi} aria-label="AI Edit" title="AI Edit"><Sparkles className="size-4" /> AI Edit</Button>}
       <Tool label={resolved ? "Showing sample values: switch to variable names" : "Showing variable names: switch to values"} pressed={resolved} onClick={() => onResolved(!resolved)}><Eye /></Tool>
       {canComment && <Tool label="Comment on this block" disabled={off} onClick={onComment}><MessageSquarePlus /></Tool>}
       <Tool label="Keyboard shortcuts" onClick={() => onDialog("shortcuts")}><Keyboard /></Tool>
+      {!modeLocked && (
+        <Button type="button" size="sm" variant="ghost" className="ml-auto" onClick={() => onMode(!viewing)} title={viewing ? "Switch to editing" : "Switch to viewing"} aria-pressed={viewing}>
+          {viewing ? <Eye className="size-4" /> : <Pencil className="size-4" />}<span className="max-sm:hidden">{viewing ? "Viewing" : "Editing"}</span>
+        </Button>
+      )}
     </div>
   );
 }
