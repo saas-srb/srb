@@ -1,7 +1,6 @@
 "use client";
 
 import { PanelHeading, ProductLauncherForPanel } from "@/components/platform/PanelsProvider";
-import HelpLauncher from "@/components/support/HelpLauncher";
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
 import MobileSidebar from "@/components/products/dealflow-ai/MobileSidebar";
@@ -21,7 +20,6 @@ export default function LmsTopbar({ roles, unread = 0 }: { roles: string[]; user
       </div>
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
         <ProductLauncherForPanel panel="lms" />
-        <HelpLauncher />
         <button
           type="button"
           onClick={() => setAiOpen(!aiOpen)}

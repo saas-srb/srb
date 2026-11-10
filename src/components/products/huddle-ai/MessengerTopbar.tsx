@@ -1,7 +1,6 @@
 "use client";
 
 import { PanelHeading, ProductLauncherForPanel } from "@/components/platform/PanelsProvider";
-import HelpLauncher from "@/components/support/HelpLauncher";
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
 import MessengerMobileSidebar from "@/components/products/huddle-ai/MessengerMobileSidebar";
@@ -41,7 +40,6 @@ export default function MessengerTopbar({
       </div>
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
         <ProductLauncherForPanel panel="messenger" />
-        <HelpLauncher />
         <button
           type="button"
           onClick={() => setAiOpen(!aiOpen)}

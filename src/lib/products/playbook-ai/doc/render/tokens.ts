@@ -20,9 +20,9 @@ export const FAMILIES: Record<FamilyKey, { name: string; pdf: string; files: Rec
 };
 /** Default body family (kept for callers that do not choose a pair). */
 export const FONT_FAMILY = FAMILIES.sans.name;
-export const FONT_DIR = process.env.PLAYBOOK_FONT_DIR || path.join(process.cwd(), "src/lib/fonts/noto");
-export const fontPath = (face: FontFace, family: FamilyKey = "sans") => path.join(FONT_DIR, FAMILIES[family].files[face]);
-export const readFont = (face: FontFace, family: FamilyKey = "sans"): Buffer => readFileSync(fontPath(face, family));
+export const FONT_DIR = process.env.PLAYBOOK_FONT_DIR || path.join(/*turbopackIgnore: true*/ process.cwd(), "src/lib/fonts/noto");
+export const fontPath = (face: FontFace, family: FamilyKey = "sans") => path.join(/*turbopackIgnore: true*/ FONT_DIR, FAMILIES[family].files[face]);
+export const readFont = (face: FontFace, family: FamilyKey = "sans"): Buffer => readFileSync(/*turbopackIgnore: true*/ fontPath(face, family));
 
 export const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 

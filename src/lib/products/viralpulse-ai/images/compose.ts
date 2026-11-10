@@ -14,14 +14,14 @@ import type { LogoPlacement, TextPosition } from "@/lib/products/viralpulse-ai/i
  * Pango's `fontfile` option, so the result does not depend on which fonts the server has installed (serverless hosts have none).
  */
 
-export const FONT_DIR = process.env.IMAGE_FONT_DIR || path.join(process.cwd(), "src/lib/products/viralpulse-ai/images/fonts");
+export const FONT_DIR = process.env.IMAGE_FONT_DIR || path.join(/*turbopackIgnore: true*/ process.cwd(), "src/lib/products/viralpulse-ai/images/fonts");
 const FONTS = {
   latin: { regular: "NotoSans-Regular.ttf", bold: "NotoSans-Bold.ttf", family: "Noto Sans" },
   devanagari: { regular: "NotoSansDevanagari-Regular.ttf", bold: "NotoSansDevanagari-Bold.ttf", family: "Noto Sans Devanagari" },
 };
 export const fontFor = (text: string, weight: "regular" | "bold") => {
   const f = hasDevanagari(text) ? FONTS.devanagari : FONTS.latin;
-  return { file: path.join(FONT_DIR, f[weight]), family: weight === "bold" ? `${f.family} Bold` : f.family };
+  return { file: path.join(/*turbopackIgnore: true*/ FONT_DIR, f[weight]), family: weight === "bold" ? `${f.family} Bold` : f.family };
 };
 
 const xml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

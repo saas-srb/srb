@@ -1,7 +1,6 @@
 "use client";
 
 import { PanelHeading, ProductLauncherForPanel } from "@/components/platform/PanelsProvider";
-import HelpLauncher from "@/components/support/HelpLauncher";
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
 import SeoMobileSidebar from "@/components/products/rankmax-ai/SeoMobileSidebar";
@@ -33,7 +32,6 @@ export default function SeoTopbar({
       </div>
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
         <ProductLauncherForPanel panel="seo" />
-        <HelpLauncher />
         <button
           type="button"
           onClick={() => setAiOpen(!aiOpen)}

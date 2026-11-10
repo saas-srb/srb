@@ -2,7 +2,6 @@
 
 import PanelBellLink from "@/components/platform/PanelBellLink";
 import { PanelHeading, ProductLauncherForPanel } from "@/components/platform/PanelsProvider";
-import HelpLauncher from "@/components/support/HelpLauncher";
 import { useState } from "react";
 import Link from "next/link";
 import { ExternalLink, Sparkles } from "lucide-react";
@@ -24,7 +23,6 @@ export default function CmsTopbar({ roles: _roles, flags, unread = 0 }: { roles:
       </div>
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
         <ProductLauncherForPanel panel="cms" />
-        <HelpLauncher />
         <button
           type="button"
           onClick={() => setAiOpen(!aiOpen)}

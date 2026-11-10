@@ -1,7 +1,6 @@
 "use client";
 
 import { PanelHeading, ProductLauncherForPanel } from "@/components/platform/PanelsProvider";
-import HelpLauncher from "@/components/support/HelpLauncher";
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
 import SopMobileSidebar from "@/components/products/playbook-ai/SopMobileSidebar";
@@ -33,7 +32,6 @@ export default function SopTopbar({
       </div>
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
         <ProductLauncherForPanel panel="sop" />
-        <HelpLauncher />
         <button
           type="button"
           onClick={() => setAiOpen(!aiOpen)}

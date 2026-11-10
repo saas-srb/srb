@@ -23,6 +23,13 @@ const nextConfig: NextConfig = {
     "/api/playbook-ai/**": ["./src/lib/fonts/noto/*"],
     "/playbook-ai/**": ["./src/lib/fonts/noto/*"],
     "/contractflow-ai/**": ["./src/lib/fonts/noto/*"],
+    // The signing and verify pages and the other routes that seal or render a document also read the Noto fonts by path. These patterns replace
+    // what the build used to pick up by accident when the font path made it trace the whole project.
+    "/sign/**": ["./src/lib/fonts/noto/*"],
+    "/verify/**": ["./src/lib/fonts/noto/*"],
+    "/api/talentos/**": ["./src/lib/fonts/noto/*"],
+    "/talentos/**": ["./src/lib/fonts/noto/*"],
+    "/api/viralpulse-ai/**": ["./src/lib/fonts/noto/*", "./src/lib/products/viralpulse-ai/images/fonts/*"],
     "/api/contractflow-ai/**": ["./src/lib/fonts/noto/*"],
     "/viralpulse-ai/settings": ["./node_modules/ffmpeg-static/ffmpeg", "./node_modules/ffmpeg-static/index.js", "./node_modules/ffmpeg-static/package.json"],
   },
