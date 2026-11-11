@@ -1,6 +1,6 @@
 import "server-only";
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
-import { derivedKey } from "@/lib/security/derived-key";
+import { derivedKeys, derivedKey } from "@/lib/security/derived-key";
 
 /**
  * App-level secret encryption for DLMS: AES-256-GCM keyed by
@@ -52,12 +52,18 @@ export function encryptSecret(plain: string, recordId: string): EncryptedValue {
 export function decryptSecret(value: EncryptedValue | null | undefined, recordId: string): string | null {
   if (!value) return null;
   try {
-    const key = getKey();
-    if (!key) return null;
-    const decipher = createDecipheriv(ALGO, key, Buffer.from(value.iv, "base64"));
-    decipher.setAAD(Buffer.from(recordId, "utf8"));
-    decipher.setAuthTag(Buffer.from(value.t, "base64"));
-    return Buffer.concat([decipher.update(Buffer.from(value.c, "base64")), decipher.final()]).toString("utf8");
+    // Any key version may have sealed it (a deployment moved to another encryption key keeps the old ones).
+    for (const key of derivedKeys("dlms", "DLMS_ENCRYPTION_KEY")) {
+      try {
+        const decipher = createDecipheriv(ALGO, key, Buffer.from(value.iv, "base64"));
+        decipher.setAAD(Buffer.from(recordId, "utf8"));
+        decipher.setAuthTag(Buffer.from(value.t, "base64"));
+        return Buffer.concat([decipher.update(Buffer.from(value.c, "base64")), decipher.final()]).toString("utf8");
+      } catch {
+        // wrong version: try the next
+      }
+    }
+    throw new Error("no key opens it");
   } catch {
     console.error("dlms/crypto: failed to decrypt a stored secret");
     return null;

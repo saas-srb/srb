@@ -1,6 +1,7 @@
 import type { Db } from "mongodb";
 import { clientPromise, getPlatformDb } from "@/lib/platform/tenancy/platform-db";
 import { currentCompanyId } from "@/lib/platform/tenancy/context";
+import { awaitKeyring } from "@/lib/platform/keyring";
 import { scopeDb } from "@/lib/platform/tenancy/scoped-db";
 
 export { clientPromise, getPlatformDb };
@@ -13,5 +14,6 @@ export { clientPromise, getPlatformDb };
  */
 export async function getDb(): Promise<Db> {
   const [client, companyId] = await Promise.all([clientPromise, currentCompanyId()]);
+  await awaitKeyring();
   return scopeDb(client.db(), companyId);
 }

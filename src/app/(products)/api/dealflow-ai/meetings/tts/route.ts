@@ -10,7 +10,7 @@ import type { MeetingDoc } from "@/lib/dealflow-ai/meetings/types";
 
 import { withTransport } from "@/lib/security/transport";
 export const dynamic = "force-dynamic";
-export const maxDuration = 30;
+export const maxDuration = 300;
 
 /**
  * POST /api/dealflow-ai/meetings/tts

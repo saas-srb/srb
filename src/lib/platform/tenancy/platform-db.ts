@@ -1,4 +1,5 @@
 import { MongoClient, type Db } from "mongodb";
+import { awaitKeyring } from "@/lib/platform/keyring";
 
 const uri = process.env.MONGODB_URI;
 
@@ -31,5 +32,6 @@ export const clientPromise: Promise<MongoClient> =
  */
 export async function getPlatformDb(): Promise<Db> {
   const c = await clientPromise;
+  await awaitKeyring();
   return c.db();
 }

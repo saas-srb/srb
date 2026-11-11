@@ -3,11 +3,10 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { del, get, put } from "@vercel/blob";
 import { getDb } from "@/lib/mongodb";
 import { currentCompanyId } from "@/lib/platform/tenancy/context";
 import { buildArchive } from "@/lib/products/commandos/data-archive";
-import { blobAuth, blobTokenConfigured } from "@/lib/storage/blob-token";
+import { deleteObjects, getObject, storeBytes } from "@/lib/storage/blob";
 
 /**
  * Backups of a company's workspace: the archive from `data-archive.ts`, saved in private storage with a history row for each. Scheduled ones
@@ -53,25 +52,24 @@ export interface BackupStorage {
 }
 const blobStorage: BackupStorage = {
   async put(key, body) {
-    await put(key, body, { ...(await blobAuth()), access: "private", contentType: "application/zip", addRandomSuffix: false, allowOverwrite: true });
+    await storeBytes(key, body, "application/zip");
   },
   async get(key) {
-    const r = await get(key, { ...(await blobAuth()), access: "private" });
-    return r && r.statusCode === 200 && r.stream ? { stream: r.stream } : null;
+    const r = await getObject(key);
+    return r ? { stream: r.stream } : null;
   },
   async read(key) {
-    const r = await get(key, { ...(await blobAuth()), access: "private" });
-    if (!r || r.statusCode !== 200 || !r.stream) return null;
-    return Buffer.from(await new Response(r.stream).arrayBuffer());
+    const r = await getObject(key);
+    return r ? Buffer.from(await new Response(r.stream).arrayBuffer()) : null;
   },
   async del(key) {
-    await del(key, await blobAuth());
+    await deleteObjects([key]);
   },
 };
 /** Development only, with no Blob token: files in the machine's temp folder, so the pages can be tried locally. Never used in production. */
 const devDir = path.join(tmpdir(), "selfrun-dev-backups");
 const devPath = (key: string) => path.join(devDir, key.replace(/[^a-zA-Z0-9_.-]/g, "_"));
-const diskStorage: BackupStorage = {
+export const diskStorage: BackupStorage = {
   async put(key, body) {
     await mkdir(devDir, { recursive: true });
     await writeFile(devPath(key), body);
@@ -88,7 +86,7 @@ const diskStorage: BackupStorage = {
   },
 };
 let override: BackupStorage | null = null;
-const storageNow = async (): Promise<BackupStorage> => override ?? (process.env.NODE_ENV !== "production" && !(await blobTokenConfigured()) ? diskStorage : blobStorage);
+const storageNow = async (): Promise<BackupStorage> => override ?? blobStorage; // the database itself (GridFS) unless the optional Blob backend is chosen; `diskStorage` stays for tests that ask for it
 /** A proxy so the code below keeps calling `storage.put(...)`. */
 const storage: BackupStorage = { put: async (k, b) => (await storageNow()).put(k, b), get: async (k) => (await storageNow()).get(k), read: async (k) => (await storageNow()).read(k), del: async (k) => (await storageNow()).del(k) };
 export function useBackupStorage(s: BackupStorage | null): void {

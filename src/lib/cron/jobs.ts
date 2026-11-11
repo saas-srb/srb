@@ -25,7 +25,22 @@ export const JOB_RUNNERS: Record<string, () => Promise<unknown>> = {
       await (await import("@/lib/products/evaliq/db")).ensureOtsIndexes();
       return (await import("@/lib/products/evaliq/sweep")).runSweep();
     }),
-  domains: async () => (await import("@/lib/platform/domains/custom")).recheckPendingDomains(),
+  domains: async () => {
+    const recheck = await (await import("@/lib/platform/domains/custom")).recheckPendingDomains();
+    // Self-healing: every host in the database must be on the current Vercel project (a no-op when Vercel isn't configured).
+    const sync = await (await import("@/lib/platform/domains/sync/run")).syncAllDomains({ trigger: "cron", budgetMs: 120_000 });
+    // An unfinished file-storage migration continues here too (no cron of its own: Vercel Hobby allows only a few).
+    const blob = await (await import("@/lib/storage/blob-migrate-run")).runBlobMigrationTick(45_000).catch(() => null);
+    // Files still in the old Blob store are copied into the database a bit at a time (never deletes from Blob).
+    const copy = await (async () => {
+      const m = await import("@/lib/storage/blob-to-gridfs");
+      await m.ensureLegacyCopy();
+      return m.runLegacyCopyTick(45_000);
+    })().catch(() => null);
+    const c = sync.counts;
+    const bad = recheck.filter((r) => !r.ok);
+    return `${recheck.length} companies rechecked${bad.length ? `, ${bad.length} failed` : ""}; domain sync ${sync.status}${sync.done ? "" : " (continues next run)"}: ${c.attached} attached, ${c.released} released, ${c.ownedElsewhere} owned elsewhere, ${c.failed} failed${sync.message ? ` (${sync.message.slice(0, 100)})` : ""}${copy && copy.state === "running" ? `; files ${copy.inDatabase}/${copy.listed} in the database` : ""}${blob && blob.status !== "none" ? `; file migration ${blob.status}: ${blob.counts.copied} copied, ${blob.counts.failed} failed` : ""}`;
+  },
   trials: async () => (await import("@/lib/platform/billing/trials")).runTrialSweep(new Date()),
   subscriptions: async () => (await import("@/lib/platform/billing/subscriptions")).runDunningSweep(),
   notifications: async () => (await import("@/lib/notify/sweeps")).runAllSweeps(),

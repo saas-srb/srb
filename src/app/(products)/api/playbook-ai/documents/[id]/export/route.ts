@@ -11,7 +11,7 @@ import type { PbError } from "@/lib/products/playbook-ai/documents-types";
  * Streams the file as an attachment. The reply is binary, which `withTransport` passes through untouched; error replies are JSON and are
  * sealed like every other browser-called JSON route. Permission, watermark, sealing and the page cap are decided in `exportDocument`.
  */
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const STATUS: Record<PbError["code"], number> = {
   not_found: 404, forbidden: 403, invalid: 400, bad_status: 409, conflict: 409, locked: 423, unresolved_variables: 422, self_approval: 403,

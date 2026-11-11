@@ -77,6 +77,8 @@ export interface CompanyDomain {
     records?: DnsRecord[];
     /** The provider demanded its own ownership proof at some point — see `domains/custom.ts`. */
     challenged?: boolean;
+    /** Set by Domain sync (`domains/sync`): `owned_elsewhere` = still attached to another Vercel project/account. */
+    syncStatus?: "ok" | "owned_elsewhere" | "failed";
   };
   /** The same, for the company's app host `app.<domain>` of a custom domain (its own ownership challenge and routing). */
   appProvider?: {
@@ -88,6 +90,7 @@ export interface CompanyDomain {
     checkedAt: Date;
     records?: DnsRecord[];
     challenged?: boolean;
+    syncStatus?: "ok" | "owned_elsewhere" | "failed";
   };
   /** Every DNS record the hosting provider ever asked for, kept after it is published (Settings → Domains → DNS records). */
   dnsLog?: { host: string; type: DnsRecord["type"]; name: string; value: string; reason: string; seenAt: Date }[];

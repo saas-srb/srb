@@ -16,6 +16,7 @@ import {
   domainConfigFrom,
   emailConfigFrom,
   resolveDomainConfig,
+  resolvePreviousVercelConfig,
   type ConfigSource,
   type DomainProviderId,
   type EmailProviderId,
@@ -180,6 +181,8 @@ export async function saveIntegrations(input: IntegrationsInput, actorId: string
       vercelProjectId: projectId || null,
       vercelTeamId: teamId || null,
       rootDomain: rootDomain || null,
+      wildcard: before?.domains?.wildcard ?? null,
+      previous: before?.domains?.previous ?? null, // saved on its own (savePreviousProject), kept across this form's saves
     },
     updatedAt: now,
     updatedBy: actorId,
@@ -215,7 +218,64 @@ export async function saveIntegrations(input: IntegrationsInput, actorId: string
   if (changed.length || Object.keys(secrets).length) {
     await recordPlatformAudit({ actorId, action: "settings.integrations.update", target: { type: "platform_settings", id: INTEGRATIONS_DOC_ID }, details: { changed, secrets } });
   }
+  // A changed Vercel token / project / team → bring the new project in line with the database, in the background.
+  if (changed.some((c) => c === "domains.vercelProjectId" || c === "domains.vercelTeamId" || c === "domains.provider") || secrets["domains.token"] === "set") {
+    const { enqueueDomainSync } = await import("@/lib/platform/domains/sync/run");
+    await enqueueDomainSync({ trigger: "config", by: actorId }).catch((err) => console.error("[domain-sync] enqueue after config save failed", err));
+  }
   return { ok: true };
+}
+
+// ── Previous project (migration)
+
+export interface PreviousProjectView {
+  saved: boolean;
+  tokenLast4: string | null;
+  projectId: string;
+  teamId: string;
+}
+
+export async function getPreviousProjectView(): Promise<PreviousProjectView> {
+  const p = (await loadIntegrationsDoc())?.domains?.previous;
+  return { saved: Boolean(p?.token && p.projectId), tokenLast4: p?.token?.last4 ?? null, projectId: p?.projectId ?? "", teamId: p?.teamId ?? "" };
+}
+
+/** Saves (or clears) the previous Vercel project. A blank token keeps the saved one. Never logs the token. */
+export async function savePreviousProject(input: { token: string; projectId: string; teamId: string; clear?: boolean }, actorId: string): Promise<IntegrationsResult> {
+  const doc = await getPlatformDb();
+  const col = doc.collection<IntegrationsDoc>("platform_settings");
+  const before = await loadIntegrationsDoc();
+  if (input.clear) {
+    await col.updateOne({ _id: INTEGRATIONS_DOC_ID }, { $set: { "domains.previous": null, updatedAt: new Date(), updatedBy: actorId } }, { upsert: true });
+    bustIntegrationsCache();
+    await recordPlatformAudit({ actorId, action: "settings.integrations.previous_project", target: { type: "platform_settings", id: INTEGRATIONS_DOC_ID }, details: { cleared: true } });
+    return { ok: true };
+  }
+  const errors: Record<string, string> = {};
+  const token = input.token.trim();
+  const projectId = input.projectId.trim();
+  const teamId = input.teamId.trim();
+  if (token && !SECRET_RE.test(token)) errors["previous.token"] = "That doesn't look like an API token.";
+  if (token && !isPlatformEncryptionConfigured()) errors["previous.token"] = "Set PLATFORM_ENCRYPTION_KEY on the server before saving credentials here.";
+  if (!VERCEL_ID_RE.test(projectId)) errors["previous.projectId"] = "Use the old project's id from Vercel.";
+  if (teamId && !VERCEL_ID_RE.test(teamId)) errors["previous.teamId"] = "Use the old team's id from Vercel (letters, digits, - and _).";
+  if (!token && !before?.domains?.previous?.token) errors["previous.token"] = "Enter the old account's API token.";
+  if (Object.keys(errors).length) return { ok: false, errors };
+  const now = new Date();
+  const stored: StoredSecret | null = token ? { enc: encryptPlatformSecret(token, SECRET_CONTEXT.vercelPrevToken), last4: last4(token), updatedAt: now } : (before?.domains?.previous?.token ?? null);
+  await col.updateOne({ _id: INTEGRATIONS_DOC_ID }, { $set: { "domains.previous": { token: stored, projectId, teamId: teamId || null }, updatedAt: now, updatedBy: actorId } }, { upsert: true });
+  bustIntegrationsCache();
+  await recordPlatformAudit({ actorId, action: "settings.integrations.previous_project", target: { type: "platform_settings", id: INTEGRATIONS_DOC_ID }, details: { projectId, teamId: teamId || null, token: token ? "set" : "kept" } });
+  return { ok: true };
+}
+
+/** Read-only check of the previous project's credentials. */
+export async function testPreviousProject(actorId: string): Promise<TestResult> {
+  const cfg = await resolvePreviousVercelConfig();
+  if (!cfg) return { ok: false, error: "Save the previous project's token and project id first." };
+  const res = await checkVercelAccess(cfg);
+  await recordPlatformAudit({ actorId, action: "integrations.previous_project.test", target: { type: "platform_settings", id: INTEGRATIONS_DOC_ID }, details: { ok: res.ok } });
+  return res.ok ? { ok: true, message: `Connected to the previous Vercel project "${res.projectName}".` } : res;
 }
 
 // ── Test buttons ─────────────────────────────────────────────────────────────

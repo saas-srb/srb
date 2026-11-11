@@ -1,6 +1,5 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
-import { del } from "@vercel/blob";
 import type { Document, Filter } from "mongodb";
 import { getPlatformDb } from "@/lib/platform/tenancy/platform-db";
 import { COMPANIES_COLLECTION, COMPANY_DOMAINS_COLLECTION, forgetCompanyRouting, type Company, type CompanyDomain } from "@/lib/platform/tenancy/companies";
@@ -9,7 +8,7 @@ import { KEY_SEPARATOR } from "@/lib/platform/tenancy/collections";
 import { activeDomainProvider } from "@/lib/platform/domains";
 import { appHostOf } from "@/lib/platform/domains/custom";
 import { PLATFORM_AUDIT_COLLECTION } from "@/lib/platform/audit";
-import { blobAuth } from "@/lib/storage/blob-token";
+import { deleteObjects } from "@/lib/storage/blob";
 
 /**
  * Permanently deletes a company: its domains at the hosting provider (Vercel), its uploaded files, every database row it owns, and
@@ -145,7 +144,7 @@ export async function purgeCompanyNow(companyId: string): Promise<PurgeResult> {
   for (let i = 0; i < all.length; i += 100) {
     const batch = all.slice(i, i + 100);
     try {
-      await del(batch, await blobAuth());
+      await deleteObjects(batch);
       filesRemoved += batch.length;
     } catch (err) {
       console.error("[delete-company] file removal failed", err instanceof Error ? err.message : err);

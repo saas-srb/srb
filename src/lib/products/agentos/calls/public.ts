@@ -16,6 +16,7 @@ import { webDynamicVariables } from "@/lib/products/agentos/calls/web";
 import { can, type AibotsViewer } from "@/lib/products/agentos/viewer";
 import { ElevenLabsAgentError, type AgentClient } from "@/lib/products/agentos/voice/elevenlabs-agent";
 import { workspaceAgentClient } from "@/lib/products/agentos/voice/connection";
+import { stableRootSecret } from "@/lib/platform/keyring";
 
 /**
  * Website (public) voice calls: a visitor of the company's website picks one of the company's PUBLIC agents and talks to it in the
@@ -62,7 +63,7 @@ export const PUBLIC_ABANDON_EXTRA_MS = 15 * 60 * 1000;
 
 async function signingSecret(deps?: PublicDeps): Promise<string | null> {
   if (deps?.secret) return deps.secret();
-  const key = process.env.PLATFORM_ENCRYPTION_KEY;
+  const key = stableRootSecret();
   return key ? `${key}:agentos-public:${await currentCompanyId()}` : null;
 }
 

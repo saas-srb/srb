@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getCurrentHubUser } from "@/lib/hub-auth";
 import BrandMark from "@/components/BrandMark";
 import LoginForm from "./LoginForm";
+import KeyringBanner from "@/components/platform/KeyringBanner";
 import { safeNextPath } from "@/lib/workspace-session";
 import { loginLanding } from "@/lib/platform/onboarding/state";
 import { BrandName } from "@/components/platform/BrandProvider";
@@ -20,6 +21,8 @@ export default async function HubLoginPage({ searchParams }: { searchParams: Pro
   if (user) redirect(user.mustChangePassword ? "/commandos/change-password" : await loginLanding(user.roles, next));
 
   return (
+    <>
+    <KeyringBanner />
     <div className="flex min-h-screen">
       <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-primary/10 via-background to-secondary/20 p-10 lg:flex">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -54,5 +57,6 @@ export default async function HubLoginPage({ searchParams }: { searchParams: Pro
         <LoginForm next={next} demo={isDemo} />
       </div>
     </div>
+    </>
   );
 }

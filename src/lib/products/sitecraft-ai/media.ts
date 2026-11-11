@@ -1,10 +1,8 @@
 import "server-only";
-import { head } from "@vercel/blob";
-import { deleteObject } from "@/lib/storage/blob";
+import { deleteObject, headObject } from "@/lib/storage/blob";
 import { getDb } from "@/lib/mongodb";
 import { COLLECTIONS, newId, createStamp } from "@/lib/products/sitecraft-ai/db";
 import { CmsInputError } from "@/lib/products/sitecraft-ai/viewer";
-import { blobAuth } from "@/lib/storage/blob-token";
 
 /**
  * The CMS media library. Images live in the platform's shared private Vercel
@@ -51,7 +49,8 @@ async function inspectUpload(pathname: string): Promise<{ contentType: string; s
   if (!UPLOAD_PATH.test(pathname)) throw new CmsInputError("That upload isn't valid.");
   let meta;
   try {
-    meta = await head(pathname, await blobAuth());
+    meta = await headObject(pathname);
+    if (!meta) throw new Error("missing");
   } catch {
     throw new CmsInputError("The upload didn't finish — please try again.");
   }

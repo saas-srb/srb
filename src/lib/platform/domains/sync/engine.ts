@@ -1,0 +1,230 @@
+import type { DomainStatus } from "@/lib/platform/domains/types";
+import { emptyCounts, type HostWrite, type SyncAction, type SyncCounts, type SyncStore, type SyncTarget, type VercelDomainsApi } from "@/lib/platform/domains/sync/types";
+
+/**
+ * Domain sync engine: makes the CURRENT Vercel project carry every host the database says exists (each company's automatic
+ * addresses and its customers' own domains). Pure: talks only to the small interfaces in `types.ts`, so it is tested with fakes.
+ *
+ * Safe by construction: never deletes data; the only "removal" is releasing a host from the OLD project (when one is given),
+ * and only right before attaching it to the new one. Idempotent (a host already attached and healthy costs no API call),
+ * resumable (the cursor only moves after a whole batch finished), and one failing host never stops the others.
+ */
+
+export interface EngineDeps {
+  api: VercelDomainsApi;
+  /** The previous project (migration): hosts are released from it before they are attached to the new one. */
+  old?: Pick<VercelDomainsApi, "removeDomain"> | null;
+  store: SyncStore;
+  /** `*.<root>` is attached to the project: automatic company addresses need nothing per company. */
+  wildcard: boolean;
+  /** True for a host the wildcard covers (only consulted when `wildcard`). */
+  coveredByWildcard: (host: string) => boolean;
+  now?: () => number;
+  /** `*.<root>`: when given, the result says whether it is on the project (and verified). */
+  wildcardHost?: string;
+}
+
+export interface EngineOptions {
+  dryRun: boolean;
+  /** Stop after about this long (ms), at a batch boundary. */
+  budgetMs: number;
+  /** Stop after this many companies in this call. */
+  limit?: number;
+  cursor: string | null;
+  concurrency?: number;
+  batchSize?: number;
+  counts?: SyncCounts;
+  /** The platform's own hosts (root, www, app, wildcard): synced first, once at the start of a run. */
+  platformTargets?: SyncTarget[];
+  /** Called after every finished batch (save progress, renew a lease). */
+  onProgress?: (cursor: string | null, counts: SyncCounts) => Promise<void>;
+}
+
+export interface EngineResult {
+  cursor: string | null;
+  done: boolean;
+  stoppedBy: "end" | "budget" | "limit";
+  counts: SyncCounts;
+  /** Present when `wildcardHost` was given: is the wildcard attached to the project and verified? */
+  wildcard?: { attached: boolean; verified: boolean };
+}
+
+/** Every page of the project's domains, as a set. Throws when the list can't be read (the sync must not guess). */
+export async function loadProjectDomains(api: VercelDomainsApi): Promise<Set<string>> {
+  return (await loadProjectDomainInfo(api)).names;
+}
+
+export async function loadProjectDomainInfo(api: VercelDomainsApi): Promise<{ names: Set<string>; unverified: Set<string> }> {
+  const names = new Set<string>();
+  const unverified = new Set<string>();
+  let cursor: string | null = null;
+  for (let pages = 0; pages < 10_000; pages++) {
+    const res = await api.listDomains(cursor);
+    if (!res.ok) throw new Error(`Couldn't list the project's domains: ${res.error}`);
+    for (const n of res.value.names) names.add(n.toLowerCase());
+    for (const n of res.value.unverified ?? []) unverified.add(n.toLowerCase());
+    if (!res.value.next) return { names, unverified };
+    cursor = res.value.next;
+  }
+  throw new Error("The project's domain list never ended");
+}
+
+const healthy = (t: SyncTarget) => Boolean(t.stored?.attached && t.stored.verified && t.stored.dnsConfigured && t.stored.syncStatus !== "owned_elsewhere" && t.stored.syncStatus !== "failed");
+
+function writeFrom(status: DomainStatus): HostWrite {
+  return { attached: status.attached, verified: status.verified, dnsConfigured: status.dnsConfigured, records: status.records, error: null, syncStatus: "ok" };
+}
+
+const OWNED_MESSAGE = "This address is still attached to another Vercel project or account. Publish the verification record below (or release it from the old project) and it will move automatically.";
+
+async function pool<T>(items: T[], size: number, fn: (item: T) => Promise<void>): Promise<void> {
+  let i = 0;
+  await Promise.all(
+    Array.from({ length: Math.max(1, Math.min(size, items.length)) }, async () => {
+      while (i < items.length) await fn(items[i++]);
+    }),
+  );
+}
+
+/** One host. Never throws. */
+export async function syncHost(deps: EngineDeps, target: SyncTarget, projectHosts: Set<string>, dryRun: boolean, counts: SyncCounts): Promise<void> {
+  const { api, old, store } = deps;
+  const host = target.host;
+  const note = async (action: SyncAction, detail: string) => store.event({ host, companyId: target.companyId, action, detail }).catch(() => {});
+  try {
+    counts.hosts++;
+    if (host.endsWith(".localhost")) return;
+    if (deps.wildcard && (target.kind === "subdomain" || target.kind === "subdomain-app") && deps.coveredByWildcard(host)) {
+      counts.skippedWildcard++;
+      return;
+    }
+    if (projectHosts.has(host)) {
+      if (healthy(target)) {
+        counts.alreadyOk++;
+        return;
+      }
+      if (dryRun) {
+        counts.refreshed++;
+        await note("would_refresh", "On the project; its stored status would be refreshed");
+        return;
+      }
+      const st = await api.domainStatus(host);
+      if (!st.ok) throw new Error(st.error);
+      if (!st.value) {
+        projectHosts.delete(host); // vanished since the list was read: attach it below on the next pass
+        throw new Error("The host disappeared from the project while syncing; the next run attaches it");
+      }
+      await store.saveHost(target, writeFrom(st.value));
+      counts.refreshed++;
+      await note("refreshed", st.value.verified && st.value.dnsConfigured ? "Verified, SSL can be issued" : "On the project; waiting for DNS / verification");
+      return;
+    }
+
+    // Missing from the project.
+    if (dryRun) {
+      counts.wouldAttach++;
+      if (old) counts.wouldRelease++;
+      if (old) await note("would_release", "Would be released from the previous project");
+      await note("would_attach", "Would be attached to the project");
+      return;
+    }
+    let released = false;
+    if (old) {
+      const rel = await old.removeDomain(host);
+      if (rel.ok) {
+        released = true;
+        counts.released++;
+        await note("released", "Released from the previous project");
+      } else await note("release_failed", rel.error); // still try to attach: if it is free it works, else it is reported as owned elsewhere
+    }
+    const added = await api.addDomain(host, target.redirectTo ? { redirectTo: target.redirectTo } : undefined);
+    if (added.ok) {
+      projectHosts.add(host);
+      await store.saveHost(target, writeFrom(added.value));
+      counts.attached++;
+      await note("attached", released ? "Moved from the previous project" : "Attached to the project");
+      return;
+    }
+    if (added.ownedElsewhere) {
+      await store.saveHost(target, { attached: false, verified: false, dnsConfigured: false, records: added.ownedElsewhere.records, error: OWNED_MESSAGE, syncStatus: "owned_elsewhere" });
+      counts.ownedElsewhere++;
+      await note("owned_elsewhere", added.error);
+      return;
+    }
+    throw new Error(added.error);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    counts.failed++;
+    await note("failed", message);
+    if (!dryRun) {
+      await store
+        .saveHost(target, { attached: Boolean(target.stored?.attached), verified: Boolean(target.stored?.verified), dnsConfigured: Boolean(target.stored?.dnsConfigured), records: [], error: message, syncStatus: "failed" })
+        .catch(() => {});
+    }
+  }
+}
+
+/** Walks companies from `cursor`, a batch at a time, until the end, the budget or the limit. Idempotent: calling it again continues or repeats safely. */
+export async function syncDomains(deps: EngineDeps, opts: EngineOptions): Promise<EngineResult> {
+  const now = deps.now ?? Date.now;
+  const started = now();
+  const counts = opts.counts ?? emptyCounts();
+  const info = await loadProjectDomainInfo(deps.api);
+  const projectHosts = info.names;
+  const wildcard = deps.wildcardHost ? { attached: info.names.has(deps.wildcardHost), verified: info.names.has(deps.wildcardHost) && !info.unverified.has(deps.wildcardHost) } : undefined;
+  const concurrency = opts.concurrency ?? 5;
+  let cursor = opts.cursor;
+  let handled = 0;
+  if (opts.platformTargets?.length) await pool(opts.platformTargets, concurrency, (t) => syncHost(deps, t, projectHosts, opts.dryRun, counts));
+  for (;;) {
+    if (opts.limit !== undefined && handled >= opts.limit) return { cursor, done: false, stoppedBy: "limit", counts, wildcard };
+    if (now() - started >= opts.budgetMs) return { cursor, done: false, stoppedBy: "budget", counts, wildcard };
+    const size = Math.min(opts.batchSize ?? 20, opts.limit !== undefined ? opts.limit - handled : Infinity);
+    const batch = await deps.store.loadBatch(cursor, size);
+    if (batch.companies.length === 0) return { cursor: null, done: true, stoppedBy: "end", counts, wildcard };
+    await pool(
+      batch.companies.flatMap((c) => c.targets),
+      concurrency,
+      (t) => syncHost(deps, t, projectHosts, opts.dryRun, counts),
+    );
+    counts.companies += batch.companies.length;
+    handled += batch.companies.length;
+    cursor = batch.companies[batch.companies.length - 1].companyId; // moves only after the whole batch finished
+    await opts.onProgress?.(cursor, counts).catch(() => {});
+    if (batch.next === null) return { cursor: null, done: true, stoppedBy: "end", counts, wildcard };
+  }
+}
+
+/**
+ * The hosts one company needs on the project, from what the database holds (pure).
+ * `domains` are the company's `company_domains` documents.
+ */
+export function buildTargets(
+  company: { _id: string; slug: string },
+  domains: { _id: string; kind?: "subdomain" | "custom"; provider?: Partial<{ attached: boolean; verified: boolean; dnsConfigured: boolean; challenged: boolean; syncStatus: "ok" | "owned_elsewhere" | "failed" }>; appProvider?: Partial<{ attached: boolean; verified: boolean; dnsConfigured: boolean; challenged: boolean; syncStatus: "ok" | "owned_elsewhere" | "failed" }> }[],
+  ctx: { root: string; appSuffix: string; isPlatformHost: (host: string) => boolean },
+): SyncTarget[] {
+  const out: SyncTarget[] = [];
+  const seen = new Set<string>();
+  const stored = (p: (typeof domains)[number]["provider"]): SyncTarget["stored"] =>
+    p ? { attached: Boolean(p.attached), verified: Boolean(p.verified), dnsConfigured: Boolean(p.dnsConfigured), challenged: Boolean(p.challenged), syncStatus: p.syncStatus } : null;
+  const add = (t: SyncTarget) => {
+    if (seen.has(t.host) || ctx.isPlatformHost(t.host)) return;
+    seen.add(t.host);
+    out.push(t);
+  };
+  const ownSub = `${company.slug}.${ctx.root}`;
+  const subs = domains.filter((d) => d.kind === "subdomain" || d._id === ownSub);
+  if (!subs.some((d) => d._id === ownSub)) subs.push({ _id: ownSub });
+  for (const d of subs) {
+    const [label, ...rest] = d._id.split(".");
+    const has = domains.includes(d);
+    add({ host: d._id, companyId: company._id, kind: "subdomain", docId: has ? d._id : null, field: "provider", stored: stored(d.provider) });
+    add({ host: `${label}${ctx.appSuffix}.${rest.join(".")}`, companyId: company._id, kind: "subdomain-app", docId: has ? d._id : null, field: "appProvider", stored: stored(d.appProvider) });
+  }
+  for (const d of domains.filter((x) => !subs.includes(x))) {
+    add({ host: d._id, companyId: company._id, kind: "custom", docId: d._id, field: "provider", stored: stored(d.provider) });
+    add({ host: `app.${d._id.replace(/^www\./, "")}`, companyId: company._id, kind: "custom-app", docId: d._id, field: "appProvider", stored: stored(d.appProvider) });
+  }
+  return out;
+}

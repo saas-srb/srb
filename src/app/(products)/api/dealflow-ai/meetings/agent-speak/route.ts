@@ -12,7 +12,7 @@ import type { MeetingDoc } from "@/lib/dealflow-ai/meetings/types";
 
 import { withTransport } from "@/lib/security/transport";
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 /** The model that writes meeting replies: small and fast, because the first spoken word has to follow the question within a couple of seconds. */
 const MEETING_MODEL = "gpt-4.1-mini";

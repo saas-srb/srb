@@ -6,7 +6,7 @@ import { handleVoiceWebhook, SIGNATURE_HEADER } from "@/lib/products/agentos/cal
  * carry a valid HMAC signature for that company; see `calls/webhook.ts`. The raw body is read as text because the signature covers it.
  */
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();

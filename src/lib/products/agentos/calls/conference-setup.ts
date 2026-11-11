@@ -12,6 +12,7 @@ import { getCallSettings } from "@/lib/products/agentos/calls/settings";
 import { numbersCollection, isDuplicateKey } from "@/lib/products/agentos/calls/store";
 import { CALL_COLLECTIONS } from "@/lib/products/agentos/calls/types";
 import { AibotsInputError, ForbiddenError, can, type AibotsViewer } from "@/lib/products/agentos/viewer";
+import { stableRootSecret } from "@/lib/platform/keyring";
 
 /**
  * Per-company setup of live (conference) calling: the Twilio credentials the browser softphone needs, the opaque URL token, the signed
@@ -115,7 +116,7 @@ export interface LegUrls {
 
 function signingKey(companyId: string): string {
   if (!isPlatformEncryptionConfigured()) throw new Error("Secure storage isn't configured.");
-  return `${process.env.PLATFORM_ENCRYPTION_KEY ?? ""}:agentos-live-legs:${companyId}`;
+  return `${stableRootSecret() ?? ""}:agentos-live-legs:${companyId}`;
 }
 const hmac = (key: string, data: string) => createHmac("sha256", key).update(data).digest("base64url");
 const safeEq = (a: string, b: string) => {

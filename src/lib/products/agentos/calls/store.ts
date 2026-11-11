@@ -3,6 +3,7 @@ import { createHmac } from "node:crypto";
 import { getDb } from "@/lib/mongodb";
 import { currentCompanyId } from "@/lib/platform/tenancy/context";
 import { CALL_COLLECTIONS, type CallDoc, type DoNotCallDoc, type PhoneNumberDoc } from "@/lib/products/agentos/calls/types";
+import { stableRootSecret } from "@/lib/platform/keyring";
 
 /** Collection accessors for the calling engine. Indexes are created once per process, on first use. */
 
@@ -95,7 +96,7 @@ export { ensureIndexes as ensureCallIndexes };
  */
 export async function phoneFingerprint(e164: string): Promise<string> {
   const companyId = await currentCompanyId();
-  return createHmac("sha256", `${process.env.PLATFORM_ENCRYPTION_KEY ?? ""}:agentos-phone:${companyId}`).update(e164).digest("hex");
+  return createHmac("sha256", `${stableRootSecret() ?? ""}:agentos-phone:${companyId}`).update(e164).digest("hex");
 }
 
 export const isDuplicateKey = (e: unknown) => typeof e === "object" && e !== null && (e as { code?: number }).code === 11000;

@@ -6,7 +6,7 @@ import { parseRange } from "@/lib/products/agentos/voice/call-format";
 
 // A GET with the session cookie, served to an <audio> element, which cannot send the encrypted-transport headers; hence no withTransport.
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const HEADERS = {
   "Cache-Control": "private, no-store",

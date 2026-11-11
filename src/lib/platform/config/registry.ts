@@ -72,8 +72,8 @@ export const CONFIG_SECTIONS: ConfigSection[] = [
   {
     id: "storage",
     title: "File storage",
-    description: "Where every uploaded file and backup is kept (Vercel Blob, private store). Without it local development stores files on disk.",
-    fields: [{ key: "BLOB_READ_WRITE_TOKEN", label: "Blob read/write token", secret: true, help: "Vercel → Storage → your Blob store → .env.local tab.", placeholder: "vercel_blob_rw_…" }],
+    description: "Uploaded files and backups are kept in the database itself (GridFS), so they move with it. Vercel Blob is optional: files already in a Blob store are read from it (and copied into the database in the background), and new uploads go to Blob only when the backend below is set to blob.",
+    fields: [{ key: "FILE_BACKEND", label: "File backend (optional)", secret: false, help: "Leave empty for the database. Type blob to keep NEW uploads in Vercel Blob (needs the token below).", placeholder: "blob" }, { key: "BLOB_READ_WRITE_TOKEN", label: "Blob read/write token", secret: true, help: "Vercel → Storage → your Blob store → .env.local tab.", placeholder: "vercel_blob_rw_…" }],
   },
   {
     id: "cron",

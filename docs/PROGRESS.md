@@ -41,6 +41,15 @@ ContractFlow dashboard (own page): DONE, owner click-through pending
 Form popups as pages: DONE (owner click-through pending)
 - Send to ContractFlow, Send for signature, Void and Save as version are pages (sidebar "Current task"); previews, details, confirms and editor tools stay popups. Inventory in the Build log of `docs/playbook-simple-plan.md`.
 
+Moving to another Vercel account (platform infra): DONE, needs a real Vercel account to verify
+- Domain sync (`src/lib/platform/domains/sync/`: pure engine, real Vercel adapter with 429 backoff, Mongo store, runner), optional release from the old project (Integrations, Previous Vercel project), daily cron runs it, also runs after the Vercel settings change and on the first boot of a different project; Console Domains & SSL has the cards, Sync now with dry run, progress, log, failed list with Retry and CSV. Blob migration (`src/lib/storage/blob-migrate.ts`, `blob-migrate-run.ts`, Integrations, File storage). Runbook: `docs/migrate-vercel-account.md`. Tests: `npm run test:migrate` (fakes only).
+
+Portable deployments (only MONGODB_URI and SAAS_HOSTS): DONE, needs a real Vercel account to verify end to end
+- Encryption keyring in the database (`src/lib/platform/keyring/`, wrapped with a KEK from MONGODB_URI + SAAS_HOSTS; versions; `npm run key:rewrap`), all crypto call sites go through it. Staff never overwritten; `/setup` first-run admin. Cron works without CRON_SECRET (`src/lib/cron/auth.ts`, half-interval limit + lease). Vercel project detected from the system variable, team discovered, wildcard detected. Setup status card (Console dashboard, `/console/health`) incl. Blob probe. Blob migration now continues from the `domains` cron (no cron or route of its own). `npm run portability:check` (throwaway DB only: 10 checks pass). Tests: `npm run test:keyring`, `npm run test:migrate`. Runbook `docs/migrate-vercel-account.md` (env audit table, trade-off, minimal steps).
+
+Fully dynamic deployments (env adoption, files in the database, platform hosts, DNS, Hobby build): DONE, needs a real Vercel account to verify
+- Env adoption into the database (`src/lib/platform/adopt/`, classification table in `portability/env-classes.ts`, guarded by a test), legacy product keys as keyring versions, overlay of adopted vars into `process.env`. Files in MongoDB GridFS by default with Blob as legacy source and optional backend (`storage/gridfs.ts`, `blob.ts`, `blob-to-gridfs.ts`). Platform hosts derived from SAAS_HOSTS and synced (root redirects to www), DNS authority detection and DNS copy tool. Build is 8 lambdas (was 10; limit 12), `npm run check:functions`. Tests: `npm run test:portability`, `test:gridfs` (throwaway DB), `test:keyring`, `test:migrate`.
+
 Hardening: Z1 security and tenancy, Z2 performance, Z3 legal and content review
 
 Counting: 2 of about 40 features done = about 5%.

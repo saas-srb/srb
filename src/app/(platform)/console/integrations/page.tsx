@@ -2,16 +2,20 @@ import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import type { Metadata } from "next";
 import PlatformPageHeader from "@/components/platform/panel/PlatformPageHeader";
 import { can, requirePlatformPermission } from "@/lib/platform/console/access";
-import { getIntegrationsView } from "@/lib/platform/integrations";
+import { getIntegrationsView, getPreviousProjectView } from "@/lib/platform/integrations";
 import { getConfigView } from "@/lib/platform/config/store";
 import IntegrationsForm from "./IntegrationsForm";
 import ServerKeysForm from "./ServerKeysForm";
+import PreviousProjectForm from "./PreviousProjectForm";
+import BlobMigrationForm from "./BlobMigrationForm";
+import { getBlobMigrationView } from "@/lib/storage/blob-migrate-run";
 
 export const metadata: Metadata = { title: "Integrations" };
 
 export default async function PlatformIntegrationsPage() {
   const user = await requirePlatformPermission("integrations.read");
-  const [view, config] = await Promise.all([getIntegrationsView(), getConfigView()]);
+  const [view, config, previous, blobMigration] = await Promise.all([getIntegrationsView(), getConfigView(), getPreviousProjectView(), getBlobMigrationView()]);
+  const canManage = can(user, "integrations.manage");
   return (
     <div className="space-y-6 p-1">
       <PlatformPageHeader
@@ -21,7 +25,9 @@ export default async function PlatformIntegrationsPage() {
       />
       <PanelListFilters>
 <IntegrationsForm key={view.updatedAt ?? "none"} view={view} adminEmail={user.email} />
-<ServerKeysForm key={config.updatedAt ?? "none"} view={config} canManage={can(user, "integrations.manage")} />
+<PreviousProjectForm key={previous.projectId + (previous.tokenLast4 ?? "")} view={previous} canManage={canManage} />
+<ServerKeysForm key={config.updatedAt ?? "none"} view={config} canManage={canManage} />
+<BlobMigrationForm initial={blobMigration} canManage={canManage} />
 </PanelListFilters>
     </div>
   );

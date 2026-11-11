@@ -81,7 +81,8 @@ export const CRON_JOBS: CronJob[] = [
   },
   {
     key: "domains", name: "Custom domain re-check", product: "platform", scope: "each company", path: "/api/platform/domains/cron", schedule: "30 5 * * *", maxDurationSec: 300,
-    description: "Re-checks every company's pending custom domains so they go live as soon as their DNS is right.",
+    description: "Re-checks every company's pending custom domains so they go live as soon as their DNS is right, then makes sure every company address and customer domain in the database is attached to the current Vercel project (Domain sync, so a move to another Vercel account needs no manual work).",
+    alsoRunsOn: "Right after the Vercel settings are saved, on the first start of a deployment on a different Vercel project, and the Sync all domains now button in Domains & SSL. It also continues an unfinished file-storage migration (Integrations, File storage).",
     configure: { label: "Custom domains", href: "/commandos/settings/domains" },
   },
   {

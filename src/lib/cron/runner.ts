@@ -6,8 +6,11 @@ import { getPlatformDb } from "@/lib/platform/tenancy/platform-db";
 import { CRON_BY_KEY } from "@/lib/cron/registry";
 import { JOB_RUNNERS, summarize } from "@/lib/cron/jobs";
 import { alertJobFailed, effectiveJob } from "@/lib/cron/config";
-import { previousRun } from "@/lib/cron/schedule";
+import { intervalMs, previousRun } from "@/lib/cron/schedule";
+import { authorizeCron } from "@/lib/cron/auth";
+import { isSaasAppHost, isSaasHost } from "@/lib/platform/saas/hosts";
 import { getConfig } from "@/lib/platform/config/store";
+import { acquireLease as acquire, releaseLease as release } from "@/lib/cron/lease";
 
 /**
  * Runs scheduled jobs the same safe way however they are started (Vercel Cron, the in-app scheduler, "Run now" in the Platform Console):
@@ -32,12 +35,6 @@ export interface CronRun {
   error: string;
   expiresAt: Date;
 }
-interface Lock {
-  _id: string;
-  until: Date;
-  holder: string;
-}
-
 const KEEP_DAYS = 30;
 let indexed = false;
 async function runs() {
@@ -48,26 +45,6 @@ async function runs() {
   }
   return c;
 }
-async function locks() {
-  return (await getPlatformDb()).collection<Lock>("cron_locks");
-}
-
-/** Takes the job's lock for `seconds`; false when another run holds it. */
-async function acquire(key: string, seconds: number, holder: string): Promise<boolean> {
-  const now = new Date();
-  try {
-    const res = await (await locks()).updateOne({ _id: key, until: { $lte: now } }, { $set: { until: new Date(now.getTime() + seconds * 1000), holder } });
-    if (res.matchedCount) return true;
-    await (await locks()).insertOne({ _id: key, until: new Date(now.getTime() + seconds * 1000), holder });
-    return true;
-  } catch {
-    return false; // the lock exists and is still held (duplicate key)
-  }
-}
-async function release(key: string, holder: string): Promise<void> {
-  await (await locks()).updateOne({ _id: key, holder }, { $set: { until: new Date(0) } }).catch(() => {});
-}
-
 export interface RunOutcome {
   ok: boolean;
   skipped?: boolean;
@@ -133,7 +110,21 @@ export function cronRoute(key: string, opts: { extraSecrets?: (string | undefine
   return async function GET(req: Request): Promise<NextResponse> {
     // Either secret opens the URL: the one saved in the Console (any scheduler) and the Vercel environment one (the only one Vercel Cron can send).
     const secrets = [await getConfig("CRON_SECRET").catch(() => null), process.env.CRON_SECRET, ...(opts.extraSecrets ?? [])].filter((s): s is string => !!s);
-    if (!secrets.some((s) => hasBearer(req, s))) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } });
+    const job = CRON_BY_KEY.get(key);
+    const host = (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "").split(":")[0].toLowerCase();
+    // The previous cron-triggered start of this job, only needed when no secret exists anywhere (see auth.ts).
+    const last = secrets.length ? null : await (await runs()).find({ job: key, trigger: "cron" }).sort({ startedAt: -1 }).limit(1).next().catch(() => null);
+    const auth = authorizeCron({
+      bearerMatches: secrets.some((s) => hasBearer(req, s)),
+      secretConfigured: secrets.length > 0,
+      userAgent: req.headers.get("user-agent"),
+      hostAllowed: isSaasHost(host) || isSaasAppHost(host) || host.endsWith(".vercel.app"),
+      lastRunAtMs: last?.startedAt.getTime() ?? null,
+      intervalMs: job ? intervalMs(job.schedule) : null,
+      nowMs: Date.now(),
+    });
+    if (!auth.ok) return NextResponse.json({ error: auth.reason === "too-soon" ? "Too soon" : "Unauthorized" }, { status: auth.reason === "too-soon" ? 429 : 401, headers: { "Cache-Control": "no-store", ...(auth.reason === "too-soon" ? { "Retry-After": String(Math.ceil((auth.retryAfterMs ?? 0) / 1000)) } : {}) } });
+    if (auth.via === "vercel-cron" && !secrets.length) console.log(`[cron] ${key} started by Vercel Cron without a CRON_SECRET (rate-limited by its interval)`);
     const out = await runJob(key, { trigger: "cron" });
     return NextResponse.json({ ok: out.ok, job: key, skipped: out.skipped ?? false, runId: out.runId, durationMs: out.durationMs, summary: out.summary, error: out.error }, { status: out.ok ? 200 : 500, headers: { "Cache-Control": "no-store" } });
   };

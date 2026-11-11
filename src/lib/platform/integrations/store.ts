@@ -1,5 +1,6 @@
 import { getPlatformDb } from "@/lib/platform/tenancy/platform-db";
-import { productionRootDomain } from "@/lib/platform/tenancy/root-domain";
+import { productionRootDomain, rootDomainFromHost } from "@/lib/platform/tenancy/root-domain";
+import { primarySaasHost } from "@/lib/platform/saas/hosts";
 import type { EncryptedValue } from "@/lib/platform/crypto";
 
 /**
@@ -40,6 +41,10 @@ export interface IntegrationsDoc {
     vercelProjectId?: string | null;
     vercelTeamId?: string | null;
     rootDomain?: string | null;
+    /** Optional: the previous Vercel project, when moving to a new account (Domain sync releases hosts from it). */
+    /** Detected by Domain sync: the wildcard `*.<root>` is on the project (the environment variable PLATFORM_WILDCARD_SUBDOMAINS overrides it). */
+    wildcard?: { root: string; attached: boolean; checkedAt: Date } | null;
+    previous?: { token?: StoredSecret | null; projectId?: string | null; teamId?: string | null } | null;
   };
   updatedAt?: Date;
   updatedBy?: string | null;
@@ -91,12 +96,12 @@ export function bustIntegrationsCache(): void {
  * The root domain company subdomains live under, from the DB when set,
  * else `PLATFORM_ROOT_DOMAIN` (first entry), else — on Vercel production only —
  * the domain implied by the production URL (`www.example.com` → `example.com`),
- * else `localhost` (development). Synchronous:
+ * else the root implied by SAAS_HOSTS (production), else `localhost` (development). Synchronous:
  * reads the cached document, which the proxy (every page request) and the
  * provisioning path load before use.
  */
 export function resolvedRootDomain(): string {
   const db = cachedIntegrationsDoc()?.domains?.rootDomain?.trim().toLowerCase();
   if (db) return db;
-  return (process.env.PLATFORM_ROOT_DOMAIN ?? "").split(",")[0].trim().toLowerCase() || productionRootDomain() || "localhost";
+  return (process.env.PLATFORM_ROOT_DOMAIN ?? "").split(",")[0].trim().toLowerCase() || productionRootDomain() || (process.env.NODE_ENV === "production" ? rootDomainFromHost(primarySaasHost()) : null) || "localhost"; // last: derived from SAAS_HOSTS, so nothing is typed anywhere
 }

@@ -1,6 +1,6 @@
 import "server-only";
 import { createCipheriv, createDecipheriv, createHash, createHmac, hkdfSync, randomBytes, timingSafeEqual } from "node:crypto";
-import { derivedKey } from "@/lib/security/derived-key";
+import { derivedKeys, derivedKey } from "@/lib/security/derived-key";
 
 /**
  * App-level secret encryption for SMMS platform tokens: AES-256-GCM keyed by
@@ -42,6 +42,8 @@ function previousKeys(): Buffer[] {
     const k = Buffer.from(direct, "base64");
     if (k.length === 32) out.push(k);
   }
+  // Older keyring versions (a deployment moved to another encryption key).
+  for (const k of derivedKeys("smms", "SMMS_ENCRYPTION_KEY").slice(1)) out.push(k);
   const root = process.env.PLATFORM_ENCRYPTION_KEY_PREVIOUS;
   if (root) {
     const secret = Buffer.from(root, "base64");

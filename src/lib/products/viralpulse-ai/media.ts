@@ -1,10 +1,8 @@
 import "server-only";
-import { head } from "@vercel/blob";
-import { putObject, deleteObject } from "@/lib/storage/blob";
+import { putObject, deleteObject, headObject } from "@/lib/storage/blob";
 import { COLLECTIONS, smmsCollection, newId, createStamp, updateStamp, notDeleted, str, strList, escapeRegex, type Stamps } from "@/lib/products/viralpulse-ai/db";
 import { IMAGE_TYPES, VIDEO_TYPES, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, isPlatform, type MediaKind } from "@/lib/products/viralpulse-ai/constants";
 import { SmmsInputError, NotFoundError } from "@/lib/products/viralpulse-ai/viewer";
-import { blobAuth } from "@/lib/storage/blob-token";
 import { getObject } from "@/lib/storage/blob";
 import { currentCompanyIdOrNull } from "@/lib/platform/tenancy/context";
 import { sniffKind, MIME_FOR } from "@/lib/products/viralpulse-ai/images/sniff";
@@ -284,7 +282,8 @@ async function inspectUpload(pathname: string): Promise<UploadInfo> {
   await assertUploadOwner(pathname);
   let meta;
   try {
-    meta = await head(pathname, await blobAuth());
+    meta = await headObject(pathname);
+    if (!meta) throw new Error("missing");
   } catch {
     throw new SmmsInputError("The upload didn't finish — please try again.");
   }

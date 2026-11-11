@@ -52,7 +52,7 @@ export const POSTS: BlogPost[] = [
         body: [
           "When you sign up at SelfRun AI, you enter your company name, primary industry, and work email. Behind the scenes, the website engine automatically provisions your core pages: Home, Features, About Us, Contact, and Services.",
           "Unlike generic templates that come pre-filled with meaningless Latin placeholder text, SelfRun AI drafts clean, sensible headlines and descriptions suited to your line of work. A consulting firm gets service blocks and client engagement outlines, while a digital agency gets project highlights and inquiry forms.",
-          "You can preview your website instantly on your free subdomain (such as yourcompany.selfrunbusiness.com) to see how everything looks on desktop, tablet, and smartphone screens.",
+          "You can preview your website instantly on your free subdomain (such as yourcompany.<your-domain>) to see how everything looks on desktop, tablet, and smartphone screens.",
         ],
       },
       {

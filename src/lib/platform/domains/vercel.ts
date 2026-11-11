@@ -127,3 +127,39 @@ export async function checkVercelAccess(cfg: VercelConfig): Promise<{ ok: true; 
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
+
+const teamCache = ((globalThis as unknown as { __vercelTeamGuess?: Map<string, string | null> }).__vercelTeamGuess ??= new Map());
+
+/**
+ * A team-owned project needs its team id. When none is configured and the project isn't visible without one, finds the team that owns it
+ * (read-only: lists the token's teams and asks each for the project). Cached per process. Returns the config unchanged when it
+ * already works or nothing is found.
+ */
+export async function withDiscoveredTeam(cfg: VercelConfig): Promise<VercelConfig> {
+  if (cfg.team) return cfg;
+  const key = `${cfg.project}:${cfg.token.slice(-6)}`;
+  if (teamCache.has(key)) {
+    const t = teamCache.get(key);
+    return t ? { ...cfg, team: t } : cfg;
+  }
+  try {
+    if ((await checkVercelAccess(cfg)).ok) {
+      teamCache.set(key, null);
+      return cfg;
+    }
+    const { status, data } = await call<{ teams?: { id: string }[] }>(cfg, "GET", "/v2/teams?limit=50");
+    if (status === 200) {
+      for (const t of data.teams ?? []) {
+        const probe = { ...cfg, team: t.id };
+        if ((await checkVercelAccess(probe)).ok) {
+          teamCache.set(key, t.id);
+          return probe;
+        }
+      }
+    }
+    teamCache.set(key, null);
+  } catch {
+    /* try again next time */
+  }
+  return cfg;
+}

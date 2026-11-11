@@ -22,6 +22,7 @@ export type ConfigSource = "db" | "env" | "default";
 export const SECRET_CONTEXT = {
   resendApiKey: "integrations:resend:apiKey",
   vercelToken: "integrations:vercel:apiToken",
+  vercelPrevToken: "integrations:vercel:previousApiToken",
 } as const;
 
 export const EMAIL_PROVIDERS = ["resend", "console"] as const;
@@ -111,9 +112,16 @@ export interface ResolvedDomainConfig {
 
 export function domainConfigFrom(doc: IntegrationsDoc | null): ResolvedDomainConfig {
   const d = doc?.domains;
-  const token = pickSecret(d?.vercelToken, SECRET_CONTEXT.vercelToken, "VERCEL_API_TOKEN");
-  const project = pick(d?.vercelProjectId, "VERCEL_PROJECT_ID", null);
-  const team = pick(d?.vercelTeamId, "VERCEL_TEAM_ID", null);
+  // On Vercel the deployment knows its own project (system variable VERCEL_PROJECT_ID). It wins over a project id saved from an older
+  // account, so a deployment on a new account/project needs nothing saved to find itself. A token set in this deployment's own
+  // environment likewise wins over one saved (and shared through the database) from the old account.
+  const ownProject = process.env.VERCEL && env("VERCEL_PROJECT_ID") ? env("VERCEL_PROJECT_ID") : null;
+  const savedToken = pickSecret(d?.vercelToken, SECRET_CONTEXT.vercelToken, "VERCEL_API_TOKEN");
+  const envToken = env("VERCEL_API_TOKEN");
+  const token = ownProject && envToken ? { value: envToken, source: "env" as ConfigSource } : savedToken;
+  const project = ownProject ? { value: ownProject, source: "env" as ConfigSource } : pick(d?.vercelProjectId, "VERCEL_PROJECT_ID", null);
+  const savedProjectMatches = !d?.vercelProjectId?.trim() || d.vercelProjectId.trim() === project.value;
+  const team = env("VERCEL_TEAM_ID") ? { value: env("VERCEL_TEAM_ID"), source: "env" as ConfigSource } : savedProjectMatches ? pick(d?.vercelTeamId, "VERCEL_TEAM_ID", null) : { value: null, source: "default" as ConfigSource };
   const vercel = token.value && project.value ? { token: token.value, project: project.value, team: team.value } : null;
 
   const savedRoot = d?.rootDomain?.trim().toLowerCase();
@@ -149,4 +157,16 @@ export function domainConfigFrom(doc: IntegrationsDoc | null): ResolvedDomainCon
 
 export async function resolveDomainConfig(): Promise<ResolvedDomainConfig> {
   return domainConfigFrom(await loadIntegrationsDoc());
+}
+
+/** The previous project's credentials (migration), decrypted; null unless a token and a project id are saved. Server-only, never logged. */
+export function previousVercelConfigFrom(doc: IntegrationsDoc | null): VercelConfig | null {
+  const p = doc?.domains?.previous;
+  const token = openSecret(p?.token, SECRET_CONTEXT.vercelPrevToken);
+  const project = p?.projectId?.trim();
+  return token && project ? { token, project, team: p?.teamId?.trim() || null } : null;
+}
+
+export async function resolvePreviousVercelConfig(): Promise<VercelConfig | null> {
+  return previousVercelConfigFrom(await loadIntegrationsDoc());
 }

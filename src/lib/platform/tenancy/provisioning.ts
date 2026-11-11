@@ -1,5 +1,6 @@
 import "server-only";
 import type { BusinessSelection } from "@/lib/platform/business-taxonomy";
+import { cachedIntegrationsDoc } from "@/lib/platform/integrations/store";
 import { randomUUID } from "node:crypto";
 import { getPlatformDb } from "@/lib/platform/tenancy/platform-db";
 import { runAsCompany } from "@/lib/platform/tenancy/context";
@@ -41,7 +42,12 @@ export function platformRootDomain(): string {
  * are then not attached one by one. See docs/deploy-vercel.md.
  */
 export function wildcardSubdomainsEnabled(): boolean {
-  return /^(1|true|yes|on)$/i.test((process.env.PLATFORM_WILDCARD_SUBDOMAINS ?? "").trim());
+  const e = (process.env.PLATFORM_WILDCARD_SUBDOMAINS ?? "").trim();
+  if (/^(1|true|yes|on)$/i.test(e)) return true;
+  if (/^(0|false|no|off)$/i.test(e)) return false;
+  // Not forced either way: use what Domain sync found on the project (see domains/sync/run.ts).
+  const w = cachedIntegrationsDoc()?.domains?.wildcard;
+  return Boolean(w?.attached && w.root === platformRootDomain());
 }
 
 export function companySubdomain(slug: string): string {

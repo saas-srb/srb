@@ -13,6 +13,11 @@ for (const k of ["RESEND_API_KEY", "EMAIL_PROVIDER", "EMAIL_FROM", "VERCEL_API_T
 const TEST_KEY = randomBytes(32).toString("base64");
 process.env.PLATFORM_ENCRYPTION_KEY = TEST_KEY;
 
+// The keyring (src/lib/platform/keyring) keeps the key in the database, so "no key at all" and "key rotated" need the keyring switched off here.
+const ringStore = () => ((globalThis as unknown as { __keyring: { loaded: unknown; promise: unknown } }).__keyring ??= { loaded: null, promise: null });
+const keyringOff = () => { ringStore().loaded = { state: "unavailable", keys: [], action: null, message: null, at: Date.now() + 1e12 }; };
+const keyringOn = () => { ringStore().loaded = null; };
+
 let passed = 0;
 const failures: string[] = [];
 async function check(name: string, fn: () => Promise<void>) {
@@ -172,18 +177,21 @@ async function run(db: import("mongodb").Db) {
 
   await check("secrets can't be saved without PLATFORM_ENCRYPTION_KEY", async () => {
     delete process.env.PLATFORM_ENCRYPTION_KEY;
+    keyringOff();
     try {
       const res = await saveIntegrations({ ...blank, email: { ...blank.email, apiKey: "re_new_key_1111" } }, "admin-1");
       assert.ok(!res.ok && "email.apiKey" in res.errors);
       assert.equal((await getIntegrationsView()).encryptionConfigured, false);
     } finally {
       process.env.PLATFORM_ENCRYPTION_KEY = TEST_KEY;
+      keyringOn();
     }
   });
 
   await check("an undecryptable stored secret is flagged and env takes over", async () => {
     assert.ok((await saveIntegrations({ ...blank, email: { ...blank.email, apiKey: "re_db_secret_EFGH" } }, "admin-1")).ok);
     process.env.PLATFORM_ENCRYPTION_KEY = randomBytes(32).toString("base64"); // key rotated without re-entering
+    keyringOff();
     try {
       bustIntegrationsCache();
       const view = await getIntegrationsView();
@@ -192,6 +200,7 @@ async function run(db: import("mongodb").Db) {
       assert.equal((await resolveEmailConfig()).resendApiKey, "re_env_key_9999");
     } finally {
       process.env.PLATFORM_ENCRYPTION_KEY = TEST_KEY;
+      keyringOn();
     }
   });
 

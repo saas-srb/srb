@@ -1,6 +1,6 @@
 import "server-only";
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
-import { derivedKey, derivedKeyConfigured } from "@/lib/security/derived-key";
+import { derivedKeys, derivedKey, derivedKeyConfigured } from "@/lib/security/derived-key";
 
 /**
  * App-level field encryption for employee bank details. AES-256-GCM, keyed by
@@ -43,11 +43,17 @@ export function encryptField(plain: string): EncryptedValue {
 export function decryptField(value: EncryptedValue | null | undefined): string | null {
   if (!value) return null;
   try {
-    const key = getKey();
-    if (!key) return null;
-    const decipher = createDecipheriv(ALGO, key, Buffer.from(value.iv, "base64"));
-    decipher.setAuthTag(Buffer.from(value.t, "base64"));
-    return Buffer.concat([decipher.update(Buffer.from(value.c, "base64")), decipher.final()]).toString("utf8");
+    // Any key version may have sealed it (a deployment moved to another encryption key keeps the old ones).
+    for (const key of derivedKeys("hrms", "HRMS_ENCRYPTION_KEY")) {
+      try {
+        const decipher = createDecipheriv(ALGO, key, Buffer.from(value.iv, "base64"));
+        decipher.setAuthTag(Buffer.from(value.t, "base64"));
+        return Buffer.concat([decipher.update(Buffer.from(value.c, "base64")), decipher.final()]).toString("utf8");
+      } catch {
+        // wrong version: try the next
+      }
+    }
+    throw new Error("no key opens it");
   } catch (err) {
     console.error("hrms/crypto: failed to decrypt a field", err);
     return null;

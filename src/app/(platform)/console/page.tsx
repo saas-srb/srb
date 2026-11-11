@@ -7,6 +7,7 @@ import { CardHeader, CardTitle, CardDescription, CardContent } from "@/component
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import KpiCard from "@/components/products/dealflow-ai/KpiCard";
 import KpiGrid from "@/components/products/dealflow-ai/KpiGrid";
+import SetupStatusCard from "@/components/platform/SetupStatusCard";
 import PlatformPageHeader from "@/components/platform/panel/PlatformPageHeader";
 import { requirePlatformAccess } from "@/lib/platform/console/access";
 import { getPlatformKpis } from "@/lib/platform/console/companies";
@@ -31,6 +32,8 @@ export default async function PlatformDashboardPage({ searchParams }: { searchPa
           Your platform role doesn&apos;t include access to that page. Ask a Platform Owner if you need it.
         </p>
       )}
+
+      <SetupStatusCard compact />
 
       <KpiGrid cols={6}>
         <KpiCard label="Companies" value={kpis.total} icon={<Building2 className="size-4" />} />

@@ -1,6 +1,5 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { del } from "@vercel/blob";
 import type { AnyBulkWriteOperation, Document } from "mongodb";
 import { getDb } from "@/lib/mongodb";
 import { getPlatformDb } from "@/lib/platform/tenancy/platform-db";
@@ -12,7 +11,7 @@ import { recordPlatformAudit } from "@/lib/platform/audit";
 import { purgeCompanyNow } from "@/lib/platform/console/delete-company";
 import { companyCollections, ownRows, parseRecords, readArchive } from "@/lib/products/commandos/data-archive";
 import { applyRetention, backupBuffer, createBackup, deleteAllBackups, scheduledBackupDue, type BackupKind } from "@/lib/products/commandos/backups";
-import { blobAuth } from "@/lib/storage/blob-token";
+import { deleteObjects } from "@/lib/storage/blob";
 
 /**
  * What happens to a company's data over its life: restoring a backup, deleting all its data, and deleting the company itself after a 30-day
@@ -151,7 +150,7 @@ export async function wipeCompanyData(actor: Actor): Promise<{ ok: true; rows: n
   let files = 0;
   const all = [...keys];
   for (let i = 0; i < all.length; i += 100) {
-    try { await del(all.slice(i, i + 100), await blobAuth()); files += Math.min(100, all.length - i); } catch (err) { console.error("[wipe] file removal failed", err instanceof Error ? err.message : err); }
+    try { await deleteObjects(all.slice(i, i + 100)); files += Math.min(100, all.length - i); } catch (err) { console.error("[wipe] file removal failed", err instanceof Error ? err.message : err); }
   }
   let rows = 0;
   for (const name of names) rows += (await db.collection(name).deleteMany(ownRows(companyId))).deletedCount;

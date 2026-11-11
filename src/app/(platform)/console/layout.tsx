@@ -9,6 +9,7 @@ import PlatformSidebarShell from "@/components/platform/panel/PlatformSidebarShe
 import PlatformTopbar from "@/components/platform/panel/PlatformTopbar";
 import type { PlatformNavFlags } from "@/components/platform/panel/PlatformSidebar";
 import { SidebarCollapseProvider } from "@/components/products/dealflow-ai/SidebarCollapseContext";
+import KeyringBanner from "@/components/platform/KeyringBanner";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -46,7 +47,7 @@ export default async function PlatformPanelLayout({ children }: { children: Reac
             <div className="lms-surface relative z-30 shrink-0 rounded-3xl border border-border/40 bg-background/95 shadow-none backdrop-blur-md dark:bg-card/85">
               <PlatformTopbar flags={flags} email={user.email} />
             </div>
-            <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto rounded-2xl">{children}</main>
+            <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto rounded-2xl"><KeyringBanner />{children}</main>
           </div>
         </div>
       </SidebarCollapseProvider>

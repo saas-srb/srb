@@ -53,6 +53,7 @@ const EXACT = new Set([
   "/resources",
   "/login",
   "/register",
+  "/setup",
   "/robots.txt",
   "/sitemap.xml",
   "/opengraph-image",

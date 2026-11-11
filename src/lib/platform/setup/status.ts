@@ -1,0 +1,101 @@
+import "server-only";
+import { ensureKeyring } from "@/lib/platform/keyring";
+import { operatorExists } from "@/lib/platform/saas/first-run";
+import { loadIntegrationsDoc } from "@/lib/platform/integrations/store";
+import { domainConfigFrom } from "@/lib/platform/integrations/resolve";
+import { checkVercelAccess, withDiscoveredTeam } from "@/lib/platform/domains/vercel";
+import { wildcardSubdomainsEnabled, platformRootDomain } from "@/lib/platform/tenancy/provisioning";
+import { getDomainSyncOverview } from "@/lib/platform/domains/sync/run";
+import { getConfig } from "@/lib/platform/config/store";
+import { createBlobStoreApi } from "@/lib/storage/blob-migrate-run";
+import { adoptedCount } from "@/lib/platform/adopt";
+import { legacyCopyStatus } from "@/lib/storage/blob-to-gridfs";
+
+/**
+ * "Setup status": what a deployment on a (new) Vercel account works out by itself and the one thing it cannot (an API token of that
+ * account). Read-only; the only outside calls are two cheap probes (the Vercel project and the Blob store).
+ */
+
+export interface SetupItem {
+  id: string;
+  title: string;
+  state: "ok" | "action" | "warn";
+  /** Done by the app without anyone doing anything. */
+  automatic: boolean;
+  detail: string;
+}
+
+const item = (id: string, title: string, state: SetupItem["state"], automatic: boolean, detail: string): SetupItem => ({ id, title, state, automatic, detail });
+
+export async function getSetupStatus(): Promise<SetupItem[]> {
+  const out: SetupItem[] = [];
+  const ring = await ensureKeyring();
+  out.push(
+    ring.state === "ok"
+      ? item("keyring", "Encryption keys", "ok", true, `Stored safely in the database (${ring.versions.length} version${ring.versions.length === 1 ? "" : "s"}); no PLATFORM_ENCRYPTION_KEY needed on a new deployment.`)
+      : ring.state === "needs_old_key"
+        ? item("keyring", "Encryption keys", "action", false, ring.message ?? "Provide the old PLATFORM_ENCRYPTION_KEY once.")
+        : ring.state === "cannot_unwrap"
+          ? item("keyring", "Encryption keys", "warn", false, ring.message ?? "The stored keys can't be opened with the current database URI.")
+          : item("keyring", "Encryption keys", "warn", false, ring.message ?? "The keyring could not be read yet."),
+  );
+  out.push(
+    (await operatorExists().catch(() => false))
+      ? item("admin", "Platform admin", "ok", true, "Existing platform staff keep working; the environment never overwrites them.")
+      : item("admin", "Platform admin", "action", false, "No platform admin yet: open /setup on your site and use the setup code from the deployment log."),
+  );
+
+  const doc = await loadIntegrationsDoc();
+  const cfg = domainConfigFrom(doc);
+  const project = cfg.vercel?.project ?? process.env.VERCEL_PROJECT_ID?.trim() ?? null;
+  out.push(item("project", "Vercel project", project ? "ok" : "warn", true, project ? `Detected automatically: ${project}${process.env.VERCEL_URL ? ` (${process.env.VERCEL_URL})` : ""}.` : "Not detected. On Vercel, turn on \"Automatically expose System Environment Variables\" in Project → Settings → Environment Variables."));
+
+  if (!cfg.vercel) {
+    out.push(item("token", "Vercel API token", "action", false, "The one thing that needs a person: create an API token in the NEW Vercel account (avatar → Settings → Tokens) and paste it in Integrations → Domains & hosting (or set VERCEL_API_TOKEN). Domain sync then runs by itself."));
+  } else {
+    const vc = await withDiscoveredTeam(cfg.vercel);
+    const access = await checkVercelAccess(vc);
+    out.push(access.ok ? item("token", "Vercel API token", "ok", false, `Works for project "${access.projectName}".`) : item("token", "Vercel API token", "action", false, `This token cannot use the current Vercel project, so it most likely belongs to another Vercel account (${access.error}). Create a token in THIS account once and paste it in Integrations → Domains & hosting. The saved earlier-account token stays in use only for releasing hosts and copying DNS records.`));
+  }
+
+  const sync = await getDomainSyncOverview().catch(() => null);
+  if (sync?.run) {
+    const c = sync.run.counts;
+    out.push(item("sync", "Domain sync", sync.run.status === "failed" ? "warn" : c.failed || c.ownedElsewhere ? "warn" : "ok", true, `${sync.run.status === "running" ? "Running" : "Last run " + sync.run.status}: ${c.attached} attached, ${c.ownedElsewhere} owned elsewhere, ${c.failed} failed.`));
+  } else out.push(item("sync", "Domain sync", cfg.vercel ? "warn" : "action", true, cfg.vercel ? "Has not run yet; it starts by itself (or press Sync all domains now)." : "Starts automatically as soon as a Vercel token exists."));
+
+  const adopted = await adoptedCount().catch(() => 0);
+  out.push(item("adopted", "Adopted from environment", "ok", true, `${adopted} setting${adopted === 1 ? "" : "s"} adopted from environment variables into the database; a new deployment finds them there.`));
+
+  const forced = (process.env.PLATFORM_WILDCARD_SUBDOMAINS ?? "").trim();
+  const wildcard = wildcardSubdomainsEnabled();
+  out.push(item("wildcard", "Wildcard addresses", wildcard ? "ok" : "warn", !forced, wildcard ? (forced ? "Forced on by PLATFORM_WILDCARD_SUBDOMAINS." : `Detected: *.${platformRootDomain()} is on the project.`) : `*.${platformRootDomain()} is not on this project. Add it in Vercel (root domain DNS must be at this account); until then each company's two addresses are attached one by one.`));
+
+  const backend = ((await getConfig("FILE_BACKEND").catch(() => null)) ?? "").trim().toLowerCase() === "blob" ? "Vercel Blob" : "the database (GridFS)";
+  const copy = await legacyCopyStatus().catch(() => null);
+  const blobToken = await getConfig("BLOB_READ_WRITE_TOKEN").catch(() => null);
+  let blobProbe = "";
+  let blobBad = false;
+  if (blobToken) {
+    try {
+      await createBlobStoreApi(blobToken).list(null, 1);
+    } catch (err) {
+      blobBad = true;
+      blobProbe = ` The saved Blob store can't be reached (${err instanceof Error ? err.message.slice(0, 100) : "error"}); files not yet copied into the database stay unavailable until a working token is saved.`;
+    }
+  }
+  const remaining = copy?.remaining ?? 0;
+  out.push(
+    item(
+      "files",
+      "File storage",
+      blobBad || (copy && copy.failed > 0) ? "warn" : remaining > 0 || copy?.state === "running" ? "warn" : "ok",
+      true,
+      `New files go to ${backend}, which travels with the database. ${copy && copy.state !== "no-blob" && copy.state !== "idle" ? `Old Blob files: ${copy.inDatabase}/${copy.listed} copied into the database, ${remaining} remaining.` : blobToken ? "Old Blob files: not scanned yet (starts by itself)." : "No Blob store is used."}${blobProbe}`,
+    ),
+  );
+
+  const cronSecret = Boolean(process.env.CRON_SECRET) || Boolean(await getConfig("CRON_SECRET").catch(() => null));
+  out.push(item("cron", "Scheduled jobs", "ok", true, cronSecret ? "A cron secret is set." : "No CRON_SECRET: Vercel's own cron calls are accepted, limited to one run per half interval, and the database lease still applies."));
+  return out;
+}

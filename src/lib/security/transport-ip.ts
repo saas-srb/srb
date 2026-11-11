@@ -1,10 +1,11 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { stableRootSecret } from "@/lib/platform/keyring";
 
 const DEV_SECRET = "selfrun-dev-transport-secret-not-for-production";
 
 /** The server-only secret behind the encrypted transport, or null when none is configured in production. */
 export function transportSecret(): Buffer | null {
-  const raw = process.env.API_TRANSPORT_SECRET || process.env.PLATFORM_ENCRYPTION_KEY;
+  const raw = process.env.API_TRANSPORT_SECRET || stableRootSecret();
   if (!raw) return process.env.NODE_ENV === "production" ? null : Buffer.from(DEV_SECRET);
   return Buffer.from(raw, "utf8");
 }

@@ -11,7 +11,7 @@ website and everything is created for them.
 > [!IMPORTANT]
 > **Two places hold settings, and each setting lives in exactly one of them.**
 > - **Vercel environment variables** hold only the six values the app needs *before* it can read the database: `MONGODB_URI`,
->   `SAAS_ADMIN_EMAIL`, `SAAS_ADMIN_PASSWORD`, `PLATFORM_ENCRYPTION_KEY`, `SAAS_HOSTS` and `CRON_SECRET` (step 6).
+>   `SAAS_HOSTS` (step 6; the others are optional).
 > - **The Platform Console** holds everything else, section by section: email, domains, file storage, AI, voice and messaging,
 >   push notifications, search and calls, payments, plans and more (step 11). Saving there needs **no redeploy**.
 >
@@ -226,8 +226,8 @@ These protect sensitive data. You create them yourself, once.
 
   | Name in your notes | Protects |
   | --- | --- |
-  | `PLATFORM_ENCRYPTION_KEY` | **The single encryption key** for everything sensitive: every key saved in the Platform Console or by a company, employee bank details, finance accounts, Digi Locker credentials, social tokens |
-  | `CRON_SECRET` | The scheduled-job URLs (Vercel Cron sends it; without it every call is refused). Put the same value in the Console in step 11.2 |
+  | `PLATFORM_ENCRYPTION_KEY` | **Optional.** The single encryption key for everything sensitive (when not set, the app keeps its key wrapped in the database, see migrate-vercel-account.md): every key saved in the Platform Console or by a company, employee bank details, finance accounts, Digi Locker credentials, social tokens |
+  | `CRON_SECRET` | **Optional.** A bearer secret for the scheduled-job URLs (Vercel Cron sends it when it exists; without any secret Vercel's own call is still accepted, once per half interval). Put the same value in the Console in step 11.2 |
 
   There is no other encryption key to create. Older guides listed separate HR, Finance, Digi Locker and Social keys: they are no longer used.
 
@@ -244,8 +244,7 @@ Copy **Public Key** into your notes as `VAPID_PUBLIC_KEY` and **Private Key** as
 > ✅ **Checkpoint:** two random values, two VAPID values, and the admin email and password are all in your notes, and no two values are the same.
 
 > [!WARNING]
-> **Keep these keys forever.** If you lose or change `PLATFORM_ENCRYPTION_KEY`, everything it protected can no longer be read: saved
-> keys, bank details and credentials. If you change the VAPID pair, every device must turn notifications on again. Use a different
+> **Keep your MongoDB URI and `SAAS_HOSTS` safe (they open the stored encryption keys).** If you also set `PLATFORM_ENCRYPTION_KEY`, keep it: it is stored as a key version and never overwrites an older one, so changing it no longer loses data, but the database and `MONGODB_URI` together can then open it. If you change the VAPID pair, every device must turn notifications on again. Use a different
 > set for production than for local development.
 
 ---
@@ -262,7 +261,7 @@ Copy **Public Key** into your notes as `VAPID_PUBLIC_KEY` and **Private Key** as
 - **5.3** Leave *Framework Preset* as **Next.js** and the build settings as they are.
 
 - **5.4** You can add the environment variables on this same screen (open **Environment Variables**), or deploy first and add them in step 6.
-  Either way, the first deployment fails or shows an error page until the six variables of step 6 exist. That is expected.
+  Either way, the first deployment fails or shows an error page until the variables of step 6 exist. That is expected.
 
 - **5.5** Click **Deploy** if you are on the import screen. It may fail: that is fine, you will redeploy in step 9.
 
@@ -283,25 +282,28 @@ Copy **Public Key** into your notes as `VAPID_PUBLIC_KEY` and **Private Key** as
 > In Vercel you type values **without quotes**. (Quotes are only for a local `.env` file, where a `#` or a space in a password
 > would otherwise cut the value off.)
 
-### 6A. The six variables (all required)
+### 6A. The two required variables
 
 | Key | Value |
 | --- | --- |
 | `MONGODB_URI` | From step 2 |
-| `SAAS_ADMIN_EMAIL` | Your staff email (step 4.4) |
-| `SAAS_ADMIN_PASSWORD` | Your staff password (step 4.4) |
-| `PLATFORM_ENCRYPTION_KEY` | From step 4.2 |
 | `SAAS_HOSTS` | `selfrunbusiness.com` |
-| `CRON_SECRET` | From step 4.2 |
 
-That is everything the app needs to start. `PLATFORM_ENCRYPTION_KEY` has to stay here because it opens everything saved in the Console, so it cannot be saved there. `CRON_SECRET` has to be here because Vercel Cron can only send what is in the Vercel environment; the same value is also saved in the Console (11.2), which is what any other scheduler uses. **Do not add anything else here**: email, storage, AI, push, domains and payments are saved in the
-Platform Console (step 11), where each has its own labelled section, and a key saved there needs no redeploy.
+That is everything the app needs to start, on a first deployment and on a move to another Vercel account (see [migrate-vercel-account.md](migrate-vercel-account.md)). The encryption key is created on the first start and kept (wrapped) in the database; the platform admin is created at `/setup` (the one-time setup code is printed once in the deployment's runtime log). Email, storage, AI, push, domains and payments are saved in the Platform Console (step 11).
+
+Optional, all safe to leave out:
+
+| Key | Why you might set it |
+| --- | --- |
+| `SAAS_ADMIN_EMAIL`, `SAAS_ADMIN_PASSWORD` | Create the first platform admin on the first start instead of using `/setup`. Ignored once any platform staff exist. |
+| `PLATFORM_ENCRYPTION_KEY` (`openssl rand -base64 32`) | Keep a key outside the database as well (stronger against a leaked database plus URI). Kept as a key version; never overwrites an older one. |
+| `CRON_SECRET` | A bearer secret for scheduled jobs. Without it Vercel's own cron call is accepted, once per half interval. |
 
 What you do **not** need to set any more:
 
 - The company root domain: on a Vercel production deployment it is worked out from your production domain (7.2), and you can also type it in
   *Console → Integrations → Domains & hosting*.
-- Separate HR, Finance, Digi Locker or Social encryption keys: `PLATFORM_ENCRYPTION_KEY` covers them all.
+- Separate HR, Finance, Digi Locker or Social encryption keys: the keyring covers them all.
 - The Razorpay billing webhook secret, `REQUIRE_PRIVILEGED_MFA` and `DEV_TUNNEL_HOST`: the first is saved in *Console → Payments & Razorpay*,
   the others no longer exist.
 
@@ -438,7 +440,7 @@ This line means the first start created your operator company, your staff accoun
 - **9.6** Open `https://www.selfrunbusiness.com/console`. It must **redirect** to `https://app.selfrunbusiness.com/console`.
   (products never open on the website address.)
 
-- **9.7** Open `https://www.selfrunbusiness.com/api/notify/cron` in the browser. It must answer **401** (refused: it needs `CRON_SECRET`). That proves the scheduled jobs are protected.
+- **9.7** Open `https://www.selfrunbusiness.com/api/notify/cron` in the browser. It must answer **401** (refused: a browser is not Vercel's cron). That proves the scheduled jobs are protected.
 
 > ✅ **Checkpoint:** the SelfRun Business website shows with a valid HTTPS padlock, the log line `[saas] Platform operator … created` exists, `/console` redirects to the `app.` address, and the cron URL answers 401.
 
@@ -520,7 +522,7 @@ save the key in the Platform Console in step 11.2.
 > ✅ **Checkpoint:** you see the Platform Console dashboard on `app.selfrunbusiness.com`; Integrations shows **Email**, **File storage** and **Push notifications** as saved; and no section reports "cannot be decrypted".
 
 > [!NOTE]
-> If a section says its saved value "cannot be decrypted", `PLATFORM_ENCRYPTION_KEY` in Vercel is missing or was changed. Put the original back and redeploy.
+> If a section says its saved value "cannot be decrypted", the keyring could not be opened (see Console, Health, and migrate-vercel-account.md).
 
 ---
 
@@ -610,7 +612,7 @@ the steps itself on its **Workspace → Settings → Custom domains** page, whic
 
 - **14.5** Test: on the test company's **Custom domains** page add a domain you own. The page lists the exact DNS records to create. Create them at that domain's DNS, press **Check now**, and watch it become **Verified** with **SSL active**.
 
-You can see every company's domains in Platform Console → **Domains & SSL**.
+You can see every company's domains in Platform Console → **Domains & SSL**. Moving to another Vercel account later is automatic: see [migrate-vercel-account.md](migrate-vercel-account.md).
 
 > [!NOTE]
 > **Nothing has to be done by hand in the Vercel dashboard.** A custom domain brings two hosts to Vercel: the website (`www.acme.com`) and
@@ -680,7 +682,7 @@ Until 15.6 is done, builds wait in the queue ("Waiting for the build service") a
 
 ⏱ *read only · nothing to set up*
 
-`vercel.json` registers 18 jobs, all daily, so it fits Vercel's Hobby plan. They start automatically after deployment and are protected by `CRON_SECRET` (without it every call is refused). The list lives in one place, `src/lib/cron/registry.ts`; `vercel.json` is generated from it (`npm run cron:sync`) and `npm run test:cron` fails if the two, or the routes on disk, ever disagree.
+`vercel.json` registers 18 jobs, all daily, so it fits Vercel's Hobby plan. They start automatically after deployment and are protected (a bearer secret, or Vercel's own call limited to one run per half interval). The list lives in one place, `src/lib/cron/registry.ts`; `vercel.json` is generated from it (`npm run cron:sync`) and `npm run test:cron` fails if the two, or the routes on disk, ever disagree.
 
 | Job | Time (UTC) | Does |
 | --- | --- | --- |
@@ -717,11 +719,11 @@ Tick these before you tell customers the platform is open.
 - [ ] Email arrives from `no-reply@selfrunbusiness.com`
 - [ ] A phone installed the app and received a test notification
 - [ ] Console → Integrations shows Email, File storage and Push notifications as saved, with no "cannot be decrypted" warning
-- [ ] Console → Cron jobs lists every job as healthy (or not yet due), and the cron URLs answer 401 without `CRON_SECRET`
+- [ ] Console → Cron jobs lists every job as healthy (or not yet due), and the cron URLs answer 401 to a browser
 - [ ] A test company's Settings pages open: Integrations, Notification center, Documents & PDFs, Scheduled jobs, AI prompts
 - [ ] A test company whose trial has ended is sent to **Subscribe to continue** and gets access back after subscribing
-- [ ] Only the six variables of step 6 (plus `PLATFORM_WILDCARD_SUBDOMAINS` for Option A) are set in Vercel
-- [ ] `PLATFORM_ENCRYPTION_KEY`, `CRON_SECRET` and `MONGODB_URI` are saved in a password manager (and nowhere else)
+- [ ] Only the variables of step 6 (plus `PLATFORM_WILDCARD_SUBDOMAINS` for Option A) are set in Vercel
+- [ ] `MONGODB_URI` (and `PLATFORM_ENCRYPTION_KEY` / `CRON_SECRET` if you set them) are saved in a password manager (and nowhere else)
 - [ ] Atlas backups are on, and the Atlas and Vercel accounts use two-factor sign-in
 - [ ] (Optional) A Razorpay test payment upgraded a plan
 - [ ] (Optional) The Apps page of a test company shows Ready download buttons
@@ -733,7 +735,7 @@ Tick these before you tell customers the platform is open.
 | Problem | Cause and fix |
 | --- | --- |
 | 404 with a small monogram header on the main domain | The host is not a website host. Set `SAAS_HOSTS=selfrunbusiness.com`, make the domain the production domain (7.2), redeploy |
-| Build fails in Vercel | Read the build log. Usually a missing or misspelled variable from the six in 6A |
+| Build fails in Vercel | Read the build log. Usually a missing or misspelled `MONGODB_URI` or `SAAS_HOSTS` |
 | Staff cannot sign in | Sign in at `https://app.selfrunbusiness.com/workspace/login` (not `www`). Check `SAAS_ADMIN_EMAIL` and `SAAS_ADMIN_PASSWORD` for typos (no quotes in Vercel), fix and redeploy |
 | No `[saas] Platform operator … created` in the logs | `SAAS_ADMIN_EMAIL` or `MONGODB_URI` is missing or wrong. Check them and redeploy |
 | `MongoServerSelectionError` or timeout in the logs | Atlas Network Access does not allow Vercel: add `0.0.0.0/0` (2.4). Or the password in `MONGODB_URI` has special characters that must be URL-encoded |
@@ -744,7 +746,7 @@ Tick these before you tell customers the platform is open.
 | Certificate error on a new company address | The wildcard is not active yet (step 8), or with Option B the address was not attached yet (step 14) |
 | Sign-up email never arrives | Console → Integrations → Email has no provider or key saved, the Resend domain is not verified, or the From address is on another domain (steps 10 and 11.2) |
 | Uploads fail | The Blob token is not saved in Console → Integrations → File storage, or the Blob store is not private |
-| Bank details or a saved key cannot be saved or read | `PLATFORM_ENCRYPTION_KEY` is missing or was changed. Restore the original and redeploy |
+| Bank details or a saved key cannot be saved or read | the keyring cannot be opened (Console, Health shows why: usually the MongoDB URI changed, run `npm run key:rewrap`) |
 | Console says a saved value "cannot be decrypted" | Same cause: `PLATFORM_ENCRYPTION_KEY` differs from the one used when it was saved. Restore it, or re-enter the value |
 | AI features say they are unavailable | No OpenAI key in Console → Integrations → AI, and the company has not saved its own (Settings → Integrations) |
 | Push notifications "not enabled on this server" | The VAPID keys are not saved in Console → Integrations → Push notifications (11.2) |
