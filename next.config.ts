@@ -192,6 +192,8 @@ const nextConfig: NextConfig = {
     ...(EXP.has("unused-exports") && { turbopackRemoveUnusedExports: true }),
     ...(EXP.has("fragments") && { turbopackModuleFragments: true }),
     ...(EXP.has("webpack-mem") && { webpackMemoryOptimizations: true }),
+    ...(EXP.has("shared-runtime") && { turbopackSharedRuntime: true }),
+    ...(EXP.has("fs-cache") && { turbopackFileSystemCacheForBuild: true }),
     ...(EXP.has("cpus1") && { cpus: 1, memoryBasedWorkersCount: false }),
     serverActions: {
       // Server actions accept uploads (a GSTR-2B file is up to 5 MB, a bill or receipt up to 15 MB as sent by their own forms); the default is 1 MB.

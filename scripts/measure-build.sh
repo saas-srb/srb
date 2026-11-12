@@ -8,13 +8,14 @@
 # It prints: whether it was killed (OOM), the time of each phase, the peak anonymous memory (what an OOM kill counts) and the peak including page cache.
 # No database is needed (a throwaway URI is passed; `next build` never connects). Never uses real tokens.
 set -uo pipefail
-CAP=7500; CPUS="0-1"; LABEL="build"; KEEP=0; EXTRA=()
+CAP=7500; CPUS="0-1"; LABEL="build"; KEEP=0; PREP=""; EXTRA=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --cap) CAP="$2"; shift 2;;
     --cpus) CPUS="$2"; shift 2;;
     --label) LABEL="$2"; shift 2;;
     --keep) KEEP=1; shift;;
+    --prep) PREP="$2"; shift 2;;   # a shell command run inside the throwaway copy before the build (to measure what a file costs)
     --) shift; EXTRA=("$@"); break;;
     *) echo "unknown option $1" >&2; exit 2;;
   esac
@@ -27,6 +28,8 @@ rm -rf "$TMP"; mkdir -p "$TMP"
 for f in $(ls -A "$ROOT" | grep -vE '^(node_modules|\.git|\.next|\.vercel|desktop|mobile|local|docs|\.env.*|.*\.tsbuildinfo)$'); do cp -a "$ROOT/$f" "$TMP/"; done
 cp -al "$ROOT/node_modules" "$TMP/node_modules"
 cd "$TMP" || exit 2
+[ -z "$PREP" ] || bash -c "$PREP"
+EXTRA_Q=""; [ ${#EXTRA[@]} -gt 0 ] && EXTRA_Q="$(printf '%q ' "${EXTRA[@]}")"
 START=$(date +%s)
 LOG="$OUT/build.log"
 cat > "$OUT/inner.sh" <<INNER
@@ -34,7 +37,7 @@ cat > "$OUT/inner.sh" <<INNER
 cg=/sys/fs/cgroup\$(cut -d: -f3 /proc/self/cgroup)
 ( peak=0; while true; do a=\$(awk '/^anon /{print \$2}' "\$cg/memory.stat" 2>/dev/null); [ -n "\$a" ] && [ "\$a" -gt "\$peak" ] && { peak=\$a; echo \$peak > "$OUT/peak-anon"; }; sleep 2; done ) &
 SAMPLER=\$!
-env \${BUILD_EXPERIMENTS:+BUILD_EXPERIMENTS=\$BUILD_EXPERIMENTS} \${MEASURE_NODE_OPTIONS:+NODE_OPTIONS="\$MEASURE_NODE_OPTIONS"} VERCEL=1 NODE_ENV=production MONGODB_URI=mongodb://127.0.0.1:27017/zz_throwaway_build SAAS_HOSTS=build.test NEXT_TELEMETRY_DISABLED=1 taskset -c $CPUS npx next build ${EXTRA[*]:-} 2>&1 | while IFS= read -r line; do printf '%s %s\n' "\$(date +%s)" "\$line"; done > "$LOG"
+env \${BUILD_EXPERIMENTS:+BUILD_EXPERIMENTS=\$BUILD_EXPERIMENTS} \${MEASURE_NODE_OPTIONS:+NODE_OPTIONS="\$MEASURE_NODE_OPTIONS"} VERCEL=1 NODE_ENV=production MONGODB_URI=mongodb://127.0.0.1:27017/zz_throwaway_build SAAS_HOSTS=build.test NEXT_TELEMETRY_DISABLED=1 taskset -c $CPUS npx next build ${EXTRA_Q} 2>&1 | while IFS= read -r line; do printf '%s %s\n' "\$(date +%s)" "\$line"; done > "$LOG"
 ec=\${PIPESTATUS[0]}
 kill \$SAMPLER 2>/dev/null
 cat "\$cg/memory.peak" > "$OUT/peak-current" 2>/dev/null
