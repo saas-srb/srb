@@ -14,11 +14,13 @@ export interface VercelDomainsApi {
   addDomain(host: string, options?: { redirectTo?: string }): Promise<AddResult>;
   /** Current state of a host on the project; `null` value = it is not on the project. */
   domainStatus(host: string): Promise<ApiResult<DomainStatus | null>>;
+  /** Asks Vercel to re-check ownership now (optional: falls back to `domainStatus`). */
+  verifyDomain?(host: string): Promise<ApiResult<DomainStatus | null>>;
   /** Detaches the host from the project (404 counts as done). */
   removeDomain(host: string): Promise<ApiResult<null>>;
 }
 
-export type HostKind = "subdomain" | "subdomain-app" | "custom" | "custom-app" | "platform";
+export type HostKind = "subdomain" | "subdomain-app" | "custom" | "custom-app" | "custom-alt" | "platform";
 
 /** The state Domain sync (or normal provisioning) last stored for a host. */
 export interface StoredHostState {
@@ -53,7 +55,7 @@ export interface HostWrite {
   syncStatus: "ok" | "owned_elsewhere" | "failed";
 }
 
-export type SyncAction = "released" | "release_failed" | "attached" | "refreshed" | "owned_elsewhere" | "failed" | "would_release" | "would_attach" | "would_refresh";
+export type SyncAction = "released" | "release_failed" | "attached" | "refreshed" | "owned_elsewhere" | "failed" | "would_release" | "would_attach" | "would_refresh" | "already_attached" | "needs_txt";
 
 export interface SyncEvent {
   host: string;
@@ -83,5 +85,7 @@ export interface SyncStore {
   /** The next companies after `cursor` (company id order) with all of their hosts; `next` = the cursor to continue from, null when no companies are left. */
   loadBatch(cursor: string | null, size: number): Promise<{ companies: { companyId: string; targets: SyncTarget[] }[]; next: string | null }>;
   saveHost(target: SyncTarget, write: HostWrite): Promise<void>;
+  /** Marks hosts that were checked and are fine as checked now (their stored status is only a cache). */
+  touchHosts?(targets: SyncTarget[]): Promise<void>;
   event(e: SyncEvent): Promise<void>;
 }

@@ -98,6 +98,12 @@ export function createVercelDomainsApi(cfg: VercelConfig, opts: ApiOptions = {})
       return { ok: true, value: await statusOf(host, data) };
     },
 
+    async verifyDomain(host): Promise<ApiResult<DomainStatus | null>> {
+      const { status, data } = await request<ProjectDomain>("POST", `/v9/projects/${project}/domains/${encodeURIComponent(host)}/verify`);
+      if (status === 200) return { ok: true, value: await statusOf(host, data) };
+      return this.domainStatus(host); // 400 = still not verifiable: report the current state and what is outstanding
+    },
+
     async removeDomain(host) {
       const { status, data } = await request<VErr>("DELETE", `/v9/projects/${project}/domains/${encodeURIComponent(host)}`);
       if (status === 200 || status === 404) return { ok: true, value: null };

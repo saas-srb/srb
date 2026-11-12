@@ -103,7 +103,8 @@ export async function getObject(storageKey: string): Promise<GetResult | null> {
   if (local) return { stream: local.stream, contentType: local.contentType };
   const auth = await blobAuth();
   if (!auth.token) return null;
-  const result = await get(storageKey, { ...auth, access: "private" });
+  // A Blob store that can't be reached (token revoked, account closed) must look like "file not available", never an error page.
+  const result = await get(storageKey, { ...auth, access: "private" }).catch(() => null);
   if (!result || result.statusCode !== 200 || !result.stream) return null;
   // First read of a file that still lives in Blob: copy it into the database while it is being served (best effort; the background copier covers the rest).
   const [forCaller, forCopy] = result.stream.tee();

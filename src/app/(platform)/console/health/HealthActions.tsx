@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
-import { fileCopyTickAction, importFromEnvironmentAction } from "./actions";
+import { auditFilesAction, fileCopyTickAction, importFromEnvironmentAction, missingFilesCsvAction } from "./actions";
 import type { FileCopyView } from "@/lib/storage/blob-to-gridfs";
 
 /** Two controls: import settings from this deployment's environment into the database, and watch/restart the copy of old Blob files into the database. */
@@ -58,9 +58,18 @@ export default function HealthActions({ initial, canManage }: { initial: FileCop
           <Button variant="outline" disabled={!canManage || running || copy.state === "no-blob"} onClick={() => void tick(true)}>
             Check Blob for files again
           </Button>
+          <Button variant="outline" disabled={!canManage || pending} onClick={() => start(async () => { setCopy(await auditFilesAction()); })}>
+            Check for missing files
+          </Button>
+          {typeof copy.missing === "number" && copy.missing > 0 && (
+            <Button variant="outline" onClick={async () => { const csv = await missingFilesCsvAction(); const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })); const a = document.createElement("a"); a.href = url; a.download = "missing-files.csv"; a.click(); URL.revokeObjectURL(url); }}>
+              Export missing files (CSV)
+            </Button>
+          )}
         </div>
         <p className="text-muted-foreground">
           Files: {copy.state === "no-blob" ? "no Blob token saved, everything is in the database." : copy.state === "idle" ? "not checked yet." : `${copy.inDatabase}/${copy.listed} of the files found in Blob are in the database${running ? " (copying…)" : copy.remaining ? `, ${copy.remaining} remaining` : ", all copied"}${copy.failed ? `, ${copy.failed} failed` : ""}.`}
+          {typeof copy.missing === "number" ? <span className="block">{copy.missing === 0 ? "Every file the data refers to exists." : `${copy.missing} file(s) the data refers to exist nowhere (not in the database and not in the old Blob store). They show as \"file not available\" to people; export the list.`}</span> : null}
           {copy.error ? <span className="block text-destructive">{copy.error}</span> : null}
         </p>
       </CardContent>

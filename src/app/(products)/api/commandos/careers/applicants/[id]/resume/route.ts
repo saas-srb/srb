@@ -15,8 +15,8 @@ async function handleGET(_req: NextRequest, { params }: Context) {
     return NextResponse.json({ error: "Resume not found." }, { status: 404 });
   }
 
-  const object = await openResumeDownloadStream(application.resume.storageKey);
-  if (!object) return NextResponse.json({ error: "Resume not found." }, { status: 404 });
+  const object = await openResumeDownloadStream(application.resume.storageKey).catch(() => null);
+  if (!object) return NextResponse.json({ error: "This file isn't available right now." }, { status: 404 });
 
   return new NextResponse(object.stream, {
     headers: {

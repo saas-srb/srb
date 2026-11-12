@@ -70,6 +70,18 @@ export const CONFIG_SECTIONS: ConfigSection[] = [
     ],
   },
   {
+    id: "builds",
+    title: "Desktop and mobile app builds",
+    description: "Lets the platform start the GitHub workflow that builds companies' desktop and mobile apps, and accept the finished build back.",
+    fields: [
+      { key: "GITHUB_DISPATCH_TOKEN", label: "GitHub token", secret: true, help: "GitHub → Settings → Developer settings → fine-grained token with Actions: read and write on the repository." },
+      { key: "GITHUB_REPOSITORY", label: "GitHub repository", secret: false, help: "owner/name of the repository that holds the build workflow.", placeholder: "owner/repo" },
+      { key: "DESKTOP_BUILD_SECRET", label: "Build callback secret", secret: true, generate: true, help: "A long random value; the workflow sends it back with the finished build." },
+      { key: "GITHUB_WORKFLOW_FILE", label: "Workflow file (optional)", secret: false, help: "Default desktop.yml.", placeholder: "desktop.yml" },
+      { key: "DESKTOP_RELEASES_REPO", label: "Releases repository (optional)", secret: false, help: "owner/name where finished builds are published." },
+    ],
+  },
+  {
     id: "sms",
     title: "SMS sign-in codes",
     description: "Text-message codes for second-step sign-in use the Twilio account above (a company's own Twilio comes first). Turn \"SMS codes allowed\" on in Health, sign-in security policy, once this works. For Indian (+91) numbers the DLT fields below are also required.",

@@ -8,6 +8,7 @@ import { listAllDomains, type DomainKindFilter, type DomainSslFilter, type Domai
 import DomainsFilterBar from "./DomainsFilterBar";
 import DomainsGrid from "./DomainsGrid";
 import DomainSyncPanel from "./DomainSyncPanel";
+import { DISABLED_NOTE, disabledHosts } from "@/lib/platform/setup/blocked";
 import PlatformHostsPanel from "./PlatformHostsPanel";
 import { getDomainSyncOverview, getPlatformHostsOverview, summarizeHosts } from "@/lib/platform/domains/sync/run";
 
@@ -27,10 +28,12 @@ export default async function PlatformDomainsPage({ searchParams }: { searchPara
   const s = list.summary;
 
   const [{ summary: h, problems }, overview, platformHosts] = await Promise.all([summarizeHosts(300), getDomainSyncOverview(), getPlatformHostsOverview()]);
+  const blockedHosts = await disabledHosts(problems.map((p) => p.host)).catch(() => [] as string[]);
 
   return (
     <div className="space-y-6 p-1">
       <PlatformPageHeader title="Domains & SSL" description="Every company's addresses — automatic subdomains and custom domains — with DNS, SSL and hosting status." crumbs={[{ label: "Tenants" }]} />
+      {blockedHosts.length > 0 && <p role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">{DISABLED_NOTE} Affected: {blockedHosts.join(", ")}.</p>}
       <KpiGrid cols={4}>
         <KpiCard label="Total hosts" value={h.totalHosts} icon={<Globe className="size-4" />} />
         <KpiCard label="Attached" value={h.attached} icon={<Link2 className="size-4" />} />

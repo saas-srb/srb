@@ -83,7 +83,7 @@ const run = (deps: Partial<EngineDeps> & Pick<EngineDeps, "api" | "store">, o: P
 (async () => {
   await t("targets: website + app host per company, custom domains get app.<domain>, platform hosts skipped", () => {
     const c = company(1, ["acme.com", "www.example.com"]);
-    assert.deepEqual(c.targets.map((x) => `${x.kind}:${x.host}`), ["subdomain:co1.example.com", "subdomain-app:co1-app.example.com", "custom:acme.com", "custom-app:app.acme.com", "custom-app:app.example.com"]);
+    assert.deepEqual(c.targets.map((x) => `${x.kind}:${x.host}`), ["subdomain:co1.example.com", "subdomain-app:co1-app.example.com", "custom:acme.com", "custom-app:app.acme.com", "custom-app:app.example.com", "custom-alt:www.acme.com", "custom-alt:example.com"]);
     assert.equal(buildTargets({ _id: "x", slug: "s" }, [], ctx)[0].docId, null, "a company with no record still gets its automatic hosts");
   });
 
@@ -99,10 +99,10 @@ const run = (deps: Partial<EngineDeps> & Pick<EngineDeps, "api" | "store">, o: P
     const s = fakeStore(cs);
     const res = await run({ api: f.api, store: s.store });
     assert.equal(res.done, true);
-    assert.equal(res.counts.attached, 5, "co1-app, co2, co2-app, acme.com, app.acme.com");
+    assert.equal(res.counts.attached, 6, "co1-app, co2, co2-app, acme.com, app.acme.com, www.acme.com");
     assert.equal(res.counts.refreshed, 1, "co1 is on the project but had no stored status");
     assert.ok(f.hosts.has("app.acme.com") && f.hosts.has("co2-app.example.com"));
-    assert.equal(s.saved.length, 6);
+    assert.equal(s.saved.length, 7);
   });
 
   await t("idempotent: a second run changes and calls nothing", async () => {
@@ -145,7 +145,7 @@ const run = (deps: Partial<EngineDeps> & Pick<EngineDeps, "api" | "store">, o: P
     const f = fakeApi([]);
     const res = await run({ api: f.api, store: fakeStore(cs).store, wildcard: true });
     assert.equal(res.counts.skippedWildcard, 2);
-    assert.deepEqual([...f.hosts].sort(), ["acme.com", "app.acme.com"]);
+    assert.deepEqual([...f.hosts].sort(), ["acme.com", "app.acme.com", "www.acme.com"], "wildcard covers *.root only: the customer's own domains are all attached");
   });
 
   await t("release-then-attach: each host is removed from the old project BEFORE it is added to the new one", async () => {
@@ -205,7 +205,7 @@ const run = (deps: Partial<EngineDeps> & Pick<EngineDeps, "api" | "store">, o: P
     assert.equal(s.saved.length, 0);
     assert.equal(nw.hosts.size, 0);
     assert.ok(old.hosts.has("acme.com"));
-    assert.equal(res.counts.wouldAttach, 4);
+    assert.equal(res.counts.wouldAttach, 5);
     assert.ok(s.events.every((e) => e.action.startsWith("would_")));
   });
 
@@ -284,6 +284,107 @@ const run = (deps: Partial<EngineDeps> & Pick<EngineDeps, "api" | "store">, o: P
     const owned = await api.addDomain("taken.com");
     assert.ok(!owned.ok && owned.ownedElsewhere?.records[0].value === "vc-domain-verify=1");
     assert.equal((await api.removeDomain("gone.com")).ok, true, "404 counts as removed");
+  });
+
+  await t("STALE cache: stored attached/verified true while the LIVE list lacks the host -> attach is attempted", async () => {
+    const cs = [company(1, ["yashorbit.com"])];
+    for (const x of cs[0].targets) x.stored = { attached: true, verified: true, dnsConfigured: true, challenged: false, syncStatus: "ok" };
+    const f = fakeApi(["co1.example.com", "co1-app.example.com"]); // the live project does NOT have the customer's hosts
+    const s = fakeStore(cs);
+    const res = await run({ api: f.api, store: s.store });
+    assert.ok(f.hosts.has("yashorbit.com") && f.hosts.has("app.yashorbit.com"), "attached from the live list, not the cache");
+    assert.equal(res.counts.alreadyOk, 2, "only the two that really are on the project");
+    assert.equal(f.calls.add, 3, "yashorbit.com, www.yashorbit.com, app.yashorbit.com");
+  });
+
+  await t("live list says NOT verified while the cache says fine -> checked again, TXT shown, never 'already fine'", async () => {
+    const cs = [company(1, ["yashorbit.com"])];
+    for (const x of cs[0].targets) x.stored = { attached: true, verified: true, dnsConfigured: true, challenged: false, syncStatus: "ok" };
+    const f = fakeApi(["co1.example.com", "co1-app.example.com", "yashorbit.com", "www.yashorbit.com", "app.yashorbit.com"]);
+    const unverified = new Set(["yashorbit.com", "www.yashorbit.com", "app.yashorbit.com"]);
+    const api: VercelDomainsApi = {
+      ...f.api,
+      listDomains: async () => ({ ok: true, value: { names: [...f.hosts], unverified: [...unverified], next: null } }),
+      domainStatus: async (h) => ({ ok: true, value: unverified.has(h) ? { attached: true, verified: false, dnsConfigured: false, records: [{ type: "TXT", name: "_vercel.yashorbit.com", value: "vc-domain-verify=abc", reason: "Proves you own the domain" }] } : OK }),
+    };
+    const s = fakeStore(cs);
+    const res = await run({ api, store: s.store });
+    assert.equal(res.counts.ownedElsewhere, 3);
+    assert.equal(res.counts.alreadyOk, 2);
+    const w = s.saved.find((x) => x.host === "yashorbit.com")!.write;
+    assert.equal(w.verified, false);
+    assert.equal(w.syncStatus, "owned_elsewhere");
+    assert.match(w.error ?? "", /remove it from the old Vercel project/i, "plain next step for the owner");
+    assert.equal(w.records[0].value, "vc-domain-verify=abc", "the exact TXT record is stored");
+    assert.ok(s.events.some((e) => e.host === "app.yashorbit.com" && e.action === "needs_txt"), "logged per host");
+  });
+
+  await t("on the project but unverified AND a previous project token: released there first, then re-checked and fixed", async () => {
+    const log: string[] = [];
+    const cs = [company(1, ["yashorbit.com"])];
+    const hosts = new Set(["co1.example.com", "co1-app.example.com", "yashorbit.com", "www.yashorbit.com", "app.yashorbit.com"]);
+    const unverified = new Set(["yashorbit.com", "www.yashorbit.com", "app.yashorbit.com"]);
+    const api: VercelDomainsApi = {
+      listDomains: async () => ({ ok: true, value: { names: [...hosts], unverified: [...unverified], next: null } }),
+      addDomain: async () => ({ ok: false, error: "x" }),
+      domainStatus: async () => ({ ok: true, value: OK }),
+      verifyDomain: async (h) => { log.push(`verify:${h}`); unverified.delete(h); return { ok: true, value: OK }; },
+      removeDomain: async () => ({ ok: true, value: null }),
+    };
+    const old = { removeDomain: async (h: string) => { log.push(`release:${h}`); return { ok: true as const, value: null }; } };
+    const res = await run({ api, old, store: fakeStore(cs).store });
+    assert.equal(res.counts.released, 3);
+    assert.equal(res.counts.refreshed, 5, "3 re-checked after release + 2 whose cache was empty");
+    assert.equal(res.counts.ownedElsewhere, 0);
+    assert.ok(log.indexOf("release:yashorbit.com") < log.indexOf("verify:yashorbit.com"), "release before verify");
+  });
+
+  await t("409 'in use elsewhere' with and without a previous token", async () => {
+    const owned = new Set(["yashorbit.com"]);
+    const withOld = fakeApi([], { owned });
+    const old = fakeApi(["yashorbit.com"]);
+    const oldDrop: typeof old.api.removeDomain = async (h) => { owned.delete(h); return old.api.removeDomain(h); };
+    const r1 = await run({ api: withOld.api, old: { removeDomain: oldDrop }, store: fakeStore([company(1, ["yashorbit.com"])]).store });
+    assert.ok(withOld.hosts.has("yashorbit.com"), "released from the previous project, then attached");
+    assert.equal(r1.counts.ownedElsewhere, 0);
+    const owned2 = new Set(["yashorbit.com"]);
+    const noOld = fakeApi([], { owned: owned2 });
+    const s = fakeStore([company(1, ["yashorbit.com"])]);
+    const r2 = await run({ api: noOld.api, store: s.store });
+    assert.equal(r2.counts.ownedElsewhere, 1);
+    const w = s.saved.find((x) => x.host === "yashorbit.com")!.write;
+    assert.equal(w.syncStatus, "owned_elsewhere");
+    assert.equal(w.records[0].type, "TXT", "the TXT Vercel returned is stored and shown");
+    assert.match(w.error ?? "", /remove it from the old Vercel project|TXT/i);
+  });
+
+  await t("host expansion: apex gets www + app, a www domain gets the apex + app; both defined by the company are not duplicated", () => {
+    const apex = buildTargets({ _id: "c", slug: "y" }, [{ _id: "y.example.com", kind: "subdomain" }, { _id: "yashorbit.com", kind: "custom" }], ctx).map((x) => x.host);
+    assert.deepEqual(apex.filter((h) => h.includes("yashorbit")), ["yashorbit.com", "app.yashorbit.com", "www.yashorbit.com"]);
+    const www = buildTargets({ _id: "c", slug: "y" }, [{ _id: "www.yashorbit.com", kind: "custom" }], ctx).map((x) => x.host);
+    assert.deepEqual(www.filter((h) => h.includes("yashorbit")), ["www.yashorbit.com", "app.yashorbit.com", "yashorbit.com"]);
+    const both = buildTargets({ _id: "c", slug: "y" }, [{ _id: "yashorbit.com", kind: "custom" }, { _id: "www.yashorbit.com", kind: "custom" }], ctx).map((x) => x.host);
+    assert.equal(new Set(both).size, both.length);
+  });
+
+  await t("every company is synced, across many pages (not just the first)", async () => {
+    const cs = Array.from({ length: 95 }, (_, i) => company(i + 1));
+    const f = fakeApi([]);
+    const res = await run({ api: f.api, store: fakeStore(cs).store }, { batchSize: 10 });
+    assert.equal(res.counts.companies, 95);
+    assert.equal(f.hosts.size, 190);
+    assert.equal(res.done, true);
+  });
+
+  await t("checked hosts that are fine get a fresh 'last checked' (touch), stale caches are not trusted", async () => {
+    const cs = [company(1)];
+    for (const x of cs[0].targets) x.stored = { attached: true, verified: true, dnsConfigured: true, challenged: false, syncStatus: "ok" };
+    const f = fakeApi(["co1.example.com", "co1-app.example.com"]);
+    const touched: string[] = [];
+    const s = fakeStore(cs);
+    const store: SyncStore = { ...s.store, touchHosts: async (ts) => void touched.push(...ts.map((x) => x.host)) };
+    await run({ api: f.api, store });
+    assert.deepEqual(touched.sort(), ["co1-app.example.com", "co1.example.com"]);
   });
 
   console.log(`\n${n} passed`);

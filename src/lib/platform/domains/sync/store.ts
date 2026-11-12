@@ -90,6 +90,14 @@ export function createMongoSyncStore(runId: string, dryRun: boolean, root: strin
       }
     },
 
+    async touchHosts(targets) {
+      const col = (await getPlatformDb()).collection<CompanyDomain>(COMPANY_DOMAINS_COLLECTION);
+      const ops = targets.filter((t) => t.docId).map((t) => ({ updateOne: { filter: { _id: t.docId! }, update: { $set: { [`${t.field}.checkedAt`]: new Date() } } } }));
+      if (ops.length) await col.bulkWrite(ops as never, { ordered: false });
+      const platform = targets.filter((t) => t.kind === "platform");
+      if (platform.length) await (await getPlatformDb()).collection(PLATFORM_HOSTS).updateMany({ _id: { $in: platform.map((t) => t.host) } as never }, { $set: { checkedAt: new Date() } });
+    },
+
     async event(e) {
       await (await events()).insertOne({ ...e, runId, at: new Date(), dryRun, expiresAt: new Date(Date.now() + EVENT_DAYS * 86_400_000) });
     },

@@ -33,6 +33,8 @@ export interface DomainSyncOptions {
   limit?: number;
   /** Start from after this company id (a new run only). */
   cursor?: string | null;
+  /** Replace a run in progress instead of continuing it. */
+  restart?: boolean;
   budgetMs?: number;
   by?: string | null;
   trigger?: Trigger;
@@ -59,7 +61,12 @@ async function activeRun(): Promise<SyncRun | null> {
 
 /** Starts a run (or returns the one in progress). Never touches Vercel. */
 export async function startDomainSync(opts: DomainSyncOptions = {}): Promise<{ run: SyncRun; alreadyRunning: boolean } | { run: null; error: string }> {
-  const existing = await activeRun();
+  let existing = await activeRun();
+  if (existing && opts.restart) {
+    // "Sync all domains now" always starts from the first company: a run that was stuck or half-done is replaced, never silently continued.
+    await (await runs()).updateOne({ _id: existing._id }, { $set: { status: "failed", error: "Replaced by a new run.", finishedAt: new Date() } });
+    existing = null;
+  }
   if (existing) return { run: existing, alreadyRunning: true };
   const doc = await loadIntegrationsDoc();
   const cfg = domainConfigFrom(doc);
@@ -266,10 +273,11 @@ export async function retryHostSync(rawHost: string, actorId: string): Promise<{
       wildcard: wildcardSubdomainsEnabled(),
       coveredByWildcard: (h) => isSubdomainOfRoot(h, root),
     },
-    { ...target, stored: null }, // never "already healthy": the point is to try again
+    { ...target, stored: null, docId: target.docId }, // never "already healthy": the point is to try again
     new Set(),
     false,
     counts,
+    { unverified: new Set() },
   );
   await recordPlatformAudit({ actorId, action: "domains.sync.retry", companyId: company._id, target: { type: "company_domain", id: host }, details: { counts } });
   if (counts.failed) return { ok: false, error: "It still fails; see the reason in the list." };

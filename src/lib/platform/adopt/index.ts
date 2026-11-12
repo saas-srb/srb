@@ -131,6 +131,7 @@ export async function adoptEnvironment(opts: { actorId?: string | null; trigger:
 
 /** Puts overlay values back into `process.env` where this deployment doesn't have them. Called once the keyring is open. */
 export async function applyAdoptedEnv(): Promise<number> {
+  await import("@/lib/platform/config/store").then((m) => m.mirrorConfigToEnv()).catch(() => {});
   const doc = (await (await platformSettings()).findOne({ _id: DOC })) as AdoptionDoc | null;
   let n = 0;
   for (const [name, e] of Object.entries(doc?.entries ?? {})) {

@@ -22,7 +22,7 @@ export type SyncStateResult = { ok: true; overview: DomainSyncOverview; message?
 
 export async function startDomainSyncAction(dryRun: boolean): Promise<SyncStateResult> {
   const user = await requirePlatformPermission("domains.manage");
-  const res = await startDomainSync({ dryRun: Boolean(dryRun), by: user.id, trigger: "manual" });
+  const res = await startDomainSync({ dryRun: Boolean(dryRun), by: user.id, trigger: "manual", restart: true });
   if (!res.run) return { ok: false, error: res.error };
   return { ok: true, overview: await getDomainSyncOverview(), message: res.alreadyRunning ? "A sync is already running; showing its progress." : undefined };
 }

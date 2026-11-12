@@ -21,6 +21,8 @@ const ACTION_LABEL: Record<string, string> = {
   would_release: "Would release",
   would_attach: "Would attach",
   would_refresh: "Would refresh",
+  already_attached: "Already attached",
+  needs_txt: "Needs TXT / still elsewhere",
 };
 
 /** Domain sync controls: run it (optionally as a dry run), watch progress, see what happened, retry the failed hosts, export them. */
@@ -141,7 +143,7 @@ export default function DomainSyncPanel({ initial, problems }: { initial: Domain
             </div>
             {c && (
               <p className="text-xs text-muted-foreground">
-                {c.hosts} hosts looked at · {c.alreadyOk} already fine · {c.attached} attached · {c.released} released · {c.refreshed} refreshed · {c.skippedWildcard} covered by the wildcard · {c.ownedElsewhere} owned elsewhere · {c.failed} failed
+                {c.hosts} hosts looked at · {c.alreadyOk} already fine · {c.attached} attached · {c.released} released · {c.refreshed} refreshed · {c.skippedWildcard} covered by the wildcard · {c.ownedElsewhere} owned elsewhere or need a TXT record · {c.failed} failed
                 {run.dryRun ? ` · would attach ${c.wouldAttach}, would release ${c.wouldRelease}` : ""}
               </p>
             )}

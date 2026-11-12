@@ -57,6 +57,7 @@
     "test:portability": "npx --yes tsx scripts/test-portability.ts",
     "test:gridfs": "npx --yes tsx scripts/test-gridfs.ts",
     "check:functions": "npx --yes tsx scripts/check-functions.ts",
+    "test:host-recovery": "npx --yes tsx --require ./scripts/lib/next-server-shims.cjs scripts/test-host-recovery.ts",
     "test:migrate": "npx --yes tsx scripts/test-domain-sync.ts && npx --yes tsx scripts/test-blob-migrate.ts"
   },
   "dependencies": {

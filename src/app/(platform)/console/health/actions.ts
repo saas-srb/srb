@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requirePlatformPermission } from "@/lib/platform/console/access";
 import { adoptEnvironment, adoptedSummary } from "@/lib/platform/adopt";
-import { ensureLegacyCopy, legacyCopyStatus, runLegacyCopyTick, type FileCopyView } from "@/lib/storage/blob-to-gridfs";
+import { auditMissingFiles, ensureLegacyCopy, legacyCopyStatus, missingFilesCsv, runLegacyCopyTick, type FileCopyView } from "@/lib/storage/blob-to-gridfs";
 
 /** "Import from environment": copies what this deployment's environment provides and the database lacks. Never overwrites. */
 export async function importFromEnvironmentAction(): Promise<{ ok: true; adopted: string[]; total: number } | { ok: false; error: string }> {
@@ -138,4 +138,30 @@ export async function saveCompanySecondStepPolicyAction(input: { company: string
   if (!company) return { ok: false, error: "No such company." };
   await saveCompanyPolicy(company._id, input.patch, user.id);
   return { ok: true };
+}
+
+// ── Missing settings checklist (staff) ───────────────────────────────────────
+
+import { missingSettings, testSetting, type MissingItem } from "@/lib/platform/setup/missing";
+
+export async function missingSettingsAction(): Promise<MissingItem[]> {
+  await requirePlatformPermission("integrations.read");
+  return missingSettings();
+}
+
+export async function testSettingAction(id: string): Promise<{ ok: true; message: string } | { ok: false; error: string }> {
+  const user = await requirePlatformPermission("integrations.manage");
+  return testSetting(String(id), fetch, { emailTo: user.email });
+}
+
+/** Looks for files the data refers to that exist in neither the database nor the old Blob store. */
+export async function auditFilesAction(): Promise<FileCopyView> {
+  await requirePlatformPermission("integrations.manage");
+  await auditMissingFiles();
+  return legacyCopyStatus();
+}
+
+export async function missingFilesCsvAction(): Promise<string> {
+  await requirePlatformPermission("integrations.read");
+  return missingFilesCsv();
 }

@@ -92,7 +92,7 @@ const t = async (name: string, fn: () => Promise<void> | void) => {
       return { id, targets: buildTargets({ _id: id, slug }, docs, ctx) as SyncTarget[] };
     });
     const total = companies.reduce((a, c) => a + c.targets.length, 0);
-    assert.equal(total, 5000 * 2 + 2000 * 2, "two hosts per company address and two per custom domain");
+    assert.equal(total, 5000 * 2 + 2000 * 3, "two hosts per company address and, per custom domain, the website, its app. host and the www/apex counterpart");
     const hosts = new Set<string>();
     for (const c of companies) for (const x of c.targets) hosts.add(x.host);
     assert.equal(hosts.size, total, "no two companies share a host");
@@ -141,7 +141,7 @@ const t = async (name: string, fn: () => Promise<void> | void) => {
     for (const c of companies) for (const x of c.targets) x.stored = null;
     const w = await syncDomains({ ...deps, wildcard: true, coveredByWildcard: (h) => h.endsWith(`.${ROOT}`) }, { dryRun: false, budgetMs: 600_000, cursor: null, batchSize: 100 });
     assert.equal(w.counts.skippedWildcard, 10000);
-    assert.equal(attached.size, 4000);
+    assert.equal(attached.size, 6000);
   });
 
   console.log(`\n${n} passed`);

@@ -59,6 +59,9 @@ Quiet key mismatch handling and multi-method second step: DONE, needs a browser 
 SMS code and the always-visible method chooser: DONE, real Twilio/DLT and a real sign-in not verified
 - `SecondStepScreen` (method input plus a "Try another way" card for every method, screenshots checked with `scripts/shot-second-step.ts` against the dev harness `/dev-editor-harness/second-step`), SMS code method (`security/sms-otp.ts`, Console Integrations fields incl. DLT, policy toggle, Manage methods row with add/change number, preferred per method). Tests: `scripts/test-sms-second-step.ts` (6, throwaway DB), `test-second-step.ts` (13), `test-two-step-recovery.ts`, `test-no-infra-leak.ts`.
 
+Hosts stuck on a disabled old Vercel project: DONE in code, needs the real project to verify
+- Domain sync trusts only the live project list and live verification (stale caches ignored), expands customer domains to website + app + www/apex, releases/attaches/records TXT with a plain next step, refreshes "last checked", restarts cleanly; staff note for 402 DEPLOYMENT_DISABLED; staff "Missing settings" checklist with Tests; Blob token paste starts the copier; missing-file audit with CSV; friendly "file not available". Tests: `test-domain-sync` (23), `test-blob-gridfs-copy` (4), `test-host-recovery` (2), `test-portability`.
+
 Hardening: Z1 security and tenancy, Z2 performance, Z3 legal and content review
 
 Counting: 2 of about 40 features done = about 5%.

@@ -44,7 +44,16 @@ export async function saveServerKeysAction(input: ConfigInput): Promise<SaveConf
   const clean: ConfigInput = {};
   for (const [key, v] of Object.entries(input ?? {})) clean[key] = v && typeof v === "object" ? { clear: true } : String(v ?? "");
   const res = await saveConfig(clean, user.id);
-  if (res.ok) revalidatePath("/console", "layout");
+  if (res.ok) {
+    revalidatePath("/console", "layout");
+    // A Blob token was pasted: copy everything in that store into the database (resumable, never deletes from Blob), starting right after this response.
+    if (typeof clean.BLOB_READ_WRITE_TOKEN === "string" && clean.BLOB_READ_WRITE_TOKEN.trim()) {
+      const { after } = await import("next/server");
+      const { ensureLegacyCopy, runLegacyCopyTick } = await import("@/lib/storage/blob-to-gridfs");
+      await ensureLegacyCopy(true).catch(() => {});
+      after(() => runLegacyCopyTick(45_000).catch(() => {}));
+    }
+  }
   return res;
 }
 

@@ -106,6 +106,17 @@ export async function getConfigView(): Promise<ConfigView> {
 export type ConfigInput = Record<string, string | { clear: true } | undefined>;
 export type SaveConfigResult = { ok: true } | { ok: false; errors: Record<string, string> };
 
+/** Keys the code reads straight from `process.env` but that are now saved in the Console: mirrored into `process.env` so a saved value works without a redeploy. */
+export const ENV_BACKED_KEYS = ["GITHUB_DISPATCH_TOKEN", "GITHUB_REPOSITORY", "DESKTOP_BUILD_SECRET", "GITHUB_WORKFLOW_FILE", "DESKTOP_RELEASES_REPO"] as const;
+
+export async function mirrorConfigToEnv(): Promise<void> {
+  const doc = await loadDoc().catch(() => null);
+  for (const k of ENV_BACKED_KEYS) {
+    const v = open(k, doc?.values?.[k]);
+    if (v) process.env[k] = v;
+  }
+}
+
 export async function saveConfig(input: ConfigInput, actorId: string): Promise<SaveConfigResult> {
   const errors: Record<string, string> = {};
   const changes: Record<string, string | null> = {};
@@ -156,6 +167,7 @@ export async function saveConfig(input: ConfigInput, actorId: string): Promise<S
     target: { type: "platform_settings", id: DOC_ID },
     details: { changed: Object.keys(changes).filter((k) => changes[k] !== null), cleared: Object.keys(changes).filter((k) => changes[k] === null) },
   });
+  await mirrorConfigToEnv();
   return { ok: true };
 }
 

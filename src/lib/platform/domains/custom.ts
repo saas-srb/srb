@@ -173,7 +173,8 @@ export function toView(d: CompanyDomain): CompanyDomainView {
     verifiedAt: d.verifiedAt ? d.verifiedAt.toISOString() : null,
     records,
     hosting: { providerId: localOnly ? null : (p?.id ?? null), dnsConfigured: Boolean(p?.dnsConfigured), ssl, error: p?.error ?? null },
-    lastCheckedAt: (d.lastCheck?.at ?? p?.checkedAt)?.toISOString() ?? null,
+    // The newest of the ownership check and what the hosting provider (and Domain sync) last saw: a refreshed host never shows an old date.
+    lastCheckedAt: [d.lastCheck?.at, p?.checkedAt, d.appProvider?.checkedAt].filter((x): x is Date => !!x).sort((a, b) => b.getTime() - a.getTime())[0]?.toISOString() ?? null,
     history,
     app,
   };
