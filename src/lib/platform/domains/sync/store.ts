@@ -80,7 +80,7 @@ export function createMongoSyncStore(runId: string, dryRun: boolean, root: strin
       const challenged = Boolean(target.stored?.challenged) || (!w.verified && w.records.some((r) => r.type === "TXT"));
       await col.updateOne(
         { _id: target.docId },
-        { $set: { [target.field]: { id: "vercel", attached: w.attached, verified: w.verified, dnsConfigured: w.dnsConfigured, error: w.error, checkedAt: new Date(), records: w.records, challenged, syncStatus: w.syncStatus } } },
+        { $set: { [target.field]: { id: "vercel", attached: w.attached, verified: w.verified, dnsConfigured: w.dnsConfigured, error: w.error, checkedAt: new Date(), records: w.records, challenged, syncStatus: w.syncStatus, syncNote: w.staffNote ?? null } } },
       );
       for (const r of w.records) {
         await col.updateOne(
@@ -158,7 +158,7 @@ export async function summarizeHosts(problemLimit = 500): Promise<{ summary: Hos
         if (kind === "owned_elsewhere") summary.ownedElsewhere++;
         else if (kind === "failed") summary.failed++;
         if (kind && problems.length < problemLimit) {
-          problems.push({ host, companyId: d.companyId, companyName: names.get(d.companyId) ?? d.companyId, kind, reason: p?.error ?? "", records: (p?.records ?? []).map((r) => ({ type: r.type, name: r.name, value: r.value })), checkedAt: p?.checkedAt ? new Date(p.checkedAt).toISOString() : null });
+          problems.push({ host, companyId: d.companyId, companyName: names.get(d.companyId) ?? d.companyId, kind, reason: p?.syncNote ?? p?.error ?? "", records: (p?.records ?? []).map((r) => ({ type: r.type, name: r.name, value: r.value })), checkedAt: p?.checkedAt ? new Date(p.checkedAt).toISOString() : null });
         }
       }
     }

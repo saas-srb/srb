@@ -13,7 +13,7 @@ import { emptyCounts, type HostWrite, type SyncAction, type SyncCounts, type Syn
 export interface EngineDeps {
   api: VercelDomainsApi;
   /** The previous project (migration): hosts are released from it before they are attached to the new one. */
-  old?: Pick<VercelDomainsApi, "removeDomain"> | null;
+  old?: (Pick<VercelDomainsApi, "removeDomain"> & Partial<Pick<VercelDomainsApi, "listDomains">>) | null;
   store: SyncStore;
   /** `*.<root>` is attached to the project: automatic company addresses need nothing per company. */
   wildcard: boolean;
@@ -34,6 +34,7 @@ export interface EngineOptions {
   concurrency?: number;
   batchSize?: number;
   counts?: SyncCounts;
+  dryRunSkipOld?: boolean;
   /** The platform's own hosts (root, www, app, wildcard): synced first, once at the start of a run. */
   platformTargets?: SyncTarget[];
   /** Called after every finished batch (save progress, renew a lease). */
@@ -80,8 +81,10 @@ function writeFrom(status: DomainStatus): HostWrite {
   return { attached: status.attached, verified: status.verified, dnsConfigured: status.dnsConfigured, records: status.records, error: null, syncStatus: "ok" };
 }
 
-export const OWNED_MESSAGE =
-  "This address is still attached to another Vercel project or account. Next step for the domain owner: remove it from the old Vercel project (its Domains tab), or publish the verification (TXT) record shown below. It then moves to this project automatically.";
+/** Shown to the company on its own Domains page: calm, no infrastructure wording. */
+export const OWNED_MESSAGE = "This address is being moved to its new hosting. If it stays on this list, publish the DNS record shown below.";
+/** Staff-only explanation. */
+export const OWNED_STAFF = "Still on another Vercel project. Save the previous Vercel project's API token (Integrations, Domains & hosting, Previous Vercel project) and Sync moves it automatically. Manual alternative: remove it from the old project's Domains tab, or publish the TXT record shown.";
 
 async function pool<T>(items: T[], size: number, fn: (item: T) => Promise<void>): Promise<void> {
   let i = 0;
@@ -95,6 +98,10 @@ async function pool<T>(items: T[], size: number, fn: (item: T) => Promise<void>)
 export interface HostContext {
   /** Hosts the live list reports as NOT verified (ownership not proven for this project). */
   unverified?: Set<string>;
+  /** What the previous project holds (listed once at the start); null = couldn't be listed (every host is then tried). */
+  oldHosts?: Set<string> | null;
+  /** Why the previous project couldn't be listed or a release was refused (shown to staff). */
+  oldError?: string | null;
   /** Collects the hosts that were checked and are fine, so their "last checked" can be refreshed in one write. */
   okSink?: SyncTarget[];
 }
@@ -104,6 +111,21 @@ export async function syncHost(deps: EngineDeps, target: SyncTarget, projectHost
   const { api, old, store } = deps;
   const host = target.host;
   const note = async (action: SyncAction, detail: string) => store.event({ host, companyId: target.companyId, action, detail }).catch(() => {});
+  let releaseErr: string | null = ctx.oldError ?? null;
+  const staffNote = () => `${OWNED_STAFF}${releaseErr ? ` Release from the previous project failed: ${releaseErr}` : ""}`;
+  /** Releases the host from the previous project when it is there (or when that project couldn't be listed). */
+  const release = async (): Promise<boolean> => {
+    if (!old || (ctx.oldHosts && !ctx.oldHosts.has(host))) return false;
+    const rel = await old.removeDomain(host);
+    if (rel.ok) {
+      counts.released++;
+      await note("released", "Released from the previous project");
+      return true;
+    }
+    releaseErr = rel.error;
+    await note("release_failed", rel.error);
+    return false;
+  };
   const wordy = target.kind !== "subdomain" && target.kind !== "subdomain-app"; // log every fine custom/platform host; the per-company subdomains would flood the log
   /** Saves what the live check found and counts/logs it: a host that is on the project but unverified needs a TXT record (or release from the old project). */
   const settle = async (st: DomainStatus, how: "attached" | "refreshed") => {
@@ -115,7 +137,7 @@ export async function syncHost(deps: EngineDeps, target: SyncTarget, projectHost
       return;
     }
     if (needsTxt) {
-      await store.saveHost(target, { attached: st.attached, verified: false, dnsConfigured: st.dnsConfigured, records: st.records, error: OWNED_MESSAGE, syncStatus: "owned_elsewhere" });
+      await store.saveHost(target, { attached: st.attached, verified: false, dnsConfigured: st.dnsConfigured, records: st.records, error: OWNED_MESSAGE, staffNote: staffNote(), syncStatus: "owned_elsewhere" });
       counts.ownedElsewhere++;
       await note("needs_txt", `On this project but not verified: ${st.records.filter((r) => r.type === "TXT").map((r) => `${r.name} TXT ${r.value}`).join("; ") || "no record returned yet"}`);
       return;
@@ -146,13 +168,7 @@ export async function syncHost(deps: EngineDeps, target: SyncTarget, projectHost
         await note("would_refresh", liveVerified ? "On the project; its stored status would be refreshed" : "On the project but not verified; would be released from the previous project (if set) and re-checked");
         return;
       }
-      if (!liveVerified && old) {
-        const rel = await old.removeDomain(host);
-        if (rel.ok) {
-          counts.released++;
-          await note("released", "Released from the previous project");
-        } else await note("release_failed", rel.error);
-      }
+      if (!liveVerified) await release();
       const st = !liveVerified && api.verifyDomain ? await api.verifyDomain(host) : await api.domainStatus(host);
       if (!st.ok) throw new Error(st.error);
       if (!st.value) {
@@ -171,15 +187,7 @@ export async function syncHost(deps: EngineDeps, target: SyncTarget, projectHost
       await note("would_attach", "Would be attached to the project");
       return;
     }
-    let released = false;
-    if (old) {
-      const rel = await old.removeDomain(host);
-      if (rel.ok) {
-        released = true;
-        counts.released++;
-        await note("released", "Released from the previous project");
-      } else await note("release_failed", rel.error); // still try to attach: if it is free it works, else it is reported as owned elsewhere
-    }
+    const released = await release(); // a failed release is remembered; still try to attach: if it is free it works, else it is reported as owned elsewhere
     const added = await api.addDomain(host, target.redirectTo ? { redirectTo: target.redirectTo } : undefined);
     if (added.ok) {
       projectHosts.add(host);
@@ -188,7 +196,7 @@ export async function syncHost(deps: EngineDeps, target: SyncTarget, projectHost
       return;
     }
     if (added.ownedElsewhere) {
-      await store.saveHost(target, { attached: false, verified: false, dnsConfigured: false, records: added.ownedElsewhere.records, error: OWNED_MESSAGE, syncStatus: "owned_elsewhere" });
+      await store.saveHost(target, { attached: false, verified: false, dnsConfigured: false, records: added.ownedElsewhere.records, error: OWNED_MESSAGE, staffNote: staffNote(), syncStatus: "owned_elsewhere" });
       counts.ownedElsewhere++;
       await note("owned_elsewhere", added.error);
       return;
@@ -214,6 +222,20 @@ export async function syncDomains(deps: EngineDeps, opts: EngineOptions): Promis
   const info = await loadProjectDomainInfo(deps.api);
   const projectHosts = info.names;
   const wildcard = deps.wildcardHost ? { attached: info.names.has(deps.wildcardHost), verified: info.names.has(deps.wildcardHost) && !info.unverified.has(deps.wildcardHost) } : undefined;
+  // With a previous project: its domain list is read FIRST (paged), and every host that belongs to a company (or the platform) and sits there is moved.
+  let oldHosts: Set<string> | null | undefined;
+  let oldError: string | null = null;
+  if (deps.old?.listDomains && !opts.dryRunSkipOld) {
+    try {
+      oldHosts = (await loadProjectDomainInfo(deps.old as VercelDomainsApi)).names;
+      await deps.store.event({ host: "(previous project)", companyId: "platform", action: "previous_listed", detail: `${oldHosts.size} domain(s) on the previous project; every one that belongs to a company or the platform is moved` }).catch(() => {});
+    } catch (err) {
+      oldHosts = null;
+      oldError = err instanceof Error ? err.message : String(err);
+      await deps.store.event({ host: "(previous project)", companyId: "platform", action: "previous_unavailable", detail: `Couldn't list the previous project (${oldError}); every host is tried one by one` }).catch(() => {});
+    }
+  }
+  const baseCtx = { unverified: info.unverified, oldHosts, oldError };
   const concurrency = opts.concurrency ?? 5;
   let cursor = opts.cursor;
   let handled = 0;
@@ -222,7 +244,7 @@ export async function syncDomains(deps: EngineDeps, opts: EngineOptions): Promis
   };
   if (opts.platformTargets?.length) {
     const ok: SyncTarget[] = [];
-    await pool(opts.platformTargets, concurrency, (t) => syncHost(deps, t, projectHosts, opts.dryRun, counts, { unverified: info.unverified, okSink: ok }));
+    await pool(opts.platformTargets, concurrency, (t) => syncHost(deps, t, projectHosts, opts.dryRun, counts, { ...baseCtx, okSink: ok }));
     await touch(ok);
   }
   for (;;) {
@@ -235,7 +257,7 @@ export async function syncDomains(deps: EngineDeps, opts: EngineOptions): Promis
     await pool(
       batch.companies.flatMap((c) => c.targets),
       concurrency,
-      (t) => syncHost(deps, t, projectHosts, opts.dryRun, counts, { unverified: info.unverified, okSink: ok }),
+      (t) => syncHost(deps, t, projectHosts, opts.dryRun, counts, { ...baseCtx, okSink: ok }),
     );
     await touch(ok); // hosts that were checked and are fine get a fresh "last checked"
 

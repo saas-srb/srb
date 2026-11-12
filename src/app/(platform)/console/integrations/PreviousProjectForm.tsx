@@ -11,7 +11,7 @@ import { savePreviousProjectAction, testPreviousProjectAction } from "./actions"
 import type { PreviousProjectView } from "@/lib/platform/integrations";
 
 /** Domains & hosting → Previous Vercel project (migration). Optional: with it, Domain sync releases each host from the old project before attaching it to the new one. */
-export default function PreviousProjectForm({ view, canManage }: { view: PreviousProjectView; canManage: boolean }) {
+export default function PreviousProjectForm({ view, canManage, movedAll = false }: { view: PreviousProjectView; canManage: boolean; movedAll?: boolean }) {
   const [token, setToken] = useState("");
   const [projectId, setProjectId] = useState(view.projectId);
   const [teamId, setTeamId] = useState(view.teamId);
@@ -39,7 +39,7 @@ export default function PreviousProjectForm({ view, canManage }: { view: Previou
   }
 
   return (
-    <Card>
+    <Card id="previous-project">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <ArrowRightLeft className="size-4 text-primary" /> Previous Vercel project (migration)
@@ -73,6 +73,17 @@ export default function PreviousProjectForm({ view, canManage }: { view: Previou
             <Button type="button" variant="ghost" onClick={() => save(true)} disabled={pending || !canManage}>
               Remove
             </Button>
+          )}
+          {view.connected && (
+            <p className={view.connected.ok ? "w-full text-sm text-emerald-600" : "w-full text-sm text-destructive"}>
+              {view.connected.ok ? `Connected: ${view.connected.projectName ?? view.projectId}${view.connected.team ? ` (${view.connected.team})` : ""}` : "The last test could not connect"} · tested {new Date(view.connected.at).toLocaleString()}
+            </p>
+          )}
+          {view.saved && movedAll && (
+            <p className="w-full rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm">
+              Every address has been moved. You can remove the previous token now so no old credentials linger.{" "}
+              <button type="button" className="font-semibold underline" disabled={pending || !canManage} onClick={() => save(true)}>Remove the previous token now</button>
+            </p>
           )}
           {msg && <p className={msg.ok ? "w-full text-sm text-emerald-600" : "w-full text-sm text-destructive"} aria-live="polite">{msg.text}</p>}
         </div>

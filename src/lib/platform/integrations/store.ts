@@ -44,7 +44,7 @@ export interface IntegrationsDoc {
     /** Optional: the previous Vercel project, when moving to a new account (Domain sync releases hosts from it). */
     /** Detected by Domain sync: the wildcard `*.<root>` is on the project (the environment variable PLATFORM_WILDCARD_SUBDOMAINS overrides it). */
     wildcard?: { root: string; attached: boolean; checkedAt: Date } | null;
-    previous?: { token?: StoredSecret | null; projectId?: string | null; teamId?: string | null } | null;
+    previous?: { token?: StoredSecret | null; projectId?: string | null; teamId?: string | null; lastTest?: { ok: boolean; projectName?: string | null; team?: string | null; at: Date } | null } | null;
   };
   updatedAt?: Date;
   updatedBy?: string | null;

@@ -182,7 +182,9 @@ export async function saveIntegrations(input: IntegrationsInput, actorId: string
       vercelTeamId: teamId || null,
       rootDomain: rootDomain || null,
       wildcard: before?.domains?.wildcard ?? null,
-      previous: before?.domains?.previous ?? null, // saved on its own (savePreviousProject), kept across this form's saves
+      // Saved on its own (savePreviousProject) and kept across this form's saves. Moving to a different Vercel project keeps the project being LEFT as
+      // the "previous" one automatically (when none is saved), so the next move needs no token paste: the sync releases the hosts from it.
+      previous: before?.domains?.previous ?? previousToKeep(before, projectId),
     },
     updatedAt: now,
     updatedBy: actorId,
@@ -226,6 +228,30 @@ export async function saveIntegrations(input: IntegrationsInput, actorId: string
   return { ok: true };
 }
 
+/** Pure: the saved Vercel config being left, as the new "previous" project, when the project id changes and none is saved yet. */
+export function previousToKeep(before: IntegrationsDoc | null, nextProjectId: string | null | undefined): NonNullable<NonNullable<IntegrationsDoc["domains"]>["previous"]> | null {
+  const d = before?.domains;
+  if (!d?.vercelToken || !d.vercelProjectId || !nextProjectId || d.vercelProjectId === nextProjectId) return null;
+  const plain = decryptPlatformSecret(d.vercelToken.enc, SECRET_CONTEXT.vercelToken);
+  if (!plain) return null;
+  return { token: { enc: encryptPlatformSecret(plain, SECRET_CONTEXT.vercelPrevToken), last4: d.vercelToken.last4, updatedAt: new Date() }, projectId: d.vercelProjectId, teamId: d.vercelTeamId ?? null };
+}
+
+/** Keeps `config` as the previous project when none is saved yet (used when a deployment boots on a different project). Never overwrites. */
+export async function keepPreviousProject(config: { token: string; projectId: string; teamId: string | null }, actorId: string): Promise<boolean> {
+  const db = await getPlatformDb();
+  const now = new Date();
+  const res = await db.collection<IntegrationsDoc>("platform_settings").updateOne(
+    { _id: INTEGRATIONS_DOC_ID, "domains.previous": { $in: [null] } } as never,
+    { $set: { "domains.previous": { token: { enc: encryptPlatformSecret(config.token, SECRET_CONTEXT.vercelPrevToken), last4: last4(config.token), updatedAt: now }, projectId: config.projectId, teamId: config.teamId }, updatedAt: now } },
+  );
+  if (res.modifiedCount) {
+    bustIntegrationsCache();
+    await recordPlatformAudit({ actorId, action: "settings.integrations.previous_project", target: { type: "platform_settings", id: INTEGRATIONS_DOC_ID }, details: { projectId: config.projectId, kept: "automatically" } });
+  }
+  return res.modifiedCount === 1;
+}
+
 // ── Previous project (migration)
 
 export interface PreviousProjectView {
@@ -233,11 +259,14 @@ export interface PreviousProjectView {
   tokenLast4: string | null;
   projectId: string;
   teamId: string;
+  /** The last "Test connection": which project/team it reached and when. */
+  connected: { ok: boolean; projectName: string | null; team: string | null; at: string } | null;
 }
 
 export async function getPreviousProjectView(): Promise<PreviousProjectView> {
   const p = (await loadIntegrationsDoc())?.domains?.previous;
-  return { saved: Boolean(p?.token && p.projectId), tokenLast4: p?.token?.last4 ?? null, projectId: p?.projectId ?? "", teamId: p?.teamId ?? "" };
+  const t = (p as { lastTest?: { ok: boolean; projectName?: string | null; team?: string | null; at: Date } } | null | undefined)?.lastTest;
+  return { saved: Boolean(p?.token && p.projectId), tokenLast4: p?.token?.last4 ?? null, projectId: p?.projectId ?? "", teamId: p?.teamId ?? "", connected: t ? { ok: t.ok, projectName: t.projectName ?? null, team: t.team ?? null, at: new Date(t.at).toISOString() } : null };
 }
 
 /** Saves (or clears) the previous Vercel project. A blank token keeps the saved one. Never logs the token. */
@@ -274,6 +303,8 @@ export async function testPreviousProject(actorId: string): Promise<TestResult> 
   const cfg = await resolvePreviousVercelConfig();
   if (!cfg) return { ok: false, error: "Save the previous project's token and project id first." };
   const res = await checkVercelAccess(cfg);
+  await (await getPlatformDb()).collection("platform_settings").updateOne({ _id: INTEGRATIONS_DOC_ID as never }, { $set: { "domains.previous.lastTest": { ok: res.ok, projectName: res.ok ? res.projectName : null, team: cfg.team, at: new Date() } } });
+  bustIntegrationsCache();
   await recordPlatformAudit({ actorId, action: "integrations.previous_project.test", target: { type: "platform_settings", id: INTEGRATIONS_DOC_ID }, details: { ok: res.ok } });
   return res.ok ? { ok: true, message: `Connected to the previous Vercel project "${res.projectName}".` } : res;
 }

@@ -53,9 +53,11 @@ export interface HostWrite {
   records: DnsRecord[];
   error: string | null;
   syncStatus: "ok" | "owned_elsewhere" | "failed";
+  /** STAFF-ONLY detail (the real reason a release/attach failed); never shown on a company's own page. */
+  staffNote?: string | null;
 }
 
-export type SyncAction = "released" | "release_failed" | "attached" | "refreshed" | "owned_elsewhere" | "failed" | "would_release" | "would_attach" | "would_refresh" | "already_attached" | "needs_txt";
+export type SyncAction = "released" | "release_failed" | "attached" | "refreshed" | "owned_elsewhere" | "failed" | "would_release" | "would_attach" | "would_refresh" | "already_attached" | "needs_txt" | "previous_listed" | "previous_unavailable";
 
 export interface SyncEvent {
   host: string;

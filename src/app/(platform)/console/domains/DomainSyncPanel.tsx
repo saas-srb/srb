@@ -191,11 +191,16 @@ export default function DomainSyncPanel({ initial, problems }: { initial: Domain
                       {p.companyName} · {p.kind === "owned_elsewhere" ? "Owned by another Vercel project or account" : "Failed"}
                     </p>
                     {p.reason && <p className="mt-1 break-words text-xs">{p.reason}</p>}
-                    {p.records.map((r, i) => (
-                      <p key={i} className="mt-1 break-all font-mono text-xs text-muted-foreground">
-                        {r.type} {r.name} {r.value}
-                      </p>
-                    ))}
+                    {p.records.length > 0 && (
+                      <details className="mt-1 text-xs">
+                        <summary className="cursor-pointer text-muted-foreground">Manual alternative: publish this record</summary>
+                        {p.records.map((r, i) => (
+                          <p key={i} className="mt-1 break-all font-mono text-muted-foreground">
+                            {r.type} {r.name} {r.value}
+                          </p>
+                        ))}
+                      </details>
+                    )}
                   </div>
                   <Button variant="outline" size="sm" disabled={retrying === p.host || running} onClick={() => retry(p.host)}>
                     {retrying === p.host ? <Loader2 className="size-3.5 animate-spin" /> : "Retry"}

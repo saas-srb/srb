@@ -8,6 +8,7 @@ import IntegrationsForm from "./IntegrationsForm";
 import ServerKeysForm from "./ServerKeysForm";
 import PreviousProjectForm from "./PreviousProjectForm";
 import BlobMigrationForm from "./BlobMigrationForm";
+import { getDomainSyncOverview } from "@/lib/platform/domains/sync/run";
 import { getBlobMigrationView } from "@/lib/storage/blob-migrate-run";
 
 export const metadata: Metadata = { title: "Integrations" };
@@ -25,7 +26,7 @@ export default async function PlatformIntegrationsPage() {
       />
       <PanelListFilters>
 <IntegrationsForm key={view.updatedAt ?? "none"} view={view} adminEmail={user.email} />
-<PreviousProjectForm key={previous.projectId + (previous.tokenLast4 ?? "")} view={previous} canManage={canManage} />
+<PreviousProjectForm key={previous.projectId + (previous.tokenLast4 ?? "") + (previous.connected?.at ?? "")} view={previous} canManage={canManage} movedAll={(await getDomainSyncOverview().catch(() => null))?.movedAll ?? false} />
 <ServerKeysForm key={config.updatedAt ?? "none"} view={config} canManage={canManage} />
 <BlobMigrationForm initial={blobMigration} canManage={canManage} />
 </PanelListFilters>

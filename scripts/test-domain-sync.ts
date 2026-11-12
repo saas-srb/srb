@@ -132,7 +132,9 @@ const run = (deps: Partial<EngineDeps> & Pick<EngineDeps, "api" | "store">, o: P
     assert.equal(w.syncStatus, "owned_elsewhere");
     assert.equal(w.attached, false);
     assert.equal(w.records[0].type, "TXT");
-    assert.match(w.error ?? "", /another Vercel project/);
+    assert.match(w.error ?? "", /being moved/);
+    assert.match(w.staffNote ?? "", /another Vercel project/);
+    assert.ok(!/vercel/i.test(w.error ?? ""), "the company-facing text has no infrastructure words");
     // later: released elsewhere -> the next run attaches it
     owned.clear();
     const again = await run({ api: f.api, store: s.store });
@@ -151,10 +153,39 @@ const run = (deps: Partial<EngineDeps> & Pick<EngineDeps, "api" | "store">, o: P
   await t("release-then-attach: each host is removed from the old project BEFORE it is added to the new one", async () => {
     const log: string[] = [];
     const nw = fakeApi([], { log });
-    const old = fakeApi(["acme.com"], { log });
+    const old = fakeApi(["acme.com", "app.acme.com", "www.acme.com", "co1.example.com", "co1-app.example.com"], { log });
     const res = await run({ api: nw.api, old: old.api, store: fakeStore([company(1, ["acme.com"])]).store });
     assert.equal(res.counts.released, res.counts.attached);
     for (const h of ["acme.com", "app.acme.com", "co1.example.com"]) assert.ok(log.indexOf(`remove:${h}`) >= 0 && log.indexOf(`remove:${h}`) < log.indexOf(`new.add:${h}`), h);
+  });
+
+  await t("with a previous token the previous project is LISTED first (paged) and exactly the hosts that belong to companies are moved; others are untouched", async () => {
+    const log: string[] = [];
+    const nw = fakeApi([], { log });
+    const old = fakeApi(["acme.com", "app.acme.com", "unrelated-site.org", ...Array.from({ length: 250 }, (_, i) => `other${i}.net`)], { log, pageSize: 100 });
+    const s = fakeStore([company(1, ["acme.com"])]);
+    const res = await run({ api: nw.api, old: old.api, store: s.store });
+    assert.equal(old.calls.list, 3, "the previous project's list was read page by page");
+    assert.ok(s.events.some((e) => e.action === "previous_listed" && /253 domain/.test(e.detail)));
+    assert.deepEqual(log.filter((l) => l.startsWith("remove:")).sort(), ["remove:acme.com", "remove:app.acme.com"], "only hosts that belong to a company and sit on the old project");
+    assert.ok(old.hosts.has("unrelated-site.org") && old.hosts.has("other0.net"), "nothing else is touched");
+    assert.equal(res.counts.released, 2);
+    assert.equal(res.counts.attached, 5);
+    assert.equal(res.counts.failed, 0);
+  });
+
+  await t("release refused (402/403 from a blocked team): the real reason is kept per host for staff, the company sees calm text, the TXT fallback stays", async () => {
+    const nw = fakeApi([], { owned: new Set(["acme.com"]) });
+    const old = { removeDomain: async () => ({ ok: false as const, error: "Vercel 403: team is blocked" }), listDomains: async () => ({ ok: false as const, error: "Vercel 403: team is blocked" }) };
+    const s = fakeStore([company(1, ["acme.com"])]);
+    const res = await run({ api: nw.api, old, store: s.store });
+    assert.equal(res.counts.ownedElsewhere, 1);
+    const w = s.saved.find((x) => x.host === "acme.com")!.write;
+    assert.match(w.staffNote ?? "", /Release from the previous project failed: Vercel 403: team is blocked/);
+    assert.ok(!/403|vercel/i.test(w.error ?? ""));
+    assert.equal(w.records[0].type, "TXT", "the manual alternative remains");
+    assert.ok(s.events.some((e) => e.action === "previous_unavailable"), "the failed listing is logged");
+    assert.ok(s.events.some((e) => e.action === "release_failed"));
   });
 
   await t("a host already on the new project is never released from the old one", async () => {
@@ -206,7 +237,7 @@ const run = (deps: Partial<EngineDeps> & Pick<EngineDeps, "api" | "store">, o: P
     assert.equal(nw.hosts.size, 0);
     assert.ok(old.hosts.has("acme.com"));
     assert.equal(res.counts.wouldAttach, 5);
-    assert.ok(s.events.every((e) => e.action.startsWith("would_")));
+    assert.ok(s.events.every((e) => e.action.startsWith("would_") || e.action === "previous_listed"), "only would-do lines and the read-only listing");
   });
 
   await t("one failing host never stops the others", async () => {
@@ -314,7 +345,7 @@ const run = (deps: Partial<EngineDeps> & Pick<EngineDeps, "api" | "store">, o: P
     const w = s.saved.find((x) => x.host === "yashorbit.com")!.write;
     assert.equal(w.verified, false);
     assert.equal(w.syncStatus, "owned_elsewhere");
-    assert.match(w.error ?? "", /remove it from the old Vercel project/i, "plain next step for the owner");
+    assert.match(w.staffNote ?? "", /remove it from the old project/i, "plain manual alternative for staff");
     assert.equal(w.records[0].value, "vc-domain-verify=abc", "the exact TXT record is stored");
     assert.ok(s.events.some((e) => e.host === "app.yashorbit.com" && e.action === "needs_txt"), "logged per host");
   });
@@ -355,7 +386,7 @@ const run = (deps: Partial<EngineDeps> & Pick<EngineDeps, "api" | "store">, o: P
     const w = s.saved.find((x) => x.host === "yashorbit.com")!.write;
     assert.equal(w.syncStatus, "owned_elsewhere");
     assert.equal(w.records[0].type, "TXT", "the TXT Vercel returned is stored and shown");
-    assert.match(w.error ?? "", /remove it from the old Vercel project|TXT/i);
+    assert.match(w.staffNote ?? "", /Previous Vercel project|TXT/i);
   });
 
   await t("host expansion: apex gets www + app, a www domain gets the apex + app; both defined by the company are not duplicated", () => {

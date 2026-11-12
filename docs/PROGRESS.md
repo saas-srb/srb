@@ -62,6 +62,9 @@ SMS code and the always-visible method chooser: DONE, real Twilio/DLT and a real
 Hosts stuck on a disabled old Vercel project: DONE in code, needs the real project to verify
 - Domain sync trusts only the live project list and live verification (stale caches ignored), expands customer domains to website + app + www/apex, releases/attaches/records TXT with a plain next step, refreshes "last checked", restarts cleanly; staff note for 402 DEPLOYMENT_DISABLED; staff "Missing settings" checklist with Tests; Blob token paste starts the copier; missing-file audit with CSV; friendly "file not available". Tests: `test-domain-sync` (23), `test-blob-gridfs-copy` (4), `test-host-recovery` (2), `test-portability`.
 
+Automatic moves from the previous Vercel project: DONE in code, real Vercel not verified
+- One staff banner (no per-host instructions), previous project listed first and every company/platform host on it moved, real release failure reasons kept for staff, "Connected: <project> (<team>)", "Remove the previous token now", previous project kept automatically on a project change (Console save or boot). Tests: `test-domain-sync` (25), `test-previous-project` (6).
+
 Hardening: Z1 security and tenancy, Z2 performance, Z3 legal and content review
 
 Counting: 2 of about 40 features done = about 5%.

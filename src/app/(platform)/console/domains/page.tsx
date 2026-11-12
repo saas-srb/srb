@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ArrowRightLeft, AtSign, Globe, Link2, Lock, Network, ShieldCheck, TriangleAlert } from "lucide-react";
 import KpiCard from "@/components/products/dealflow-ai/KpiCard";
 import KpiGrid from "@/components/products/dealflow-ai/KpiGrid";
@@ -33,6 +34,14 @@ export default async function PlatformDomainsPage({ searchParams }: { searchPara
   return (
     <div className="space-y-6 p-1">
       <PlatformPageHeader title="Domains & SSL" description="Every company's addresses — automatic subdomains and custom domains — with DNS, SSL and hosting status." crumbs={[{ label: "Tenants" }]} />
+      {h.ownedElsewhere > 0 && !overview.previousConfigured && (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
+          <p className="min-w-0 flex-1">
+            <b>{h.ownedElsewhere} address{h.ownedElsewhere === 1 ? " is" : "es are"} still on another Vercel project.</b> Save the previous Vercel project&apos;s API token once (Integrations → Domains &amp; hosting → Previous Vercel project) and Sync will move all of them automatically. After saving, use &quot;Test connection&quot; there to check it reaches the project.
+          </p>
+          <Link href="/console/integrations#previous-project" className="inline-flex h-9 shrink-0 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground">Open the previous project form</Link>
+        </div>
+      )}
       {blockedHosts.length > 0 && <p role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">{DISABLED_NOTE} Affected: {blockedHosts.join(", ")}.</p>}
       <KpiGrid cols={4}>
         <KpiCard label="Total hosts" value={h.totalHosts} icon={<Globe className="size-4" />} />

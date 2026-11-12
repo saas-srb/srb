@@ -5,7 +5,8 @@ import { COMPANIES_COLLECTION } from "@/lib/platform/tenancy/companies";
 import { isSubdomainOfRoot } from "@/lib/platform/tenancy/root-domain";
 import { platformRootDomain, wildcardSubdomainsEnabled } from "@/lib/platform/tenancy/provisioning";
 import { loadIntegrationsDoc } from "@/lib/platform/integrations/store";
-import { domainConfigFrom, previousVercelConfigFrom } from "@/lib/platform/integrations/resolve";
+import { decryptPlatformSecret } from "@/lib/platform/crypto";
+import { SECRET_CONTEXT, domainConfigFrom, previousVercelConfigFrom } from "@/lib/platform/integrations/resolve";
 import { recordPlatformAudit } from "@/lib/platform/audit";
 import { acquireLease, releaseLease, renewLease } from "@/lib/cron/lease";
 import { syncDomains } from "@/lib/platform/domains/sync/engine";
@@ -214,6 +215,13 @@ export async function maybeSyncOnProjectChange(): Promise<void> {
   if (cfg.provider !== "vercel" || !cfg.vercel) return;
   const state = await (await getPlatformDb()).collection<{ _id: string; lastProjectId?: string }>("platform_settings").findOne({ _id: STATE_ID });
   if (state?.lastProjectId === cfg.vercel.project) return;
+  // Deployed on a different project than the one last synced: the saved credentials belong to the project being LEFT. Keep them as the previous
+  // project (when none is saved), so the sync releases the hosts from it with no token paste.
+  const savedToken = doc?.domains?.vercelToken ? decryptPlatformSecret(doc.domains.vercelToken.enc, SECRET_CONTEXT.vercelToken) : null;
+  if (state?.lastProjectId && savedToken && !doc?.domains?.previous?.token) {
+    const { keepPreviousProject } = await import("@/lib/platform/integrations");
+    await keepPreviousProject({ token: savedToken, projectId: state.lastProjectId, teamId: doc?.domains?.vercelTeamId ?? null }, "system:boot");
+  }
   await enqueueDomainSync({ trigger: "boot" });
 }
 
@@ -224,6 +232,8 @@ export interface DomainSyncOverview {
   events: { at: string; host: string; companyId: string; action: string; detail: string; dryRun: boolean }[];
   configured: boolean;
   previousConfigured: boolean;
+  /** The latest real (not dry) run finished with nothing left elsewhere and nothing failed: the previous token can be removed. */
+  movedAll: boolean;
   wildcard: boolean;
 }
 
@@ -237,6 +247,7 @@ export async function getDomainSyncOverview(): Promise<DomainSyncOverview> {
     events: events.map((e) => ({ at: e.at.toISOString(), host: e.host, companyId: e.companyId, action: e.action, detail: e.detail, dryRun: e.dryRun })),
     configured: cfg.provider === "vercel" && Boolean(cfg.vercel),
     previousConfigured: Boolean(previousVercelConfigFrom(doc)),
+    movedAll: Boolean(run && run.status === "done" && !run.dryRun && run.counts.ownedElsewhere === 0 && run.counts.failed === 0 && run.releaseFromOld),
     wildcard: wildcardSubdomainsEnabled(),
   };
 }
