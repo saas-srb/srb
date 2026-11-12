@@ -49,6 +49,8 @@ export async function getSetupStatus(): Promise<SetupItem[]> {
       : item("admin", "Platform admin", "action", false, "No platform admin yet: open /setup on your site and use the setup code from the deployment log."),
   );
 
+  const resetNeeded = await import("@/lib/platform/two-step-alerts").then((m) => m.listTwoStepResetNeeded(100)).catch(() => []);
+  if (resetNeeded.length) out.push(item("twostep", "Two-step reset needed", "action", false, `${resetNeeded.length} person(s) can't use their authenticator on this deployment and were offered recovery options. Reset them in Console, Health ("Two-step reset needed").`));
   const meta = await import("@/lib/platform/keyring/manage").then((m) => m.keyMeta()).catch(() => null);
   out.push(meta?.backedUpAt ? item("keybackup", "Encryption key backed up", "ok", false, `Yes, last shown ${new Date(meta.backedUpAt).toLocaleDateString()}.`) : item("keybackup", "Encryption key backed up", "warn", false, "No. In Console, Health, \"Encryption key backup\" show the key once and keep it in a password manager."));
 

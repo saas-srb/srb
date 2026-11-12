@@ -240,6 +240,17 @@ t("a keyring written before verification existed, holding a key that opens nothi
   const r2 = resolveKeyring({ envKey: real, doc: r.write, kek, dbHasData: true, probe });
   assert.ok(r2.state === "ok" && r2.keys[0].id === keyId(real) && r2.keys[0].verification === "verified");
 });
+t("once a verified key exists, a deployment with a different env key (or none) causes no alert and no change of active key", () => {
+  const first = resolveKeyring({ envKey: real, doc: null, kek, dbHasData: true, probe });
+  assert.ok(first.state === "ok" && first.write);
+  for (const env of [dev, null]) {
+    const r = resolveKeyring({ envKey: env, doc: first.write, kek, dbHasData: true, probe });
+    assert.ok(r.state === "ok");
+    assert.equal(r.keys[0].id, keyId(real));
+    assert.equal(r.keys[0].verification, "verified");
+    assert.equal(probe.unopenable(r.keys.map((k) => k.key)), 0, "the alert condition is false");
+  }
+});
 
 const base = { bearerMatches: false, secretConfigured: false, userAgent: "vercel-cron/1.0", hostAllowed: true, lastRunAtMs: null, intervalMs: 86_400_000, nowMs: 1_000_000_000 };
 t("cron auth: bearer always works; a secret closes the unauthenticated path", () => {

@@ -55,7 +55,7 @@ export function validateAccount(input: Record<string, unknown>): { valid: true; 
 }
 
 export async function addCompanyAccount(data: AccountInput, actorId: string): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
-  if (!isEncryptionConfigured()) return { ok: false, error: "Secure storage for bank details is not set up on this server (PLATFORM_ENCRYPTION_KEY), so the account number cannot be saved. Ask your administrator." };
+  if (!isEncryptionConfigured()) return { ok: false, error: "Secure storage isn't available right now. Please try again in a few minutes, or contact support." };
   const r = await createBankAccount({ ...data, branch: null, currency: "INR", status: "active", notes: "Added from Payroll" }, actorId);
   return r.ok ? { ok: true, id: r.account._id } : { ok: false, error: r.reason };
 }

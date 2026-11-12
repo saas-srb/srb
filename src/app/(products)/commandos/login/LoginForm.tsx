@@ -105,20 +105,31 @@ export default function LoginForm({ next = null, demo = false }: { next?: string
             </div>
             {state?.needsCode && (
               <div className="space-y-1.5">
-                <Label htmlFor={codeId}>{state.method === "email" ? "Code from your email" : "Authentication code"}</Label>
-                <Input id={codeId} name="code" inputMode="numeric" autoComplete="one-time-code" autoFocus placeholder={state.method === "email" ? "6-digit code" : "6-digit code or recovery code"} maxLength={20} required />
-                {state.method === "email" ? (
+                <input type="hidden" name="current" value={state.method ?? ""} />
+                <Label htmlFor={codeId}>{state.method === "email" ? "Code from your email" : state.method === "recovery" ? "Recovery code" : "Authentication code"}</Label>
+                <Input id={codeId} name="code" inputMode={state.method === "recovery" ? "text" : "numeric"} autoComplete="one-time-code" autoFocus placeholder={state.method === "recovery" ? "xxxxx-xxxxx" : "6-digit code"} maxLength={20} required />
+                {state.method === "email" && (
                   <p className="text-xs text-muted-foreground">
-                    Enter the code we emailed{state.hint ? ` to ${state.hint}` : ""}. Nothing there?{" "}
+                    Nothing there?{" "}
                     <button type="submit" name="resend" value="1" formNoValidate className="font-medium text-primary hover:underline">Send a new code</button>
                   </p>
-                ) : state.keyUnavailable ? (
-                  <p className="text-xs text-muted-foreground">
-                    Enter a recovery code.{state.canEmail ? " " : ""}
-                    {state.canEmail && <button type="submit" name="resend" value="1" formNoValidate className="font-medium text-primary hover:underline">Email me a code instead</button>}
-                  </p>
-                ) : (
-                  <p className="text-xs text-muted-foreground">Open your authenticator app and enter the current code. Lost your phone? Use one of your recovery codes.</p>
+                )}
+                {state.trustAllowed && (
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <input type="checkbox" name="trust" value="1" className="size-4" /> Trust this device for 30 days
+                  </label>
+                )}
+                {state.alternatives && state.alternatives.length > 0 && (
+                  <div className="pt-1" role="group" aria-label="Try another way">
+                    <p className="text-xs font-medium text-muted-foreground">Try another way</p>
+                    <ul className="mt-1 space-y-1">
+                      {state.alternatives.map((a) => (
+                        <li key={a.id}>
+                          <button type="submit" name="method" value={a.id} formNoValidate className="text-left text-sm font-medium text-primary hover:underline">{a.label}</button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </div>
             )}

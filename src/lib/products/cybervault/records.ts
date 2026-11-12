@@ -453,7 +453,7 @@ export async function createCredential(viewer: DlmsViewer, input: Input): Promis
   const target = await resolveTarget(viewer, input);
   const base = parseBase("credential", input);
   const password = typeof input.password === "string" ? input.password.slice(0, LIMITS.secret) : "";
-  if (password && !isEncryptionConfigured()) throw new DlmsInputError("PLATFORM_ENCRYPTION_KEY is not configured — passwords cannot be stored yet. Ask an admin to set it.");
+  if (password && !isEncryptionConfigured()) throw new DlmsInputError("Secure storage isn't available right now. Please try again in a few minutes, or contact support.");
   const id = newId();
   const doc: CredentialDoc = {
     _id: id,
@@ -477,7 +477,7 @@ export async function updateCredential(viewer: DlmsViewer, id: string, input: In
   const target = await resolveTarget(viewer, input, existing);
   const base = parseBase("credential", input);
   const password = typeof input.password === "string" ? input.password.slice(0, LIMITS.secret) : "";
-  if (password && !isEncryptionConfigured()) throw new DlmsInputError("PLATFORM_ENCRYPTION_KEY is not configured — passwords cannot be stored yet.");
+  if (password && !isEncryptionConfigured()) throw new DlmsInputError("Secure storage isn't available right now. Please try again in a few minutes, or contact support.");
   const patch: Record<string, unknown> = {
     ...target,
     ...base,
@@ -518,9 +518,9 @@ export async function revealCredential(viewer: DlmsViewer, id: string, purpose: 
   const doc = await loadScoped<CredentialDoc>(viewer, "credential", id);
   if (!doc) throw new DlmsInputError("That credential no longer exists.");
   if (!doc.passwordEnc) throw new DlmsInputError("No password is stored for this credential.");
-  if (!isEncryptionConfigured()) throw new DlmsInputError("PLATFORM_ENCRYPTION_KEY is not configured.");
+  if (!isEncryptionConfigured()) throw new DlmsInputError("Secure storage isn't available right now. Please try again in a few minutes, or contact support.");
   const plain = decryptSecret(doc.passwordEnc, id);
-  if (plain === null) throw new DlmsInputError("The stored password could not be decrypted. Check the encryption key.");
+  if (plain === null) throw new DlmsInputError("Secure storage isn't available right now. Please try again in a few minutes, or contact support.");
   await recordAudit({
     actorId: viewer.userId,
     actorEmail: viewer.email,

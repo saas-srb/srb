@@ -42,7 +42,7 @@ export default async function CybervaultSettingsPage() {
         <ul className="space-y-1.5 text-sm">
           <li className="flex items-center gap-2">
             {encrypted ? <Check className="size-4 text-emerald-600" /> : <Minus className="size-4 text-rose-600" />}
-            Password encryption (AES-256-GCM){encrypted ? " is active" : " is NOT configured — set PLATFORM_ENCRYPTION_KEY"}
+            Password encryption (AES-256-GCM){encrypted ? " is active" : "Secure storage isn't available right now. Please try again in a few minutes, or contact support."}
           </li>
           <li className="flex items-center gap-2">
             <Check className="size-4 text-emerald-600" />

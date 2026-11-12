@@ -158,7 +158,7 @@ export interface VendorPayable {
 /** The details a payment to this vendor may use: the verified ones, never newer unverified ones. */
 export async function vendorVerifiedPayee(vendorId: string, vendorName: string): Promise<VendorPayable | { ok: false; error: string }> {
   const who = vendorName || "This vendor";
-  if (!isEncryptionConfigured()) return { ok: false, error: "Secure storage for bank details is not set up on this server (PLATFORM_ENCRYPTION_KEY), so vendor bank details cannot be checked." };
+  if (!isEncryptionConfigured()) return { ok: false, error: "Secure storage isn't available right now. Please try again in a few minutes, or contact support." };
   const { state, current } = await syncVendorBank(vendorId);
   if (!current && !state?.verified) return { ok: false, error: `${who} has no bank details saved. Add them under Beneficiaries first, then pay.` };
   const verified = state?.verified ? open(state.verified) : null;

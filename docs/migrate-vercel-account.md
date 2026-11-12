@@ -56,6 +56,20 @@ Moving to a new project is safe only if the deployment's `PLATFORM_ENCRYPTION_KE
 
 **Before the cutover:** check Console, Health in the OLD project (or run `npm run portability:check` against a throwaway copy): "Encryption keys" must show no mismatch. Deploy the new code in the old project once so it adopts the key into the database. **If the alert shows on the new project:** deploy this code once in the old project, or paste the original key under "Add previous encryption key". Meanwhile nobody is locked out (below).
 
+## Customers never see any of this
+
+The key alerts live ONLY in the staff Platform Console (Health, Setup status, the dashboard card, a Console notification and the audit log). The sign-in page, the product screens, the public site and every customer-visible message use calm wording with no mention of keys, servers, deployments, Vercel or environment variables (`scripts/test-no-infra-leak.ts` fails if that changes, and also that the alert component is mounted only under the staff Console layout). A deployment with a different or missing `PLATFORM_ENCRYPTION_KEY` after the keyring holds a verified key produces no alert and no visible effect: the extra key is simply recorded decrypt-only.
+
+When a person's authenticator can't be checked they see only "We couldn't verify this code" with the other ways in. Quietly, a "Two-step reset needed" item (who/when) is queued for staff (Console, Health, with a one-click reset, a Console notification, an audit event, and an email to staff when a provider exists). The owner tool `npm run twofactor:doctor` lists everyone whose two-step secret NO key can open (masked email and company; read-only by default); `-- --apply` (and typing the database name) clears only those people's `twoFactor`/`twoFactorPending` fields after writing a JSON backup, audits it and sends a notice when possible. It refuses when the keyring is locked or has no verified key and never touches anyone whose secret opens with any key.
+
+## Second step with several methods, step-up re-authentication and policy
+
+- **Methods:** every account can have any mix of an authenticator app, an email code and recovery codes (older `twoFactor` / `twoFactorEmail` documents work unchanged; new data is in `secondStep`). After the password the preferred method is asked first and "Try another way" lists the others with masked destinations; switching needs no new password. A method that fails or is unavailable (unreadable authenticator, email down, lost phone) surfaces the others in customer-safe words and is never counted as a failed login. Wrong codes are rate-limited per method (10 per 10 minutes).
+- **Manage methods:** Security settings and the profile panel (`TwoStepSettings`): set up or replace the authenticator (QR and key), turn email codes on or off, make new recovery codes (shown once, copy/download/print), choose the preferred method, remove trusted devices. The last method can't be removed when a second step is required.
+- **Step-up re-authentication:** one mechanism (`ReAuthGate`, `useReAuth`, `reauthAction`): password plus any method the person has, valid for N minutes (default 10, Console, Health, policy). It is a signed cookie bound to the user and session. Method changes, the key backup / rotation / add-key actions, and the danger-zone confirmation use it.
+- **Policy (Console, Health):** email codes allowed (default yes), second step required for admins (default no), "trust this device" (default OFF, hashed token, revocable), re-confirm window; a company can have its own override.
+- **Notices:** every change to methods or recovery codes is audit-logged (`second_step.*`) and emailed to the account when a provider exists.
+
 ## Sign-in when the authenticator can't be opened (key mismatch)
 
 If a person's two-step secret can't be opened on this deployment, sign-in does NOT say "wrong code", does NOT count a failed attempt and never locks the account. It shows "two-step is temporarily unavailable on this deployment" and offers, in order:

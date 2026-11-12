@@ -53,6 +53,9 @@ Fully dynamic deployments (env adoption, files in the database, platform hosts, 
 Key safety and 2FA resilience (urgent fix after a deployment arrived with the wrong encryption key): DONE, needs the real deployment to verify
 - Key verification (verified/unverified, canary, probe over known ciphertext locations + shape scan), never silently activating a key that opens nothing, Encryption key mismatch alert, locked mode never writes; sign-in without false "wrong code" or lock-outs (recovery code, email code, platform break-glass, staff reset), forced re-enrolment; Console Health: add previous key, one-time key backup reveal, recovery passphrase, one-click rotation with lazy re-seal. Tests: `test:keyring` (24), `scripts/test-two-step-recovery.ts` (9, throwaway DB), `portability:check` (15, includes the wrong-key scenario).
 
+Quiet key mismatch handling and multi-method second step: DONE, needs a browser check
+- Customer-safe wording everywhere (test: `scripts/test-no-infra-leak.ts`); staff-only alerts; `npm run twofactor:doctor`; any mix of authenticator, email code and recovery codes with "Try another way", Manage methods, one step-up re-authentication (`ReAuthGate`), policy in Console Health. Tests: `scripts/test-second-step.ts` (10), `test-two-step-recovery.ts` (11, throwaway DB), `test-twofactor-doctor.ts` (6), `test-keyring.ts` (25).
+
 Hardening: Z1 security and tenancy, Z2 performance, Z3 legal and content review
 
 Counting: 2 of about 40 features done = about 5%.

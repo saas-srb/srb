@@ -31,7 +31,7 @@ export default function TwoFactorCard({ status, onChange }: { status: Status; on
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
-  if (!status.available && !enabled) return <p className="text-sm text-muted-foreground">Two-step sign-in isn&apos;t available on this server yet. Ask your platform administrator to set the encryption key.</p>;
+  if (!status.available && !enabled) return <p className="text-sm text-muted-foreground">Two-step sign-in isn&apos;t available right now. Please try again in a few minutes, or contact support.</p>;
 
   if (recovery) {
     return (

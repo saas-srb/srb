@@ -92,7 +92,7 @@ function aiItems(d: HealthDeps): HealthItem[] {
 
 function connectionItems(d: HealthDeps): HealthItem[] {
   const items: HealthItem[] = [];
-  if (!d.encryptionReady) items.push(bad("encryption", "Token encryption", "PLATFORM_ENCRYPTION_KEY isn't set, so account tokens can't be stored.", "Set PLATFORM_ENCRYPTION_KEY on the server and redeploy."));
+  if (!d.encryptionReady) items.push(bad("encryption", "Token encryption", "Secure storage isn't available right now. Please try again in a few minutes, or contact support.", "Secure storage isn't available right now. Please try again in a few minutes, or contact support."));
   for (const it of d.integrations) {
     const id = `conn.${it.provider}`;
     if (!it.configured) {
@@ -164,7 +164,7 @@ function schedulerItems(d: HealthDeps): HealthItem[] {
     const when = `${j.when}${j.last ? `; last run ${new Date(j.last.startedAt).toISOString().replace("T", " ").slice(0, 16)} UTC (${j.last.status})` : "; has not run yet"}`;
     if (!j.enabled) return bad(id, label, `Paused. ${when}.`, "Resume it in Platform Console > Scheduled jobs.");
     if (j.health === "failing") return bad(id, label, `The last run failed. ${when}.`, "Open Platform Console > Scheduled jobs for the error.", j.last?.error || j.healthNote);
-    if (j.health === "overdue") return bad(id, label, `${j.healthNote} ${when}.`, "Check the scheduler (Vercel Cron / RUN_SCHEDULER) and the CRON_SECRET.");
+    if (j.health === "overdue") return bad(id, label, `${j.healthNote} ${when}.`, "Ask your administrator to check that scheduled jobs are running.");
     if (j.health === "waiting") return bad(id, label, `It has not run yet. ${j.when}.`, "Check the scheduler is running; the first run happens at the next scheduled time.");
     return ok(id, label, `${when}.`);
   });

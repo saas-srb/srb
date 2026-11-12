@@ -34,20 +34,22 @@ export async function fileCopyStatusAction(): Promise<FileCopyView> {
 // ── Encryption key management (platform owner only, re-authenticated) ─────────
 
 import { requirePlatformAdmin } from "@/lib/platform/console/access";
-import { reauthStaff } from "@/lib/platform/keyring/reauth";
+import { hasFreshReauth } from "@/lib/security/second-step-server";
 import { addPreviousKey, computeKeyHealth, revealActiveKey, rotateKey, setRecoveryPassphrase, type KeyHealth } from "@/lib/platform/keyring/manage";
 import { recordPlatformAudit } from "@/lib/platform/audit";
 
 type Err = { ok: false; error: string };
+/** One re-authentication mechanism for every sensitive area (see ReAuthGate): password plus a second-step method, fresh within the policy window. */
+const fresh = async (userId: string): Promise<{ ok: true; via: string } | Err> => ((await hasFreshReauth(userId)) ? { ok: true, via: "fresh-reauth" } : { ok: false, error: "Please confirm it's you first." });
 
 export async function keyHealthAction(): Promise<KeyHealth> {
   await requirePlatformPermission("integrations.read");
   return computeKeyHealth();
 }
 
-export async function addPreviousKeyAction(input: { key: string; password: string; code: string }): Promise<{ ok: true; opened: number } | Err> {
+export async function addPreviousKeyAction(input: { key: string }): Promise<{ ok: true; opened: number } | Err> {
   const user = await requirePlatformAdmin();
-  const re = await reauthStaff(user.id, String(input?.password ?? ""), String(input?.code ?? ""));
+  const re = await fresh(user.id);
   if (!re.ok) return re;
   const res = await addPreviousKey(String(input?.key ?? "").trim());
   await recordPlatformAudit({ actorId: user.id, action: "keyring.add_previous_key", target: { type: "keyring", id: "keyring" }, details: { ok: res.ok, via: re.via } });
@@ -56,9 +58,9 @@ export async function addPreviousKeyAction(input: { key: string; password: strin
 }
 
 /** Shows the active key ONCE after re-authentication. */
-export async function revealKeyAction(input: { password: string; code: string }): Promise<{ ok: true; key: string } | Err> {
+export async function revealKeyAction(input?: Record<string, never>): Promise<{ ok: true; key: string } | Err> {
   const user = await requirePlatformAdmin();
-  const re = await reauthStaff(user.id, String(input?.password ?? ""), String(input?.code ?? ""));
+  const re = await fresh(user.id);
   if (!re.ok) return re;
   const key = await revealActiveKey(user.id);
   await recordPlatformAudit({ actorId: user.id, action: "keyring.backup_revealed", target: { type: "keyring", id: "keyring" }, details: { via: re.via } });
@@ -66,18 +68,18 @@ export async function revealKeyAction(input: { password: string; code: string })
   return key ? { ok: true, key } : { ok: false, error: "There is no active key." };
 }
 
-export async function setPassphraseAction(input: { passphrase: string; password: string; code: string }): Promise<{ ok: true } | Err> {
+export async function setPassphraseAction(input: { passphrase: string }): Promise<{ ok: true } | Err> {
   const user = await requirePlatformAdmin();
-  const re = await reauthStaff(user.id, String(input?.password ?? ""), String(input?.code ?? ""));
+  const re = await fresh(user.id);
   if (!re.ok) return re;
   const res = await setRecoveryPassphrase(String(input?.passphrase ?? ""));
   await recordPlatformAudit({ actorId: user.id, action: "keyring.passphrase_set", target: { type: "keyring", id: "keyring" }, details: { ok: res.ok, via: re.via } });
   return res;
 }
 
-export async function rotateKeyAction(input: { password: string; code: string }): Promise<{ ok: true } | Err> {
+export async function rotateKeyAction(input?: Record<string, never>): Promise<{ ok: true } | Err> {
   const user = await requirePlatformAdmin();
-  const re = await reauthStaff(user.id, String(input?.password ?? ""), String(input?.code ?? ""));
+  const re = await fresh(user.id);
   if (!re.ok) return re;
   const res = await rotateKey();
   await recordPlatformAudit({ actorId: user.id, action: "keyring.rotated", target: { type: "keyring", id: "keyring" }, details: { ok: res.ok, via: re.via } });
@@ -108,4 +110,31 @@ export async function resetCompanyTwoStepAction(input: { company: string; email:
   await recordPlatformAudit({ actorId: user.id, action: "two_step.staff_reset", companyId: company._id, target: { type: "admin_user", id: found.id }, details: { email } });
   await sendRecoveryNotice(found.email, "staff_reset");
   return { ok: true, message: `Two-step was reset for ${email}. They set it up again at their next sign-in.` };
+}
+
+// ── Second-step policy (platform default, optional per-company override) ──────
+
+import { getSecondStepPolicy, saveCompanyPolicy, savePlatformPolicy } from "@/lib/security/second-step-server";
+import type { SecondStepPolicy } from "@/lib/security/second-step";
+
+export async function secondStepPolicyAction(): Promise<SecondStepPolicy> {
+  await requirePlatformPermission("integrations.read");
+  return getSecondStepPolicy("");
+}
+
+export async function saveSecondStepPolicyAction(patch: Partial<SecondStepPolicy>): Promise<{ ok: true; policy: SecondStepPolicy } | Err> {
+  const user = await requirePlatformPermission("integrations.manage");
+  const policy = await savePlatformPolicy({ emailAllowed: Boolean(patch.emailAllowed), requireForAdmins: Boolean(patch.requireForAdmins), trustDeviceAllowed: Boolean(patch.trustDeviceAllowed), trustDeviceDays: Number(patch.trustDeviceDays), reauthMinutes: Number(patch.reauthMinutes) }, user.id);
+  return { ok: true, policy };
+}
+
+/** A company's own override (or `null` to go back to the platform default). */
+export async function saveCompanySecondStepPolicyAction(input: { company: string; patch: Partial<SecondStepPolicy> | null }): Promise<{ ok: true } | Err> {
+  const user = await requirePlatformPermission("companies.manage");
+  const { getPlatformDb } = await import("@/lib/platform/tenancy/platform-db");
+  const key = String(input?.company ?? "").trim().toLowerCase();
+  const company = await (await getPlatformDb()).collection<{ _id: string }>("companies").findOne({ $or: [{ _id: key }, { slug: key }] } as never);
+  if (!company) return { ok: false, error: "No such company." };
+  await saveCompanyPolicy(company._id, input.patch, user.id);
+  return { ok: true };
 }

@@ -29,7 +29,7 @@ export default function ProviderSection({ oauth, configured, encryptionReady, re
       {!canConnect && (
         <div className="space-y-3 text-xs">
           <EmptyState icon={<Plug className="size-5" />} title={`${info.short} isn't set up yet`}>
-            {!encryptionReady ? "Set PLATFORM_ENCRYPTION_KEY on the server first, so account tokens can be stored encrypted." : `ViralPulse connects through your own ${info.short} developer app, so the platform's approval and rate limits are yours.`}
+            {!encryptionReady ? "Secure storage isn't available right now. Please try again in a few minutes, or contact support." : `ViralPulse connects through your own ${info.short} developer app, so the platform's approval and rate limits are yours.`}
           </EmptyState>
           <ol className="list-decimal space-y-1.5 pl-5">
             <li>{`Create an app in `}<a className="inline-flex items-center gap-0.5 font-medium text-primary underline" href={c.url} target="_blank" rel="noreferrer noopener">{c.name}<ExternalLink className="size-3" aria-hidden /></a>.</li>

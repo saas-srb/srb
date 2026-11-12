@@ -84,7 +84,7 @@ export async function revealBankAccountNumberAction(id: string): Promise<{ ok: b
   if (!user) throw new Error("Unauthorized");
   if (!canManageBanking(user)) throw new Error("Forbidden");
   const number = await revealBankAccountNumber(id);
-  if (!number) return { ok: false, error: "No account number on file, or the encryption key is not configured." };
+  if (!number) return { ok: false, error: "Secure storage isn't available right now. Please try again in a few minutes, or contact support." };
   const account = await getBankAccount(id);
   await recordAudit({
     actorId: user.id,

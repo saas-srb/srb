@@ -13,7 +13,7 @@ import { transportSecret } from "@/lib/security/transport-ip";
  * wrong tries per code, one new code every 30 seconds and five an hour per person and purpose, so the mailbox can't be used to flood
  * someone and a code can't be guessed. The purposes are kept apart: a sign-in code can't turn the feature on or off.
  */
-export type OtpPurpose = "login" | "enable" | "disable" | "payment";
+export type OtpPurpose = "login" | "enable" | "disable" | "payment" | "reauth";
 
 interface OtpDoc {
   _id: string;
@@ -60,6 +60,7 @@ const COPY: Record<OtpPurpose, { subject: string; heading: string; lead: string 
   login: { subject: "Your sign-in code", heading: "Your sign-in code", lead: "Use this code to finish signing in." },
   enable: { subject: "Confirm two-step sign-in by email", heading: "Turn on email codes", lead: "Use this code to turn on two-step sign-in by email." },
   disable: { subject: "Confirm turning off two-step sign-in", heading: "Turn off email codes", lead: "Use this code to turn off two-step sign-in." },
+  reauth: { subject: "Confirm it's you", heading: "Confirm it's you", lead: "Use this code to confirm a sensitive change on your account." },
   payment: { subject: "Confirm a payment", heading: "Confirm a payment", lead: "Someone, hopefully you, is about to send money from your workspace. Use this code to confirm it." },
 };
 

@@ -181,7 +181,7 @@ export default function BankAccountsManager({
       <CardContent className="space-y-2">
         {!encryptionReady && (
           <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
-            Set <code>PLATFORM_ENCRYPTION_KEY</code> in the environment to add or edit bank details.
+            Secure storage isn&apos;t available right now. Please try again in a few minutes, or contact support.
           </p>
         )}
         {accounts.length === 0 && encryptionReady && <p className="text-sm text-muted-foreground">No bank accounts on file.</p>}

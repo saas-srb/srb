@@ -52,6 +52,7 @@
     "test:cron": "npx --yes tsx scripts/test-cron-schedule.ts && npx --yes tsx scripts/test-cron-registry.ts",
     "test:keyring": "npx --yes tsx scripts/test-keyring.ts",
     "portability:check": "npx --yes tsx scripts/portability-check.ts",
+    "twofactor:doctor": "npx --yes tsx scripts/twofactor-doctor.ts",
     "key:rewrap": "npx --yes tsx scripts/key-rewrap.ts",
     "test:portability": "npx --yes tsx scripts/test-portability.ts",
     "test:gridfs": "npx --yes tsx scripts/test-gridfs.ts",

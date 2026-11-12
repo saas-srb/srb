@@ -220,7 +220,7 @@ export function CredentialDialog({ ui, locked, initial, trigger }: { ui: VaultUi
         htmlFor="f-pw"
         hint={
           !ui.encryptionReady
-            ? "Encryption key is not configured — a password cannot be saved yet."
+            ? "Secure storage isn't available right now. Please try again in a few minutes, or contact support."
             : initial?.hasPassword
               ? "A password is stored. Leave blank to keep it, or type a new one to replace it."
               : undefined

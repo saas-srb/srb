@@ -45,7 +45,7 @@ export default function ConnectionsHub({ providers, encryptionReady }: { provide
     <div className="space-y-8">
       {!encryptionReady && (
         <p role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">
-          Secure storage isn&apos;t set up on this server yet, so keys can&apos;t be saved. Ask your platform administrator to set <code>PLATFORM_ENCRYPTION_KEY</code>.
+          Secure storage isn&apos;t available right now, so keys can&apos;t be saved. Please try again in a few minutes, or contact support.
         </p>
       )}
       <div className="flex flex-wrap items-center gap-3">

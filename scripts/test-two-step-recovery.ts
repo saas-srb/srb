@@ -60,7 +60,16 @@ async function check(name: string, fn: () => Promise<void>) {
       return _id;
     });
   }
-  const login = (email: string, password: string, code = "", resend = false) => runAsCompany(COMPANY, () => verifyHubCredentials(email, password, code, { resend }));
+  async function addUserKeyringOn(email: string) {
+    return runAsCompany(COMPANY, async () => {
+      const users = (await getDb()).collection("admin_users");
+      const _id = (await users.insertOne({ email, name: email, passwordHash: hashPassword(PASS), roles: ["admin"], status: "active", failedLoginAttempts: 0, lockedUntil: null, emailVerified: true, createdAt: new Date() } as never)).insertedId;
+      const secret = encryptPlatformSecret("JBSWY3DPEHPK3PXP", `2fa:${COMPANY}:${String(_id)}`);
+      await users.updateOne({ _id }, { $set: { twoFactor: { secret, enabledAt: new Date(), lastStep: 0, recovery: [hashCode(RECOVERY)] } } });
+      return _id;
+    });
+  }
+  const login = (email: string, password: string, code = "", resend = false, method: string | null = null) => runAsCompany(COMPANY, () => verifyHubCredentials(email, password, code, { resend, method }));
   const userDoc = (email: string) => runAsCompany(COMPANY, async () => (await getDb()).collection("admin_users").findOne({ email }));
 
   await addUser("worker@yash.test");
@@ -79,7 +88,8 @@ async function check(name: string, fn: () => Promise<void>) {
     assert.equal(u?.lockedUntil ?? null, null);
     const r = await login("worker@yash.test", PASS);
     assert.ok(!r.ok && /recovery code/i.test(r.info ?? "") && r.canEmail === false);
-    assert.match(r.info ?? "", /not set up|Platform Console|platform staff/i, "instructions when email is not configured");
+    assert.match(r.info ?? "", /ask your administrator to reset your sign-in/i, "calm instructions when email is not configured");
+    assert.ok(!/key|deployment|server|Vercel|environment/i.test(`${r.info} ${r.error}`), "no infrastructure wording reaches the person");
   });
 
   await check("a wrong password still counts and locks (the key problem never weakens the password check)", async () => {
@@ -139,7 +149,9 @@ async function check(name: string, fn: () => Promise<void>) {
     process.env.EMAIL_PROVIDER = "resend";
     process.env.RESEND_API_KEY = "re_test_123456789";
     const { bustIntegrationsCache } = await import("../src/lib/platform/integrations/store");
+    const { bustSecondStepPolicyCache } = await import("../src/lib/security/second-step-server");
     bustIntegrationsCache();
+    bustSecondStepPolicyCache();
     let body = "";
     const realFetch = globalThis.fetch;
     globalThis.fetch = (async (_u: unknown, init?: RequestInit) => { body += String(init?.body ?? ""); return new Response(JSON.stringify({ id: "x" }), { status: 200 }); }) as typeof fetch;
@@ -161,6 +173,7 @@ async function check(name: string, fn: () => Promise<void>) {
       delete process.env.RESEND_API_KEY;
       delete process.env.EMAIL_PROVIDER;
       bustIntegrationsCache();
+      bustSecondStepPolicyCache();
     }
   });
 
@@ -244,6 +257,113 @@ async function check(name: string, fn: () => Promise<void>) {
     assert.equal(st2.mismatch?.unopenable ?? 0, 0);
     assert.ok(st2.versions.length === 2);
     void keyringStatus;
+  });
+
+  await check("multi-method sign-in: preferred method first, 'Try another way' with masked options, switching needs no new password, recovery is single-use", async () => {
+    const RECOVERY2 = "fghij-67890";
+    const id = await runAsCompany(COMPANY, async () => {
+      const users = (await getDb()).collection("admin_users");
+      const _id = (await users.insertOne({ email: "multi@yash.test", name: "m", passwordHash: hashPassword(PASS), roles: ["admin"], status: "active", failedLoginAttempts: 0, lockedUntil: null, emailVerified: true, createdAt: new Date() } as never)).insertedId;
+      process.env.PLATFORM_ENCRYPTION_KEY = K_NEW;
+      keyringOff();
+      const secret = encryptPlatformSecret("JBSWY3DPEHPK3PXP", `2fa:${COMPANY}:${String(_id)}`);
+      await users.updateOne({ _id }, { $set: { twoFactor: { secret, enabledAt: new Date(), lastStep: 0, recovery: [] }, twoFactorEmail: { enabledAt: new Date() }, "secondStep.recovery": [hashCode(RECOVERY2)], "secondStep.preferred": "app" } });
+      return _id;
+    });
+    const { bustIntegrationsCache } = await import("../src/lib/platform/integrations/store");
+    const { bustSecondStepPolicyCache, methodAllowed, noteWrong, noteMethodChange } = await import("../src/lib/security/second-step-server");
+    process.env.EMAIL_PROVIDER = "resend";
+    process.env.RESEND_API_KEY = "re_test_123456789";
+    bustIntegrationsCache();
+    bustSecondStepPolicyCache();
+    let body = "";
+    let fail = false;
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (async (_u: unknown, init?: RequestInit) => { if (fail) return new Response("{}", { status: 500 }); body = String(init?.body ?? ""); return new Response(JSON.stringify({ id: "x" }), { status: 200 }); }) as typeof fetch;
+    const codeFromMail = () => /Your code: (\d{6})/.exec(body.replace(/\\n|<[^>]+>/g, " "))?.[1];
+    try {
+      const first = await login("multi@yash.test", PASS);
+      assert.ok(!first.ok && first.method === "app", "the preferred method is asked first");
+      const labels = (first as { alternatives?: { id: string; label: string }[] }).alternatives ?? [];
+      assert.deepEqual(labels.map((a) => a.id).sort(), ["email", "recovery"]);
+      assert.ok(labels.find((a) => a.id === "email")!.label.includes("m****@yash.test"), "masked destination");
+      // switch to email WITHOUT re-entering anything but the same form
+      const viaEmail = await login("multi@yash.test", PASS, "", false, "email");
+      assert.ok(!viaEmail.ok && viaEmail.method === "email");
+      assert.ok((viaEmail as { alternatives?: { id: string }[] }).alternatives!.some((a) => a.id === "app"));
+      const code = codeFromMail();
+      assert.ok(code, "a code was emailed");
+      assert.ok((await login("multi@yash.test", PASS, code!, false, "email")).ok, "the emailed code signs in");
+      assert.ok(!(await login("multi@yash.test", PASS, code!, false, "email")).ok, "an email code is single-use");
+      // recovery code via 'Try another way', single use
+      assert.ok((await login("multi@yash.test", PASS, RECOVERY2, false, "recovery")).ok);
+      const again = await login("multi@yash.test", PASS, RECOVERY2, false, "recovery");
+      assert.ok(!again.ok && /isn't right/.test(again.error));
+      await runAsCompany(COMPANY, async () => (await getDb()).collection("admin_users").updateOne({ email: "multi@yash.test" }, { $set: { failedLoginAttempts: 0, lockedUntil: null } }));
+
+      // the email provider is down: the other ways surface, no infrastructure wording, nothing counted
+      fail = true;
+      await runAsCompany(COMPANY, async () => (await getDb()).collection("email_otps").deleteMany({})); // skip the resend cooldown of the code sent above
+      const down = await login("multi@yash.test", PASS, "", false, "email");
+      assert.ok(!down.ok && down.method !== "email", JSON.stringify(down));
+      assert.ok(!/provider|server|key|deployment|Resend|500/i.test(`${down.info} ${down.error}`));
+      assert.equal((await userDoc("multi@yash.test"))?.failedLoginAttempts ?? 0, 0);
+      fail = false;
+
+      // preferred method switching
+      await runAsCompany(COMPANY, async () => (await getDb()).collection("admin_users").updateOne({ email: "multi@yash.test" }, { $set: { "secondStep.preferred": "email" } }));
+      assert.equal((await login("multi@yash.test", PASS)).method, "email", "the new preferred method is asked first");
+
+      // policy: email not allowed -> not offered
+      const { savePlatformPolicy } = await import("../src/lib/security/second-step-server");
+      await savePlatformPolicy({ emailAllowed: false }, "tester");
+      const noEmail = await login("multi@yash.test", PASS);
+      assert.equal(noEmail.method, "app");
+      assert.ok(!((noEmail as { alternatives?: { id: string }[] }).alternatives ?? []).some((a) => a.id === "email"));
+      await savePlatformPolicy({ emailAllowed: true }, "tester");
+
+      // per-method rate limit: genuinely wrong codes only; after 10 the method pauses (and others stay available)
+      const uid = id as never;
+      for (let i = 0; i < 10; i++) await runAsCompany(COMPANY, () => noteWrong(uid, "app"));
+      assert.equal(await runAsCompany(COMPANY, () => methodAllowed(uid, "app")), false);
+      assert.equal(await runAsCompany(COMPANY, () => methodAllowed(uid, "email")), true);
+
+      // method changes are audited
+      await runAsCompany(COMPANY, () => noteMethodChange({ _id: uid, email: "multi@yash.test" }, "recovery_regenerated"));
+      assert.ok(await (await getPlatformDb()).collection("platform_audit_log").findOne({ action: "second_step.recovery_regenerated" }));
+    } finally {
+      globalThis.fetch = realFetch;
+      delete process.env.RESEND_API_KEY;
+      delete process.env.EMAIL_PROVIDER;
+      bustIntegrationsCache();
+      bustSecondStepPolicyCache();
+    }
+  });
+
+  await check("a second deployment with a WRONG env key after a verified keyring exists: no alert, sign-in unaffected, staff see nothing", async () => {
+    const { resetKeyringCache, ensureKeyring } = await import("../src/lib/platform/keyring");
+    const db = await rawDb();
+    await db.collection("admin_users").deleteMany({});
+    await db.collection("platform_settings").deleteMany({ _id: { $in: ["keyring", "keyring_meta"] } as never });
+    // the first (good) deployment: K_OLD escrowed, a user with a readable authenticator secret
+    process.env.PLATFORM_ENCRYPTION_KEY = K_OLD;
+    ring().loaded = null;
+    resetKeyringCache();
+    const uid = await addUserKeyringOn("steady@yash.test");
+    assert.equal((await ensureKeyring()).state, "ok");
+    // the second deployment: an unrelated key (or none)
+    for (const env of [randomBytes(32).toString("base64"), ""]) {
+      if (env) process.env.PLATFORM_ENCRYPTION_KEY = env;
+      else delete process.env.PLATFORM_ENCRYPTION_KEY;
+      resetKeyringCache();
+      const st = await ensureKeyring();
+      assert.equal(st.state, "ok");
+      assert.equal(st.mismatch?.unopenable ?? 0, 0, "no alert: every ciphertext opens with the database keyring");
+      assert.equal(st.versions.find((v) => v.status === "active")?.verification, "verified");
+      const r = await login("steady@yash.test", PASS);
+      assert.ok(!r.ok && r.needsCode && !r.keyUnavailable, "the normal second-step prompt, not an unavailable state");
+    }
+    void uid;
   });
 
   await (await getPlatformDb()).dropDatabase();

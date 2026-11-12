@@ -24,11 +24,12 @@ interface TwoFactorDoc {
   recovery: string[];
 }
 interface Pending { secret: EncryptedValue; at: Date }
-interface UserTf { _id: ObjectId; email: string; twoFactor?: TwoFactorDoc | null; twoFactorPending?: Pending | null; twoFactorEmail?: { enabledAt: Date } | null; twoFactorSkipUntil?: Date | null; twoFactorForced?: boolean | null }
+interface UserTf { _id: ObjectId; email: string; twoFactor?: TwoFactorDoc | null; twoFactorPending?: Pending | null; twoFactorEmail?: { enabledAt: Date } | null; twoFactorSkipUntil?: Date | null; twoFactorForced?: boolean | null; secondStep?: { preferred?: "app" | "email" | null; recovery?: string[]; trusted?: { hash: string; expiresAt: Date; label?: string; createdAt?: Date }[] } | null }
 
 export type TwoStepMethod = "app" | "email";
 
 const SETUP_TTL_MS = 15 * 60_000;
+export const newRecoveryCodes = (): string[] => Array.from({ length: 10 }, () => randomBytes(5).toString("hex").replace(/(.{5})(.{5})/, "$1-$2"));
 const hashCode = (c: string) => createHash("sha256").update(c.trim().toLowerCase().replace(/[\s-]/g, "")).digest("hex");
 const ctx = async (adminId: ObjectId | string) => `2fa:${await currentCompanyId()}:${String(adminId)}`;
 const users = async () => (await getDb()).collection<UserTf>("admin_users");
@@ -42,26 +43,30 @@ export function hasTwoFactor(user: { twoFactor?: unknown; twoFactorEmail?: unkno
 }
 
 export interface TwoStepStatus {
-  /** Either method is on. */
+  /** Any method is on. */
   enabled: boolean;
+  /** The preferred (or only) method; kept for older callers. */
   method: TwoStepMethod | null;
+  /** Every method that is on. */
+  methods: TwoStepMethod[];
   enabledAt: Date | null;
   recoveryLeft: number;
+  preferred: TwoStepMethod | null;
   /** The authenticator app needs the platform's encryption key; the email method does not. */
   available: boolean;
 }
 
 export async function twoFactorStatus(adminId: ObjectId): Promise<TwoStepStatus> {
-  const u = await (await users()).findOne({ _id: adminId }, { projection: { twoFactor: 1, twoFactorEmail: 1 } });
-  const method: TwoStepMethod | null = u?.twoFactor ? "app" : u?.twoFactorEmail ? "email" : null;
-  return { enabled: method !== null, method, enabledAt: u?.twoFactor?.enabledAt ?? u?.twoFactorEmail?.enabledAt ?? null, recoveryLeft: u?.twoFactor?.recovery.length ?? 0, available: twoFactorAvailable() };
+  const u = await (await users()).findOne({ _id: adminId }, { projection: { twoFactor: 1, twoFactorEmail: 1, secondStep: 1 } });
+  const methods: TwoStepMethod[] = [...(u?.twoFactor ? (["app"] as const) : []), ...(u?.twoFactorEmail ? (["email"] as const) : [])];
+  const pref = u?.secondStep?.preferred && methods.includes(u.secondStep.preferred) ? u.secondStep.preferred : null;
+  return { enabled: methods.length > 0, method: pref ?? methods[0] ?? null, methods, enabledAt: u?.twoFactor?.enabledAt ?? u?.twoFactorEmail?.enabledAt ?? null, recoveryLeft: (u?.twoFactor?.recovery.length ?? 0) + (u?.secondStep?.recovery?.length ?? 0), preferred: pref, available: twoFactorAvailable() };
 }
 
 /** Turns on the email method once the person has typed the code that was just sent to their address. */
 export async function enableEmailTwoFactor(adminId: ObjectId, code: string): Promise<{ ok: true } | { ok: false; error: string }> {
   const col = await users();
   const u = await col.findOne({ _id: adminId }, { projection: { twoFactor: 1, twoFactorEmail: 1 } });
-  if (u?.twoFactor) return { ok: false, error: "Turn off the authenticator app first, then switch to email codes." };
   if (u?.twoFactorEmail) return { ok: true };
   if (!(await checkEmailCode(adminId, "enable", code))) return { ok: false, error: "That code isn't right or has expired. Ask for a new one." };
   await col.updateOne({ _id: adminId }, { $set: { twoFactorEmail: { enabledAt: new Date() } }, $unset: { twoFactorPending: "" } });
@@ -79,11 +84,10 @@ export async function disableEmailTwoFactor(adminId: ObjectId, code: string): Pr
 }
 
 export async function startTwoFactorSetup(adminId: ObjectId, email: string): Promise<{ ok: true; secret: string; qr: string } | { ok: false; error: string }> {
-  if (!twoFactorAvailable()) return { ok: false, error: "Two-step sign-in isn't available on this server yet (the platform's encryption key isn't set). Ask your platform administrator." };
+  if (!twoFactorAvailable()) return { ok: false, error: "Two-step sign-in isn't available right now. Please try again in a few minutes, or contact support." };
   const col = await users();
   const u = await col.findOne({ _id: adminId }, { projection: { twoFactor: 1, twoFactorEmail: 1 } });
-  if (u?.twoFactor) return { ok: false, error: "Two-step sign-in is already on. Turn it off first to set it up again." };
-  if (u?.twoFactorEmail) return { ok: false, error: "Email codes are on. Turn them off first to switch to an authenticator app." };
+  void u; // an authenticator can be added or replaced while email codes are on (the caller has re-authenticated)
   const secret = newTotpSecret();
   await col.updateOne({ _id: adminId }, { $set: { twoFactorPending: { secret: encryptPlatformSecret(secret, await ctx(adminId)), at: new Date() } } });
   const qr = await QRCode.toDataURL(otpauthUri(secret, email, await issuerName()), { margin: 1, width: 192 });
@@ -93,17 +97,16 @@ export async function startTwoFactorSetup(adminId: ObjectId, email: string): Pro
 /** Checks the first code from the app; on success turns two-step on and returns the recovery codes (shown once, never stored in the clear). */
 export async function confirmTwoFactorSetup(adminId: ObjectId, code: string): Promise<{ ok: true; recovery: string[] } | { ok: false; error: string }> {
   const col = await users();
-  const u = await col.findOne({ _id: adminId }, { projection: { twoFactorPending: 1, twoFactor: 1, twoFactorEmail: 1 } });
-  if (u?.twoFactor) return { ok: false, error: "Two-step sign-in is already on." };
-  if (u?.twoFactorEmail) return { ok: false, error: "Email codes are on. Turn them off first to switch to an authenticator app." };
+  const u = await col.findOne({ _id: adminId }, { projection: { twoFactorPending: 1, twoFactor: 1, twoFactorEmail: 1, secondStep: 1 } });
   const p = u?.twoFactorPending;
   if (!p || Date.now() - p.at.getTime() > SETUP_TTL_MS) return { ok: false, error: "That setup has expired. Start again." };
   const secret = decryptPlatformSecret(p.secret, await ctx(adminId));
   if (!secret) return { ok: false, error: "That setup can't be read any more. Start again." };
   const step = verifyTotp(secret, code);
   if (step === null) return { ok: false, error: "That code isn't right. Wait for the next one in your app and try again." };
-  const recovery = Array.from({ length: 10 }, () => randomBytes(5).toString("hex").replace(/(.{5})(.{5})/, "$1-$2"));
-  await col.updateOne({ _id: adminId }, { $set: { twoFactor: { secret: p.secret, enabledAt: new Date(), lastStep: step, recovery: recovery.map(hashCode) } }, $unset: { twoFactorPending: "", twoFactorForced: "" } });
+  const left = (u?.twoFactor?.recovery.length ?? 0) + (u?.secondStep?.recovery?.length ?? 0);
+  const recovery = left > 0 ? [] : newRecoveryCodes();
+  await col.updateOne({ _id: adminId }, { $set: { twoFactor: { secret: p.secret, enabledAt: new Date(), lastStep: step, recovery: u?.twoFactor?.recovery ?? [] }, ...(recovery.length ? { "secondStep.recovery": recovery.map(hashCode) } : {}) }, $unset: { twoFactorPending: "", twoFactorForced: "" } });
   return { ok: true, recovery };
 }
 
@@ -140,19 +143,42 @@ export async function verifySecondStepDetailed(user: { _id: ObjectId; twoFactor?
       return r.modifiedCount === 1 ? "ok" : "wrong";
     }
   }
-  const h = hashCode(code);
-  if (tf.recovery.includes(h)) {
-    const r = await col.updateOne({ _id: user._id, "twoFactor.recovery": h }, { $pull: { "twoFactor.recovery": h } });
-    return r.modifiedCount === 1 ? "ok" : "wrong";
-  }
+  if (await useRecoveryCode(user as never, code)) return "ok";
   return readable ? "wrong" : "key_mismatch";
 }
 
-/** Uses up a recovery code (hash based, needs no key). */
-export async function useRecoveryCode(user: { _id: ObjectId; twoFactor?: TwoFactorDoc | null }, code: string): Promise<boolean> {
+/** Uses up a recovery code (hash based, needs no key), from either place they may live. Single use. */
+export async function useRecoveryCode(user: { _id: ObjectId; twoFactor?: { recovery: string[] } | null; secondStep?: { recovery?: string[] } | null }, code: string): Promise<boolean> {
   const h = hashCode(code);
-  if (!user.twoFactor?.recovery.includes(h)) return false;
-  return (await (await users()).updateOne({ _id: user._id, "twoFactor.recovery": h }, { $pull: { "twoFactor.recovery": h } })).modifiedCount === 1;
+  const col = await users();
+  const fresh = await col.findOne({ _id: user._id }, { projection: { twoFactor: 1, secondStep: 1 } });
+  if (fresh?.secondStep?.recovery?.includes(h)) return (await col.updateOne({ _id: user._id, "secondStep.recovery": h }, { $pull: { "secondStep.recovery": h } } as never)).modifiedCount === 1;
+  if (fresh?.twoFactor?.recovery.includes(h)) return (await col.updateOne({ _id: user._id, "twoFactor.recovery": h }, { $pull: { "twoFactor.recovery": h } })).modifiedCount === 1;
+  return false;
+}
+
+/** The authenticator code only (no recovery code): "ok" | "wrong" | "unreadable". */
+export async function verifyAuthenticatorCode(user: { _id: ObjectId; twoFactor?: TwoFactorDoc | null }, code: string): Promise<"ok" | "wrong" | "unreadable"> {
+  const tf = user.twoFactor;
+  if (!tf) return "wrong";
+  if (!(await secondStepReadable(user as never))) return "unreadable";
+  const secret = decryptPlatformSecret(tf.secret, await ctx(user._id));
+  const step = secret ? verifyTotp(secret, code, tf.lastStep ?? 0) : null;
+  if (step === null) return "wrong";
+  const r = await (await users()).updateOne({ _id: user._id, "twoFactor.lastStep": { $lt: step } }, { $set: { "twoFactor.lastStep": step } });
+  return r.modifiedCount === 1 ? "ok" : "wrong";
+}
+
+/** New recovery codes (shown once by the caller); the old ones stop working. */
+export async function regenerateRecoveryCodes(adminId: ObjectId): Promise<string[]> {
+  const codes = newRecoveryCodes();
+  await (await users()).updateOne({ _id: adminId }, { $set: { "secondStep.recovery": codes.map(hashCode) } } as never);
+  await (await users()).updateOne({ _id: adminId, twoFactor: { $exists: true } }, { $set: { "twoFactor.recovery": [] } });
+  return codes;
+}
+
+export async function setPreferredMethod(adminId: ObjectId, method: TwoStepMethod): Promise<void> {
+  await (await users()).updateOne({ _id: adminId }, { $set: { "secondStep.preferred": method } } as never);
 }
 
 /**
@@ -161,11 +187,12 @@ export async function useRecoveryCode(user: { _id: ObjectId; twoFactor?: TwoFact
  */
 export async function recoverTwoStep(adminId: ObjectId): Promise<void> {
   await (await users()).updateOne({ _id: adminId }, { $unset: { twoFactor: "", twoFactorPending: "" }, $set: { twoFactorForced: true } });
+  await import("@/lib/platform/two-step-alerts").then(async (m) => m.clearTwoStepFlag(await currentCompanyId(), String(adminId))).catch(() => {});
 }
 
 /** A short message for places that check a code: tells a key mismatch apart from a wrong code. */
 export async function twoStepFailureMessage(user: { _id: ObjectId; twoFactor?: { secret: EncryptedValue } | null }, wrong: string): Promise<string> {
-  return (await secondStepReadable(user)) ? wrong : "Two-step is temporarily unavailable on this deployment (its encryption key doesn't match the stored one). Use a recovery code, or ask the platform team to reset your two-step.";
+  return (await secondStepReadable(user)) ? wrong : "We couldn't verify this code. Enter a recovery code, or ask your administrator to reset your sign-in.";
 }
 
 /** Turns two-step off for the signed-in person, after one valid code (or recovery code). */
@@ -175,12 +202,14 @@ export async function disableTwoFactor(adminId: ObjectId, code: string): Promise
   if (!u?.twoFactor) return { ok: true };
   if (!(await verifySecondStep(u, code))) return { ok: false, error: await twoStepFailureMessage(u as never, "That code isn't right.") };
   await col.updateOne({ _id: adminId }, { $unset: { twoFactor: "", twoFactorPending: "" } });
+  await col.updateOne({ _id: adminId, "secondStep.preferred": "app" } as never, { $unset: { "secondStep.preferred": "" } } as never);
   return { ok: true };
 }
 
 /** A Director switching two-step off for someone who lost their device or mailbox (they can set it up again). */
 export async function resetTwoFactor(adminId: ObjectId): Promise<void> {
   await (await users()).updateOne({ _id: adminId }, { $unset: { twoFactor: "", twoFactorPending: "", twoFactorEmail: "" } });
+  await import("@/lib/platform/two-step-alerts").then(async (m) => m.clearTwoStepFlag(await currentCompanyId(), String(adminId))).catch(() => {});
 }
 
 /** The name an authenticator app shows beside the code: the company's own name, never the platform's. */
@@ -206,7 +235,10 @@ export async function twoFactorPrompt(user: { id: string; roles?: readonly strin
   // Set after a recovery (key mismatch, break-glass, staff reset): setting two-step up again is required, no skipping.
   if ((await (await users()).findOne({ _id: id }, { projection: { twoFactorForced: 1 } }))?.twoFactorForced) return "required";
   // Mandatory only when the operator asks for it. Everyone else can skip, so the screen, the Console and every product always agree.
-  const mandatory = process.env.REQUIRE_PRIVILEGED_MFA === "1" && (!!opts.alwaysPrivileged || (user.roles ?? []).includes("super_admin"));
+  const { getSecondStepPolicy } = await import("@/lib/security/second-step-server");
+  const policy = await getSecondStepPolicy().catch(() => null);
+  const privileged = !!opts.alwaysPrivileged || (user.roles ?? []).includes("super_admin");
+  const mandatory = privileged && (process.env.REQUIRE_PRIVILEGED_MFA === "1" || Boolean(policy?.requireForAdmins));
   if (mandatory) return "required";
   if (process.env.TWO_STEP_PROMPT === "0") return "none";
   const snoozed = await (await users()).findOne({ _id: id }, { projection: { twoFactorSkipUntil: 1 } });

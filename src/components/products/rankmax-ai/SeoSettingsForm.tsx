@@ -112,7 +112,7 @@ export default function SeoSettingsForm({ initial, siteUrl, env }: { initial: Se
         </div>
       </Section>
 
-      <Section id="integrations" title="Integrations" description="Google APIs use one service account whose credentials live in server environment variables (GOOGLE_SEO_CLIENT_EMAIL / GOOGLE_SEO_PRIVATE_KEY, falling back to the Indexing API account). Nothing secret is stored in the database.">
+      <Section id="integrations" title="Integrations" description="Google APIs use one shared service account that is managed by the platform team. Nothing secret is shown here.">
         <div className="rounded-xl bg-muted/50 p-3 text-xs">
           {env.serviceAccount ? (
             <>Service account: <code className="font-mono">{env.serviceAccount}</code> — add it as a <strong>user</strong> on the Search Console property and as a <strong>Viewer</strong> on the GA4 property.</>

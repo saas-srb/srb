@@ -33,7 +33,7 @@ export default async function CredentialVaultPage({ searchParams }: { searchPara
         description="Company and client logins. Passwords are encrypted, masked by default, and every reveal or copy is logged."
         actions={canAdd && <CredentialDialog ui={ui} trigger={<Button size="sm"><Plus className="size-3.5" data-icon="inline-start" />Add credential</Button>} />}
       />
-      {!ui.encryptionReady && <Notice tone="warn"><strong>Encryption key missing.</strong> Set <code>PLATFORM_ENCRYPTION_KEY</code> on the server before storing passwords — until then passwords cannot be saved.</Notice>}
+      {!ui.encryptionReady && <Notice tone="warn"><strong>Secure storage isn&apos;t available right now.</strong> Please try again in a few minutes, or contact support.</Notice>}
       <DlmsFilterBar fields={fields} values={{ q: sp.q ?? "", scope: sp.scope ?? "", client: sp.client ?? "", category: sp.category ?? "", expiry: sp.expiry ?? "", status: sp.status ?? "" }} />
       <SectionCard title={`${rows.length} credential${rows.length === 1 ? "" : "s"}`}>
         <CredentialsTable rows={rows} ui={ui} />

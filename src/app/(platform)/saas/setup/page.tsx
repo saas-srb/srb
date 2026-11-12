@@ -17,7 +17,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
   return (
     <main className="mx-auto max-w-md space-y-4 px-4 py-16">
       <h1 className="text-2xl font-bold">Create the platform admin</h1>
-      <p className="text-sm text-muted-foreground">This database has no platform admin yet. Enter the setup code from the deployment&apos;s runtime log (Vercel → your project → Logs, search &quot;First-run setup code&quot;), then choose the admin&apos;s email and password.</p>
+      <p className="text-sm text-muted-foreground">This database has no platform admin yet. Enter the one-time setup code you were given, then choose the admin&apos;s email and password.</p>
       {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
       <form action={setup} className="space-y-3">
         <input name="code" required placeholder="Setup code" autoComplete="off" className="w-full rounded-md border bg-background px-3 py-2" />

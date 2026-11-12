@@ -7,28 +7,24 @@ import { Button } from "@/components/ui/button";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
+import ReAuthGate from "@/components/security/ReAuthGate";
 import { addPreviousKeyAction, resetCompanyTwoStepAction, revealKeyAction, rotateKeyAction, setPassphraseAction } from "./actions";
 import type { KeyHealth } from "@/lib/platform/keyring/manage";
 
 /** Encryption key management: health, add a previous key, one-time backup reveal, recovery passphrase, rotation, and a staff reset of someone's two-step. */
 export default function KeyManagement({ health, isOwner, canResetUsers }: { health: KeyHealth; isOwner: boolean; canResetUsers: boolean }) {
   const [pending, start] = useTransition();
-  const [password, setPassword] = useState("");
-  const [code, setCode] = useState("");
   const [prevKey, setPrevKey] = useState("");
   const [pass, setPass] = useState("");
   const [shown, setShown] = useState<string | null>(null);
   const [company, setCompany] = useState("");
   const [email, setEmail] = useState("");
-  const auth = { password, code };
 
   const run = (fn: () => Promise<{ ok: boolean; error?: string; message?: string }>, ok: string) =>
     start(async () => {
       const r = await fn();
       if (r.ok) toast.success(r.message ?? ok);
       else toast.error(r.error ?? "Failed");
-      setPassword("");
-      setCode("");
     });
 
   return (
@@ -47,20 +43,16 @@ export default function KeyManagement({ health, isOwner, canResetUsers }: { heal
         </ul>
         {health.rotation && <p className="text-xs text-muted-foreground">Rotation: {health.rotation.finished ? "finished" : `re-sealing, ${health.rotation.resealed} done, ${health.rotation.remaining} remaining`}.</p>}
         {isOwner && (
-          <>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Input type="password" autoComplete="current-password" placeholder="Your password (or the SAAS_ADMIN password if your authenticator can't be checked)" value={password} onChange={(e) => setPassword(e.target.value)} />
-              <Input inputMode="numeric" autoComplete="one-time-code" placeholder="Authenticator code (if two-step is on)" value={code} onChange={(e) => setCode(e.target.value)} />
-            </div>
+          <ReAuthGate title="Confirm it's you to manage encryption keys">
             <div className="space-y-2 border-t pt-3">
               <p className="font-medium">Add previous encryption key</p>
               <Input type="password" autoComplete="off" placeholder="The original PLATFORM_ENCRYPTION_KEY (base64)" value={prevKey} onChange={(e) => setPrevKey(e.target.value)} />
-              <Button size="sm" variant="outline" disabled={pending || !prevKey} onClick={() => run(async () => { const r = await addPreviousKeyAction({ key: prevKey, ...auth }); if (r.ok) setPrevKey(""); return r.ok ? { ok: true, message: `Added: it opens ${r.opened} stored secret(s) and is now the active key.` } : r; }, "Added")}>Add key</Button>
+              <Button size="sm" variant="outline" disabled={pending || !prevKey} onClick={() => run(async () => { const r = await addPreviousKeyAction({ key: prevKey }); if (r.ok) setPrevKey(""); return r.ok ? { ok: true, message: `Added: it opens ${r.opened} stored secret(s) and is now the active key.` } : r; }, "Added")}>Add key</Button>
             </div>
             <div className="space-y-2 border-t pt-3">
               <p className="font-medium">Encryption key backup</p>
               <p className="text-xs text-muted-foreground">Shows the active key once. Keep it in a password manager; whoever has it and the database can read the encrypted data.{health.backedUpAt ? ` Last shown ${new Date(health.backedUpAt).toLocaleString()}.` : " Never shown yet."}</p>
-              <Button size="sm" variant="outline" disabled={pending} onClick={() => start(async () => { const r = await revealKeyAction(auth); if (r.ok) setShown(r.key); else toast.error(r.error); setPassword(""); setCode(""); })}>Show the key once</Button>
+              <Button size="sm" variant="outline" disabled={pending} onClick={() => start(async () => { const r = await revealKeyAction(); if (r.ok) setShown(r.key); else toast.error(r.error); })}>Show the key once</Button>
               {shown && (
                 <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
                   <p className="break-all font-mono text-xs">{shown}</p>
@@ -74,15 +66,15 @@ export default function KeyManagement({ health, isOwner, canResetUsers }: { heal
               <p className="text-xs text-muted-foreground">Optional recovery passphrase: an extra copy of the keys sealed with it, so a changed database URI can be healed with <code>npm run key:rewrap</code>. {health.passphraseSet ? (health.passphraseStale ? "Set, but keys changed since: set it again." : "Set.") : "Not set."}</p>
               <div className="flex gap-2">
                 <Input type="password" autoComplete="off" placeholder="Recovery passphrase (12+ characters)" value={pass} onChange={(e) => setPass(e.target.value)} />
-                <Button size="sm" variant="outline" disabled={pending || pass.length < 12} onClick={() => run(async () => { const r = await setPassphraseAction({ passphrase: pass, ...auth }); if (r.ok) setPass(""); return r; }, "Passphrase saved")}>Save</Button>
+                <Button size="sm" variant="outline" disabled={pending || pass.length < 12} onClick={() => run(async () => { const r = await setPassphraseAction({ passphrase: pass }); if (r.ok) setPass(""); return r; }, "Passphrase saved")}>Save</Button>
               </div>
             </div>
             <div className="space-y-2 border-t pt-3">
               <p className="font-medium">Rotate encryption key</p>
               <p className="text-xs text-muted-foreground">Creates a fresh random key as the active key. All older keys stay (decrypt only) and stored secrets are re-sealed in the background (also by the daily job). Show and keep the new key afterwards.</p>
-              <Button size="sm" disabled={pending} onClick={() => run(() => rotateKeyAction(auth), "A new key is active; re-sealing has started.")}>{pending ? <Loader2 className="size-3.5 animate-spin" /> : "Rotate key"}</Button>
+              <Button size="sm" disabled={pending} onClick={() => run(() => rotateKeyAction(), "A new key is active; re-sealing has started.")}>{pending ? <Loader2 className="size-3.5 animate-spin" /> : "Rotate key"}</Button>
             </div>
-          </>
+          </ReAuthGate>
         )}
         {canResetUsers && (
           <div className="space-y-2 border-t pt-3">

@@ -18,13 +18,17 @@ export interface HubLoginState {
   /** The password was right and the account has two-step sign-in: the form now asks for the code. */
   needsCode?: boolean;
   /** Which second step is asked for, and (email) where the code was sent, masked. */
-  method?: "app" | "email";
+  method?: "app" | "email" | "recovery";
   hint?: string;
   /** A plain message (not an error), e.g. "We sent a code to j***@acme.com". */
   info?: string;
   /** The authenticator secret can't be opened on this deployment (key mismatch): recovery options are offered instead of a "wrong code" message. */
   keyUnavailable?: boolean;
   canEmail?: boolean;
+  /** "Try another way": the other methods this account can use, masked. */
+  alternatives?: { id: "app" | "email" | "recovery"; label: string }[];
+  /** The page may show "trust this device" (company/platform policy). */
+  trustAllowed?: boolean;
   /** The plan allows one device at a time and the account is signed in elsewhere: the page asks before signing that device out. */
   /** Signed in: the form opens this address with a full page load, so nothing the browser kept from before sign-in is reused. */
   redirectTo?: string;
@@ -39,9 +43,14 @@ export async function hubLoginAction(_prevState: HubLoginState, formData: FormDa
     return { error: "Enter your email and password." };
   }
 
-  const result = await verifyHubCredentials(email, password, String(formData.get("code") ?? ""), { resend: formData.get("resend") === "1" });
+  const result = await verifyHubCredentials(email, password, String(formData.get("code") ?? ""), { resend: formData.get("resend") === "1", method: String(formData.get("method") || formData.get("current") || "") || null });
   if (!result.ok) {
-    return { error: result.error, needsCode: result.needsCode, method: result.method, hint: result.hint, info: result.info, keyUnavailable: result.keyUnavailable, canEmail: result.canEmail };
+    return { error: result.error, needsCode: result.needsCode, method: result.method, hint: result.hint, info: result.info, keyUnavailable: result.keyUnavailable, canEmail: result.canEmail, alternatives: result.alternatives, trustAllowed: result.trustAllowed };
+  }
+
+  if (formData.get("trust") === "1") {
+    const { trustThisDevice } = await import("@/lib/security/second-step-server");
+    await trustThisDevice({ _id: result.adminId, email }, "This browser").catch(() => false);
   }
 
   // Free plan: one device at a time. If the account is already signed in somewhere else, nothing is signed in yet: the person is asked first.

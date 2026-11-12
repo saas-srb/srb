@@ -306,7 +306,7 @@ export interface StartedConnect {
 }
 
 export async function startConnect(p: { oauth: ConnectionProvider; userId: string; origin: string; features?: string[] | null; connectionId?: string | null; extraScopes?: string[] }): Promise<StartedConnect> {
-  if (!isEncryptionConfigured()) throw new SmmsInputError("PLATFORM_ENCRYPTION_KEY isn't set on the server, so tokens can't be stored safely.");
+  if (!isEncryptionConfigured()) throw new SmmsInputError("Secure storage isn't available right now. Please try again in a few minutes, or contact support.");
   const app = await appFor(p.oauth);
   await ensureMigrated();
   let features = p.features ?? null;

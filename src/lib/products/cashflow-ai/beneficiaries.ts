@@ -84,7 +84,7 @@ async function saveBeneficiaryRecord(
   const collection = await getCollection();
   const existing = await collection.findOne({ entityType: data.entityType, entityId: data.entityId, ...notDeleted });
 
-  if (!isEncryptionConfigured()) throw new Error("Secure storage for bank details is not set up on this server (PLATFORM_ENCRYPTION_KEY), so the account number cannot be saved.");
+  if (!isEncryptionConfigured()) throw new Error("Secure storage isn't available right now. Please try again in a few minutes, or contact support.");
   const last4 = data.accountNumber.slice(-4) || "0000";
   const enc = encryptField(data.accountNumber);
 

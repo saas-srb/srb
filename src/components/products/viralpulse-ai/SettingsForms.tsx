@@ -112,7 +112,7 @@ export function IntegrationsPanel({ items, encryptionReady }: { items: Integrati
           ) : it.configured && encryptionReady ? (
             <Button size="sm" nativeButton={false} render={<a href={`/api/viralpulse-ai/oauth/${it.provider}`} />}><Plug className="size-3.5" /> Connect</Button>
           ) : (
-            <p className="text-xs text-muted-foreground">{!encryptionReady ? "Set PLATFORM_ENCRYPTION_KEY on the server first." : `App credentials aren't configured on the server (${it.provider === "meta" ? "META_APP_ID / META_APP_SECRET" : it.provider === "google" ? "GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET" : "LINKEDIN_CLIENT_ID / LINKEDIN_CLIENT_SECRET"}).`}</p>
+            <p className="text-xs text-muted-foreground">{!encryptionReady ? "Secure storage isn't available right now. Please try again in a few minutes, or contact support." : `App credentials aren't configured on the server (${it.provider === "meta" ? "META_APP_ID / META_APP_SECRET" : it.provider === "google" ? "GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET" : "LINKEDIN_CLIENT_ID / LINKEDIN_CLIENT_SECRET"}).`}</p>
           )}
         </div>
       ))}

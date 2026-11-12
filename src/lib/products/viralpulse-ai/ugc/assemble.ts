@@ -51,7 +51,7 @@ export async function locateFfmpeg(): Promise<FfmpegLocation> {
         await access(mod.default);
         return { path: mod.default, source: "ffmpeg-static", tried };
       } catch {
-        tried.push("the ffmpeg-static package is installed but its binary was not shipped with this deployment");
+        tried.push("the ffmpeg-static package is installed but its binary is not available on this installation");
       }
     } else tried.push("ffmpeg-static has no binary for this platform");
   } catch {

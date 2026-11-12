@@ -133,7 +133,7 @@ export async function createBankAccount(
   actorId: string
 ): Promise<{ ok: true; account: BankAccount } | { ok: false; reason: string }> {
   if (data.accountNumber && !isEncryptionConfigured()) {
-    return { ok: false, reason: "PLATFORM_ENCRYPTION_KEY is not configured — cannot store an account number. Leave it blank or ask an admin to set the key." };
+    return { ok: false, reason: "Secure storage isn't available right now. Please try again in a few minutes, or contact support." };
   }
   const collection = await getCollection();
   const opening = round2(data.openingBalance);
@@ -162,7 +162,7 @@ export async function updateBankAccount(
   actorId: string
 ): Promise<{ ok: true; account: BankAccount } | { ok: false; reason: string }> {
   if (data.accountNumber && !isEncryptionConfigured()) {
-    return { ok: false, reason: "PLATFORM_ENCRYPTION_KEY is not configured — cannot store an account number." };
+    return { ok: false, reason: "Secure storage isn't available right now. Please try again in a few minutes, or contact support." };
   }
   const collection = await getCollection();
   const patch: Record<string, unknown> = {

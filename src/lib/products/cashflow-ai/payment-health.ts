@@ -21,7 +21,7 @@ export async function paymentHealth(): Promise<HealthCheck[]> {
   const add = (key: string, level: HealthCheck["level"], title: string, detail: string) => out.push({ key, level, title, detail });
   const [account, controls] = await Promise.all([getPaymentAccountView(), getPaymentControls()]);
 
-  if (!derivedKeyConfigured("HRMS_ENCRYPTION_KEY")) add("encryption", "fail", "Secure storage is not set up", "PLATFORM_ENCRYPTION_KEY is missing on the server, so bank account numbers and Razorpay keys cannot be stored. Nothing can be paid.");
+  if (!derivedKeyConfigured("HRMS_ENCRYPTION_KEY")) add("encryption", "fail", "Secure storage is not set up", "Secure storage isn't available right now. Please try again in a few minutes, or contact support.");
   else add("encryption", "ok", "Secure storage is set up", "Bank account numbers and Razorpay keys are stored encrypted.");
 
   if (account.status === "not_connected") add("razorpay", "fail", "Razorpay is not connected", "Customers cannot pay and nothing can be paid out. Connect it in Settings → Payments.");

@@ -101,44 +101,17 @@ function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-type HubFail = { ok: false; error: string; needsCode?: boolean; method?: "app" | "email"; hint?: string; info?: string; keyUnavailable?: boolean; canEmail?: boolean };
+type HubFail = { ok: false; error: string; needsCode?: boolean; method?: "app" | "email" | "recovery"; hint?: string; info?: string; keyUnavailable?: boolean; canEmail?: boolean; alternatives?: { id: "app" | "email" | "recovery"; label: string }[]; trustAllowed?: boolean };
 
-/**
- * The person's authenticator secret can't be opened (key mismatch). Returns null when they are recovered and sign-in continues, or the
- * response to show. Nothing here counts as a failed login or locks the account. Order of options: a recovery code (works without the key),
- * a code emailed to the account's verified address (when an email provider is configured), and for platform staff the break-glass path.
- */
-async function recoverUnreadableTwoStep(c: { user: HubUserDoc; users: Collection<HubUserDoc>; normalizedEmail: string; code?: string; resend?: boolean; breakGlass: boolean }): Promise<HubFail | null> {
-  const { recoverTwoStep, useRecoveryCode } = await import("@/lib/security/two-factor");
-  const { recordPlatformAudit } = await import("@/lib/platform/audit");
-  const { currentCompanyId } = await import("@/lib/platform/tenancy/context");
-  const id = String(c.user._id);
-  const done = async (via: "break_glass" | "recovery_code" | "email_code") => {
-    await recoverTwoStep(c.user._id);
-    await recordPlatformAudit({ actorId: id, action: via === "break_glass" ? "two_step.break_glass" : "two_step.recovered_key_mismatch", companyId: await currentCompanyId().catch(() => undefined), target: { type: "admin_user", id }, details: { via, email: c.normalizedEmail } }).catch(() => {});
-    void sendRecoveryNotice(c.user.email, via);
-    return null;
-  };
-  if (c.breakGlass) return done("break_glass");
-  const typed = (c.code ?? "").trim();
-  const { resolveEmailConfig } = await import("@/lib/platform/integrations/resolve");
-  const emailReady = await resolveEmailConfig().then((e) => e.provider === "resend" && Boolean(e.resendApiKey)).catch(() => false);
-  if (typed) {
-    if (await useRecoveryCode(c.user as never, typed)) return done("recovery_code");
-    if (emailReady) {
-      const { checkEmailCode } = await import("@/lib/security/email-otp");
-      if (await checkEmailCode(c.user._id, "login", typed)) return done("email_code");
-    }
+/** Staff-only: records that this person's authenticator can't be checked (Console Health item + notification + audit). Never blocks or slows the sign-in. */
+async function flagUnreadable(user: HubUserDoc, email: string): Promise<void> {
+  try {
+    const { currentCompanyId } = await import("@/lib/platform/tenancy/context");
+    const { flagTwoStepResetNeeded } = await import("@/lib/platform/two-step-alerts");
+    await flagTwoStepResetNeeded({ companyId: await currentCompanyId(), adminId: String(user._id), email });
+  } catch {
+    /* an alert that can't be recorded must not affect sign-in */
   }
-  const unavailable = "Two-step is temporarily unavailable on this deployment: its encryption key doesn't match the one your authenticator was set up with. This is not your mistake and nothing was counted against you.";
-  const options = emailReady ? "Enter one of your recovery codes, or press \"Email me a code instead\"." : "Enter one of your recovery codes. (Email codes are not set up on this deployment yet; platform staff can also reset your two-step from the Platform Console.)";
-  if (emailReady && c.resend) {
-    const { sendEmailCode, maskEmail } = await import("@/lib/security/email-otp");
-    const sent = await sendEmailCode(c.user._id, c.user.email, "login");
-    if (sent.ok) return { ok: false, error: "", needsCode: true, method: "email", hint: sent.hint, info: `We sent a 6-digit code to ${sent.hint}. Enter it here (or a recovery code).`, keyUnavailable: true, canEmail: true };
-    return { ok: false, error: sent.error, needsCode: true, method: "email", hint: maskEmail(c.user.email), keyUnavailable: true, canEmail: true };
-  }
-  return { ok: false, error: typed ? "That didn't work. " + options : "", needsCode: true, method: "app", info: `${unavailable} ${options}`, keyUnavailable: true, canEmail: emailReady };
 }
 
 export async function sendRecoveryNotice(to: string, via: string): Promise<void> {
@@ -157,7 +130,7 @@ export async function verifyHubCredentials(
   email: string,
   password: string,
   code?: string,
-  opts: { resend?: boolean } = {}
+  opts: { resend?: boolean; method?: string | null } = {}
 ): Promise<{ ok: true; adminId: ObjectId } | HubFail> {
   const users = await getHubUsersCollection();
   const normalizedEmail = email.trim().toLowerCase();
@@ -180,7 +153,8 @@ export async function verifyHubCredentials(
   // Two-step secret that can't be opened with this deployment's keys (a key mismatch): not the person's mistake, never counted as a failure.
   const twoStepUnreadable = Boolean(user.twoFactor) && !(await (await import("@/lib/security/two-factor")).secondStepReadable(user as never));
   // Emergency path for platform staff only, and only in that situation: this deployment's own SAAS_ADMIN_EMAIL / SAAS_ADMIN_PASSWORD, exactly.
-  const platformStaff = Boolean(user.platformRoleId) || ((user.roles ?? []).includes("super_admin") && (await (await import("@/lib/platform/tenancy/context")).isPlatformOwnerContext().catch(() => false)));
+  // (Evaluated only in that rare situation, so normal sign-in does no extra work.)
+  const platformStaff = twoStepUnreadable && (Boolean(user.platformRoleId) || ((user.roles ?? []).includes("super_admin") && (await (await import("@/lib/platform/tenancy/context")).isPlatformOwnerContext().catch(() => false))));
   const breakGlass = twoStepUnreadable && platformStaff && breakGlassMatches({ email: normalizedEmail, password, envEmail: process.env.SAAS_ADMIN_EMAIL, envPassword: process.env.SAAS_ADMIN_PASSWORD });
   const valid = verifyPassword(password, user.passwordHash) || breakGlass;
   if (!valid) {
@@ -197,40 +171,20 @@ export async function verifyHubCredentials(
     return { ok: false, error: blockedMessage(statusOf(user)) };
   }
 
-  // Two-step sign-in by email: the password was right, so a code goes to the account's own address (never before: the mailbox can't be
-  // flooded by someone who doesn't know the password). It is asked for next, and checked here without counting the asking as a failure.
-  if (user.twoFactorEmail && !user.twoFactor) {
-    const { sendEmailCode, checkEmailCode, maskEmail } = await import("@/lib/security/email-otp");
-    const typed = (code ?? "").trim();
-    if (!typed || opts.resend) {
-      const sent = await sendEmailCode(user._id, user.email, "login");
-      if (sent.ok) return { ok: false, error: "", needsCode: true, method: "email", hint: sent.hint, info: `We sent a 6-digit code to ${sent.hint}. It works for 10 minutes.` };
-      // Asked again too soon: the code already sent is still the one to use.
-      if (sent.waitSeconds) return { ok: false, error: "", needsCode: true, method: "email", hint: maskEmail(user.email), info: `A code was sent to ${maskEmail(user.email)} a moment ago. Check your inbox (and spam). You can ask for another in ${sent.waitSeconds} seconds.` };
-      return { ok: false, error: sent.error };
-    }
-    if (!(await checkEmailCode(user._id, "login", typed))) {
-      await recordLoginEvent({ type: "login_failed", email: normalizedEmail, adminId: user._id.toString(), reason: "wrong_second_step" });
-      const attempts = (user.failedLoginAttempts ?? 0) + 1;
-      const lockedUntil = attempts >= MAX_FAILED_ATTEMPTS ? new Date(Date.now() + LOCKOUT_MS) : null;
-      await users.updateOne({ _id: user._id }, { $set: { failedLoginAttempts: attempts, lockedUntil } });
-      return { ok: false, error: "That code isn't right or has expired. Ask for a new one.", needsCode: true, method: "email", hint: maskEmail(user.email) };
-    }
-  }
-
-  // Two-step sign-in: the password was right, so ask for the second step (without counting it as a failure) and check it.
-  if (user.twoFactor && twoStepUnreadable) {
-    const rec = await recoverUnreadableTwoStep({ user, users, normalizedEmail, code, resend: opts.resend, breakGlass });
-    if (rec) return rec;
-  } else if (user.twoFactor) {
-    if (!code || !code.trim()) return { ok: false, error: "Enter the 6-digit code from your authenticator app, or a recovery code.", needsCode: true, method: "app" };
-    const { verifySecondStep } = await import("@/lib/security/two-factor");
-    if (!(await verifySecondStep(user as never, code))) {
-      await recordLoginEvent({ type: "login_failed", email: normalizedEmail, adminId: user._id.toString(), reason: "wrong_second_step" });
-      const attempts = (user.failedLoginAttempts ?? 0) + 1;
-      const lockedUntil = attempts >= MAX_FAILED_ATTEMPTS ? new Date(Date.now() + LOCKOUT_MS) : null;
-      await users.updateOne({ _id: user._id }, { $set: { failedLoginAttempts: attempts, lockedUntil } });
-      return { ok: false, error: "That code isn't right. Try the next one in your app, or use a recovery code.", needsCode: true, method: "app" };
+  // Second step with every method the account has (authenticator, emailed code, recovery codes): see security/second-step-login.ts.
+  {
+    const { runSecondStep } = await import("@/lib/security/second-step-login");
+    const step = await runSecondStep({ user: user as never, normalizedEmail, code, resend: opts.resend, method: opts.method, breakGlass, flagUnreadable: () => void flagUnreadable(user, normalizedEmail) });
+    if (!("proceed" in step)) {
+      if (step.countFailure) {
+        await recordLoginEvent({ type: "login_failed", email: normalizedEmail, adminId: user._id.toString(), reason: "wrong_second_step" });
+        const attempts = (user.failedLoginAttempts ?? 0) + 1;
+        const lockedUntil = attempts >= MAX_FAILED_ATTEMPTS ? new Date(Date.now() + LOCKOUT_MS) : null;
+        await users.updateOne({ _id: user._id }, { $set: { failedLoginAttempts: attempts, lockedUntil } });
+      }
+      const { countFailure, ...rest } = step;
+      void countFailure;
+      return rest;
     }
   }
 
