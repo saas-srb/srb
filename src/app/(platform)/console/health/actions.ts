@@ -30,3 +30,82 @@ export async function fileCopyStatusAction(): Promise<FileCopyView> {
   await requirePlatformPermission("integrations.read");
   return legacyCopyStatus();
 }
+
+// ── Encryption key management (platform owner only, re-authenticated) ─────────
+
+import { requirePlatformAdmin } from "@/lib/platform/console/access";
+import { reauthStaff } from "@/lib/platform/keyring/reauth";
+import { addPreviousKey, computeKeyHealth, revealActiveKey, rotateKey, setRecoveryPassphrase, type KeyHealth } from "@/lib/platform/keyring/manage";
+import { recordPlatformAudit } from "@/lib/platform/audit";
+
+type Err = { ok: false; error: string };
+
+export async function keyHealthAction(): Promise<KeyHealth> {
+  await requirePlatformPermission("integrations.read");
+  return computeKeyHealth();
+}
+
+export async function addPreviousKeyAction(input: { key: string; password: string; code: string }): Promise<{ ok: true; opened: number } | Err> {
+  const user = await requirePlatformAdmin();
+  const re = await reauthStaff(user.id, String(input?.password ?? ""), String(input?.code ?? ""));
+  if (!re.ok) return re;
+  const res = await addPreviousKey(String(input?.key ?? "").trim());
+  await recordPlatformAudit({ actorId: user.id, action: "keyring.add_previous_key", target: { type: "keyring", id: "keyring" }, details: { ok: res.ok, via: re.via } });
+  revalidatePath("/console", "layout");
+  return res;
+}
+
+/** Shows the active key ONCE after re-authentication. */
+export async function revealKeyAction(input: { password: string; code: string }): Promise<{ ok: true; key: string } | Err> {
+  const user = await requirePlatformAdmin();
+  const re = await reauthStaff(user.id, String(input?.password ?? ""), String(input?.code ?? ""));
+  if (!re.ok) return re;
+  const key = await revealActiveKey(user.id);
+  await recordPlatformAudit({ actorId: user.id, action: "keyring.backup_revealed", target: { type: "keyring", id: "keyring" }, details: { via: re.via } });
+  revalidatePath("/console", "layout");
+  return key ? { ok: true, key } : { ok: false, error: "There is no active key." };
+}
+
+export async function setPassphraseAction(input: { passphrase: string; password: string; code: string }): Promise<{ ok: true } | Err> {
+  const user = await requirePlatformAdmin();
+  const re = await reauthStaff(user.id, String(input?.password ?? ""), String(input?.code ?? ""));
+  if (!re.ok) return re;
+  const res = await setRecoveryPassphrase(String(input?.passphrase ?? ""));
+  await recordPlatformAudit({ actorId: user.id, action: "keyring.passphrase_set", target: { type: "keyring", id: "keyring" }, details: { ok: res.ok, via: re.via } });
+  return res;
+}
+
+export async function rotateKeyAction(input: { password: string; code: string }): Promise<{ ok: true } | Err> {
+  const user = await requirePlatformAdmin();
+  const re = await reauthStaff(user.id, String(input?.password ?? ""), String(input?.code ?? ""));
+  if (!re.ok) return re;
+  const res = await rotateKey();
+  await recordPlatformAudit({ actorId: user.id, action: "keyring.rotated", target: { type: "keyring", id: "keyring" }, details: { ok: res.ok, via: re.via } });
+  revalidatePath("/console", "layout");
+  return res;
+}
+
+/** Platform staff resets a company admin's two-step (lost device, or a key mismatch): audited, the person is told by email and sets it up again. */
+export async function resetCompanyTwoStepAction(input: { company: string; email: string }): Promise<{ ok: true; message: string } | Err> {
+  const user = await requirePlatformPermission("companies.manage");
+  const { getPlatformDb } = await import("@/lib/platform/tenancy/platform-db");
+  const { runAsCompany } = await import("@/lib/platform/tenancy/context");
+  const { getDb } = await import("@/lib/mongodb");
+  const { recoverTwoStep } = await import("@/lib/security/two-factor");
+  const { sendRecoveryNotice } = await import("@/lib/hub-auth");
+  const key = String(input?.company ?? "").trim().toLowerCase();
+  const email = String(input?.email ?? "").trim().toLowerCase();
+  if (!key || !email) return { ok: false, error: "Enter the company (its slug or id) and the person's email." };
+  const company = await (await getPlatformDb()).collection<{ _id: string; slug: string; name: string }>("companies").findOne({ $or: [{ _id: key }, { slug: key }] });
+  if (!company) return { ok: false, error: "No such company." };
+  const found = await runAsCompany(company._id, async () => {
+    const u = await (await getDb()).collection("admin_users").findOne({ email });
+    if (!u) return null;
+    await recoverTwoStep(u._id);
+    return { id: String(u._id), email: String(u.email) };
+  });
+  if (!found) return { ok: false, error: `No user ${email} in ${company.name}.` };
+  await recordPlatformAudit({ actorId: user.id, action: "two_step.staff_reset", companyId: company._id, target: { type: "admin_user", id: found.id }, details: { email } });
+  await sendRecoveryNotice(found.email, "staff_reset");
+  return { ok: true, message: `Two-step was reset for ${email}. They set it up again at their next sign-in.` };
+}

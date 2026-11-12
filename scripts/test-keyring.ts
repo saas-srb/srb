@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
-import { addExtraKeys, deriveKek, keyId, normalizeHosts, normalizeMongoUri, parseEnvKey, resolveKeyring, rewrapDoc, unwrapKey, wrapKey, type KeyringDoc } from "../src/lib/platform/keyring/core";
+import { addRootKey, checkKeyCanary, healFromPassphrase, wrapWithPassphrase, addExtraKeys, deriveKek, keyId, normalizeHosts, normalizeMongoUri, parseEnvKey, resolveKeyring, rewrapDoc, unwrapKey, wrapKey, type KeyringDoc } from "../src/lib/platform/keyring/core";
+import { makeProbe, resealSample, type CipherSample } from "../src/lib/platform/keyring/probe";
+import { breakGlassMatches } from "../src/lib/security/break-glass";
+import { createCipheriv } from "node:crypto";
 import { authorizeCron } from "../src/lib/cron/auth";
 
 // Pure: no database, no network. Run with: npx tsx scripts/test-keyring.ts
@@ -120,6 +123,122 @@ t("adopted legacy product keys and *_PREVIOUS become extra versions; existing ke
   assert.deepEqual(r.products?.map((p) => `${p.purpose}:${p.key.toString("hex")}`), [`hrms:${hrms.toString("hex")}`]);
   assert.equal(r.keys[0].status, "active");
   assert.ok(rewrapDoc(doc, kek, deriveKek(URI + "z", "a")), "product keys rewrap too");
+});
+
+// ── key verification (wrong key on a database that already has ciphertext) ──
+const seal = (key: Buffer, aad: string, plain: string, withId = false): CipherSample => {
+  const iv = randomBytes(12);
+  const c = createCipheriv("aes-256-gcm", key, iv);
+  c.setAAD(Buffer.from(aad));
+  const ct = Buffer.concat([c.update(plain), c.final()]);
+  return { enc: { c: ct.toString("base64"), iv: iv.toString("base64"), t: c.getAuthTag().toString("base64"), ...(withId ? { k: keyId(key) } : {}) }, aad, where: aad };
+};
+const real = randomBytes(32);
+const dev = randomBytes(32);
+const samples = [seal(real, "2fa:co1:u1", "TOTPSECRET1"), seal(real, "2fa:co2:u2", "TOTPSECRET2")];
+const probe = makeProbe(samples);
+
+t("wrong env key on a DB with ciphertext it does not open: stored UNVERIFIED, nothing silently trusted", () => {
+  assert.equal(probe.opens(dev), 0);
+  assert.equal(probe.opens(real), 2);
+  const r = resolveKeyring({ envKey: dev, doc: null, kek, dbHasData: true, probe });
+  assert.ok(r.state === "ok" && r.write);
+  assert.equal(r.write.keys[0].verification, "unverified");
+  assert.equal(probe.unopenable(r.keys.map((k) => k.key)), 2, "the alert counts what nothing opens");
+});
+t("an unverified env key on top of a verified keyring is decrypt-only: the active key does not change", () => {
+  const first = resolveKeyring({ envKey: real, doc: null, kek, dbHasData: true, probe });
+  assert.ok(first.state === "ok" && first.write && first.write.keys[0].verification === "verified");
+  const r = resolveKeyring({ envKey: dev, doc: first.write, kek, dbHasData: true, probe });
+  assert.ok(r.state === "ok" && r.write);
+  assert.equal(r.keys[0].id, keyId(real), "the verified key stays active");
+  assert.equal(r.write.keys.find((k) => k.id === keyId(dev))?.verification, "unverified");
+  assert.equal(r.write.keys.find((k) => k.id === keyId(dev))?.status, "retired");
+});
+t("the real key arriving later (env of any deployment) is verified and promoted; the dev key stays, decrypt-only", () => {
+  const first = resolveKeyring({ envKey: dev, doc: null, kek, dbHasData: true, probe });
+  assert.ok(first.state === "ok" && first.write);
+  const r = resolveKeyring({ envKey: real, doc: first.write, kek, dbHasData: true, probe });
+  assert.ok(r.state === "ok" && r.write && r.action === "added-version");
+  assert.equal(r.keys[0].id, keyId(real));
+  assert.equal(r.keys[0].verification, "verified");
+  assert.ok(r.write.keys.some((k) => k.id === keyId(dev)), "the dev key is never deleted");
+  assert.equal(probe.unopenable(r.keys.map((k) => k.key)), 0);
+});
+t("a key already stored as unverified that now opens existing ciphertext is promoted to verified and active", () => {
+  const first = resolveKeyring({ envKey: dev, doc: null, kek, dbHasData: true, probe });
+  assert.ok(first.state === "ok" && first.write);
+  const withReal = addRootKey(first.write, kek, real, "env");
+  assert.equal(withReal.keys.find((k) => k.id === keyId(real))?.status, "active");
+  // a doc with the real key stored unverified (e.g. escrowed earlier on a DB that had none of its data)
+  const doc = { ...first.write, keys: [...first.write.keys.map((k) => ({ ...k, status: "active" as const })), { ...withReal.keys[1], verification: "unverified" as const, status: "retired" as const }] };
+  const r = resolveKeyring({ envKey: null, doc, kek, dbHasData: true, probe });
+  assert.ok(r.state === "ok" && r.write);
+  assert.equal(r.keys[0].id, keyId(real));
+  assert.equal(r.keys[0].verification, "verified");
+});
+t("keyring locked (URI/hosts differ): never overwritten, nothing written, even with an env key", () => {
+  const first = resolveKeyring({ envKey: real, doc: null, kek, dbHasData: true, probe });
+  assert.ok(first.state === "ok" && first.write);
+  const other = deriveKek(URI.replace("s3cret", "other"), "selfrun.com,www.selfrun.com");
+  for (const env of [null, dev, real]) {
+    const r = resolveKeyring({ envKey: env, doc: first.write, kek: other, dbHasData: true, probe });
+    assert.equal(r.state, "cannot_unwrap");
+    assert.equal((r as { write?: unknown }).write, undefined, "no write in a locked keyring");
+  }
+});
+t("a corrupt canary is detected", () => {
+  const first = resolveKeyring({ envKey: real, doc: null, kek, dbHasData: false });
+  assert.ok(first.state === "ok" && first.write);
+  assert.equal(checkKeyCanary(real, keyId(real), first.write.keys[0].check), true);
+  assert.equal(checkKeyCanary(dev, keyId(real), first.write.keys[0].check), false);
+  const tampered = { ...first.write, keys: [{ ...first.write.keys[0], check: { ...first.write.keys[0].check!, t: Buffer.alloc(16).toString("base64") } }] };
+  assert.equal(resolveKeyring({ envKey: null, doc: tampered, kek, dbHasData: true }).state, "cannot_unwrap");
+});
+t("self-sealed new data never proves a key (only pre-existing ciphertext does)", () => {
+  const mine = [seal(dev, "2fa:co1:u1", "x", true)];
+  assert.equal(makeProbe(mine).opens(dev, true), 0);
+  assert.equal(makeProbe(mine).opens(dev), 1, "but a key NOT yet stored is judged by what it opens");
+});
+t("rotation re-seals with the new key and the old ciphertext still opens", () => {
+  const rotated = randomBytes(32);
+  const s = samples[0];
+  const resealed = resealSample(s, [real], rotated);
+  assert.ok(resealed && resealed.k === keyId(rotated));
+  assert.equal(makeProbe([{ ...s, enc: resealed }]).unopenable([rotated]), 0);
+  assert.equal(makeProbe([s]).opens(real), 1, "the old ciphertext is untouched and still opens");
+  assert.equal(resealSample({ ...s, enc: resealed }, [real, rotated], rotated), null, "already on the active key");
+});
+t("recovery passphrase: heals a keyring after the database URI changed; wrong passphrase refused", () => {
+  const first = resolveKeyring({ envKey: real, doc: null, kek, dbHasData: true });
+  assert.ok(first.state === "ok");
+  const w = wrapWithPassphrase(first.keys.map((k) => ({ id: k.id, key: k.key })), "correct horse battery");
+  const newKek = deriveKek(URI.replace("s3cret", "rotated"), "selfrun.com");
+  assert.equal(healFromPassphrase(w, "wrong passphrase!!", newKek), null);
+  const healed = healFromPassphrase(w, "correct horse battery", newKek);
+  assert.ok(healed);
+  const r = resolveKeyring({ envKey: null, doc: healed, kek: newKek, dbHasData: true });
+  assert.ok(r.state === "ok" && r.keys[0].key.equals(real));
+});
+t("break-glass: only the exact env email and password, constant time, never when env is unset", () => {
+  const env = { envEmail: "Owner@Example.com", envPassword: "S3cret!pass" };
+  assert.equal(breakGlassMatches({ email: "owner@example.com", password: "S3cret!pass", ...env }), true);
+  assert.equal(breakGlassMatches({ email: "owner@example.com", password: "S3cret!pasx", ...env }), false);
+  assert.equal(breakGlassMatches({ email: "other@example.com", password: "S3cret!pass", ...env }), false);
+  assert.equal(breakGlassMatches({ email: "owner@example.com", password: "S3cret!pass", envEmail: undefined, envPassword: undefined }), false);
+  assert.equal(breakGlassMatches({ email: "", password: "", envEmail: "", envPassword: "" }), false);
+});
+t("a keyring written before verification existed, holding a key that opens nothing, is flagged unverified at the next boot (the current production case)", () => {
+  const first = resolveKeyring({ envKey: dev, doc: null, kek, dbHasData: false });
+  assert.ok(first.state === "ok" && first.write);
+  const legacy = { ...first.write, keys: first.write.keys.map(({ verification, check, ...rest }) => { void verification; void check; return rest; }) };
+  const r = resolveKeyring({ envKey: dev, doc: legacy, kek, dbHasData: true, probe });
+  assert.ok(r.state === "ok" && r.write);
+  assert.equal(r.keys[0].verification, "unverified");
+  assert.equal(probe.unopenable(r.keys.map((k) => k.key)), 2);
+  // then the real key arrives and is promoted
+  const r2 = resolveKeyring({ envKey: real, doc: r.write, kek, dbHasData: true, probe });
+  assert.ok(r2.state === "ok" && r2.keys[0].id === keyId(real) && r2.keys[0].verification === "verified");
 });
 
 const base = { bearerMatches: false, secretConfigured: false, userAgent: "vercel-cron/1.0", hostAllowed: true, lastRunAtMs: null, intervalMs: 86_400_000, nowMs: 1_000_000_000 };

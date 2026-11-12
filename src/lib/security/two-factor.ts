@@ -4,7 +4,7 @@ import type { ObjectId } from "mongodb";
 import QRCode from "qrcode";
 import { getDb } from "@/lib/mongodb";
 import { currentCompanyId } from "@/lib/platform/tenancy/context";
-import { decryptPlatformSecret, encryptPlatformSecret, isPlatformEncryptionConfigured, type EncryptedValue } from "@/lib/platform/crypto";
+import { canOpenPlatformSecret, decryptPlatformSecret, encryptPlatformSecret, isPlatformEncryptionConfigured, type EncryptedValue } from "@/lib/platform/crypto";
 import { newTotpSecret, otpauthUri, verifyTotp } from "@/lib/security/totp";
 import { getCompanyBrand } from "@/lib/platform/branding";
 import { checkEmailCode } from "@/lib/security/email-otp";
@@ -24,7 +24,7 @@ interface TwoFactorDoc {
   recovery: string[];
 }
 interface Pending { secret: EncryptedValue; at: Date }
-interface UserTf { _id: ObjectId; email: string; twoFactor?: TwoFactorDoc | null; twoFactorPending?: Pending | null; twoFactorEmail?: { enabledAt: Date } | null; twoFactorSkipUntil?: Date | null }
+interface UserTf { _id: ObjectId; email: string; twoFactor?: TwoFactorDoc | null; twoFactorPending?: Pending | null; twoFactorEmail?: { enabledAt: Date } | null; twoFactorSkipUntil?: Date | null; twoFactorForced?: boolean | null }
 
 export type TwoStepMethod = "app" | "email";
 
@@ -103,7 +103,7 @@ export async function confirmTwoFactorSetup(adminId: ObjectId, code: string): Pr
   const step = verifyTotp(secret, code);
   if (step === null) return { ok: false, error: "That code isn't right. Wait for the next one in your app and try again." };
   const recovery = Array.from({ length: 10 }, () => randomBytes(5).toString("hex").replace(/(.{5})(.{5})/, "$1-$2"));
-  await col.updateOne({ _id: adminId }, { $set: { twoFactor: { secret: p.secret, enabledAt: new Date(), lastStep: step, recovery: recovery.map(hashCode) } }, $unset: { twoFactorPending: "" } });
+  await col.updateOne({ _id: adminId }, { $set: { twoFactor: { secret: p.secret, enabledAt: new Date(), lastStep: step, recovery: recovery.map(hashCode) } }, $unset: { twoFactorPending: "", twoFactorForced: "" } });
   return { ok: true, recovery };
 }
 
@@ -112,24 +112,60 @@ export async function confirmTwoFactorSetup(adminId: ObjectId, code: string): Pr
  * replay guard, so the same code cannot be used twice.
  */
 export async function verifySecondStep(user: { _id: ObjectId; twoFactor?: TwoFactorDoc | null }, code: string): Promise<boolean> {
+  return (await verifySecondStepDetailed(user, code)) === "ok";
+}
+
+/** True when the authenticator secret opens with the keys this deployment has. False = key mismatch (not the person's mistake). */
+export async function secondStepReadable(user: { _id: ObjectId; twoFactor?: { secret: EncryptedValue } | null }): Promise<boolean> {
+  if (!user.twoFactor) return true;
+  return canOpenPlatformSecret(user.twoFactor.secret, await ctx(user._id));
+}
+
+/**
+ * "ok" = valid app code or unused recovery code (used up). "wrong" = a wrong code. "key_mismatch" = the secret can't be opened with this
+ * deployment's keys: the code could not be checked at all, which must never be treated as a wrong code (no lock-out). Recovery codes are
+ * hashes and work without the key.
+ */
+export async function verifySecondStepDetailed(user: { _id: ObjectId; twoFactor?: TwoFactorDoc | null }, code: string): Promise<"ok" | "wrong" | "key_mismatch"> {
   const tf = user.twoFactor;
-  if (!tf) return true;
+  if (!tf) return "ok";
   const col = await users();
-  const secret = decryptPlatformSecret(tf.secret, await ctx(user._id));
-  if (secret) {
-    const step = verifyTotp(secret, code, tf.lastStep ?? 0);
+  const readable = await secondStepReadable(user as never);
+  if (readable) {
+    const secret = decryptPlatformSecret(tf.secret, await ctx(user._id));
+    const step = secret ? verifyTotp(secret, code, tf.lastStep ?? 0) : null;
     if (step !== null) {
       // Only the first request to present this step wins.
       const r = await col.updateOne({ _id: user._id, "twoFactor.lastStep": { $lt: step } }, { $set: { "twoFactor.lastStep": step } });
-      return r.modifiedCount === 1;
+      return r.modifiedCount === 1 ? "ok" : "wrong";
     }
   }
   const h = hashCode(code);
   if (tf.recovery.includes(h)) {
     const r = await col.updateOne({ _id: user._id, "twoFactor.recovery": h }, { $pull: { "twoFactor.recovery": h } });
-    return r.modifiedCount === 1;
+    return r.modifiedCount === 1 ? "ok" : "wrong";
   }
-  return false;
+  return readable ? "wrong" : "key_mismatch";
+}
+
+/** Uses up a recovery code (hash based, needs no key). */
+export async function useRecoveryCode(user: { _id: ObjectId; twoFactor?: TwoFactorDoc | null }, code: string): Promise<boolean> {
+  const h = hashCode(code);
+  if (!user.twoFactor?.recovery.includes(h)) return false;
+  return (await (await users()).updateOne({ _id: user._id, "twoFactor.recovery": h }, { $pull: { "twoFactor.recovery": h } })).modifiedCount === 1;
+}
+
+/**
+ * After a recovery that proves the person (recovery code, emailed code, break-glass, a staff reset) while the secret can't be opened:
+ * the unreadable secret is removed and setting two-step up again is REQUIRED at once (it is then sealed with the active key).
+ */
+export async function recoverTwoStep(adminId: ObjectId): Promise<void> {
+  await (await users()).updateOne({ _id: adminId }, { $unset: { twoFactor: "", twoFactorPending: "" }, $set: { twoFactorForced: true } });
+}
+
+/** A short message for places that check a code: tells a key mismatch apart from a wrong code. */
+export async function twoStepFailureMessage(user: { _id: ObjectId; twoFactor?: { secret: EncryptedValue } | null }, wrong: string): Promise<string> {
+  return (await secondStepReadable(user)) ? wrong : "Two-step is temporarily unavailable on this deployment (its encryption key doesn't match the stored one). Use a recovery code, or ask the platform team to reset your two-step.";
 }
 
 /** Turns two-step off for the signed-in person, after one valid code (or recovery code). */
@@ -137,7 +173,7 @@ export async function disableTwoFactor(adminId: ObjectId, code: string): Promise
   const col = await users();
   const u = await col.findOne({ _id: adminId });
   if (!u?.twoFactor) return { ok: true };
-  if (!(await verifySecondStep(u, code))) return { ok: false, error: "That code isn't right." };
+  if (!(await verifySecondStep(u, code))) return { ok: false, error: await twoStepFailureMessage(u as never, "That code isn't right.") };
   await col.updateOne({ _id: adminId }, { $unset: { twoFactor: "", twoFactorPending: "" } });
   return { ok: true };
 }
@@ -167,6 +203,8 @@ export async function twoFactorPrompt(user: { id: string; roles?: readonly strin
   if (!ObjectId.isValid(user.id)) return "none";
   const id = new ObjectId(user.id);
   if ((await twoFactorStatus(id)).enabled) return "none";
+  // Set after a recovery (key mismatch, break-glass, staff reset): setting two-step up again is required, no skipping.
+  if ((await (await users()).findOne({ _id: id }, { projection: { twoFactorForced: 1 } }))?.twoFactorForced) return "required";
   // Mandatory only when the operator asks for it. Everyone else can skip, so the screen, the Console and every product always agree.
   const mandatory = process.env.REQUIRE_PRIVILEGED_MFA === "1" && (!!opts.alwaysPrivileged || (user.roles ?? []).includes("super_admin"));
   if (mandatory) return "required";

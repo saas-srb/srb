@@ -97,6 +97,33 @@ const must = (cond: unknown, msg: string) => {
     });
   }
 
+  if (phase === "wrongkey-seed") {
+    // A database whose only ciphertext is an authenticator secret sealed with the REAL key.
+    await check("seed: real key escrowed, an authenticator secret sealed with it", async () => {
+      const s = await ensureKeyring();
+      must(s.state === "ok", `state ${s.state}`);
+      const c = await (await import("../src/lib/platform/tenancy/platform-db")).clientPromise;
+      await c.db().collection("admin_users").insertOne({ _id: "u1" as never, companyId: "co1", email: "a@b.test", twoFactor: { secret: encryptPlatformSecret("TOTP", "2fa:co1:u1"), recovery: [] } });
+      await c.db().collection("platform_settings").deleteOne({ _id: "keyring" as never }); // as if the real key was never escrowed (it lived only in the old project's env)
+    });
+  }
+  if (phase === "wrongkey") {
+    await check("an UNRELATED env key on that database: stored unverified, alert with a count, nothing breaks", async () => {
+      const s = await ensureKeyring();
+      must(s.state === "ok", `state ${s.state}`);
+      must(s.versions.some((v) => v.verification === "unverified"), "the unrelated key must be unverified");
+      must((s.mismatch?.unopenable ?? 0) >= 1, "no mismatch alert");
+    });
+  }
+  if (phase === "rightkey") {
+    await check("the REAL key arriving later is verified, promoted to active, the unrelated one kept decrypt-only", async () => {
+      const s = await ensureKeyring();
+      must(s.state === "ok" && s.versions.length === 2, `state ${s.state}, versions ${s.versions.length}`);
+      must(s.versions.find((v) => v.status === "active")?.verification === "verified", "real key not active/verified");
+      must((s.mismatch?.unopenable ?? 1) === 0, "values still unopenable");
+    });
+  }
+
   if (phase === "fresh") {
     await check("empty database with no key: a new key is generated and escrowed", async () => {
       const s = await ensureKeyring();

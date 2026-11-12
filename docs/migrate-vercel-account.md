@@ -45,6 +45,34 @@ Every non-`NEXT_PUBLIC` variable read in `src` (plus `instrumentation`, `proxy`,
 
 Session cookies are random ids stored in the database (no signing secret). Signed values (media URLs, public-agent tokens, the encrypted-transport key, email OTP hashes, phone-number hashes) derive from the keyring, so they are the same on every deployment. Values that must stay comparable forever (phone hashes) use the oldest key version.
 
+
+## The encryption key must be VERIFIED before a cutover (and what to do when the alert shows)
+
+Moving to a new project is safe only if the deployment's `PLATFORM_ENCRYPTION_KEY` is the ORIGINAL one, or the original has been adopted into the database first. A wrong key (for example a local development key) cannot damage anything, but it cannot open what the real key sealed (authenticator secrets, saved keys). The app therefore checks every key against the encrypted data that already exists:
+
+- **verified**: opens at least one existing encrypted value, or was created on a database that had none.
+- **unverified**: an environment key that opens none of the existing encrypted data. It is stored (decrypt-only) but never made the active key silently; the Console shows a persistent **Encryption key mismatch** alert with the count of values that cannot be opened.
+- When the original key arrives later (any deployment's environment, or Console, Health, **Add previous encryption key**, which only accepts a key that really opens existing data) it is verified and becomes active; the unverified one stays decrypt-only. Nothing is ever deleted or overwritten, and a keyring that cannot be unwrapped with the current database URI / `SAAS_HOSTS` is never written to (read-only "locked" mode with a clear error).
+
+**Before the cutover:** check Console, Health in the OLD project (or run `npm run portability:check` against a throwaway copy): "Encryption keys" must show no mismatch. Deploy the new code in the old project once so it adopts the key into the database. **If the alert shows on the new project:** deploy this code once in the old project, or paste the original key under "Add previous encryption key". Meanwhile nobody is locked out (below).
+
+## Sign-in when the authenticator can't be opened (key mismatch)
+
+If a person's two-step secret can't be opened on this deployment, sign-in does NOT say "wrong code", does NOT count a failed attempt and never locks the account. It shows "two-step is temporarily unavailable on this deployment" and offers, in order:
+
+1. a **recovery code** (stored as a hash, works without the key);
+2. an **email code** to the account's verified address, when an email provider is configured (rate-limited; a notice email follows);
+3. **platform staff only, break-glass:** sign in with this deployment's own `SAAS_ADMIN_EMAIL` and `SAAS_ADMIN_PASSWORD` (exact match, constant-time; only when the secret is unreadable; it never bypasses a readable second step);
+4. **company admins:** platform staff reset their two-step in Console, Health, "Reset someone's two-step sign-in" (audited, notice email); a company's own owner can still reset others in the company's Users page.
+
+After any of these, the unreadable secret is removed and setting two-step up again is REQUIRED at once (the new secret is sealed with the active verified key). Events are audit-logged (`two_step.break_glass`, `two_step.recovered_key_mismatch`, `two_step.staff_reset`).
+
+## Key backup, recovery passphrase and rotation (Console, Health)
+
+- **Encryption key backup:** after re-authentication (password plus second step, or break-glass when the authenticator can't be checked) the active key is shown once with a warning and a copy button; the reveal is audit-logged and the Setup status shows "Encryption key backed up (last shown date)".
+- **Recovery passphrase (optional):** an extra copy of all keys sealed with a passphrase you keep. If the database URI or `SAAS_HOSTS` ever changes and the old URI is lost: `KEY_PASSPHRASE=... MONGODB_URI=... SAAS_HOSTS=... npm run key:rewrap`.
+- **Rotate encryption key (one click, re-authenticated):** a fresh random key becomes the active verified key; all older keys stay decrypt-only; stored secrets are re-sealed in the background (and by the daily job) with progress shown. Show and keep the new key afterwards.
+
 ## Encryption keyring (how nothing is lost)
 
 - All key versions are stored in `platform_settings` (`_id: "keyring"`), each wrapped with AES-256-GCM by a key-encryption key (KEK) derived with scrypt from the normalised `MONGODB_URI` (credentials included, host order and options ignored) + `SAAS_HOSTS` + a fixed label.

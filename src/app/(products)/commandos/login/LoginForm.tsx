@@ -112,6 +112,11 @@ export default function LoginForm({ next = null, demo = false }: { next?: string
                     Enter the code we emailed{state.hint ? ` to ${state.hint}` : ""}. Nothing there?{" "}
                     <button type="submit" name="resend" value="1" formNoValidate className="font-medium text-primary hover:underline">Send a new code</button>
                   </p>
+                ) : state.keyUnavailable ? (
+                  <p className="text-xs text-muted-foreground">
+                    Enter a recovery code.{state.canEmail ? " " : ""}
+                    {state.canEmail && <button type="submit" name="resend" value="1" formNoValidate className="font-medium text-primary hover:underline">Email me a code instead</button>}
+                  </p>
                 ) : (
                   <p className="text-xs text-muted-foreground">Open your authenticator app and enter the current code. Lost your phone? Use one of your recovery codes.</p>
                 )}

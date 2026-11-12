@@ -22,6 +22,9 @@ export interface HubLoginState {
   hint?: string;
   /** A plain message (not an error), e.g. "We sent a code to j***@acme.com". */
   info?: string;
+  /** The authenticator secret can't be opened on this deployment (key mismatch): recovery options are offered instead of a "wrong code" message. */
+  keyUnavailable?: boolean;
+  canEmail?: boolean;
   /** The plan allows one device at a time and the account is signed in elsewhere: the page asks before signing that device out. */
   /** Signed in: the form opens this address with a full page load, so nothing the browser kept from before sign-in is reused. */
   redirectTo?: string;
@@ -38,7 +41,7 @@ export async function hubLoginAction(_prevState: HubLoginState, formData: FormDa
 
   const result = await verifyHubCredentials(email, password, String(formData.get("code") ?? ""), { resend: formData.get("resend") === "1" });
   if (!result.ok) {
-    return { error: result.error, needsCode: result.needsCode, method: result.method, hint: result.hint, info: result.info };
+    return { error: result.error, needsCode: result.needsCode, method: result.method, hint: result.hint, info: result.info, keyUnavailable: result.keyUnavailable, canEmail: result.canEmail };
   }
 
   // Free plan: one device at a time. If the account is already signed in somewhere else, nothing is signed in yet: the person is asked first.

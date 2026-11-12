@@ -1,4 +1,6 @@
-import { addExtraKeys, deriveKek, parseEnvKey, pickActive, resolveKeyring, type ExtraKey, type KeyringDoc, type OpenKey } from "@/lib/platform/keyring/core";
+import { addExtraKeys, addRootKey, deriveKek, keyId, parseEnvKey, pickActive, resolveKeyring, wrapWithPassphrase, type ExtraKey, type KeyringDoc, type OpenKey, type Probe } from "@/lib/platform/keyring/core";
+import { makeProbe } from "@/lib/platform/keyring/probe";
+import { collectKnown, collectShapes } from "@/lib/platform/keyring/samples";
 
 export type KeyringAction = "none" | "escrowed" | "unwrapped" | "generated" | "added-version";
 
@@ -13,15 +15,18 @@ export interface KeyringStatus {
   state: KeyringState;
   action: KeyringAction | null;
   message: string | null;
-  versions: { id: string; version: number; status: "active" | "retired" }[];
+  versions: { id: string; version: number; status: "active" | "retired"; verification: "verified" | "unverified" }[];
+  /** Ciphertext in the database that none of the keys opens (known when the keys were checked at boot or on the Health page). */
+  mismatch: { unopenable: number; testable: number } | null;
   /** True when the environment holds PLATFORM_ENCRYPTION_KEY (informational). */
   envKeyPresent: boolean;
 }
 
 interface Loaded {
   state: KeyringState;
-  keys: { id: string; key: Buffer; status: "active" | "retired"; version: number }[];
+  keys: { id: string; key: Buffer; status: "active" | "retired"; version: number; verification?: "verified" | "unverified" }[];
   products?: OpenKey[];
+  mismatch?: { unopenable: number; testable: number } | null;
   action: KeyringAction | null;
   message: string | null;
   at: number;
@@ -39,11 +44,19 @@ async function load(): Promise<Loaded> {
   const col = db.collection<KeyringDoc>("platform_settings");
   const kek = deriveKek(uri, process.env.SAAS_HOSTS);
   const envKey = parseEnvKey(process.env.PLATFORM_ENCRYPTION_KEY);
+  let probe: Probe | null = null;
+  let probeStats: { unopenable: number; testable: number } | null = null;
+  const probeNow = async () => (probe ??= makeProbe(await collectKnown(db), await collectShapes(db)));
   for (let attempt = 0; attempt < 4; attempt++) {
     const doc = await col.findOne({ _id: DOC_ID });
+    // Evidence from existing ciphertext is needed only when a key's standing is being decided.
+    const needsProbe = Boolean(envKey && (!doc || !doc.keys.some((k) => !k.purpose && k.id === keyId(envKey)))) || Boolean(doc?.keys.some((k) => !k.purpose && (k.verification === "unverified" || !k.verification)));
+    if (needsProbe) await probeNow();
     let dbHasData = false;
     if (!doc) dbHasData = Boolean(await db.collection("companies").findOne({}, { projection: { _id: 1 } })) || Boolean(await col.findOne({ _id: { $ne: DOC_ID } } as never, { projection: { _id: 1 } }));
-    const out = resolveKeyring({ envKey, doc, kek, dbHasData });
+    const out = resolveKeyring({ envKey, doc, kek, dbHasData, probe });
+    const pr = probe as Probe | null;
+    if (out.state === "ok" && pr) probeStats = { unopenable: pr.unopenable(out.keys.map((k) => k.key)), testable: pr.testable };
     if (out.state === "needs_old_key") return { state: "needs_old_key", keys: envKey ? [] : [], action: null, message: "This database already holds encrypted data but no key. Provide the old PLATFORM_ENCRYPTION_KEY once (environment variable) and redeploy; it is then stored safely in the database.", at: Date.now() };
     if (out.state === "cannot_unwrap") return { state: "cannot_unwrap", keys: out.keys, action: null, message: out.reason, at: Date.now() };
     if (out.write) {
@@ -59,7 +72,7 @@ async function load(): Promise<Loaded> {
         throw err;
       }
     }
-    return { state: "ok", keys: out.keys, products: out.products, action: out.action, message: null, at: Date.now() };
+    return { state: "ok", keys: out.keys, products: out.products, mismatch: probeStats, action: out.action, message: null, at: Date.now() };
   }
   throw new Error("keyring: could not settle after several attempts");
 }
@@ -86,11 +99,11 @@ export async function ensureKeyring(): Promise<KeyringStatus> {
 }
 
 function statusOf(l: Loaded): KeyringStatus {
-  return { state: l.state, action: l.action as KeyringStatus["action"], message: l.message, versions: l.keys.map((k) => ({ id: k.id, version: k.version, status: k.status })), envKeyPresent: Boolean(parseEnvKey(process.env.PLATFORM_ENCRYPTION_KEY)) };
+  return { state: l.state, action: l.action as KeyringStatus["action"], message: l.message, versions: l.keys.map((k) => ({ id: k.id, version: k.version, status: k.status, verification: k.verification ?? "verified" })), mismatch: l.mismatch ?? null, envKeyPresent: Boolean(parseEnvKey(process.env.PLATFORM_ENCRYPTION_KEY)) };
 }
 
 export function keyringStatus(): KeyringStatus {
-  return store.loaded ? statusOf(store.loaded) : { state: "unavailable", action: null, message: "The keyring has not been loaded yet.", versions: [], envKeyPresent: Boolean(parseEnvKey(process.env.PLATFORM_ENCRYPTION_KEY)) };
+  return store.loaded ? statusOf(store.loaded) : { state: "unavailable", action: null, message: "The keyring has not been loaded yet.", versions: [], mismatch: null, envKeyPresent: Boolean(parseEnvKey(process.env.PLATFORM_ENCRYPTION_KEY)) };
 }
 
 /** Forget the cached keyring (tests, or after `key:rewrap`). */
@@ -131,7 +144,8 @@ export function rootKeyById(id: string): Buffer | null {
 export function stableRootKey(): Buffer | null {
   const r = ring();
   if (!r.length) return null;
-  return [...r].sort((a, b) => (a.version || 1e9) - (b.version || 1e9))[0].key;
+  const trusted = r.filter((k) => (k as { verification?: string }).verification !== "unverified");
+  return [...(trusted.length ? trusted : r)].sort((a, b) => (a.version || 1e9) - (b.version || 1e9))[0].key;
 }
 
 export const stableRootSecret = (): string | null => stableRootKey()?.toString("base64") ?? null;

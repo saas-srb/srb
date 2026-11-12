@@ -30,8 +30,12 @@ const item = (id: string, title: string, state: SetupItem["state"], automatic: b
 export async function getSetupStatus(): Promise<SetupItem[]> {
   const out: SetupItem[] = [];
   const ring = await ensureKeyring();
+  const unverified = ring.versions.filter((v) => v.verification === "unverified").length;
+  const mismatch = ring.mismatch?.unopenable ?? 0;
   out.push(
-    ring.state === "ok"
+    ring.state === "ok" && mismatch > 0
+      ? item("keyring", "Encryption keys", "action", false, `KEY MISMATCH: ${mismatch} stored secret(s) can't be opened with this deployment's keys (${unverified} stored key(s) are unverified). Deploy once in the project that has the original PLATFORM_ENCRYPTION_KEY, or use Console, Health, "Add previous encryption key". Nobody is locked out: recovery codes, email codes and a staff reset work meanwhile.`)
+      : ring.state === "ok"
       ? item("keyring", "Encryption keys", "ok", true, `Stored safely in the database (${ring.versions.length} version${ring.versions.length === 1 ? "" : "s"}); no PLATFORM_ENCRYPTION_KEY needed on a new deployment.`)
       : ring.state === "needs_old_key"
         ? item("keyring", "Encryption keys", "action", false, ring.message ?? "Provide the old PLATFORM_ENCRYPTION_KEY once.")
@@ -44,6 +48,9 @@ export async function getSetupStatus(): Promise<SetupItem[]> {
       ? item("admin", "Platform admin", "ok", true, "Existing platform staff keep working; the environment never overwrites them.")
       : item("admin", "Platform admin", "action", false, "No platform admin yet: open /setup on your site and use the setup code from the deployment log."),
   );
+
+  const meta = await import("@/lib/platform/keyring/manage").then((m) => m.keyMeta()).catch(() => null);
+  out.push(meta?.backedUpAt ? item("keybackup", "Encryption key backed up", "ok", false, `Yes, last shown ${new Date(meta.backedUpAt).toLocaleDateString()}.`) : item("keybackup", "Encryption key backed up", "warn", false, "No. In Console, Health, \"Encryption key backup\" show the key once and keep it in a password manager."));
 
   const doc = await loadIntegrationsDoc();
   const cfg = domainConfigFrom(doc);

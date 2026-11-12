@@ -22,7 +22,7 @@ if (process.env.MONGODB_URI && process.env.MONGODB_URI === base) {
   process.exit(2);
 }
 const withDb = (name: string) => `${m[1]}/${name}${m[3] ?? ""}`;
-const names = { main: m[2], fresh: `${m[2]}_fresh`, orphan: `${m[2]}_orphan` };
+const names = { main: m[2], fresh: `${m[2]}_fresh`, orphan: `${m[2]}_orphan`, wrong: `${m[2]}_wrong` };
 
 const hosts = "portability.test,www.portability.test";
 const results: { name: string; ok: boolean; detail: string }[] = [];
@@ -52,6 +52,11 @@ function run(phase: string, db: string, extra: Record<string, string> = {}) {
   run("fresh", names.fresh);
   await client.db(names.orphan).collection("companies").insertOne({ _id: "c1", slug: "acme" } as never);
   run("orphan", names.orphan);
+  // The wrong-key scenario: the real key lives only in the old project; the new one arrives with an unrelated key.
+  const realKey = randomBytes(32).toString("base64");
+  run("wrongkey-seed", names.wrong, { PLATFORM_ENCRYPTION_KEY: realKey });
+  run("wrongkey", names.wrong, { PLATFORM_ENCRYPTION_KEY: randomBytes(32).toString("base64") });
+  run("rightkey", names.wrong, { PLATFORM_ENCRYPTION_KEY: realKey });
   for (const n of Object.values(names)) await client.db(n).dropDatabase();
   await client.close();
   for (const r of results) console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.name}${r.ok || !r.detail ? "" : `: ${r.detail}`}`);

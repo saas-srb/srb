@@ -37,6 +37,8 @@ export const JOB_RUNNERS: Record<string, () => Promise<unknown>> = {
       await m.ensureLegacyCopy();
       return m.runLegacyCopyTick(45_000);
     })().catch(() => null);
+    // After a key rotation: values still sealed with an older key are re-sealed with the active one (a no-op otherwise).
+    await (await import("@/lib/platform/keyring/manage")).resealTick(20_000).catch(() => null);
     const c = sync.counts;
     const bad = recheck.filter((r) => !r.ok);
     return `${recheck.length} companies rechecked${bad.length ? `, ${bad.length} failed` : ""}; domain sync ${sync.status}${sync.done ? "" : " (continues next run)"}: ${c.attached} attached, ${c.released} released, ${c.ownedElsewhere} owned elsewhere, ${c.failed} failed${sync.message ? ` (${sync.message.slice(0, 100)})` : ""}${copy && copy.state === "running" ? `; files ${copy.inDatabase}/${copy.listed} in the database` : ""}${blob && blob.status !== "none" ? `; file migration ${blob.status}: ${blob.counts.copied} copied, ${blob.counts.failed} failed` : ""}`;

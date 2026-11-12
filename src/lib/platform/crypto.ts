@@ -72,6 +72,25 @@ export function decryptPlatformSecret(value: EncryptedValue | null | undefined, 
   }
 }
 
+/** True when `value` opens with some key of the keyring. Never logs; for telling "key mismatch" apart from "wrong input". */
+export function canOpenPlatformSecret(value: EncryptedValue | null | undefined, context: string): boolean {
+  if (!value) return false;
+  const named = value.k ? rootKeyById(value.k) : null;
+  for (const key of named ? [named] : allRootKeys()) {
+    try {
+      const d = createDecipheriv(ALGO, key, Buffer.from(value.iv, "base64"));
+      d.setAAD(Buffer.from(context, "utf8"));
+      d.setAuthTag(Buffer.from(value.t, "base64"));
+      d.update(Buffer.from(value.c, "base64"));
+      d.final();
+      return true;
+    } catch {
+      /* next key */
+    }
+  }
+  return false;
+}
+
 export function last4(value: string): string {
   return value.length <= 4 ? value : value.slice(-4);
 }

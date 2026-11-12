@@ -50,6 +50,9 @@ Portable deployments (only MONGODB_URI and SAAS_HOSTS): DONE, needs a real Verce
 Fully dynamic deployments (env adoption, files in the database, platform hosts, DNS, Hobby build): DONE, needs a real Vercel account to verify
 - Env adoption into the database (`src/lib/platform/adopt/`, classification table in `portability/env-classes.ts`, guarded by a test), legacy product keys as keyring versions, overlay of adopted vars into `process.env`. Files in MongoDB GridFS by default with Blob as legacy source and optional backend (`storage/gridfs.ts`, `blob.ts`, `blob-to-gridfs.ts`). Platform hosts derived from SAAS_HOSTS and synced (root redirects to www), DNS authority detection and DNS copy tool. Build is 8 lambdas (was 10; limit 12), `npm run check:functions`. Tests: `npm run test:portability`, `test:gridfs` (throwaway DB), `test:keyring`, `test:migrate`.
 
+Key safety and 2FA resilience (urgent fix after a deployment arrived with the wrong encryption key): DONE, needs the real deployment to verify
+- Key verification (verified/unverified, canary, probe over known ciphertext locations + shape scan), never silently activating a key that opens nothing, Encryption key mismatch alert, locked mode never writes; sign-in without false "wrong code" or lock-outs (recovery code, email code, platform break-glass, staff reset), forced re-enrolment; Console Health: add previous key, one-time key backup reveal, recovery passphrase, one-click rotation with lazy re-seal. Tests: `test:keyring` (24), `scripts/test-two-step-recovery.ts` (9, throwaway DB), `portability:check` (15, includes the wrong-key scenario).
+
 Hardening: Z1 security and tenancy, Z2 performance, Z3 legal and content review
 
 Counting: 2 of about 40 features done = about 5%.

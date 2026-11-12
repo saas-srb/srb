@@ -5,7 +5,7 @@ import { getDb } from "@/lib/mongodb";
 import { currentCompanyId } from "@/lib/platform/tenancy/context";
 import { getCompany } from "@/lib/platform/tenancy/companies";
 import { verifyPassword } from "@/lib/lms-auth";
-import { verifySecondStep } from "@/lib/security/two-factor";
+import { twoStepFailureMessage, verifySecondStep } from "@/lib/security/two-factor";
 
 /**
  * The multi-step confirmation behind every destructive data action (restore a backup, delete all data, delete the company). Four things have
@@ -51,7 +51,7 @@ export async function consumeChallenge(user: { id: string; _id: ObjectId; passwo
   if (!company || String(c.typedName ?? "").trim() !== company.name.trim()) return fail("The company name you typed doesn't match.");
   if (String(c.phrase ?? "").trim() !== DANGER_PHRASES[action]) return fail(`Type ${DANGER_PHRASES[action]} exactly to confirm.`);
   if (!verifyPassword(String(c.password ?? ""), user.passwordHash)) return fail("That password isn't right.");
-  if (user.twoFactor && !(await verifySecondStep(user as never, String(c.code ?? "")))) return fail("That two-step code isn't right.");
+  if (user.twoFactor && !(await verifySecondStep(user as never, String(c.code ?? "")))) return fail(await twoStepFailureMessage(user as never, "That two-step code isn't right."));
   const used = await col_.deleteOne({ _id: ch._id });
   if (used.deletedCount !== 1) return { ok: false, error: "This confirmation was already used. Start again." };
   return { ok: true, ref: ch.ref };
