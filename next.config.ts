@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Vercel's build machine ran out of memory (SIGKILL) in the "Running TypeScript" step that Next runs after a successful compile: this app
+  // is ~370k lines, so the type-check alone needs more RAM than the free build container has. On Vercel the check is skipped; run
+  // `npm run typecheck` (tsc --noEmit) before pushing instead. A local `next build` still type-checks.
+  typescript: { ignoreBuildErrors: Boolean(process.env.VERCEL) },
   // The editor test pages under src/app/dev-editor-harness are named page.dev.tsx: they are only routes in `next dev`. In a production build they are
   // not pages, so they cost no serverless function (Vercel Hobby allows only 12 per deployment).
   pageExtensions: process.env.NODE_ENV === "production" ? ["tsx", "ts", "jsx", "js"] : ["tsx", "ts", "jsx", "js", "dev.tsx"],
