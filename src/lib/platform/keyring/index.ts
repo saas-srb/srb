@@ -79,6 +79,8 @@ async function load(): Promise<Loaded> {
 
 /** Loads the keyring once per instance (retried after a failure). Never throws. */
 export async function ensureKeyring(): Promise<KeyringStatus> {
+  // During `next build` nothing may read or write the keyring (see instrumentation.ts): report "not loaded" without touching the database.
+  if (process.env.NEXT_PHASE === "phase-production-build") return { state: "unavailable", action: null, message: "The keyring is not loaded during a build.", versions: [], mismatch: null, envKeyPresent: false };
   const cur = store.loaded;
   if (cur && (cur.state !== "unavailable" || Date.now() - cur.at < RETRY_AFTER_FAILURE_MS)) return statusOf(cur);
   store.promise ??= load()

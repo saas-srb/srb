@@ -5,6 +5,10 @@
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  // `next build` also loads this file in its page-data workers. A build must never touch the database or start boot work (keyring escrow, adopting the
+  // build environment's settings, domain sync, the Blob copy): that cost memory and time on the build machine (it was killed for running out of
+  // memory) and could write build-time values into the live database. Everything below is for a running server only.
+  if (process.env.NEXT_PHASE === "phase-production-build") return;
   // The encryption keyring first: with only MONGODB_URI and SAAS_HOSTS set, this is what opens every saved key and encrypted field.
   await import("@/lib/platform/keyring").then((m) => m.ensureKeyring()).catch((err) => console.error("[keyring] boot check failed", err));
   // Not on Vercel (which has its own cron): RUN_SCHEDULER=1 on one instance runs the scheduled jobs from inside the app.
