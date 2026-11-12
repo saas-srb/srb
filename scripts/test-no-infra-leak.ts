@@ -26,7 +26,7 @@ const code = (path: string): { n: number; text: string }[] => {
 };
 
 const CUSTOMER_DIRS = ["src/app/(products)", "src/components/products", "src/components/platform/saas", "src/app/(platform)/saas", "src/app/(platform)/signup", "src/lib/products"];
-const CUSTOMER_FILES = ["src/lib/hub-auth.ts", "src/lib/security/two-factor.ts", "src/lib/security/email-otp.ts", "src/lib/security/second-step.ts", "src/lib/security/second-step-login.ts", "src/lib/security/second-step-actions.ts", "src/components/security/ReAuthGate.tsx", "src/components/security/TwoStepSettings.tsx", "src/lib/security/payment-auth.ts", "src/app/(products)/commandos/login/LoginForm.tsx", "src/app/(products)/commandos/login/page.tsx"];
+const CUSTOMER_FILES = ["src/lib/hub-auth.ts", "src/lib/security/two-factor.ts", "src/lib/security/email-otp.ts", "src/lib/security/second-step.ts", "src/lib/security/sms-otp.ts", "src/components/security/SecondStepScreen.tsx", "src/lib/security/second-step-login.ts", "src/lib/security/second-step-actions.ts", "src/components/security/ReAuthGate.tsx", "src/components/security/TwoStepSettings.tsx", "src/lib/security/payment-auth.ts", "src/app/(products)/commandos/login/LoginForm.tsx", "src/app/(products)/commandos/login/page.tsx"];
 
 t("no customer-visible file or message mentions keys, deployments, Vercel or environment variables", () => {
   const hits: string[] = [];
@@ -53,6 +53,12 @@ t("the sign-in, setup and public pages mount no alert component", () => {
     } catch (e) {
       if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
     }
+  }
+});
+
+t("the sign-in second step never tells people to 'ask your administrator'", () => {
+  for (const f of ["src/lib/security/second-step-login.ts", "src/components/security/SecondStepScreen.tsx", "src/components/security/ReAuthGate.tsx", "src/lib/security/second-step-actions.ts", "src/app/(products)/commandos/login/LoginForm.tsx"]) {
+    for (const l of code(f)) assert.ok(!/ask your administrator/i.test(l.text), `${f}:${l.n}`);
   }
 });
 

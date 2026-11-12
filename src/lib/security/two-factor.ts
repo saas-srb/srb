@@ -24,9 +24,9 @@ interface TwoFactorDoc {
   recovery: string[];
 }
 interface Pending { secret: EncryptedValue; at: Date }
-interface UserTf { _id: ObjectId; email: string; twoFactor?: TwoFactorDoc | null; twoFactorPending?: Pending | null; twoFactorEmail?: { enabledAt: Date } | null; twoFactorSkipUntil?: Date | null; twoFactorForced?: boolean | null; secondStep?: { preferred?: "app" | "email" | null; recovery?: string[]; trusted?: { hash: string; expiresAt: Date; label?: string; createdAt?: Date }[] } | null }
+interface UserTf { _id: ObjectId; email: string; twoFactor?: TwoFactorDoc | null; twoFactorPending?: Pending | null; twoFactorEmail?: { enabledAt: Date } | null; twoFactorSkipUntil?: Date | null; twoFactorForced?: boolean | null; secondStep?: { preferred?: "app" | "email" | "sms" | null; recovery?: string[]; sms?: { e164: string; verifiedAt?: Date } | null; smsPending?: { e164: string; at: Date } | null; trusted?: { hash: string; expiresAt: Date; label?: string; createdAt?: Date }[] } | null }
 
-export type TwoStepMethod = "app" | "email";
+export type TwoStepMethod = "app" | "email" | "sms";
 
 const SETUP_TTL_MS = 15 * 60_000;
 export const newRecoveryCodes = (): string[] => Array.from({ length: 10 }, () => randomBytes(5).toString("hex").replace(/(.{5})(.{5})/, "$1-$2"));
@@ -58,7 +58,7 @@ export interface TwoStepStatus {
 
 export async function twoFactorStatus(adminId: ObjectId): Promise<TwoStepStatus> {
   const u = await (await users()).findOne({ _id: adminId }, { projection: { twoFactor: 1, twoFactorEmail: 1, secondStep: 1 } });
-  const methods: TwoStepMethod[] = [...(u?.twoFactor ? (["app"] as const) : []), ...(u?.twoFactorEmail ? (["email"] as const) : [])];
+  const methods: TwoStepMethod[] = [...(u?.twoFactor ? (["app"] as const) : []), ...(u?.twoFactorEmail ? (["email"] as const) : []), ...(u?.secondStep?.sms?.e164 ? (["sms"] as const) : [])];
   const pref = u?.secondStep?.preferred && methods.includes(u.secondStep.preferred) ? u.secondStep.preferred : null;
   return { enabled: methods.length > 0, method: pref ?? methods[0] ?? null, methods, enabledAt: u?.twoFactor?.enabledAt ?? u?.twoFactorEmail?.enabledAt ?? null, recoveryLeft: (u?.twoFactor?.recovery.length ?? 0) + (u?.secondStep?.recovery?.length ?? 0), preferred: pref, available: twoFactorAvailable() };
 }

@@ -17,7 +17,7 @@ import { getConfig } from "@/lib/platform/config/store";
 export const ENV_CONNECTION_PROVIDERS = (): string[] => Object.keys(ENV);
 const ENV: Record<string, Record<string, string[]>> = {
   openai: { apiKey: ["OPENAI_API_KEY"] },
-  twilio: { accountSid: ["TWILIO_ACCOUNT_SID"], authToken: ["TWILIO_AUTH_TOKEN"], whatsappFrom: ["TWILIO_WHATSAPP_FROM"] },
+  twilio: { accountSid: ["TWILIO_ACCOUNT_SID"], authToken: ["TWILIO_AUTH_TOKEN"], whatsappFrom: ["TWILIO_WHATSAPP_FROM"], smsFrom: ["TWILIO_SMS_FROM"] },
   elevenlabs: { apiKey: ["ELEVENLABS_API_KEY"] },
   "google-service-account": { clientEmail: ["GOOGLE_SEO_CLIENT_EMAIL", "GOOGLE_INDEXING_CLIENT_EMAIL"], privateKey: ["GOOGLE_SEO_PRIVATE_KEY", "GOOGLE_INDEXING_PRIVATE_KEY"] },
   pagespeed: { apiKey: ["PAGESPEED_API_KEY"] },

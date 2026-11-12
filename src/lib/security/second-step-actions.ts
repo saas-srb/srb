@@ -8,7 +8,8 @@ import { getDb } from "@/lib/mongodb";
 import { verifyPassword } from "@/lib/security/password";
 import { breakGlassMatches } from "@/lib/security/break-glass";
 import { sendEmailCode } from "@/lib/security/email-otp";
-import { canRemoveMethod, hasSecondStep, type MethodId, type SecondStepAccount } from "@/lib/security/second-step";
+import { canRemoveMethod, hasSecondStep, maskPhone, normalizePhone, type MethodId, type SecondStepAccount } from "@/lib/security/second-step";
+import { checkSmsCode, smsConfigured, smsUsableFor, sendSmsCode } from "@/lib/security/sms-otp";
 import { getSecondStepPolicy, hasFreshReauth, issueReauth, methodAllowed, noteMethodChange, noteWrong, offeredFor, verifyMethod } from "@/lib/security/second-step-server";
 import { confirmTwoFactorSetup, disableEmailTwoFactor, enableEmailTwoFactor, regenerateRecoveryCodes, secondStepReadable, setPreferredMethod, startTwoFactorSetup, twoFactorStatus } from "@/lib/security/two-factor";
 
@@ -72,7 +73,7 @@ export async function reauthAction(input: { password: string; method?: MethodId;
   if (!emergency && !verifyPassword(password, a.passwordHash)) return { ok: false, error: "That password isn't right.", alternatives };
   if (hasSecondStep(a) && !emergency) {
     const method = (input?.method && off.methods.some((m) => m.id === input.method) ? input.method : off.methods[0]?.id) as MethodId | undefined;
-    if (!method) return { ok: false, error: "We couldn't check your second step right now. Ask your administrator to reset your sign-in.", alternatives };
+    if (!method) return { ok: false, error: "We can't verify you with the methods available on this account right now. Try again in a few minutes.", alternatives };
     if (!(await methodAllowed(a._id, method))) return { ok: false, error: "Too many tries with this way. Wait a few minutes, or try another way.", alternatives };
     const res = await verifyMethod(a, method, String(input?.code ?? ""), "reauth");
     if (res === "unavailable") return { ok: false, error: "We couldn't verify this code. Try another way.", alternatives };
@@ -96,8 +97,10 @@ async function freshOrFail(): Promise<{ user: Awaited<ReturnType<typeof who>> } 
 export interface SecondStepState {
   authenticator: { on: boolean; available: boolean; readable: boolean; since: string | null };
   email: { on: boolean; allowed: boolean; masked: string };
+  /** SMS code: `configured` = a provider exists; `masked` = the verified number. */
+  sms: { on: boolean; allowed: boolean; configured: boolean; masked: string | null };
   recoveryLeft: number;
-  preferred: "app" | "email" | null;
+  preferred: "app" | "email" | "sms" | null;
   /** The company/platform requires a second step for this person. */
   required: boolean;
   trustAllowed: boolean;
@@ -116,6 +119,7 @@ export async function secondStepStateAction(): Promise<SecondStepState> {
   return {
     authenticator: { on: st.methods.includes("app"), available: st.available, readable: a.twoFactor ? await secondStepReadable(a as never) : true, since: st.methods.includes("app") && st.enabledAt ? st.enabledAt.toISOString() : null },
     email: { on: st.methods.includes("email"), allowed: policy.emailAllowed, masked: maskEmail(a.email) },
+    sms: { on: st.methods.includes("sms"), allowed: policy.smsAllowed, configured: await smsConfigured(), masked: a.secondStep?.sms?.e164 ? maskPhone(a.secondStep.sms.e164) : null },
     recoveryLeft: st.recoveryLeft,
     preferred: st.preferred,
     required: privileged && policy.requireForAdmins,
@@ -210,7 +214,7 @@ export async function regenerateRecoveryAction(): Promise<{ ok: true; codes: str
   return { ok: true, codes };
 }
 
-export async function setPreferredAction(method: "app" | "email"): Promise<{ ok: true } | Fail> {
+export async function setPreferredAction(method: "app" | "email" | "sms"): Promise<{ ok: true } | Fail> {
   const g = await freshOrFail();
   if ("ok" in g) return g;
   const st = await twoFactorStatus(new ObjectId(g.user.id));
@@ -230,6 +234,52 @@ export async function revokeTrustedDeviceAction(prefix: string): Promise<{ ok: t
   if (!target) return { ok: true };
   await col.updateOne({ _id: a._id }, { $pull: { "secondStep.trusted": { hash: target.hash } } } as never);
   await noteMethodChange(a, "trusted_device_removed");
+  done();
+  return { ok: true };
+}
+
+// ── SMS code ─────────────────────────────────────────────────────────────────
+
+/** Adds or changes the phone number: texts a code to it (India first: ten digits mean +91). Needs a fresh re-authentication. */
+export async function startSmsAction(phone: string): Promise<{ ok: true; hint: string } | Fail> {
+  const g = await freshOrFail();
+  if ("ok" in g) return g;
+  if (!(await getSecondStepPolicy()).smsAllowed) return { ok: false, error: "Text-message codes aren't available right now." };
+  const e164 = normalizePhone(String(phone ?? ""));
+  if (!e164) return { ok: false, error: "Enter a mobile number, for example 98765 43210 or +91 98765 43210." };
+  if (!(await smsUsableFor(e164))) return { ok: false, error: "Text-message codes aren't available for that number right now." };
+  const id = new ObjectId(g.user.id);
+  const r = await sendSmsCode(id, e164, "enable");
+  if (!r.ok) return { ok: false, error: r.error };
+  await (await getDb()).collection("admin_users").updateOne({ _id: id }, { $set: { "secondStep.smsPending": { e164, at: new Date() } } } as never);
+  return r;
+}
+
+export async function confirmSmsAction(code: string): Promise<{ ok: true } | Fail> {
+  const g = await freshOrFail();
+  if ("ok" in g) return g;
+  const id = new ObjectId(g.user.id);
+  const a = (await account(g.user.id))!;
+  const pending = (a.secondStep as { smsPending?: { e164: string; at: Date } } | null)?.smsPending;
+  if (!pending || Date.now() - new Date(pending.at).getTime() > 15 * 60_000) return { ok: false, error: "That number was not confirmed in time. Start again." };
+  if (!(await checkSmsCode(id, "enable", String(code ?? "")))) return { ok: false, error: "That code isn't right or has expired." };
+  const changed = Boolean(a.secondStep?.sms?.e164);
+  await (await getDb()).collection("admin_users").updateOne({ _id: id }, { $set: { "secondStep.sms": { e164: pending.e164, verifiedAt: new Date() } }, $unset: { "secondStep.smsPending": "" } } as never);
+  await noteMethodChange(a, changed ? "sms_changed" : "sms_on");
+  done();
+  return { ok: true };
+}
+
+export async function removeSmsAction(): Promise<{ ok: true } | Fail> {
+  const g = await freshOrFail();
+  if ("ok" in g) return g;
+  const a = (await account(g.user.id))!;
+  const policy = await getSecondStepPolicy();
+  const guard = canRemoveMethod(a, "sms", { required: (a.roles ?? []).includes("super_admin") && policy.requireForAdmins });
+  if (!guard.ok) return { ok: false, error: guard.reason };
+  await (await getDb()).collection("admin_users").updateOne({ _id: a._id }, { $unset: { "secondStep.sms": "", "secondStep.smsPending": "" } } as never);
+  await (await getDb()).collection("admin_users").updateOne({ _id: a._id, "secondStep.preferred": "sms" } as never, { $unset: { "secondStep.preferred": "" } } as never);
+  await noteMethodChange(a, "sms_off");
   done();
   return { ok: true };
 }

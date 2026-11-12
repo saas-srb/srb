@@ -62,7 +62,7 @@ export function ReAuthPanel({ onDone, title = "Confirm it's you" }: { onDone: ()
           )}
         </div>
       )}
-      {state.needsSecondStep && !method && <p className="text-sm text-muted-foreground">We couldn&apos;t check a second step right now. Ask your administrator to reset your sign-in.</p>}
+      {state.needsSecondStep && !method && <p className="text-sm text-muted-foreground">We can&apos;t verify you with the methods available on this account right now. Try again in a few minutes.</p>}
       {info && <p role="status" className="text-xs text-muted-foreground">{info}</p>}
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       <Button type="submit" size="sm" disabled={pending || !password}>{pending ? <Loader2 className="size-4 animate-spin" /> : "Confirm"}</Button>

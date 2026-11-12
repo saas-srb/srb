@@ -73,6 +73,10 @@ export async function getSetupStatus(): Promise<SetupItem[]> {
     out.push(item("sync", "Domain sync", sync.run.status === "failed" ? "warn" : c.failed || c.ownedElsewhere ? "warn" : "ok", true, `${sync.run.status === "running" ? "Running" : "Last run " + sync.run.status}: ${c.attached} attached, ${c.ownedElsewhere} owned elsewhere, ${c.failed} failed.`));
   } else out.push(item("sync", "Domain sync", cfg.vercel ? "warn" : "action", true, cfg.vercel ? "Has not run yet; it starts by itself (or press Sync all domains now)." : "Starts automatically as soon as a Vercel token exists."));
 
+  const smsMod = await import("@/lib/security/sms-otp");
+  const smsP = await smsMod.smsProvider().catch(() => null);
+  const smsPolicy = await import("@/lib/security/second-step-server").then((m) => m.getSecondStepPolicy("")).catch(() => null);
+  out.push(smsPolicy?.smsAllowed ? (smsP ? item("sms", "SMS sign-in codes", smsP.dlt ? "ok" : "warn", false, smsP.dlt ? "On. Twilio and the India DLT fields are set." : "On, but the India DLT fields are missing, so +91 numbers can't be used.") : item("sms", "SMS sign-in codes", "warn", false, "Allowed in the policy but no Twilio SMS sender is configured, so nobody can use it.")) : item("sms", "SMS sign-in codes", "ok", true, smsP ? "Ready; turn on \"SMS codes allowed\" in Console, Health when you want it." : "Off (needs Twilio and, for India, the DLT fields in Integrations)."));
   const adopted = await adoptedCount().catch(() => 0);
   out.push(item("adopted", "Adopted from environment", "ok", true, `${adopted} setting${adopted === 1 ? "" : "s"} adopted from environment variables into the database; a new deployment finds them there.`));
 

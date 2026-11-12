@@ -88,7 +88,8 @@ async function check(name: string, fn: () => Promise<void>) {
     assert.equal(u?.lockedUntil ?? null, null);
     const r = await login("worker@yash.test", PASS);
     assert.ok(!r.ok && /recovery code/i.test(r.info ?? "") && r.canEmail === false);
-    assert.match(r.info ?? "", /ask your administrator to reset your sign-in/i, "calm instructions when email is not configured");
+    assert.match(r.info ?? "", /recovery code/i, "calm instructions when email is not configured");
+    assert.ok(!/administrator/i.test(`${r.info} ${r.error}`), "no 'ask your administrator' wording at sign-in");
     assert.ok(!/key|deployment|server|Vercel|environment/i.test(`${r.info} ${r.error}`), "no infrastructure wording reaches the person");
   });
 

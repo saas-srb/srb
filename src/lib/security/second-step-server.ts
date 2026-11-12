@@ -9,7 +9,8 @@ import { recordPlatformAudit } from "@/lib/platform/audit";
 import { stableRootSecret } from "@/lib/platform/keyring";
 import { checkEmailCode, maskEmail } from "@/lib/security/email-otp";
 import { secondStepReadable, useRecoveryCode, verifyAuthenticatorCode } from "@/lib/security/two-factor";
-import { DEFAULT_POLICY, hashDeviceToken, mergePolicy, newDeviceToken, offeredMethods, rateDecision, signReauthMarker, verifyReauthMarker, type MethodId, type MethodView, type RateState, type SecondStepAccount, type SecondStepPolicy } from "@/lib/security/second-step";
+import { checkSmsCode, smsConfigured, smsUsableFor } from "@/lib/security/sms-otp";
+import { DEFAULT_POLICY, hashDeviceToken, mergePolicy, methodRows, newDeviceToken, offeredMethods, rateDecision, signReauthMarker, verifyReauthMarker, type MethodId, type MethodRow, type MethodView, type RateState, type SecondStepAccount, type SecondStepPolicy } from "@/lib/security/second-step";
 
 /** Server side of the multi-method second step: policy, which methods an account is offered, verifying one, re-authentication, trusted devices, notices. */
 
@@ -64,11 +65,14 @@ export async function emailProviderReady(): Promise<boolean> {
   return ok;
 }
 
-export async function offeredFor(user: SecondStepAccount & { _id: ObjectId }, policy?: SecondStepPolicy): Promise<{ methods: MethodView[]; appReadable: boolean; policy: SecondStepPolicy }> {
+export async function offeredFor(user: SecondStepAccount & { _id: ObjectId }, policy?: SecondStepPolicy): Promise<{ methods: MethodView[]; rows: MethodRow[]; appReadable: boolean; policy: SecondStepPolicy }> {
   const p = policy ?? (await getSecondStepPolicy());
   const appReadable = user.twoFactor ? await secondStepReadable(user as never) : true;
   const emailReady = await emailProviderReady();
-  return { methods: offeredMethods(user, { appReadable, emailReady, policy: p }), appReadable, policy: p };
+  const phone = user.secondStep?.sms?.e164;
+  const smsUsable = p.smsAllowed && phone ? await smsUsableFor(phone) : false;
+  const methods = offeredMethods(user, { appReadable, emailReady, smsUsable, policy: p });
+  return { methods, rows: methodRows(user, methods, { emailReady, smsConfigured: p.smsAllowed && (await smsConfigured()), policy: p }), appReadable, policy: p };
 }
 
 // ── Verifying one method ─────────────────────────────────────────────────────
@@ -102,6 +106,7 @@ export async function verifyMethod(user: SecondStepAccount & { _id: ObjectId }, 
     const r = await verifyAuthenticatorCode(user as never, typed);
     return r === "unreadable" ? "unavailable" : r;
   }
+  if (method === "sms") return (await checkSmsCode(user._id, emailPurpose, typed)) ? "ok" : "wrong";
   return (await checkEmailCode(user._id, emailPurpose, typed)) ? "ok" : "wrong";
 }
 
@@ -112,7 +117,7 @@ export async function noteMethodChange(user: { _id: ObjectId; email: string }, w
   try {
     const { sendEmail } = await import("@/lib/platform/email");
     const { renderEmail } = await import("@/lib/platform/email/template");
-    const text = { app_changed: "your authenticator app was changed", email_on: "email codes were turned on", email_off: "email codes were turned off", recovery_regenerated: "your recovery codes were replaced", preferred_changed: "your preferred sign-in check was changed", trusted_device_added: "a device was trusted", trusted_device_removed: "a trusted device was removed", app_removed: "your authenticator app was turned off" }[what] ?? "your sign-in settings were changed";
+    const text = { app_changed: "your authenticator app was changed", email_on: "email codes were turned on", email_off: "email codes were turned off", recovery_regenerated: "your recovery codes were replaced", preferred_changed: "your preferred sign-in check was changed", trusted_device_added: "a device was trusted", trusted_device_removed: "a trusted device was removed", app_removed: "your authenticator app was turned off", sms_on: "SMS codes were turned on for your phone number", sms_off: "SMS codes were turned off", sms_changed: "the phone number for SMS codes was changed" }[what] ?? "your sign-in settings were changed";
     const { html, text: plain } = renderEmail({ brand: "Security notice", heading: "Your sign-in settings changed", paragraphs: [`We're letting you know that ${text}.`], footnote: "If this wasn't you, change your password now and tell your administrator." });
     await sendEmail({ to: user.email, subject: "Your sign-in settings changed", html, text: plain, event: "auth_second_step_changed" });
   } catch {

@@ -14,7 +14,7 @@ export default function SecondStepPolicyForm({ initial, canManage, canCompanies 
   const [p, setP] = useState(initial);
   const [pending, start] = useTransition();
   const [company, setCompany] = useState("");
-  const box = (k: "emailAllowed" | "requireForAdmins" | "trustDeviceAllowed", label: string) => (
+  const box = (k: "emailAllowed" | "smsAllowed" | "requireForAdmins" | "trustDeviceAllowed", label: string) => (
     <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="size-4" checked={p[k]} disabled={!canManage} onChange={(e) => setP({ ...p, [k]: e.target.checked })} />{label}</label>
   );
   return (
@@ -25,6 +25,7 @@ export default function SecondStepPolicyForm({ initial, canManage, canCompanies 
       </CardHeader>
       <CardContent className="space-y-3">
         {box("emailAllowed", "Allow email codes (as a method and as the fallback when an authenticator can't be checked)")}
+        {box("smsAllowed", "Allow SMS codes (needs Twilio and, for +91 numbers, the DLT fields in Integrations, SMS sign-in codes)")}
         {box("requireForAdmins", "Require a second step for admins")}
         {box("trustDeviceAllowed", "Let people choose \"trust this device\" (off by default)")}
         <div className="flex flex-wrap items-center gap-3 text-sm">

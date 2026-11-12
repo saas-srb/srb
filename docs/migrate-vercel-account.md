@@ -64,11 +64,19 @@ When a person's authenticator can't be checked they see only "We couldn't verify
 
 ## Second step with several methods, step-up re-authentication and policy
 
-- **Methods:** every account can have any mix of an authenticator app, an email code and recovery codes (older `twoFactor` / `twoFactorEmail` documents work unchanged; new data is in `secondStep`). After the password the preferred method is asked first and "Try another way" lists the others with masked destinations; switching needs no new password. A method that fails or is unavailable (unreadable authenticator, email down, lost phone) surfaces the others in customer-safe words and is never counted as a failed login. Wrong codes are rate-limited per method (10 per 10 minutes).
+- **Methods:** every account can have any mix of an authenticator app, an email code, an SMS code (a verified phone number) and recovery codes (older `twoFactor` / `twoFactorEmail` documents work unchanged; new data is in `secondStep`). After the password the preferred method is asked first and "Try another way" lists the others with masked destinations; switching needs no new password. A method that fails or is unavailable (unreadable authenticator, email down, lost phone) surfaces the others in customer-safe words and is never counted as a failed login. Wrong codes are rate-limited per method (10 per 10 minutes).
 - **Manage methods:** Security settings and the profile panel (`TwoStepSettings`): set up or replace the authenticator (QR and key), turn email codes on or off, make new recovery codes (shown once, copy/download/print), choose the preferred method, remove trusted devices. The last method can't be removed when a second step is required.
 - **Step-up re-authentication:** one mechanism (`ReAuthGate`, `useReAuth`, `reauthAction`): password plus any method the person has, valid for N minutes (default 10, Console, Health, policy). It is a signed cookie bound to the user and session. Method changes, the key backup / rotation / add-key actions, and the danger-zone confirmation use it.
 - **Policy (Console, Health):** email codes allowed (default yes), second step required for admins (default no), "trust this device" (default OFF, hashed token, revocable), re-confirm window; a company can have its own override.
 - **Notices:** every change to methods or recovery codes is audit-logged (`second_step.*`) and emailed to the account when a provider exists.
+
+### SMS codes (off until configured)
+
+Console, Integrations, SMS sign-in codes: the SMS sender (a Twilio number, or the DLT-registered alphanumeric sender) and, for Indian (+91) numbers, the DLT principal entity id, template id and sender id. Twilio itself comes from the existing Twilio keys (a company's own Twilio first, then the platform's). Then turn on "Allow SMS codes" in Console, Health, sign-in security policy (it refuses until a sender exists; +91 numbers also need the DLT fields; Setup status shows which is missing). Codes are 6 digits, hashed, single use, 10 minutes, one per 45 seconds, 5 an hour per person and per number, 10 a day per person, 5 wrong tries per code; a provider failure is never counted against the person.
+
+### What the sign-in screen shows
+
+After a correct password: the preferred method's input, and directly under it "Try another way" with a card for every method the platform offers (Authenticator app, Email code, SMS code, Recovery code). Choosing one is a single click and keeps the typed email and password. A method the account hasn't set up is greyed ("Not set up for this account"), one that can't be used right now says "Not available right now", and a method the platform hasn't enabled is hidden. If the preferred method can't be used, the first usable one opens automatically (for example an email code when the authenticator can't be checked). If nothing is usable: "We can't verify you with the methods available on this account right now. Try again in a few minutes." and a Contact support link (the platform support address); staff get the reset-needed alert.
 
 ## Sign-in when the authenticator can't be opened (key mismatch)
 

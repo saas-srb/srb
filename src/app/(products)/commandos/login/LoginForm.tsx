@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import SecondStepScreen from "@/components/security/SecondStepScreen";
 import { hubLoginAction, hubTakeoverAction, type HubLoginState } from "./actions";
 import { BrandName } from "@/components/platform/BrandProvider";
 import { DEMO_ACCESS } from "@/components/platform/saas/demo-access";
@@ -103,42 +104,15 @@ export default function LoginForm({ next = null, demo = false }: { next?: string
                 </Button>
               </div>
             </div>
-            {state?.needsCode && (
-              <div className="space-y-1.5">
-                <input type="hidden" name="current" value={state.method ?? ""} />
-                <Label htmlFor={codeId}>{state.method === "email" ? "Code from your email" : state.method === "recovery" ? "Recovery code" : "Authentication code"}</Label>
-                <Input id={codeId} name="code" inputMode={state.method === "recovery" ? "text" : "numeric"} autoComplete="one-time-code" autoFocus placeholder={state.method === "recovery" ? "xxxxx-xxxxx" : "6-digit code"} maxLength={20} required />
-                {state.method === "email" && (
-                  <p className="text-xs text-muted-foreground">
-                    Nothing there?{" "}
-                    <button type="submit" name="resend" value="1" formNoValidate className="font-medium text-primary hover:underline">Send a new code</button>
-                  </p>
-                )}
-                {state.trustAllowed && (
-                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <input type="checkbox" name="trust" value="1" className="size-4" /> Trust this device for 30 days
-                  </label>
-                )}
-                {state.alternatives && state.alternatives.length > 0 && (
-                  <div className="pt-1" role="group" aria-label="Try another way">
-                    <p className="text-xs font-medium text-muted-foreground">Try another way</p>
-                    <ul className="mt-1 space-y-1">
-                      {state.alternatives.map((a) => (
-                        <li key={a.id}>
-                          <button type="submit" name="method" value={a.id} formNoValidate className="text-left text-sm font-medium text-primary hover:underline">{a.label}</button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-            {state?.info && (
+            {state?.needsCode && state.method && state.methods ? (
+              <SecondStepScreen inputId={codeId} view={{ method: state.method, methods: state.methods, hint: state.hint, info: state.info, error: state.error, resendIn: state.resendIn, nothingUsable: state.nothingUsable, supportEmail: state.supportEmail, trustAllowed: state.trustAllowed }} />
+            ) : null}
+            {state?.info && !state.needsCode && (
               <p role="status" className="rounded-lg bg-primary/[0.07] px-3 py-2 text-sm text-foreground">
                 {state.info}
               </p>
             )}
-            {state?.error && (
+            {state?.error && !state.needsCode && (
               <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {state.error}
               </p>

@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Download, Loader2, Mail, Printer, ShieldCheck, Smartphone } from "lucide-react";
+import { Download, Loader2, Mail, MessageSquare, Printer, ShieldCheck, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useReAuth } from "@/components/security/ReAuthGate";
 import {
   confirmAuthenticatorAction,
+  confirmSmsAction,
+  removeSmsAction,
+  startSmsAction,
   disableEmailMethodAction,
   enableEmailMethodAction,
   regenerateRecoveryAction,
@@ -23,7 +26,7 @@ import {
 export const TWO_STEP_DESCRIPTION = "Your choice: extra checks when you sign in. Use an authenticator app, a code sent to your email, or both, and keep recovery codes as a back-up. If one doesn't work you can always try another way.";
 
 export interface TwoStepState {
-  method: "app" | "email" | null;
+  method: "app" | "email" | "sms" | null;
   enabledAt: string | null;
   recoveryLeft: number;
   available: boolean;
@@ -73,6 +76,8 @@ export default function TwoStepSettings({ onMethodChange }: { initial?: TwoStepS
   const [code, setCode] = useState("");
   const [emailStep, setEmailStep] = useState<null | { purpose: "enable" | "disable"; hint: string }>(null);
   const [codes, setCodes] = useState<string[] | null>(null);
+  const [smsStep, setSmsStep] = useState<null | { stage: "number" | "code"; hint?: string }>(null);
+  const [phone, setPhone] = useState("");
 
   const reload = () => secondStepStateAction().then(setS).catch(() => setError("Couldn't load your sign-in settings."));
   useEffect(() => { void reload(); }, []);
@@ -87,6 +92,13 @@ export default function TwoStepSettings({ onMethodChange }: { initial?: TwoStepS
       const r = await guard(fn);
       if (r.ok) { after?.(r); await reload(); } else if (!r.reauth) setError(r.error ?? "That didn't work.");
     });
+
+  const effective = s.preferred ?? (s.authenticator.on ? "app" : s.email.on ? "email" : s.sms.on ? "sms" : null);
+  const onCount = [s.authenticator.on, s.email.on, s.sms.on].filter(Boolean).length;
+  const Preferred = ({ id }: { id: "app" | "email" | "sms" }) =>
+    onCount > 1 ? (
+      effective === id ? <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-bold text-primary">Preferred</span> : <Button type="button" size="sm" variant="ghost" disabled={pending} onClick={() => run(() => setPreferredAction(id))}>Make preferred</Button>
+    ) : null;
 
   return (
     <div className="space-y-3">
@@ -109,6 +121,7 @@ export default function TwoStepSettings({ onMethodChange }: { initial?: TwoStepS
           <div className="flex flex-wrap gap-2">
             {s.authenticator.available && <Button type="button" size="sm" variant={s.authenticator.on ? "outline" : "default"} disabled={pending} onClick={() => run(() => startAuthenticatorAction(), (r) => { if ("secret" in r) setApp({ secret: r.secret, qr: r.qr }); })}>{s.authenticator.on ? "Replace" : "Set up"}</Button>}
             {s.authenticator.on && <Button type="button" size="sm" variant="ghost" disabled={pending} onClick={() => run(() => removeAuthenticatorAction())}>Turn off</Button>}
+            {s.authenticator.on && <Preferred id="app" />}
           </div>
         )}
       </Row>
@@ -129,6 +142,38 @@ export default function TwoStepSettings({ onMethodChange }: { initial?: TwoStepS
               {pending ? <Loader2 className="size-4 animate-spin" /> : s.email.on ? "Turn off" : "Send me a code to turn on"}
             </Button>
           )}
+          {s.email.on && !emailStep && <Preferred id="email" />}
+        </Row>
+      ) : null}
+
+      {s.sms.allowed || s.sms.on ? (
+        <Row icon={MessageSquare} title="SMS code" status={s.sms.on ? `On. A 6-digit code is texted to ${s.sms.masked}.` : s.sms.configured ? "Off. A 6-digit code texted to your mobile number each time you sign in." : "Not available right now."}>
+          {smsStep ? (
+            <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); if (smsStep.stage === "number") run(() => startSmsAction(phone), (r) => { if ("hint" in r) setSmsStep({ stage: "code", hint: r.hint }); }); else run(() => confirmSmsAction(code), () => { setSmsStep(null); setCode(""); setPhone(""); }); }}>
+              {smsStep.stage === "number" ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" autoComplete="tel" placeholder="+91 98765 43210" className="w-48" aria-label="Mobile number" />
+                  <Button type="submit" size="sm" disabled={pending || phone.replace(/\D/g, "").length < 10}>Send code</Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => { setSmsStep(null); setPhone(""); }}>Cancel</Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">We texted a code to {smsStep.hint}. It works for 10 minutes.</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Input value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" autoComplete="one-time-code" placeholder="6-digit code" maxLength={7} className="w-40" aria-label="6-digit code from your text message" />
+                    <Button type="submit" size="sm" disabled={pending || code.replace(/\D/g, "").length < 6}>Confirm</Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => { setSmsStep(null); setCode(""); }}>Cancel</Button>
+                  </div>
+                </div>
+              )}
+            </form>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {s.sms.configured && <Button type="button" size="sm" variant={s.sms.on ? "outline" : "default"} disabled={pending} onClick={() => setSmsStep({ stage: "number" })}>{s.sms.on ? "Change number" : "Add phone number"}</Button>}
+              {s.sms.on && <Button type="button" size="sm" variant="ghost" disabled={pending} onClick={() => run(() => removeSmsAction())}>Turn off</Button>}
+              {s.sms.on && <Preferred id="sms" />}
+            </div>
+          )}
         </Row>
       ) : null}
 
@@ -148,15 +193,6 @@ export default function TwoStepSettings({ onMethodChange }: { initial?: TwoStepS
           <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => run(() => regenerateRecoveryAction(), (r) => { if ("codes" in r) setCodes(r.codes); })}>{s.recoveryLeft > 0 ? "Make new codes" : "Make recovery codes"}</Button>
         )}
       </Row>
-
-      {s.authenticator.on && s.email.on && (
-        <fieldset className="space-y-1 text-sm">
-          <legend className="text-xs font-medium text-muted-foreground">Ask me first for</legend>
-          {(["app", "email"] as const).map((m) => (
-            <label key={m} className="flex items-center gap-2"><input type="radio" name="preferred" className="size-4" checked={(s.preferred ?? "app") === m} onChange={() => run(() => setPreferredAction(m))} />{m === "app" ? "Authenticator app" : "Email code"}</label>
-          ))}
-        </fieldset>
-      )}
 
       {s.trustAllowed && (
         <div className="space-y-1 text-sm">

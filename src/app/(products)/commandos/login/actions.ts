@@ -18,7 +18,7 @@ export interface HubLoginState {
   /** The password was right and the account has two-step sign-in: the form now asks for the code. */
   needsCode?: boolean;
   /** Which second step is asked for, and (email) where the code was sent, masked. */
-  method?: "app" | "email" | "recovery";
+  method?: "app" | "email" | "sms" | "recovery";
   hint?: string;
   /** A plain message (not an error), e.g. "We sent a code to j***@acme.com". */
   info?: string;
@@ -26,7 +26,10 @@ export interface HubLoginState {
   keyUnavailable?: boolean;
   canEmail?: boolean;
   /** "Try another way": the other methods this account can use, masked. */
-  alternatives?: { id: "app" | "email" | "recovery"; label: string }[];
+  methods?: { id: "app" | "email" | "sms" | "recovery"; title: string; description: string; status: "available" | "unavailable" | "not_set_up" }[];
+  nothingUsable?: boolean;
+  supportEmail?: string;
+  resendIn?: number;
   /** The page may show "trust this device" (company/platform policy). */
   trustAllowed?: boolean;
   /** The plan allows one device at a time and the account is signed in elsewhere: the page asks before signing that device out. */
@@ -45,7 +48,7 @@ export async function hubLoginAction(_prevState: HubLoginState, formData: FormDa
 
   const result = await verifyHubCredentials(email, password, String(formData.get("code") ?? ""), { resend: formData.get("resend") === "1", method: String(formData.get("method") || formData.get("current") || "") || null });
   if (!result.ok) {
-    return { error: result.error, needsCode: result.needsCode, method: result.method, hint: result.hint, info: result.info, keyUnavailable: result.keyUnavailable, canEmail: result.canEmail, alternatives: result.alternatives, trustAllowed: result.trustAllowed };
+    return { error: result.error, needsCode: result.needsCode, method: result.method, hint: result.hint, info: result.info, keyUnavailable: result.keyUnavailable, canEmail: result.canEmail, methods: result.methods, nothingUsable: result.nothingUsable, supportEmail: result.supportEmail, resendIn: result.resendIn, trustAllowed: result.trustAllowed };
   }
 
   if (formData.get("trust") === "1") {

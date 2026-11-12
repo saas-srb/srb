@@ -70,6 +70,17 @@ export const CONFIG_SECTIONS: ConfigSection[] = [
     ],
   },
   {
+    id: "sms",
+    title: "SMS sign-in codes",
+    description: "Text-message codes for second-step sign-in use the Twilio account above (a company's own Twilio comes first). Turn \"SMS codes allowed\" on in Health, sign-in security policy, once this works. For Indian (+91) numbers the DLT fields below are also required.",
+    fields: [
+      { key: "TWILIO_SMS_FROM", label: "SMS sender", secret: false, help: "A Twilio number (+1…) or your DLT-registered alphanumeric sender (the header).", placeholder: "+1… or SELFRN" },
+      { key: "DLT_ENTITY_ID", label: "DLT principal entity id (India)", secret: false, help: "From your telecom DLT portal." },
+      { key: "DLT_TEMPLATE_ID", label: "DLT template id (India)", secret: false, help: "The approved template id of the sign-in code message." },
+      { key: "DLT_SENDER_ID", label: "DLT sender id / header (India)", secret: false, help: "The approved header, for example SELFRN." },
+    ],
+  },
+  {
     id: "storage",
     title: "File storage",
     description: "Uploaded files and backups are kept in the database itself (GridFS), so they move with it. Vercel Blob is optional: files already in a Blob store are read from it (and copied into the database in the background), and new uploads go to Blob only when the backend below is set to blob.",

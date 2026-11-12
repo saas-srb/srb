@@ -101,7 +101,7 @@ function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-type HubFail = { ok: false; error: string; needsCode?: boolean; method?: "app" | "email" | "recovery"; hint?: string; info?: string; keyUnavailable?: boolean; canEmail?: boolean; alternatives?: { id: "app" | "email" | "recovery"; label: string }[]; trustAllowed?: boolean };
+type HubFail = { ok: false; error: string; needsCode?: boolean; method?: "app" | "email" | "sms" | "recovery"; hint?: string; info?: string; keyUnavailable?: boolean; canEmail?: boolean; alternatives?: { id: "app" | "email" | "sms" | "recovery"; label: string }[]; trustAllowed?: boolean; methods?: { id: "app" | "email" | "sms" | "recovery"; title: string; description: string; status: "available" | "unavailable" | "not_set_up" }[]; nothingUsable?: boolean; supportEmail?: string; resendIn?: number };
 
 /** Staff-only: records that this person's authenticator can't be checked (Console Health item + notification + audit). Never blocks or slows the sign-in. */
 async function flagUnreadable(user: HubUserDoc, email: string): Promise<void> {

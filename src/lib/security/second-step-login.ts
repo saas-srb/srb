@@ -3,14 +3,16 @@ import type { ObjectId } from "mongodb";
 import { recordPlatformAudit } from "@/lib/platform/audit";
 import { currentCompanyId } from "@/lib/platform/tenancy/context";
 import { sendEmailCode } from "@/lib/security/email-otp";
-import { hasSecondStep, isTrustedDevice, maskEmail, pickMethod, type MethodId, type MethodView, type SecondStepAccount } from "@/lib/security/second-step";
-import { methodAllowed, noteMethodChange, noteWrong, offeredFor, readTrustToken, verifyMethod, getSecondStepPolicy } from "@/lib/security/second-step-server";
+import { sendSmsCode } from "@/lib/security/sms-otp";
+import { hasSecondStep, isTrustedDevice, maskEmail, maskPhone, pickMethod, type MethodId, type MethodRow, type MethodView, type SecondStepAccount } from "@/lib/security/second-step";
+import { getSecondStepPolicy, methodAllowed, noteMethodChange, noteWrong, offeredFor, readTrustToken, verifyMethod } from "@/lib/security/second-step-server";
 import { recoverTwoStep } from "@/lib/security/two-factor";
 
 /**
- * The second step of sign-in with every method an account has. After the password: the preferred method is asked first, "Try another way"
- * lists the others (masked), and a method that fails or is unavailable (unreadable authenticator, email provider down, lost phone) simply
- * surfaces the others, in customer-safe words. Failures that are not the person's mistake are never counted.
+ * The second step of sign-in with every method an account has. After the password: the preferred method is asked first and a "Try another way"
+ * list of ALL methods the platform offers is always shown (a method the account hasn't set up is greyed with a neutral hint). A method that fails
+ * or is unavailable (unreadable authenticator, email or SMS provider down, lost phone) opens the first usable one instead, in customer-safe words.
+ * Failures that are not the person's mistake are never counted. Only reached after a correct password.
  */
 
 export interface SecondStepFail {
@@ -20,12 +22,18 @@ export interface SecondStepFail {
   method: MethodId;
   hint?: string;
   info?: string;
-  /** The other ways in, masked, for "Try another way". */
+  /** Every method the platform offers, with its state, for the chooser (the one being shown is included). */
+  methods: MethodRow[];
+  /** Kept for older callers. */
   alternatives: { id: MethodId; label: string }[];
-  /** Kept for older callers: the authenticator can't be checked / an email code is on offer. */
   keyUnavailable?: boolean;
   canEmail?: boolean;
-  /** The page may offer "trust this device" (policy). */
+  /** Nothing can verify this person right now. */
+  nothingUsable?: boolean;
+  /** Where to write for help (platform contact settings). */
+  supportEmail?: string;
+  /** Seconds before another code may be requested (email / SMS). */
+  resendIn?: number;
   trustAllowed?: boolean;
   /** Count this response against the sign-in lock (a genuinely wrong code). */
   countFailure?: boolean;
@@ -35,10 +43,22 @@ export type SecondStepResult = { proceed: true; via: MethodId | "trusted" | "bre
 const PROMPT: Record<MethodId, string> = {
   app: "Enter the 6-digit code from your authenticator app.",
   email: "",
-  recovery: "Enter one of your recovery codes. If you can't find one, ask your administrator to reset your sign-in.",
+  sms: "",
+  recovery: "Enter one of your saved recovery codes.",
 };
 
 type LoginUser = SecondStepAccount & { _id: ObjectId; email: string; platformRoleId?: string | null; roles?: string[] };
+
+async function supportEmail(): Promise<string | undefined> {
+  try {
+    const { requestHostOrNull } = await import("@/lib/platform/saas/request");
+    const { saasCanonicalHost } = await import("@/lib/platform/saas/hosts");
+    const { saasContact } = await import("@/lib/platform/saas/brand");
+    return saasContact(saasCanonicalHost(await requestHostOrNull())).support;
+  } catch {
+    return undefined;
+  }
+}
 
 async function runSecondStepInner(c: { user: LoginUser; normalizedEmail: string; code?: string; resend?: boolean; method?: string | null; breakGlass: boolean; flagUnreadable?: () => void }): Promise<SecondStepResult> {
   const { user } = c;
@@ -46,11 +66,13 @@ async function runSecondStepInner(c: { user: LoginUser; normalizedEmail: string;
   const policy = await getSecondStepPolicy();
   if (isTrustedDevice(user, await readTrustToken().catch(() => null), Date.now(), policy)) return { proceed: true, via: "trusted" };
 
-  const { methods: offered, appReadable } = await offeredFor(user, policy);
+  const { methods: offered, rows, appReadable } = await offeredFor(user, policy);
   const id = String(user._id);
   const unreadable = Boolean(user.twoFactor) && !appReadable;
   if (unreadable) c.flagUnreadable?.();
+  const phone = user.secondStep?.sms?.e164;
   const alternatives = (current: MethodId): { id: MethodId; label: string }[] => offered.filter((m) => m.id !== current).map((m) => ({ id: m.id, label: m.label }));
+  const base = (m: MethodId) => ({ ok: false as const, needsCode: true as const, method: m, methods: rows, alternatives: alternatives(m), keyUnavailable: unreadable, canEmail: offered.some((x) => x.id === "email") });
   const done = async (via: MethodId): Promise<SecondStepResult> => {
     // The authenticator couldn't be checked but the person proved themselves another way: drop the unreadable secret, and have them re-enrol right away.
     if (unreadable && via !== "app") {
@@ -68,45 +90,49 @@ async function runSecondStepInner(c: { user: LoginUser; normalizedEmail: string;
   }
 
   if (offered.length === 0) {
-    // Nothing usable right now (for example an unreadable authenticator, no recovery codes and no email option): calm words, nothing counted.
-    return { ok: false, error: "", needsCode: true, method: "recovery", info: "We couldn't verify your sign-in right now. Ask your administrator to reset your sign-in.", alternatives: [], keyUnavailable: unreadable };
+    // Nothing usable right now: neutral guidance and a way to reach support. (Staff already have an alert queued for an unreadable authenticator.)
+    return { ...base("recovery"), error: "", info: "We can't verify you with the methods available on this account right now. Try again in a few minutes.", nothingUsable: true, supportEmail: await supportEmail(), alternatives: [] };
   }
 
-  let method = pickMethod(offered, c.method) as MethodId;
+  const method = pickMethod(offered, c.method) as MethodId;
   const typed = (c.code ?? "").trim();
 
-  const ask = async (m: MethodId, info?: string, error = ""): Promise<SecondStepFail> => {
-    if (m === "email") {
-      const sent = await sendEmailCode(user._id, user.email, "login");
-      if (sent.ok) return { ok: false, error, needsCode: true, method: "email", hint: sent.hint, info: info ?? `We sent a 6-digit code to ${sent.hint}. It works for 10 minutes.`, alternatives: alternatives("email"), keyUnavailable: unreadable, canEmail: true };
-      if (sent.waitSeconds) return { ok: false, error, needsCode: true, method: "email", hint: maskEmail(user.email), info: `A code was sent to ${maskEmail(user.email)} a moment ago. Check your inbox (and spam). You can ask for another in ${sent.waitSeconds} seconds.`, alternatives: alternatives("email"), keyUnavailable: unreadable, canEmail: true };
-      // The email could not be sent (provider down, too many requests): offer the other ways, without saying why.
-      const rest = offered.filter((x) => x.id !== "email");
+  /** The prompt for a method WITHOUT sending anything (after a wrong code, or when switching to a method that needs no send). */
+  const show = (m: MethodId, info: string | undefined, error: string): SecondStepFail => ({
+    ...base(m),
+    error,
+    hint: m === "email" ? maskEmail(user.email) : m === "sms" && phone ? maskPhone(phone) : undefined,
+    info: info ?? (m === "email" ? `Enter the 6-digit code we emailed to ${maskEmail(user.email)}.` : m === "sms" && phone ? `Enter the 6-digit code we texted to ${maskPhone(phone)}.` : PROMPT[m]),
+  });
+
+  /** Sends a code (email / SMS) and prompts; if sending fails the first other usable method opens instead, without saying why. */
+  const ask = async (m: MethodId, error = ""): Promise<SecondStepFail> => {
+    if (m === "email" || m === "sms") {
+      const sent = m === "email" ? await sendEmailCode(user._id, user.email, "login") : await sendSmsCode(user._id, phone!, "login");
+      if (sent.ok) return { ...show(m, `We sent a 6-digit code to ${sent.hint}. It works for 10 minutes.`, error), hint: sent.hint, resendIn: 45 };
+      const wait = "waitSeconds" in sent ? sent.waitSeconds : undefined;
+      if (wait) return { ...show(m, `A code was sent to ${m === "email" ? maskEmail(user.email) : maskPhone(phone!)} a moment ago. Check your messages. You can ask for another in ${wait} seconds.`, error), resendIn: wait };
+      const rest = offered.filter((x) => x.id !== m);
       const next = rest[0]?.id;
-      if (!next) return { ok: false, error: "", needsCode: true, method: "recovery", info: "We couldn't send a code right now. Please try again in a few minutes, or ask your administrator to reset your sign-in.", alternatives: [], keyUnavailable: unreadable };
-      return { ok: false, error: "", needsCode: true, method: next, info: `We couldn't send the email right now. ${PROMPT[next]}`, alternatives: rest.filter((x) => x.id !== next).map((x) => ({ id: x.id, label: x.label })), keyUnavailable: unreadable };
+      if (!next) return { ...base("recovery"), error: "", info: "We couldn't send a code right now. Try again in a few minutes.", nothingUsable: true, supportEmail: await supportEmail(), alternatives: [] };
+      return show(next, `We couldn't send that code right now. ${next === "email" || next === "sms" ? "Choose how to get a code below." : PROMPT[next]}`.trim(), "");
     }
-    return { ok: false, error, needsCode: true, method: m, info: info ?? PROMPT[m], alternatives: alternatives(m), keyUnavailable: unreadable, canEmail: offered.some((x) => x.id === "email") };
+    return show(m, undefined, error);
   };
 
-  /** The prompt for a method WITHOUT sending anything (after a wrong code). */
-  const show = (m: MethodId, info: string | undefined, error: string): SecondStepFail => ({ ok: false, error, needsCode: true, method: m, hint: m === "email" ? maskEmail(user.email) : undefined, info: info ?? (m === "email" ? `Enter the 6-digit code we emailed to ${maskEmail(user.email)}.` : PROMPT[m]), alternatives: alternatives(m), keyUnavailable: unreadable, canEmail: offered.some((x) => x.id === "email") });
-
   // Nothing typed yet (or "send again"): ask with the chosen method.
-  if (!typed || (c.resend && method === "email")) return ask(method);
+  if (!typed || (c.resend && (method === "email" || method === "sms"))) return ask(method);
 
   if (!(await methodAllowed(user._id, method))) return show(method, undefined, "Too many tries with this method. Wait a few minutes, or try another way.");
   const res = await verifyMethod(user, method, typed);
   if (res === "ok") return done(method);
   if (res === "unavailable") {
-    const rest = offered.filter((m) => m.id !== method);
-    const next = rest[0]?.id;
-    return next ? ask(next, `We couldn't verify this code. ${next === "email" ? "" : PROMPT[next]}`.trim()) : ask("recovery", "We couldn't verify this code. Enter a recovery code, or ask your administrator to reset your sign-in.");
+    const next = offered.find((m) => m.id !== method)?.id;
+    return next ? ask(next, "") : show("recovery", "We can't verify you with the methods available on this account right now. Try again in a few minutes.", "");
   }
-  // A recovery code typed under another method still counts as the recovery method.
   await noteWrong(user._id, method);
   // When the authenticator can't be checked, a wrong code is never counted against the person (the per-method limiter still throttles guessing).
-  return { ...show(method, undefined, unreadable ? "We couldn't verify this code. Enter a recovery code, or try another way." : "That code isn't right or has expired."), countFailure: !unreadable };
+  return { ...show(method, undefined, unreadable ? "We couldn't verify this code. Try another way." : "That code isn't right or has expired."), countFailure: !unreadable };
 }
 
 export async function runSecondStep(c: Parameters<typeof runSecondStepInner>[0]): Promise<SecondStepResult> {

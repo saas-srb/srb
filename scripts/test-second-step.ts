@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import {
-  DEFAULT_POLICY, canRemoveMethod, hashDeviceToken, isTrustedDevice, maskEmail, mergePolicy, newDeviceToken, offeredMethods, pickMethod, rateDecision, signReauthMarker, verifyReauthMarker, type SecondStepAccount,
+  DEFAULT_POLICY, canRemoveMethod, hashDeviceToken, isTrustedDevice, maskEmail, maskPhone, mergePolicy, methodRows, normalizePhone, newDeviceToken, offeredMethods, pickMethod, rateDecision, signReauthMarker, verifyReauthMarker, type SecondStepAccount,
 } from "../src/lib/security/second-step";
 
 // Pure rules of the multi-method second step. Run with: npx tsx scripts/test-second-step.ts
@@ -76,7 +76,7 @@ t("trusted device: opt-in only, hashed, expiring, revocable", () => {
   assert.equal(isTrustedDevice({ ...base, twoFactor: {}, secondStep: { trusted: [] } }, tok, Date.now(), on), false, "revoked");
 });
 t("policy defaults and clamping: email fallback allowed, trust off, 10 minute window", () => {
-  assert.deepEqual(DEFAULT_POLICY, { emailAllowed: true, requireForAdmins: false, trustDeviceAllowed: false, trustDeviceDays: 30, reauthMinutes: 10 });
+  assert.deepEqual(DEFAULT_POLICY, { emailAllowed: true, smsAllowed: false, requireForAdmins: false, trustDeviceAllowed: false, trustDeviceDays: 30, reauthMinutes: 10 });
   assert.equal(mergePolicy({ reauthMinutes: 999 }).reauthMinutes, 60);
   assert.equal(mergePolicy({ reauthMinutes: 0 }).reauthMinutes, 1);
   assert.equal(mergePolicy({ emailAllowed: false }, { requireForAdmins: true }).requireForAdmins, true, "later layers (company) override earlier ones");
@@ -87,5 +87,44 @@ t("per-method rate limit: allowed until max inside the window, then blocked, the
   for (let i = 0; i < 3; i++) { assert.equal(rateDecision(st, i * 1000, rule).allowed, true); st = { ...st, count: st.count + 1 }; }
   assert.equal(rateDecision(st, 5000, rule).allowed, false);
   assert.equal(rateDecision(st, 61_000, rule).allowed, true);
+});
+t("SMS: phone numbers are normalised (India first), validated and masked", () => {
+  assert.equal(normalizePhone("98765 43210"), "+919876543210");
+  assert.equal(normalizePhone("+91 98765 43210"), "+919876543210");
+  assert.equal(normalizePhone("919876543210"), "+919876543210");
+  assert.equal(normalizePhone("0091 9876543210"), "+919876543210");
+  assert.equal(normalizePhone("+1 415 555 0132"), "+14155550132");
+  assert.equal(normalizePhone("12345"), null);
+  assert.equal(normalizePhone("5876543210"), null, "an Indian mobile starts with 6-9");
+  assert.equal(normalizePhone("abc"), null);
+  assert.equal(maskPhone("+919876543210"), "+91 ******3210");
+  assert.equal(maskPhone("+14155550132"), "+1 ******0132");
+});
+t("SMS: offered only when allowed by policy, usable for the number, and the account has a verified number", () => {
+  const acct = { ...base, twoFactor: {}, secondStep: { sms: { e164: "+919876543210" } } };
+  const on = mergePolicy({ smsAllowed: true });
+  assert.deepEqual(offeredMethods(acct, ctx({ policy: on, smsUsable: true })).map((m) => m.id), ["app", "sms"]);
+  assert.equal(offeredMethods(acct, ctx({ policy: on, smsUsable: true })).find((m) => m.id === "sms")?.label, "Text a code to +91 ******3210");
+  assert.deepEqual(offeredMethods(acct, ctx({ policy: DEFAULT_POLICY, smsUsable: true })).map((m) => m.id), ["app"], "off by default platform-wide");
+  assert.deepEqual(offeredMethods(acct, ctx({ policy: on, smsUsable: false })).map((m) => m.id), ["app"], "no provider / DLT: not usable");
+  assert.deepEqual(offeredMethods({ ...base, twoFactor: {}, secondStep: { preferred: "sms", sms: { e164: "+919876543210" } } }, ctx({ policy: on, smsUsable: true })).map((m) => m.id), ["sms", "app"], "preferred first");
+  assert.equal(canRemoveMethod({ ...base, secondStep: { sms: { e164: "+919876543210" } } }, "sms", { required: true }).ok, false, "last method protection covers SMS");
+});
+t("chooser rows: platform-disabled methods hidden, unset ones greyed with a neutral hint, unusable ones say 'not available right now'", () => {
+  const on = mergePolicy({ smsAllowed: true });
+  const acct = { ...base, twoFactor: {}, secondStep: { recovery: ["h"] } };
+  const off = offeredMethods(acct, ctx({ policy: on, appReadable: false, smsUsable: false }));
+  const rows = methodRows(acct, off, { emailReady: true, smsConfigured: true, policy: on });
+  const by = Object.fromEntries(rows.map((r) => [r.id, r]));
+  assert.equal(by.app.status, "unavailable");
+  assert.equal(by.app.description, "Not available right now");
+  assert.equal(by.email.status, "available", "email opens as the fallback");
+  assert.equal(by.sms.status, "not_set_up");
+  assert.equal(by.sms.description, "Not set up for this account");
+  assert.equal(by.recovery.status, "available");
+  const hidden = methodRows(acct, off, { emailReady: false, smsConfigured: false, policy: DEFAULT_POLICY });
+  assert.ok(!hidden.some((r) => r.id === "sms"), "SMS is hidden when the platform hasn't enabled it");
+  assert.ok(!hidden.some((r) => r.id === "email"), "email is hidden when no provider exists and the account has none");
+  assert.ok(!JSON.stringify(rows).match(/administrator|key|deployment|server/i), "customer-safe wording");
 });
 console.log(`\n${n} passed`);

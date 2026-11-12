@@ -56,6 +56,9 @@ Key safety and 2FA resilience (urgent fix after a deployment arrived with the wr
 Quiet key mismatch handling and multi-method second step: DONE, needs a browser check
 - Customer-safe wording everywhere (test: `scripts/test-no-infra-leak.ts`); staff-only alerts; `npm run twofactor:doctor`; any mix of authenticator, email code and recovery codes with "Try another way", Manage methods, one step-up re-authentication (`ReAuthGate`), policy in Console Health. Tests: `scripts/test-second-step.ts` (10), `test-two-step-recovery.ts` (11, throwaway DB), `test-twofactor-doctor.ts` (6), `test-keyring.ts` (25).
 
+SMS code and the always-visible method chooser: DONE, real Twilio/DLT and a real sign-in not verified
+- `SecondStepScreen` (method input plus a "Try another way" card for every method, screenshots checked with `scripts/shot-second-step.ts` against the dev harness `/dev-editor-harness/second-step`), SMS code method (`security/sms-otp.ts`, Console Integrations fields incl. DLT, policy toggle, Manage methods row with add/change number, preferred per method). Tests: `scripts/test-sms-second-step.ts` (6, throwaway DB), `test-second-step.ts` (13), `test-two-step-recovery.ts`, `test-no-infra-leak.ts`.
+
 Hardening: Z1 security and tenancy, Z2 performance, Z3 legal and content review
 
 Counting: 2 of about 40 features done = about 5%.

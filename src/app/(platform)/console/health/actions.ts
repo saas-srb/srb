@@ -124,7 +124,8 @@ export async function secondStepPolicyAction(): Promise<SecondStepPolicy> {
 
 export async function saveSecondStepPolicyAction(patch: Partial<SecondStepPolicy>): Promise<{ ok: true; policy: SecondStepPolicy } | Err> {
   const user = await requirePlatformPermission("integrations.manage");
-  const policy = await savePlatformPolicy({ emailAllowed: Boolean(patch.emailAllowed), requireForAdmins: Boolean(patch.requireForAdmins), trustDeviceAllowed: Boolean(patch.trustDeviceAllowed), trustDeviceDays: Number(patch.trustDeviceDays), reauthMinutes: Number(patch.reauthMinutes) }, user.id);
+  if (patch.smsAllowed && !(await (await import("@/lib/security/sms-otp")).smsConfigured())) return { ok: false, error: "Set up Twilio and the SMS sender in Integrations (SMS sign-in codes) before allowing SMS codes." };
+  const policy = await savePlatformPolicy({ emailAllowed: Boolean(patch.emailAllowed), smsAllowed: Boolean(patch.smsAllowed), requireForAdmins: Boolean(patch.requireForAdmins), trustDeviceAllowed: Boolean(patch.trustDeviceAllowed), trustDeviceDays: Number(patch.trustDeviceDays), reauthMinutes: Number(patch.reauthMinutes) }, user.id);
   return { ok: true, policy };
 }
 
