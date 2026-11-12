@@ -1,0 +1,43 @@
+# Builds the app on a GitHub runner and uploads the PREBUILT output to Vercel, so Vercel's small (8 GB) build container is not used.
+# Needs repository secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID.
+# Memory: standard runners of PRIVATE repositories have 7 GB of RAM, PUBLIC repositories 16 GB. This app's production build needs about 5-6 GB;
+# if it is killed here, use a larger runner (runs-on: a larger-runner label) or run `npm run deploy:prebuilt` from a developer machine.
+name: Deploy (prebuilt)
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: "Build and check only, do not deploy"
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build and deploy
+        run: |
+          if [ "${{ github.event.inputs.dry }}" = "true" ]; then
+            bash scripts/deploy-prebuilt.sh --dry
+          else
+            bash scripts/deploy-prebuilt.sh
+          fi

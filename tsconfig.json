@@ -30,5 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "scripts", "desktop", "mobile", "docs"]
+  "exclude": ["node_modules", "scripts", "desktop", "mobile", "docs", "local", ".vercel", ".buildmem-*", ".fncount-*"]
 }

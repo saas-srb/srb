@@ -56,6 +56,10 @@
     "key:rewrap": "npx --yes tsx scripts/key-rewrap.ts",
     "test:portability": "npx --yes tsx scripts/test-portability.ts",
     "test:gridfs": "npx --yes tsx scripts/test-gridfs.ts",
+    "deploy:prebuilt": "bash scripts/deploy-prebuilt.sh",
+    "check:build-memory": "npx --yes tsx scripts/check-build-memory.ts",
+    "analyze:graph": "npx --yes tsx scripts/analyze-graph.ts",
+    "test:deploy": "npx --yes tsx scripts/test-deploy-prebuilt.ts",
     "check:functions": "npx --yes tsx scripts/check-functions.ts",
     "test:host-recovery": "npx --yes tsx --require ./scripts/lib/next-server-shims.cjs scripts/test-host-recovery.ts",
     "test:migrate": "npx --yes tsx scripts/test-domain-sync.ts && npx --yes tsx scripts/test-blob-migrate.ts"

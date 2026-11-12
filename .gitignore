@@ -58,3 +58,7 @@ SETUP.local.md
 /mobile/work
 /mobile/dist-mobile
 /local
+# build measurement copies and prebuilt output
+/.buildmem-*
+/.fncount-*
+/.vercel/output

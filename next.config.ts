@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 
+// Build-memory EXPERIMENTS (scripts/measure-build.sh): BUILD_EXPERIMENTS=minify-off,infer-off,unused-imports,unused-exports,fragments,webpack-mem,cpus1
+// switches one build option each so its effect can be measured in isolation. Unset in normal builds (and ignored when empty).
+const EXP = new Set((process.env.BUILD_EXPERIMENTS ?? "").split(",").map((x) => x.trim()).filter(Boolean));
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   // Vercel's build machine ran out of memory (SIGKILL) in the "Running TypeScript" step that Next runs after a successful compile: this app
@@ -182,6 +186,13 @@ const nextConfig: NextConfig = {
     turbopackInputSourceMaps: false,
     turbopackScopeHoisting: false,
     memoryBasedWorkersCount: true,
+    ...(EXP.has("minify-off") && { turbopackMinify: false }),
+    ...(EXP.has("infer-off") && { turbopackInferModuleSideEffects: false }),
+    ...(EXP.has("unused-imports") && { turbopackRemoveUnusedImports: true }),
+    ...(EXP.has("unused-exports") && { turbopackRemoveUnusedExports: true }),
+    ...(EXP.has("fragments") && { turbopackModuleFragments: true }),
+    ...(EXP.has("webpack-mem") && { webpackMemoryOptimizations: true }),
+    ...(EXP.has("cpus1") && { cpus: 1, memoryBasedWorkersCount: false }),
     serverActions: {
       // Server actions accept uploads (a GSTR-2B file is up to 5 MB, a bill or receipt up to 15 MB as sent by their own forms); the default is 1 MB.
       bodySizeLimit: '16mb',

@@ -1,5 +1,20 @@
-# Not part of the web app: the desktop/mobile wrappers, docs and maintenance/test scripts. Leaving them out makes the upload and the build smaller.
+# Not part of the web app. Leaving these out keeps the upload (and the build container's input) small: the old upload was ~1.1 GB, almost all of it
+# the local build output and the desktop packages.
 /desktop
 /mobile
 /docs
 /scripts
+/local
+/.next
+/.vercel
+/out
+/coverage
+*.tsbuildinfo
+tsconfig.*.tsbuildinfo
+.env
+.env.*
+!.env.example
+npm-debug.log*
+.DS_Store
+/.buildmem-*
+/.fncount-*
