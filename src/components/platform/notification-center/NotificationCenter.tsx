@@ -26,7 +26,7 @@ export interface CenterProps {
   brand: string;
   summary: Record<ChannelKey, { sent: number; failed: number; off: number }>;
   canEdit: boolean;
-  /** Events SelfRun has switched off for every company, by channel: they cannot be turned back on here. */
+  /** Events SRB has switched off for every company, by channel: they cannot be turned back on here. */
   platformOff: Record<string, Partial<Record<ChannelKey, false>>>;
 }
 
@@ -125,7 +125,7 @@ function Rules({ rules: initial, products, canEdit, brand, platformOff }: Center
                       const ch = r.channels[c];
                       const held = platformOff[r.key]?.[c] === false;
                       return (
-                        <label key={c} className={`flex items-center gap-1.5 text-xs ${ch.unavailable ? "opacity-30" : ""}`} title={held ? `${CHANNEL_LABEL[c]} is turned off by SelfRun for every workspace` : ch.unavailable ? `${CHANNEL_LABEL[c]} isn't used for this` : r.locked ? "Security and billing emails can't be turned off" : CHANNEL_LABEL[c]}>
+                        <label key={c} className={`flex items-center gap-1.5 text-xs ${ch.unavailable ? "opacity-30" : ""}`} title={held ? `${CHANNEL_LABEL[c]} is turned off by SRB for every workspace` : ch.unavailable ? `${CHANNEL_LABEL[c]} isn't used for this` : r.locked ? "Security and billing emails can't be turned off" : CHANNEL_LABEL[c]}>
                           <Icon className="size-3.5" />
                           <Switch on={ch.enabled && !ch.unavailable && !held} disabled={!canEdit || !!ch.unavailable || r.locked || held} label={`${CHANNEL_LABEL[c]} for ${r.name}`} onChange={(v) => toggle(r, c, v)} />
                         </label>
@@ -467,7 +467,7 @@ function SheetForm({ state, roles, people, off, onSaved, onClose }: { state: { m
 
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium">Send through</legend>
-          <div className="flex flex-wrap gap-4 text-sm">{CHANNELS.map((c) => { const Icon = ICON[c]; return <label key={c} className={`flex items-center gap-2 ${off[c] === false ? "opacity-50" : ""}`} title={off[c] === false ? `${CHANNEL_LABEL[c]} is turned off by SelfRun for announcements` : undefined}><input type="checkbox" className="size-4 accent-primary" checked={channels[c]} disabled={off[c] === false} onChange={(e) => setChannels({ ...channels, [c]: e.target.checked })} /><Icon className="size-4" /> {CHANNEL_LABEL[c]}{off[c] === false && <span className="text-xs text-muted-foreground">(off)</span>}</label>; })}</div>
+          <div className="flex flex-wrap gap-4 text-sm">{CHANNELS.map((c) => { const Icon = ICON[c]; return <label key={c} className={`flex items-center gap-2 ${off[c] === false ? "opacity-50" : ""}`} title={off[c] === false ? `${CHANNEL_LABEL[c]} is turned off by SRB for announcements` : undefined}><input type="checkbox" className="size-4 accent-primary" checked={channels[c]} disabled={off[c] === false} onChange={(e) => setChannels({ ...channels, [c]: e.target.checked })} /><Icon className="size-4" /> {CHANNEL_LABEL[c]}{off[c] === false && <span className="text-xs text-muted-foreground">(off)</span>}</label>; })}</div>
           <p className="text-xs text-muted-foreground">People&apos;s own notification settings still apply to push and email.</p>
         </fieldset>
 
