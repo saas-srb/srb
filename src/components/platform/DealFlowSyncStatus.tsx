@@ -11,7 +11,7 @@ function when(iso: string | null): string {
 function StatusPill({ connected, source }: { connected: boolean; source: IntegrationConnectionStatus["source"] }) {
   return connected ? (
     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600">
-      <CheckCircle2 className="size-3" /> {source === "platform" ? "Connected (SelfRun keys)" : "Connected"}
+      <CheckCircle2 className="size-3" /> {source === "platform" ? "Connected (SRB keys)" : "Connected"}
     </span>
   ) : (
     <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-bold text-muted-foreground">

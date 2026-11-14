@@ -4,7 +4,7 @@ import { productPath } from "@/lib/platform/saas/product-routes";
 export const OPERATIONS_PEOPLE_FAQS: FaqHubGroup[] = [
   {
     id: "commandos",
-    title: "SelfRun CommandOS",
+    title: "SRB CommandOS",
     href: productPath("workspace"),
     items: [
       {
@@ -306,7 +306,7 @@ export const OPERATIONS_PEOPLE_FAQS: FaqHubGroup[] = [
   },
   {
     id: "clientos",
-    title: "SelfRun ClientOS",
+    title: "SRB ClientOS",
     href: productPath("portal"),
     items: [
       {
@@ -578,7 +578,7 @@ export const OPERATIONS_PEOPLE_FAQS: FaqHubGroup[] = [
   },
   {
     id: "dealflow-ai",
-    title: "SelfRun DealFlow AI",
+    title: "SRB DealFlow AI",
     href: productPath("lms"),
     items: [
       {
@@ -880,7 +880,7 @@ export const OPERATIONS_PEOPLE_FAQS: FaqHubGroup[] = [
   },
   {
     id: "talentos",
-    title: "SelfRun TalentOS",
+    title: "SRB TalentOS",
     href: productPath("hrms"),
     items: [
       {

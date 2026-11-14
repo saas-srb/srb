@@ -289,7 +289,7 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
         lead={plan.description}
         photo="analytics"
         shot="workspace"
-        shotName="SelfRun Workspace"
+        shotName="SRB Workspace"
         chip={{ title: `All ${SAAS_PRODUCT_COUNT} products included`, text: "Zero locked features" }}
       >
         <HeroCtas
@@ -663,7 +663,7 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
                       </span>
                     </div>
                     <h4 className="mt-3 font-black leading-tight text-foreground transition-colors group-hover:text-primary">
-                      {m.name.replace(/^SelfRun\s+/i, "")}
+                      {m.name.replace(/^(SRB|SRB)\s+/i, "")}
                     </h4>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{m.description}</p>
                   </div>

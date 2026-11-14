@@ -11,7 +11,7 @@ import { listIncidents } from "@/lib/platform/status/incidents";
 import { INCIDENT_IMPACTS, INCIDENT_STATUSES, formatDuration, uptimePercent, type IncidentView } from "@/lib/platform/status/shared";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = pageMeta({ path: "/status", title: "System Status", description: "Live status of SelfRun AI: the website and the database every workspace runs on, with any open incident notice.", keywords: ["SelfRun AI status", "software uptime status", "SaaS system status page"], tag: "Status" });
+export const metadata: Metadata = pageMeta({ path: "/status", title: "System Status", description: "Live status of SRB AI: the website and the database every workspace runs on, with any open incident notice.", keywords: ["SRB AI status", "software uptime status", "SaaS system status page"], tag: "Status" });
 
 async function probe(): Promise<{ ok: boolean; ms: number }> {
   const t = Date.now();
@@ -62,7 +62,7 @@ export default async function StatusPage() {
   const all = rows.every((r) => r.ok) && !open.some((i) => i.impact === "outage" || i.impact === "major");
   return (
     <>
-      <JsonLd data={[webPage({ type: "WebPage", path: "/status", name: "System status", description: "Live status of SelfRun AI: the website and the database every workspace runs on, with any open incident notice." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Status", path: "/status" }])]} />
+      <JsonLd data={[webPage({ type: "WebPage", path: "/status", name: "System status", description: "Live status of SRB AI: the website and the database every workspace runs on, with any open incident notice." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Status", path: "/status" }])]} />
       <PageHero eyebrow="Status" title={all ? (open.length ? "Operational, with an open notice" : "All systems operational") : "Some systems are having trouble"} lead={`A live check of the website and the database that every ${SAAS_BRAND.name} workspace runs on, made when you opened this page (${new Date(checkedAt).toUTCString()}).`} photo="office" shot="workspace" shotName="Workspace">
         <HeroCtas primary={{ label: "Contact us", href: "/contact" }} secondary={{ label: "Read the docs", href: "/docs" }} />
       </PageHero>

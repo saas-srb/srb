@@ -4,7 +4,7 @@ import { productPath } from "@/lib/platform/saas/product-routes";
 export const PEOPLE_TRAINING_SECURITY_FAQS: FaqHubGroup[] = [
   {
     id: "cohort-ai",
-    title: "SelfRun Cohort AI",
+    title: "SRB Cohort AI",
     href: productPath("tms"),
     items: [
       {
@@ -246,7 +246,7 @@ export const PEOPLE_TRAINING_SECURITY_FAQS: FaqHubGroup[] = [
   },
   {
     id: "evaliq",
-    title: "SelfRun EvalIQ",
+    title: "SRB EvalIQ",
     href: productPath("ots"),
     items: [
       {
@@ -548,7 +548,7 @@ export const PEOPLE_TRAINING_SECURITY_FAQS: FaqHubGroup[] = [
   },
   {
     id: "playbook-ai",
-    title: "SelfRun Playbook AI",
+    title: "SRB Playbook AI",
     href: productPath("sop"),
     items: [
       {
@@ -787,7 +787,7 @@ export const PEOPLE_TRAINING_SECURITY_FAQS: FaqHubGroup[] = [
         evidence: ["src/lib/products/playbook-ai/audit.ts:1-84", "src/lib/products/playbook-ai/sops.ts:540-578", "src/lib/products/playbook-ai/sops.ts:592-603"],
       },
       {
-        q: "Can an SOP link to one of the other SelfRun products?",
+        q: "Can an SOP link to one of the other SRB products?",
         a: "Yes. SOP metadata can tag the product module it supports, including HRMS, projects, procurement, finance, training, sales/CRM or team chat.",
         evidence: ["src/lib/products/playbook-ai/constants.ts:80-94", "src/lib/products/playbook-ai/types.ts:6-70"],
       },
@@ -805,7 +805,7 @@ export const PEOPLE_TRAINING_SECURITY_FAQS: FaqHubGroup[] = [
   },
   {
     id: "cybervault",
-    title: "SelfRun CyberVault",
+    title: "SRB CyberVault",
     href: productPath("dlms"),
     items: [
       {

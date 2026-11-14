@@ -43,7 +43,7 @@ export default async function PricingPage() {
   return (
     <>
       <JsonLd data={[webPage({ type: "CollectionPage", path: "/pricing", name: "Pricing", description: "Start free, no card needed. Every plan includes every product and every feature; plans differ only by team size and by storage, AI, email and voice allowances." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Pricing", path: "/pricing" }]), planOffers(plans.map((p) => ({ id: p.id, name: p.name, description: p.description, currency: p.currency, kind: p.kind, monthly: p.offer.monthly, validUntil: endsAt ? new Date(endsAt).toISOString() : null })))]} />
-      <PageHero art="pricing" eyebrow="Pricing" title="Free forever." accent="Pay only as your team grows." lead={`Every plan includes every product, with every feature. A plan sets your team size and your storage, AI, email and voice allowance — nothing else. Prices exclude applicable taxes.`} photo="analytics" shot="fms" shotName="SelfRun CashFlow AI" chip={{ title: "Every feature, every plan", text: "Nothing locked behind a higher tier" }}>
+      <PageHero art="pricing" eyebrow="Pricing" title="Free forever." accent="Pay only as your team grows." lead={`Every plan includes every product, with every feature. A plan sets your team size and your storage, AI, email and voice allowance — nothing else. Prices exclude applicable taxes.`} photo="analytics" shot="fms" shotName="SRB CashFlow AI" chip={{ title: "Every feature, every plan", text: "Nothing locked behind a higher tier" }}>
         <HeroCtas primary={{ label: "Start free forever", href: "/signup" }} secondary={{ label: "Talk to us", href: "/contact" }} />
       </PageHero>
 
@@ -136,7 +136,7 @@ export default async function PricingPage() {
                     <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-border/60 bg-background shadow-sm transition-transform group-hover:scale-110"><ProductLogo productKey={m.key} size={34} title={m.name} /></span>
                     <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-600"><Check className="h-3 w-3" strokeWidth={3.5} />Included</span>
                   </span>
-                  <span className="font-black leading-tight transition-colors group-hover:text-primary">{m.name.replace(/^SelfRun\s+/i, "")}</span>
+                  <span className="font-black leading-tight transition-colors group-hover:text-primary">{m.name.replace(/^(SRB|SRB)\s+/i, "")}</span>
                   <span className="text-xs leading-relaxed text-muted-foreground">{m.description}</span>
                   <span className="mt-auto inline-flex items-center gap-1.5 pt-1 text-xs font-bold text-primary">See what it does <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" /></span>
                 </Link>

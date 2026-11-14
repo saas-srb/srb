@@ -16,7 +16,7 @@ import { getFeatureGroups } from "@/lib/platform/saas/modules";
 import { productPath } from "@/lib/platform/saas/product-routes";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = pageMeta({ path: "/onboarded-businesses", title: "Get Your Business Set Up in Minutes", description: "How a business starts on SelfRun AI: create a workspace, add your brand, invite your team, choose your products and bring your data. Free to start, no card needed.", keywords: ["business software onboarding", "set up company workspace", "how to onboard business to software", "free business workspace", "import leads and employees from CSV", "business software setup guide", "start using CRM and HR software"], tag: "Onboarding" });
+export const metadata: Metadata = pageMeta({ path: "/onboarded-businesses", title: "Get Your Business Set Up in Minutes", description: "How a business starts on SRB AI: create a workspace, add your brand, invite your team, choose your products and bring your data. Free to start, no card needed.", keywords: ["business software onboarding", "set up company workspace", "how to onboard business to software", "free business workspace", "import leads and employees from CSV", "business software setup guide", "start using CRM and HR software"], tag: "Onboarding" });
 
 const NAV = [
   { id: "what", label: "What getting set up means" },
@@ -48,7 +48,7 @@ export default async function OnboardedBusinessesPage() {
 
   return (
     <>
-      <JsonLd data={[webPage({ type: "WebPage", path: "/onboarded-businesses", name: "Getting started", description: "How a business starts on SelfRun AI: create a workspace, add your brand, invite your team, choose your products and bring your data. Free to start, no card needed." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Getting started", path: "/onboarded-businesses" }]), howTo({ path: "/onboarded-businesses", name: "How to get your business set up on SelfRun AI", description: first.goal, steps: first.actions.map((a, i) => ({ name: `Step ${i + 1}`, text: a })) })]} />
+      <JsonLd data={[webPage({ type: "WebPage", path: "/onboarded-businesses", name: "Getting started", description: "How a business starts on SRB AI: create a workspace, add your brand, invite your team, choose your products and bring your data. Free to start, no card needed." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Getting started", path: "/onboarded-businesses" }]), howTo({ path: "/onboarded-businesses", name: "How to get your business set up on SRB AI", description: first.goal, steps: first.actions.map((a, i) => ({ name: `Step ${i + 1}`, text: a })) })]} />
       <PageHero
         art="features"
         eyebrow="Getting started"
@@ -57,7 +57,7 @@ export default async function OnboardedBusinessesPage() {
         lead="Every business sets up its own workspace, team access and brand, and starts free in minutes. There is nothing to install and no card is needed. Customer names and account details are private, so we publish a list of businesses only when a business has clearly agreed to be featured."
         photo="open-office"
         shot="workspace"
-        shotName="SelfRun CommandOS"
+        shotName="SRB CommandOS"
         chip={{ title: "Start free, no card needed", text: "Every product in every plan" }}
       >
         <HeroCtas primary={{ label: "Create a workspace", href: "/signup" }} secondary={{ label: "Read the setup guide", href: "/docs/getting-started" }} />
@@ -149,7 +149,7 @@ export default async function OnboardedBusinessesPage() {
       {/* 05 who */}
       <section id="who" className="sr-section" style={{ scrollMarginTop: 140 }}>
         <div className="sr-container">
-          <Head id="who" title="Businesses that" accent="start here." lead="The kinds of business SelfRun AI is built for, and what each one gets." />
+          <Head id="who" title="Businesses that" accent="start here." lead="The kinds of business SRB AI is built for, and what each one gets." />
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {INDUSTRIES.map((x, i) => (
               <Reveal key={x.slug} delay={(i % 3) * 60}>

@@ -40,15 +40,15 @@ import ProductLogo from "@/components/products/ProductLogo";
 
 export const dynamic = "force-dynamic";
 
-const HOME_TITLE = "SelfRun AI: Business Automation for CRM, HR & Finance";
-const HOME_DESC = "SelfRun AI is one software for running your whole business: sales and customers, HR and payroll, accounts and invoices, projects, purchasing, training and your website, with AI built in. Free to start, with every feature in every plan.";
+const HOME_TITLE = "SRB AI — Selfrun Business: One Platform, 20 Business Tools, Free Forever";
+const HOME_DESC = "SRB AI (SRB - Selfrun Business) is one AI-powered platform for Startups, MSMEs and SMBs: CRM, HR & payroll, accounting, projects, procurement, training, website builder and AI automation — all free to start, with every feature in every plan.";
 export const metadata: Metadata = {
   ...pageMeta({
     path: "/",
     title: HOME_TITLE,
     description: HOME_DESC,
-    keywords: ["business automation software", "AI business automation platform", "CRM software", "HR and payroll software", "accounting and invoicing software", "project management software", "procurement software", "website builder", "AI chatbot for business", "white label business software", "free business software", "all-in-one business management software", "ERP alternative for small business", "software for startups and SMEs"],
-    tag: "AI business platform",
+    keywords: ["SRB AI", "SRB - Selfrun Business", "Selfrun Business AI", "selfrunbusiness.ai", "business automation software India", "AI business platform for startups", "CRM HR accounting in one platform", "free business software for MSME", "all-in-one business management software India", "ERP alternative for small business", "24/7 business automation", "AI platform for Indian businesses", "replace Salesforce Jira QuickBooks", "business operating system India", "white label business software"],
+    tag: "SRB AI - Selfrun Business",
   }),
   title: { absolute: HOME_TITLE },
 };
@@ -113,15 +113,15 @@ export default async function SaasHome() {
     <>
       <JsonLd data={[
         webPage({ path: "/", name: HOME_TITLE, description: HOME_DESC, about: "Business automation software" }),
-        softwareApplication({ path: "/", name: "SelfRun AI", description: HOME_DESC, features: ["CRM and lead management", "HR and payroll", "Accounting and invoicing", "Project management", "Procurement", "Training management", "Website builder and CMS", "AI assistants", "Workflow automation", "White-label branding"] }),
-        itemList({ name: "SelfRun AI products", items: modules.map((m) => ({ name: m.name, path: productPath(m.key) })) }),, ...(plans.length ? [planOffers(plans.map((p) => ({ id: p.id, name: p.name, description: `${p.name} plan: every product and every feature.`, currency: p.currency, kind: p.kind, monthly: p.offer.monthly })))] : [])]} />
+        softwareApplication({ path: "/", name: "SRB AI", description: HOME_DESC, features: ["CRM and lead management", "HR and payroll", "Accounting and invoicing", "Project management", "Procurement", "Training management", "Website builder and CMS", "AI assistants", "Workflow automation", "White-label branding"] }),
+        itemList({ name: "SRB AI products", items: modules.map((m) => ({ name: m.name, path: productPath(m.key) })) }), ...(plans.length ? [planOffers(plans.map((p) => ({ id: p.id, name: p.name, description: `${p.name} plan: every product and every feature.`, currency: p.currency, kind: p.kind, monthly: p.offer.monthly })))] : [])]} />
       {/* Hero */}
       <PageHero art="home"
         size="home"
         eyebrow="Business software for your whole business"
         title="One software to run"
         accent="your whole business."
-        lead={<><span className="font-bold"><span className="text-foreground">SelfRun</span> <span className="text-primary">AI</span></span> is one online system that runs the everyday work of a business: customers and sales, staff and salaries, money and invoices, projects, buying, training and your website. Use it on a phone or a computer, with <b className="text-foreground">your own business name and logo</b> on everything.</>}
+        lead={<><span className="font-bold"><span className="text-foreground">SRB</span> <span className="text-primary">AI</span></span> (Selfrun Business) is one online system that runs the everyday work of a business: customers and sales, staff and salaries, money and invoices, projects, buying, training and your website. Use it on a phone or a computer, with <b className="text-foreground">your own business name and logo</b> on everything.</>}
         photo="team-desk"
         shot="workspace"
         chip={{ title: "Sale closed", text: "Customer record created · team told — automatically" }}
@@ -144,8 +144,8 @@ export default async function SaasHome() {
         </div>
         <div className="pb-8">
           <Reveal className="mx-auto mb-4 max-w-2xl px-4 pt-8 text-center">
-            <p className="sr-eyebrow mb-2">SelfRun family products</p>
-            <h2 className="text-2xl font-black leading-tight tracking-tight sm:text-3xl">Meet the <span className="bg-gradient-to-r from-primary to-brand-accent bg-clip-text text-transparent">SelfRun family.</span></h2>
+            <p className="sr-eyebrow mb-2">SRB family products</p>
+            <h2 className="text-2xl font-black leading-tight tracking-tight sm:text-3xl">Meet the <span className="bg-gradient-to-r from-primary to-brand-accent bg-clip-text text-transparent">SRB family.</span></h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">One product for every job in your business. Click any card to see what it does.</p>
           </Reveal>
           <ModuleMarquee items={modules.map((m) => ({ key: m.key, name: m.name, icon: m.icon }))} />
@@ -155,7 +155,7 @@ export default async function SaasHome() {
       {/* Overview */}
       <section id="simple" className="sr-section" style={{ scrollMarginTop: 140 }}>
         <div className="sr-container">
-          <SectionHead n={no("simple")} center icon="book" eyebrow="Overview" title="What SelfRun AI is" accent="and how it helps you." lead="New here? These six answers cover what SelfRun AI is, what it does for you and what you need to know before you start. No technical knowledge is needed to read them, or to use the product." />
+          <SectionHead n={no("simple")} center icon="book" eyebrow="Overview" title="What SRB AI is" accent="and how it helps you." lead="New here? These six answers cover what SRB AI is, what it does for you and what you need to know before you start. No technical knowledge is needed to read them, or to use the product." />
           <ol className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {SIMPLE_ANSWERS.map((a, i) => (
               <Reveal key={a.title} as="li" delay={(i % 3) * 70}>
@@ -178,22 +178,22 @@ export default async function SaasHome() {
       {/* Replace the stack */}
       <section id="products" className="sr-section" style={{ scrollMarginTop: 140 }}>
         <div className="sr-container">
-          <SectionHead n={no("products")} center icon="layers" eyebrow="What is inside" title="One software for" accent="every part of your business." lead="Most businesses use a separate app for every job: one for customers, one for salaries, one for invoices, one for projects and so on. SelfRun AI is a single software with a product for each of these jobs, so your team works in one place and does not type the same information again and again." />
+          <SectionHead n={no("products")} center icon="layers" eyebrow="What is inside" title="One software for" accent="every part of your business." lead="Most businesses use a separate app for every job: one for customers, one for salaries, one for invoices, one for projects and so on. SRB AI is a single software with a product for each of these jobs, so your team works in one place and does not type the same information again and again." />
           <Reveal>
             <ChipMarquee rows={[
               REPLACES.map((r) => ({ label: r.software, icon: r.icon, struck: true })),
               REPLACES.map((r) => ({ label: byKey.get(r.panel)?.name ?? "Included", icon: r.icon, productKey: r.panel })),
             ]} />
           </Reveal>
-          <p className="mx-auto mt-6 max-w-2xl text-center text-sm leading-relaxed text-muted-foreground">The crossed-out names are the separate apps a business usually pays for. Next to each one is the product of SelfRun AI that does the same job.</p>
+          <p className="mx-auto mt-6 max-w-2xl text-center text-sm leading-relaxed text-muted-foreground">The crossed-out names are the separate apps a business usually pays for. Next to each one is the product of SRB AI that does the same job.</p>
           <div className="mt-10 flex justify-center"><Link href="/products" className="sr-btn sr-btn-primary">See every product <ArrowRight className="h-4 w-4" /></Link></div>
         </div>
       </section>
 
-      {/* Why SelfRun AI */}
+      {/* Why SRB AI */}
       <section id="why" style={{ scrollMarginTop: 140 }} className="sr-section relative overflow-hidden bg-muted/10">
         <div className="sr-container">
-          <SectionHead n={no("why")} center icon="bolt" eyebrow="Why choose SelfRun AI" title="Why businesses" accent="choose it." lead="Running a business should not mean buying, learning and connecting a dozen different apps. Here is what SelfRun AI gives you instead, and what each of its products is for." />
+          <SectionHead n={no("why")} center icon="bolt" eyebrow="Why choose SRB AI" title="Why businesses" accent="choose it." lead="Running a business should not mean buying, learning and connecting a dozen different apps. Here is what SRB AI gives you instead, and what each of its products is for." />
           <div className="grid gap-5 lg:grid-cols-4 lg:grid-rows-[auto_auto_auto]">
             <Reveal className="lg:col-span-2 lg:row-span-2">
               <div className="sr-band relative flex h-full min-h-[22rem] flex-col justify-between rounded-[2rem] p-8 shadow-2xl shadow-primary/30 sm:p-10">
@@ -207,7 +207,7 @@ export default async function SaasHome() {
             </Reveal>
             {[
               { icon: "brain" as const, t: "AI that helps, safely", b: "Ask questions in plain English and get answers from your own records. The AI only shows what that person is allowed to see." },
-              { icon: "target" as const, t: "Your brand, not ours", b: "Your logo, your web address, your apps and your notifications. Your team and customers see your business, not SelfRun." },
+              { icon: "target" as const, t: "Your brand, not ours", b: "Your logo, your web address, your apps and your notifications. Your team and customers see your business, not SRB." },
               { icon: "rocket" as const, t: "Works on every device", b: "Open it in a browser, install it like an app, or get your own apps for Android, iPhone, Windows, Mac and Linux. It is the same data everywhere." },
               { icon: "wallet" as const, t: "Free to start", b: "Every feature is free to start. You pay only as your team grows." },
             ].map((x, i) => (
@@ -225,7 +225,7 @@ export default async function SaasHome() {
               <div className="rounded-[2rem] border border-border/60 bg-background p-6 shadow-sm sm:p-8">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                   <div>
-                    <h3 className="text-xl font-black">What is inside SelfRun AI, product by product</h3>
+                    <h3 className="text-xl font-black">What is inside SRB AI, product by product</h3>
                     <p className="mt-1 text-sm text-muted-foreground">Each product does one job well. Open any card to see exactly what it does.</p>
                   </div>
                   <Link href="/products" className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:underline">Browse all products <ArrowRight className="h-4 w-4" /></Link>
@@ -264,10 +264,10 @@ export default async function SaasHome() {
       {/* Why an AI-powered business */}
       <section id="benefits" style={{ scrollMarginTop: 140 }} className="sr-section">
         <div className="sr-container">
-          <SectionHead n={no("benefits")} center icon="brain" eyebrow="The benefits" title="More time," accent="fewer mistakes." lead="Most of the working day goes into chasing people, copying data from one app to another and building reports by hand. SelfRun AI takes care of that, so you can spend your time on your customers and on growing the business." />
+          <SectionHead n={no("benefits")} center icon="brain" eyebrow="The benefits" title="More time," accent="fewer mistakes." lead="Most of the working day goes into chasing people, copying data from one app to another and building reports by hand. SRB AI takes care of that, so you can spend your time on your customers and on growing the business." />
           <div className="grid items-center gap-14 lg:grid-cols-2">
           <Reveal className="relative">
-            <MarketingShot screenKey="fms" name="SelfRun CashFlow AI" />
+            <MarketingShot screenKey="fms" name="SRB CashFlow AI" />
             <div className="absolute inset-x-5 bottom-5 rounded-2xl border border-white/30 bg-black/45 p-5 text-white backdrop-blur-xl sm:inset-x-8 sm:bottom-8">
               <p className="text-xs font-semibold uppercase tracking-widest text-white/70">Ask in plain English</p>
               <p className="mt-1 text-lg font-bold">“Which invoices are more than 30 days overdue?”</p>
@@ -296,7 +296,7 @@ export default async function SaasHome() {
       {/* Who it is for */}
       <section id="who" className="sr-section" style={{ scrollMarginTop: 140 }}>
         <div className="sr-container">
-          <SectionHead n={no("who")} center icon="building" eyebrow="Who uses it" title="See how it fits" accent="your business." lead="Different kinds of businesses use SelfRun AI in different ways. Find the one closest to yours and see which jobs it takes care of." />
+          <SectionHead n={no("who")} center icon="building" eyebrow="Who uses it" title="See how it fits" accent="your business." lead="Different kinds of businesses use SRB AI in different ways. Find the one closest to yours and see which jobs it takes care of." />
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {INDUSTRIES.map((x, i) => (
               <Reveal key={x.slug} delay={(i % 3) * 60}>
@@ -342,7 +342,7 @@ export default async function SaasHome() {
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="rounded-2xl bg-rose-500/[0.07] p-4"><p className="text-[11px] font-black uppercase tracking-widest text-rose-500">The problem</p><p className="mt-1.5 text-sm leading-relaxed">{u.problem}</p></div>
-                    <div className="rounded-2xl bg-emerald-500/[0.09] p-4"><p className="text-[11px] font-black uppercase tracking-widest text-emerald-600">With SelfRun AI</p><p className="mt-1.5 text-sm leading-relaxed">{u.result}</p></div>
+                    <div className="rounded-2xl bg-emerald-500/[0.09] p-4"><p className="text-[11px] font-black uppercase tracking-widest text-emerald-600">With SRB AI</p><p className="mt-1.5 text-sm leading-relaxed">{u.result}</p></div>
                   </div>
                   <div className="mt-auto flex flex-wrap items-center gap-2 pt-5">
                     <span className="mr-1 text-[11px] font-black uppercase tracking-widest text-muted-foreground">Products used</span>
@@ -362,11 +362,11 @@ export default async function SaasHome() {
           <SectionHead n={no("connected")} center icon="chart" eyebrow="A real example" title="From first enquiry" accent="to money in the bank." lead="Follow one customer through your business: they enquire, you win the deal, you do the work, you send the invoice and you get paid. Normally that touches five different apps. Here, nobody has to re-type anything." />
           <Journey
             steps={[
-              { label: "Enquiry received", text: "From your website, forms and campaigns.", module: "SelfRun DealFlow AI", productKey: "lms", icon: "target" },
-              { label: "Deal won", text: "The customer record is created for you.", module: "SelfRun DealFlow AI", productKey: "lms", icon: "check" },
-              { label: "Project delivered", text: "Tasks, hours worked and milestones are tracked.", module: "SelfRun SprintOS", productKey: "pms", icon: "layers" },
-              { label: "Invoice sent", text: "Created from the milestone, with a payment link.", module: "SelfRun CashFlow AI", productKey: "fms", icon: "wallet" },
-              { label: "Paid and recorded", text: "Your finance team is told and the accounts are updated.", module: "SelfRun CashFlow AI", productKey: "fms", icon: "chart" },
+              { label: "Enquiry received", text: "From your website, forms and campaigns.", module: "SRB DealFlow AI", productKey: "lms", icon: "target" },
+              { label: "Deal won", text: "The customer record is created for you.", module: "SRB DealFlow AI", productKey: "lms", icon: "check" },
+              { label: "Project delivered", text: "Tasks, hours worked and milestones are tracked.", module: "SRB SprintOS", productKey: "pms", icon: "layers" },
+              { label: "Invoice sent", text: "Created from the milestone, with a payment link.", module: "SRB CashFlow AI", productKey: "fms", icon: "wallet" },
+              { label: "Paid and recorded", text: "Your finance team is told and the accounts are updated.", module: "SRB CashFlow AI", productKey: "fms", icon: "chart" },
             ]}
           />
         </div>
@@ -435,9 +435,9 @@ export default async function SaasHome() {
             </div>
           </div>
           <Reveal className="space-y-5 lg:sticky lg:top-28">
-            <MarketingShot screenKey="intelligence" name="SelfRun DataBrain AI" />
+            <MarketingShot screenKey="intelligence" name="SRB DataBrain AI" />
             <div className="grid grid-cols-2 gap-4">
-              <PanelShot moduleKey="aibots" name="SelfRun AgentOS" glow={false} />
+              <PanelShot moduleKey="aibots" name="SRB AgentOS" glow={false} />
               <PanelShot moduleKey="chatbot" name="AI Chatbot" glow={false} />
             </div>
           </Reveal>
@@ -464,7 +464,7 @@ export default async function SaasHome() {
       {/* White label */}
       <section id="your-brand" className="sr-section relative overflow-hidden" style={{ scrollMarginTop: 140 }}>
         <div className="sr-container">
-          <SectionHead n={no("your-brand")} center icon="target" eyebrow="Your brand" title="Your business name" accent="everywhere." lead="Your team, your customers and your website visitors see your business: your logo, your web address, your emails, your apps and your notifications. SelfRun stays out of sight. Pick an item below to see where it shows up." />
+          <SectionHead n={no("your-brand")} center icon="target" eyebrow="Your brand" title="Your business name" accent="everywhere." lead="Your team, your customers and your website visitors see your business: your logo, your web address, your emails, your apps and your notifications. SRB stays out of sight. Pick an item below to see where it shows up." />
           {brandTabs.length > 0 && <BrandShowcase brand={SAAS_BRAND.name} items={brandTabs.map((t) => ({ key: t.key, title: t.name, text: t.summary, icon: t.icon, node: t.node }))} />}
         </div>
       </section>
@@ -517,7 +517,7 @@ export default async function SaasHome() {
                   <Link href={productPath(module.key)} className="group flex h-full items-start gap-3 rounded-2xl border border-border/60 bg-card p-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10">
                     <span className="flex h-11 w-11 flex-none items-center justify-center rounded-xl border border-border/60 bg-background shadow-sm transition-transform group-hover:scale-105"><ProductLogo productKey={module.key} size={30} title={module.name} /></span>
                     <span className="min-w-0">
-                      <span className="block text-sm font-black leading-tight transition-colors group-hover:text-primary">{module.name.replace(/^SelfRun\s+/i, "")}</span>
+                      <span className="block text-sm font-black leading-tight transition-colors group-hover:text-primary">{module.name.replace(/^(SRB|SRB)\s+/i, "")}</span>
                       <span className="mt-1 block text-xs leading-snug text-muted-foreground">{module.capabilities[0] ?? module.summary}</span>
                     </span>
                   </Link>
@@ -534,7 +534,7 @@ export default async function SaasHome() {
       {/* Comparison */}
       <section id="comparison" style={{ scrollMarginTop: 140 }} className="sr-section">
         <div className="sr-container">
-          <SectionHead n={no("comparison")} center icon="shield" eyebrow="Compare" title="SelfRun AI vs." accent="many separate apps." lead="Most businesses use a different app for every job: one for sales, one for HR, one for invoices, and so on. This table puts the usual way of working next to SelfRun AI, one row at a time." />
+          <SectionHead n={no("comparison")} center icon="shield" eyebrow="Compare" title="SRB AI vs." accent="many separate apps." lead="Most businesses use a different app for every job: one for sales, one for HR, one for invoices, and so on. This table puts the usual way of working next to SRB AI, one row at a time." />
           <WhyCompare rows={COMPARISON} brand={SAAS_BRAND.name} />
         </div>
       </section>
@@ -546,7 +546,7 @@ export default async function SaasHome() {
         return st && m > 0 ? (
           <section id="cost" style={{ scrollMarginTop: 140 }} className="sr-section bg-gradient-to-b from-muted/20 to-transparent">
             <div className="sr-container">
-              <SectionHead n={no("cost")} center icon="wallet" eyebrow="What it costs" title="Many apps. Many bills." accent="Or one plan." lead="Add up what a team of ten pays for chat, HR, customer management, projects, accounting, purchasing, training, tests, a website, search ranking, social media, AI, file storage, a policy wiki and a help desk. Then compare it with SelfRun." />
+              <SectionHead n={no("cost")} center icon="wallet" eyebrow="What it costs" title="Many apps. Many bills." accent="Or one plan." lead="Add up what a team of ten pays for chat, HR, customer management, projects, accounting, purchasing, training, tests, a website, search ranking, social media, AI, file storage, a policy wiki and a help desk. Then compare it with SRB." />
               <StackCompare plan={{ name: st.name, price: `₹${m.toLocaleString("en-IN")}`, monthly: m }} products={modules} />
             </div>
           </section>
@@ -623,7 +623,7 @@ export default async function SaasHome() {
       {/* How it works */}
       <section id="how" style={{ scrollMarginTop: 140 }} className="sr-section">
         <div className="sr-container">
-          <SectionHead n={no("how")} center icon="rocket" eyebrow="Getting started" title="Ready in minutes," accent="not months." lead="Four steps take you from signing up to running your business on SelfRun AI. You can do the first two in one sitting." />
+          <SectionHead n={no("how")} center icon="rocket" eyebrow="Getting started" title="Ready in minutes," accent="not months." lead="Four steps take you from signing up to running your business on SRB AI. You can do the first two in one sitting." />
           <ol className="grid gap-5 md:grid-cols-2 lg:grid-cols-4 lg:gap-0">
             {HOW_IT_WORKS.map((x, i) => (
               <Reveal key={x.title} as="li" delay={i * 90} className="relative lg:px-2.5">

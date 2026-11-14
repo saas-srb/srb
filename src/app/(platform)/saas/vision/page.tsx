@@ -18,7 +18,7 @@ import { PANEL_DETAIL } from "@/lib/platform/saas/panel-detail";
 import { productPath } from "@/lib/platform/saas/product-routes";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = pageMeta({ path: "/vision", title: "Our Vision: A Business That Runs Itself", description: "Where SelfRun AI is heading and why: one software for your whole business, automation you can trust, AI that stays within each person's access, and your own brand on everything.", keywords: ["SelfRun AI vision", "future of business automation", "AI-first business platform", "autonomous business software", "business operating system vision", "automation with human approval"], tag: "Vision" });
+export const metadata: Metadata = pageMeta({ path: "/vision", title: "Our Vision: A Business That Runs Itself", description: "Where SRB AI is heading and why: one software for your whole business, automation you can trust, AI that stays within each person's access, and your own brand on everything.", keywords: ["SRB AI vision", "future of business automation", "AI-first business platform", "autonomous business software", "business operating system vision", "automation with human approval"], tag: "Vision" });
 
 const NAV = [
   { id: "vision", label: "Our vision" },
@@ -51,7 +51,7 @@ const BELIEFS = [
   { icon: "layers" as IconKey, title: "Start small, add what you need", text: "Each product works on its own, so you choose what fits your business today and add more only when you need it.", means: "Products you can use alone or together, managed from one place." },
   { icon: "brain" as IconKey, title: "AI should ask permission", text: "AI is useful when it answers from your real records, shows how it got there, and only sees what the person asking is allowed to see.", means: "AI that works within each person's access. Any change it suggests waits for approval." },
   { icon: "lock" as IconKey, title: "Your data is yours", text: "Every business's data is kept strictly apart, secrets are stored encrypted, and you can export your data or leave at any time.", means: "Data kept separate for each business, roles and per-action permissions, and a record of every action." },
-  { icon: "building" as IconKey, title: "The brand on it is yours", text: "Your team, customers and visitors should meet your business, not ours. SelfRun stays out of sight.", means: "Your logo, colours, web address, emails and apps." },
+  { icon: "building" as IconKey, title: "The brand on it is yours", text: "Your team, customers and visitors should meet your business, not ours. SRB stays out of sight.", means: "Your logo, colours, web address, emails and apps." },
   { icon: "check" as IconKey, title: "Say only what is true", text: "We describe the product as it is today. Where there is nothing to show yet, we say so instead of inventing it.", means: "No made-up stories, discounts or promised dates." },
 ];
 
@@ -86,7 +86,7 @@ export default async function VisionPage() {
   }).slice(0, 9);
   return (
     <>
-      <JsonLd data={[webPage({ type: "AboutPage", path: "/vision", name: "Product vision", description: "Where SelfRun AI is heading and why: one software for your whole business, automation you can trust, AI that stays within each person's access, and your own brand on everything." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Product vision", path: "/vision" }])]} />
+      <JsonLd data={[webPage({ type: "AboutPage", path: "/vision", name: "Product vision", description: "Where SRB AI is heading and why: one software for your whole business, automation you can trust, AI that stays within each person's access, and your own brand on everything." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Product vision", path: "/vision" }])]} />
       <PageHero
         art="features"
         eyebrow="Our vision"
@@ -95,7 +95,7 @@ export default async function VisionPage() {
         lead="Our vision is simple: every business, whatever its size, gets one intelligent software that handles the routine work, so people can spend their time on customers, creativity and growth. This page explains what that means, why we build it this way and where it stands today."
         photo="team-desk"
         shot="workspace"
-        shotName="SelfRun CommandOS"
+        shotName="SRB CommandOS"
         chip={{ title: "Products live today", text: "Every feature, all in every plan" }}
       >
         <HeroCtas primary={{ label: "Get started free", href: "/signup" }} secondary={{ label: "Explore the products", href: "/products" }} />
@@ -210,9 +210,9 @@ export default async function VisionPage() {
               <Reveal key={`${h.from.key}-${h.to.key}`} delay={(i % 3) * 60}>
                 <div className="h-full rounded-3xl border border-border/60 bg-card p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg">
                   <div className="flex items-center justify-between gap-2">
-                    <Link href={productPath(h.from.key)} className="flex min-w-0 items-center gap-2"><span className="flex h-11 w-11 flex-none items-center justify-center rounded-xl border border-border/60 bg-background"><ProductLogo productKey={h.from.key} size={30} title={h.from.name} /></span><span className="truncate text-sm font-black">{h.from.name.replace(/^SelfRun\s+/i, "")}</span></Link>
+                    <Link href={productPath(h.from.key)} className="flex min-w-0 items-center gap-2"><span className="flex h-11 w-11 flex-none items-center justify-center rounded-xl border border-border/60 bg-background"><ProductLogo productKey={h.from.key} size={30} title={h.from.name} /></span><span className="truncate text-sm font-black">{h.from.name.replace(/^(SRB|SRB)\s+/i, "")}</span></Link>
                     <ArrowRight className="h-5 w-5 flex-none text-primary" />
-                    <Link href={productPath(h.to.key)} className="flex min-w-0 items-center gap-2"><span className="flex h-11 w-11 flex-none items-center justify-center rounded-xl border border-border/60 bg-background"><ProductLogo productKey={h.to.key} size={30} title={h.to.name} /></span><span className="truncate text-sm font-black">{h.to.name.replace(/^SelfRun\s+/i, "")}</span></Link>
+                    <Link href={productPath(h.to.key)} className="flex min-w-0 items-center gap-2"><span className="flex h-11 w-11 flex-none items-center justify-center rounded-xl border border-border/60 bg-background"><ProductLogo productKey={h.to.key} size={30} title={h.to.name} /></span><span className="truncate text-sm font-black">{h.to.name.replace(/^(SRB|SRB)\s+/i, "")}</span></Link>
                   </div>
                   <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">{h.text}</p>
                 </div>
@@ -352,7 +352,7 @@ export default async function VisionPage() {
         accent="the vision."
         lead="What we are building, how far it has come and how we decide what comes next."
         extra={[
-          { q: "What is the SelfRun vision?", a: "Every business should be able to run on one intelligent software that handles the routine work, so its people can focus on customers, creativity and growth. In practice that means one software with a product for every job, automation you can trust, AI that stays within each person's access, and your own brand on everything." },
+          { q: "What is the SRB vision?", a: "Every business should be able to run on one intelligent software that handles the routine work, so its people can focus on customers, creativity and growth. In practice that means one software with a product for every job, automation you can trust, AI that stays within each person's access, and your own brand on everything." },
           { q: "Is the vision already built, or is it a plan?", a: `The products on this page are live today and all of them are included in every plan. We describe the product as it is now and do not present ideas as commitments.` },
           { q: "Will you publish release dates?", a: "No. We announce something only when it is ready to be described clearly. The roadmap page lists what the software offers today." },
         ]}

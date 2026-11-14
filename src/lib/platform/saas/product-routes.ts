@@ -26,7 +26,7 @@ export const SAAS_PRODUCT_COUNT = Object.keys(PRODUCT_URL_SLUGS).length;
 
 export function selfRunProductName(name: string): string {
   const trimmedName = name.trim();
-  return /^SelfRun\b/i.test(trimmedName) ? trimmedName : `SelfRun ${trimmedName}`;
+  return /^(SRB|SRB)\b/i.test(trimmedName) ? trimmedName.replace(/^SRB\b/i, "SRB") : `SRB ${trimmedName}`;
 }
 
 const KEY_BY_SLUG = new Map(Object.entries(PRODUCT_URL_SLUGS).map(([key, slug]) => [slug, key]));

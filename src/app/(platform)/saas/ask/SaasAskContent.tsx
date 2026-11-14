@@ -12,11 +12,11 @@ import { defaultUiText } from "@/lib/products/sitecraft-ai/default-ui-text";
 import { BrandProvider } from "@/components/platform/BrandProvider";
 import { Bot, PanelLeft, Plus } from "lucide-react";
 
-const BRAND = "SelfRun AI";
+const BRAND = "SRB AI";
 const SAAS_TEXT = defaultUiText(BRAND);
 const SAAS_BRAND_OBJ = {
   name: BRAND,
-  namePrimary: "SelfRun",
+  namePrimary: "SRB",
   nameAccent: "AI",
   logoUrl: null,
   primaryColor: null,
@@ -42,7 +42,7 @@ function AskWorkspace() {
             <Bot className="size-4" aria-hidden />
           </div>
           <span className="text-sm font-bold text-foreground">
-            Ask <span className="text-primary">SelfRun AI</span>
+            Ask <span className="text-primary">SRB AI</span>
           </span>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -79,7 +79,7 @@ function AskWorkspace() {
                 <Bot className="size-3.5" aria-hidden />
               </div>
               <span className="text-sm font-bold text-foreground">
-                Ask <span className="text-primary">SelfRun AI</span>
+                Ask <span className="text-primary">SRB AI</span>
               </span>
             </div>
 
@@ -114,7 +114,7 @@ function AskWorkspace() {
 }
 
 /**
- * Full-page ChatGPT-style Ask AI experience on SelfRun AI.
+ * Full-page ChatGPT-style Ask AI experience on SRB AI.
  * Wrapped in BrandProvider and TextProvider with defaultUiText so all labels,
  * placeholders, and buttons render cleanly and correctly.
  */

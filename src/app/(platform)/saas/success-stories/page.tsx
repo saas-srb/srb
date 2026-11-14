@@ -20,7 +20,7 @@ import { getFeatureModules } from "@/lib/platform/saas/modules";
 import { productPath } from "@/lib/platform/saas/product-routes";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = pageMeta({ path: "/success-stories", title: "Real-Life Examples: How a Business Runs on SelfRun AI", description: "See how everyday work runs on SelfRun AI, from first enquiry to payment, hiring to payroll, buying to paying suppliers. Customer stories appear when a business approves them.", keywords: ["business automation use cases", "lead to cash workflow", "hire to retire process", "procure to pay workflow", "customer success stories software", "business workflow examples", "SaaS case studies", "automation examples for small business"], tag: "Stories" });
+export const metadata: Metadata = pageMeta({ path: "/success-stories", title: "Real-Life Examples: How a Business Runs on SRB AI", description: "See how everyday work runs on SRB AI, from first enquiry to payment, hiring to payroll, buying to paying suppliers. Customer stories appear when a business approves them.", keywords: ["business automation use cases", "lead to cash workflow", "hire to retire process", "procure to pay workflow", "customer success stories software", "business workflow examples", "SaaS case studies", "automation examples for small business"], tag: "Stories" });
 
 const NAV = [
   { id: "read", label: "How to read them" },
@@ -63,16 +63,16 @@ export default async function SuccessStoriesPage() {
 
   return (
     <>
-      <JsonLd data={[webPage({ type: "CollectionPage", path: "/success-stories", name: "Customer stories and examples", description: "See how everyday work runs on SelfRun AI, from first enquiry to payment, hiring to payroll, buying to paying suppliers. Customer stories appear when a business approves them." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Success stories", path: "/success-stories" }]), itemList({ name: "SelfRun AI worked examples", items: USE_CASES.map((u) => ({ name: USE_CASE_PLAIN_TITLES[u.slug] ?? u.title, path: "/success-stories#library" })) })]} />
+      <JsonLd data={[webPage({ type: "CollectionPage", path: "/success-stories", name: "Customer stories and examples", description: "See how everyday work runs on SRB AI, from first enquiry to payment, hiring to payroll, buying to paying suppliers. Customer stories appear when a business approves them." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Success stories", path: "/success-stories" }]), itemList({ name: "SRB AI worked examples", items: USE_CASES.map((u) => ({ name: USE_CASE_PLAIN_TITLES[u.slug] ?? u.title, path: "/success-stories#library" })) })]} />
       <PageHero
         art="features"
         eyebrow="Customer stories & examples"
         title="See how work flows"
         accent="across your business."
-        lead="Here is how a business can run on SelfRun AI, one job at a time, from the first enquiry to money in the bank. Customer stories appear here when a business approves them. Until then you will find worked examples, based only on what the product really does."
+        lead="Here is how a business can run on SRB AI, one job at a time, from the first enquiry to money in the bank. Customer stories appear here when a business approves them. Until then you will find worked examples, based only on what the product really does."
         photo="colleagues"
         shot="workspace"
-        shotName="SelfRun CommandOS"
+        shotName="SRB CommandOS"
         chip={{ title: "Worked examples", text: "Based on what the product does today" }}
       >
         <HeroCtas primary={{ label: "Get started free", href: "/signup" }} secondary={{ label: "Talk with our team", href: "/contact" }} />
@@ -139,7 +139,7 @@ export default async function SuccessStoriesPage() {
       {/* industries */}
       <section id="industries" className="sr-section" style={{ scrollMarginTop: 140 }}>
         <div className="sr-container">
-          <Head id="industries" title="Find an example for" accent="your kind of business." lead="The kinds of business SelfRun AI fits, and the examples most relevant to each." />
+          <Head id="industries" title="Find an example for" accent="your kind of business." lead="The kinds of business SRB AI fits, and the examples most relevant to each." />
           <div className="grid gap-5 md:grid-cols-2">
             {byIndustry.map(({ x, list }, i) => (
               <Reveal key={x.slug} delay={(i % 2) * 60}>
@@ -263,7 +263,7 @@ export default async function SuccessStoriesPage() {
       {/* 06 share */}
       <section id="share" className="sr-section bg-muted/10" style={{ scrollMarginTop: 140 }}>
         <div className="sr-container">
-          <Head id="share" title="Using SelfRun?" accent="Share your story." lead="If the platform has helped your business, we would be glad to tell it, in your words and only with your approval." />
+          <Head id="share" title="Using SRB?" accent="Share your story." lead="If the platform has helped your business, we would be glad to tell it, in your words and only with your approval." />
           <Reveal>
             <div className="relative mx-auto grid max-w-5xl overflow-hidden rounded-[2rem] bg-gradient-to-br from-primary to-brand-accent text-white shadow-2xl shadow-primary/25 lg:grid-cols-[1.1fr_1fr]">
               <Sparkles className="absolute -right-4 -top-4 h-40 w-40 text-white/10" aria-hidden />

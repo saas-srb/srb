@@ -13,7 +13,7 @@ import { SUB_PROCESSORS } from "@/lib/platform/saas/legal-compliance";
  * replaced by a placeholder. The wording is a complete working draft that rests on what the product really does (see docs/compliance/); the
  * operator's own legal counsel should review it before launch, as with any contract.
  */
-const SERVICE = "SelfRun AI";
+const SERVICE = "SRB AI";
 
 export interface LegalContext {
   name: string;

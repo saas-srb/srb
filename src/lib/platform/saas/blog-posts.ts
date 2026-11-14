@@ -1,5 +1,5 @@
 /**
- * Real, production-ready blog posts for SelfRun AI.
+ * Real, production-ready blog posts for SRB AI.
  * Each post provides practical instructions, realistic business use cases,
  * step-by-step guidance, and references real product screens and photography.
  */
@@ -25,7 +25,7 @@ export const POSTS: BlogPost[] = [
     slug: "build-free-website-in-one-minute-using-ai",
     title: "How to Build a Free Website in One Minute Using AI",
     summary:
-      "Creating a professional company website used to require weeks of technical work or expensive web agencies. Learn how to launch a fast, mobile-friendly website in under sixty seconds with SelfRun AI.",
+      "Creating a professional company website used to require weeks of technical work or expensive web agencies. Learn how to launch a fast, mobile-friendly website in under sixty seconds with SRB AI.",
     date: "2026-10-10",
     readMinutes: 5,
     photo: "laptop-talk",
@@ -34,7 +34,7 @@ export const POSTS: BlogPost[] = [
     author: "Product Team",
     keyTakeaways: [
       "No coding, HTML, or server setup is required to publish a live business website.",
-      "SelfRun AI generates starter pages, brand colors, and contact forms automatically upon workspace creation.",
+      "SRB AI generates starter pages, brand colors, and contact forms automatically upon workspace creation.",
       "Connect your custom domain in seconds with automatic, free TLS/SSL encryption.",
       "Inbound website form inquiries flow directly into your built-in CRM pipeline without Zapier or third-party plugins.",
     ],
@@ -43,22 +43,22 @@ export const POSTS: BlogPost[] = [
         heading: "Why Building a Website No Longer Needs an Agency",
         body: [
           "For years, getting a small business online meant hiring an external web designer, waiting four to eight weeks, and spending thousands of dollars before a single customer could visit your page. Even no-code page builders often become confusing mazes of plugin updates, hosting configurations, and broken mobile layouts.",
-          "SelfRun AI approaches website creation from a fundamentally different angle. Instead of treating your website as an isolated project disconnected from the rest of your business, the platform treats your website as the front door of your unified operations. The moment you register your company workspace, a fully functional, mobile-ready website is generated and live immediately.",
+          "SRB AI approaches website creation from a fundamentally different angle. Instead of treating your website as an isolated project disconnected from the rest of your business, the platform treats your website as the front door of your unified operations. The moment you register your company workspace, a fully functional, mobile-ready website is generated and live immediately.",
           "This means you can go from having no online presence to sharing a live, secure website link with potential clients before your coffee gets cold.",
         ],
       },
       {
         heading: "Step 1: Create Your Workspace and Let AI Structure Your Pages",
         body: [
-          "When you sign up at SelfRun AI, you enter your company name, primary industry, and work email. Behind the scenes, the website engine automatically provisions your core pages: Home, Features, About Us, Contact, and Services.",
-          "Unlike generic templates that come pre-filled with meaningless Latin placeholder text, SelfRun AI drafts clean, sensible headlines and descriptions suited to your line of work. A consulting firm gets service blocks and client engagement outlines, while a digital agency gets project highlights and inquiry forms.",
+          "When you sign up at SRB AI, you enter your company name, primary industry, and work email. Behind the scenes, the website engine automatically provisions your core pages: Home, Features, About Us, Contact, and Services.",
+          "Unlike generic templates that come pre-filled with meaningless Latin placeholder text, SRB AI drafts clean, sensible headlines and descriptions suited to your line of work. A consulting firm gets service blocks and client engagement outlines, while a digital agency gets project highlights and inquiry forms.",
           "You can preview your website instantly on your free subdomain (such as yourcompany.<your-domain>) to see how everything looks on desktop, tablet, and smartphone screens.",
         ],
       },
       {
         heading: "Step 2: Personalize Your Brand Colors and Content in Clicks",
         body: [
-          "Every business has its own personality. Open SelfRun SiteCraft AI inside your workspace to upload your logo and choose your primary brand accent color. In one click, the system updates your navigation header, buttons, banners, and footer across every page.",
+          "Every business has its own personality. Open SRB SiteCraft AI inside your workspace to upload your logo and choose your primary brand accent color. In one click, the system updates your navigation header, buttons, banners, and footer across every page.",
           "Editing text is as simple as typing into a document. If you want to refine a headline or expand your service descriptions, select the block and type directly. You can also prompt the built-in AI assistant: ask it to make your opening paragraph more conversational, emphasize your twenty-four-hour customer support, or highlight your customer satisfaction guarantee.",
           "Because the layout engine enforces clean visual hierarchy and balanced spacing, your site looks professionally designed without you having to worry about font pairings or CSS breakpoints.",
         ],
@@ -67,7 +67,7 @@ export const POSTS: BlogPost[] = [
         heading: "Step 3: Connect Forms Directly to Your Built-in CRM",
         body: [
           "The biggest flaw of traditional standalone websites is lead leakage. When a visitor fills out a contact form on WordPress or Squarespace, the submission usually sits in an email inbox or gets lost in spam filters.",
-          "With SelfRun AI, every contact form, inquiry button, and newsletter signup connects directly to SelfRun DealFlow AI. When a prospective client submits their phone number and project requirements, three things happen instantly: a new lead card appears on your sales board, an email alert notifies your team, and an automated confirmation email reaches the customer.",
+          "With SRB AI, every contact form, inquiry button, and newsletter signup connects directly to SRB DealFlow AI. When a prospective client submits their phone number and project requirements, three things happen instantly: a new lead card appears on your sales board, an email alert notifies your team, and an automated confirmation email reaches the customer.",
           "The website and sales product each keep their own data. Configure a form integration or workflow to send enquiries to DealFlow AI; the website and sales pipeline continue to run independently.",
         ],
       },
@@ -75,7 +75,7 @@ export const POSTS: BlogPost[] = [
         heading: "Step 4: Connect Your Own Domain with Automatic SSL",
         body: [
           "When you are ready to point your primary company domain (such as acmeconsulting.com) to your new site, open Settings > Domains in your workspace. Enter your domain name and copy the two DNS records shown on your screen.",
-          "Once you add those records to your domain registrar (like Namecheap, GoDaddy, or Cloudflare), SelfRun AI verifies the connection and provisions a free, automatic TLS certificate. Your site stays protected with HTTPS, and the certificate renews automatically every ninety days with zero manual maintenance.",
+          "Once you add those records to your domain registrar (like Namecheap, GoDaddy, or Cloudflare), SRB AI verifies the connection and provisions a free, automatic TLS certificate. Your site stays protected with HTTPS, and the certificate renews automatically every ninety days with zero manual maintenance.",
         ],
       },
       {
@@ -116,7 +116,7 @@ export const POSTS: BlogPost[] = [
       {
         heading: "1. Work from One Single Unified Platform",
         body: [
-          "SelfRun brings independent products into one suite that teams can manage from one place. Each product keeps its own records and sign-in. If a team wants a project milestone to trigger an invoice draft, or a leave request to notify a project manager, they can configure those handoffs as automations.",
+          "SRB brings independent products into one suite that teams can manage from one place. Each product keeps its own records and sign-in. If a team wants a project milestone to trigger an invoice draft, or a leave request to notify a project manager, they can configure those handoffs as automations.",
         ],
       },
       {
@@ -128,13 +128,13 @@ export const POSTS: BlogPost[] = [
       {
         heading: "3. Kill Unnecessary Status Meetings with Visual Dashboards",
         body: [
-          "The dreaded 'quick sync' meeting often exists solely because managers do not know what everyone is working on. Replace thirty-minute status meetings with real-time project boards. When team members log task updates and timesheets in SelfRun SprintOS, anyone can check progress at a glance without interrupting work.",
+          "The dreaded 'quick sync' meeting often exists solely because managers do not know what everyone is working on. Replace thirty-minute status meetings with real-time project boards. When team members log task updates and timesheets in SRB SprintOS, anyone can check progress at a glance without interrupting work.",
         ],
       },
       {
         heading: "4. Use Plain-Language Search to Find Business Answers",
         body: [
-          "Stop spending twenty minutes digging through old spreadsheets to answer simple business questions. With SelfRun DataBrain AI, you can type: 'Which clients have unpaid invoices older than 14 days?' or 'What was our total software spend last quarter?' and receive an instant, accurate answer with verified workings.",
+          "Stop spending twenty minutes digging through old spreadsheets to answer simple business questions. With SRB DataBrain AI, you can type: 'Which clients have unpaid invoices older than 14 days?' or 'What was our total software spend last quarter?' and receive an instant, accurate answer with verified workings.",
         ],
       },
       {
@@ -146,7 +146,7 @@ export const POSTS: BlogPost[] = [
       {
         heading: "6. Document Repeatable Tasks into Digital SOPs",
         body: [
-          "If you have to explain the same procedure three times, it belongs in a Standard Operating Procedure (SOP). Use SelfRun Playbook AI to document client onboarding, payroll runs, and quality reviews. New hires can follow clear checklists independently instead of pinging senior staff every ten minutes.",
+          "If you have to explain the same procedure three times, it belongs in a Standard Operating Procedure (SOP). Use SRB Playbook AI to document client onboarding, payroll runs, and quality reviews. New hires can follow clear checklists independently instead of pinging senior staff every ten minutes.",
         ],
       },
       {
@@ -158,13 +158,13 @@ export const POSTS: BlogPost[] = [
       {
         heading: "8. Implement Spend Approval Thresholds",
         body: [
-          "Prevent billing surprises by establishing clear purchase requisition rules. Require team approval for any equipment purchase or software subscription above fifty dollars. In SelfRun SpendIQ, managers can approve requests from their phone in seconds, keeping budgets intact without slowing work down.",
+          "Prevent billing surprises by establishing clear purchase requisition rules. Require team approval for any equipment purchase or software subscription above fifty dollars. In SRB SpendIQ, managers can approve requests from their phone in seconds, keeping budgets intact without slowing work down.",
         ],
       },
       {
         heading: "9. Keep Sensitive Credentials in a Central Vault",
         body: [
-          "Searching for lost passwords or asking colleagues for shared logins in chat wastes hours and creates severe security vulnerabilities. Store your company software credentials, hosting logins, and registration documents inside SelfRun CyberVault with role-based access.",
+          "Searching for lost passwords or asking colleagues for shared logins in chat wastes hours and creates severe security vulnerabilities. Store your company software credentials, hosting logins, and registration documents inside SRB CyberVault with role-based access.",
         ],
       },
       {
@@ -203,14 +203,14 @@ export const POSTS: BlogPost[] = [
       {
         heading: "Generating Clean Digital Invoices from Completed Work",
         body: [
-          "In SelfRun CashFlow AI, creating an invoice takes under thirty seconds because your project data is already connected. If your team tracks hours on a client milestone in SelfRun SprintOS, you can convert approved timesheets directly into an itemized bill with a single click.",
+          "In SRB CashFlow AI, creating an invoice takes under thirty seconds because your project data is already connected. If your team tracks hours on a client milestone in SRB SprintOS, you can convert approved timesheets directly into an itemized bill with a single click.",
           "Every invoice includes your company logo, legal registration details, tax breakdown, line-item descriptions, and a clear payment due date. You can preview the invoice exactly as the customer will see it before sending.",
         ],
       },
       {
         heading: "Adding Instant Payment Links to Every Bill",
         body: [
-          "The fastest way to get paid is to remove payment obstacles. Instead of making your client copy and paste bank account numbers or write paper checks, SelfRun AI embeds secure online payment buttons directly into the digital invoice email and PDF.",
+          "The fastest way to get paid is to remove payment obstacles. Instead of making your client copy and paste bank account numbers or write paper checks, SRB AI embeds secure online payment buttons directly into the digital invoice email and PDF.",
           "Clients can click the link and pay immediately using major credit cards, debit cards, UPI, or instant bank transfers through integrated Razorpay processing. Invoices with one-click payment links settle an average of fourteen days faster than traditional bank transfer invoices.",
         ],
       },
@@ -218,14 +218,14 @@ export const POSTS: BlogPost[] = [
         heading: "Setting Up Polite, Automated Reminder Sequences",
         body: [
           "Chasing unpaid bills is one of the most awkward parts of running a business. No founder wants to damage a client relationship by sending harsh emails, yet polite silence often results in invoices slipping sixty days overdue.",
-          "SelfRun AI automates this follow-up respectfully. You can configure scheduled reminder rules: a friendly reminder three days before the due date, a notification on the due date, and polite follow-ups three and seven days after the due date if payment has not been received.",
+          "SRB AI automates this follow-up respectfully. You can configure scheduled reminder rules: a friendly reminder three days before the due date, a notification on the due date, and polite follow-ups three and seven days after the due date if payment has not been received.",
           "The moment the client pays through the link, the reminder sequence cancels itself automatically. You never risk sending an accidental reminder to a client who has already settled their bill.",
         ],
       },
       {
         heading: "Automatic Ledger Posting and Real-Time Reconciliation",
         body: [
-          "When a client pays an invoice through SelfRun AI, manual bookkeeping disappears. The platform immediately marks the invoice as Paid, records the transaction in your Cash and Bank Accounts ledger, updates your accounts receivable balance, and posts the revenue to your Profit & Loss statement.",
+          "When a client pays an invoice through SRB AI, manual bookkeeping disappears. The platform immediately marks the invoice as Paid, records the transaction in your Cash and Bank Accounts ledger, updates your accounts receivable balance, and posts the revenue to your Profit & Loss statement.",
           "You never have to sit down at the end of the month matching bank statements against paper receipts. Your cash position is accurate and up to date every single minute.",
         ],
       },
@@ -262,13 +262,13 @@ export const POSTS: BlogPost[] = [
         body: [
           "In the early days of a business, tracking inquiries in a simple Google Sheet or flagging emails in an inbox seems manageable. But as inquiry volume grows, this ad-hoc system inevitably breaks down.",
           "A salesperson forgets to call back an interested prospect. Two team members accidentally contact the same customer with conflicting quotes. Notes from a phone call remain trapped in someone's personal notebook. The result is lost revenue and a poor first impression on prospective customers.",
-          "A modern software like SelfRun DealFlow AI gives your team a shared, organized headquarters where every inquiry has a clear owner, status, and scheduled next step.",
+          "A modern software like SRB DealFlow AI gives your team a shared, organized headquarters where every inquiry has a clear owner, status, and scheduled next step.",
         ],
       },
       {
         heading: "Capturing Inquiries Automatically at the Source",
         body: [
-          "Manual lead entry is the enemy of fast follow-up. When a prospective client fills out your contact form, requests a quote, or downloads a case study from your SelfRun AI website, their details flow directly into the CRM.",
+          "Manual lead entry is the enemy of fast follow-up. When a prospective client fills out your contact form, requests a quote, or downloads a case study from your SRB AI website, their details flow directly into the CRM.",
           "Their name, email, phone number, company size, and specific inquiry message populate a new lead profile automatically. If you run social media advertising campaigns, inquiries from Meta and LinkedIn forms also connect straight into the same board.",
           "Your team gets an instant browser or mobile push notification, allowing reps to reach out while the customer's interest is at its absolute peak.",
         ],
@@ -276,7 +276,7 @@ export const POSTS: BlogPost[] = [
       {
         heading: "Mapping Your Customer Journey into Visual Pipeline Stages",
         body: [
-          "A sales pipeline should mirror the natural steps a prospect takes before buying from you. In SelfRun DealFlow AI, leads move smoothly across visual Kanban columns:",
+          "A sales pipeline should mirror the natural steps a prospect takes before buying from you. In SRB DealFlow AI, leads move smoothly across visual Kanban columns:",
           "1. New Inquiries: Fresh leads awaiting initial review and outreach.",
           "2. Contacted: Rep has reached out via phone or email; waiting for client response.",
           "3. Discovery & Demo: Meeting scheduled to evaluate client requirements.",
@@ -288,7 +288,7 @@ export const POSTS: BlogPost[] = [
       {
         heading: "Assigning Deals and Setting Follow-Up Deadlines",
         body: [
-          "Every deal must have one clear owner. SelfRun AI allows you to assign leads round-robin among sales reps or route specific inquiries based on service category.",
+          "Every deal must have one clear owner. SRB AI allows you to assign leads round-robin among sales reps or route specific inquiries based on service category.",
           "More importantly, the system lets you set follow-up due dates. If a rep agrees to call a client back on Thursday afternoon, they set a reminder on the lead card. If Thursday arrives and no action has been logged, the lead card flags as overdue, ensuring no prospect gets forgotten.",
         ],
       },
@@ -296,7 +296,7 @@ export const POSTS: BlogPost[] = [
         heading: "Converting Won Deals into Live Projects and Invoices",
         body: [
           "The true magic of an integrated business platform happens when a deal is closed. In separate software ecosystems, closing a deal means copying client details into the accounting tool and re-typing project scopes into the project management tool.",
-          "In SelfRun AI, clicking 'Mark as Won' does it all automatically: it creates a permanent Client record in your CRM, opens an onboarding project in SelfRun SprintOS, and prepares the deposit invoice in SelfRun CashFlow AI. Your team moves straight into project delivery without wasting an hour on administrative paperwork.",
+          "In SRB AI, clicking 'Mark as Won' does it all automatically: it creates a permanent Client record in your CRM, opens an onboarding project in SRB SprintOS, and prepares the deposit invoice in SRB CashFlow AI. Your team moves straight into project delivery without wasting an hour on administrative paperwork.",
         ],
       },
       {
@@ -338,22 +338,22 @@ export const POSTS: BlogPost[] = [
       {
         heading: "Connecting Attendance, Shifts, and Leaves Automatically",
         body: [
-          "The secret to fast payroll is having clean data fed directly from the source. In SelfRun TalentOS, employee attendance is tracked daily through web logins, mobile check-ins, or biometric hardware integrations.",
+          "The secret to fast payroll is having clean data fed directly from the source. In SRB TalentOS, employee attendance is tracked daily through web logins, mobile check-ins, or biometric hardware integrations.",
           "When team members request vacation, sick leave, or unpaid time off, their managers approve or decline requests inside the same portal. By the time month-end arrives, the system already knows the exact count of working days, paid leaves, approved overtime hours, and unpaid absences for every single staff member.",
         ],
       },
       {
         heading: "Executing a One-Click Payroll Calculation Run",
         body: [
-          "When you are ready to process salaries, navigate to SelfRun TalentOS > Payroll Runs and click 'New Payroll Run'. Select the month and department, then click 'Calculate'.",
-          "In seconds, SelfRun AI scans every employee contract, salary structure (basic pay, housing allowance, special allowances), approved expense reimbursements, and statutory deductions like Provident Fund, ESI, or professional tax.",
+          "When you are ready to process salaries, navigate to SRB TalentOS > Payroll Runs and click 'New Payroll Run'. Select the month and department, then click 'Calculate'.",
+          "In seconds, SRB AI scans every employee contract, salary structure (basic pay, housing allowance, special allowances), approved expense reimbursements, and statutory deductions like Provident Fund, ESI, or professional tax.",
           "The system displays a clear summary table showing gross salary, total deductions, and net payout for the entire company. You can review anomalies or make one-time bonuses with a click.",
         ],
       },
       {
         heading: "Instant Digital Payslips and Direct Payouts",
         body: [
-          "Once you approve the payroll run, SelfRun AI generates professional, PDF-compliant payslips for every employee. Instead of printing paper slips or emailing unencrypted attachments, payslips are published directly to each employee's secure SelfRun profile and mobile app.",
+          "Once you approve the payroll run, SRB AI generates professional, PDF-compliant payslips for every employee. Instead of printing paper slips or emailing unencrypted attachments, payslips are published directly to each employee's secure SRB profile and mobile app.",
           "Team members receive an instant push notification and email informing them that their payslip is available for viewing and tax download.",
           "If you use integrated corporate bank payout accounts (such as RazorpayX or direct bank transfers), the payout file or automated transfer can be executed immediately without leaving the product.",
         ],
@@ -362,7 +362,7 @@ export const POSTS: BlogPost[] = [
         heading: "Automated Accounting Entries in Your Finance Ledger",
         body: [
           "In traditional setups, the HR team finishes payroll and then sends a summary report to the accountant, who manually types journal entries into QuickBooks or Tally. This double entry wastes hours and creates reconciliation discrepancies.",
-          "In SelfRun AI, finalizing a payroll run automatically creates the corresponding journal entries in SelfRun CashFlow AI. Salary expense, tax payables, and bank disbursement accounts balance automatically, keeping your profit-and-loss reporting 100% synchronized with human resources.",
+          "In SRB AI, finalizing a payroll run automatically creates the corresponding journal entries in SRB CashFlow AI. Salary expense, tax payables, and bank disbursement accounts balance automatically, keeping your profit-and-loss reporting 100% synchronized with human resources.",
         ],
       },
       {
@@ -390,7 +390,7 @@ export const POSTS: BlogPost[] = [
     keyTakeaways: [
       "Daily ad-hoc posting leads to inconsistent messaging, rushed copy, and social media burnout.",
       "Structuring content around four core pillars ensures balanced, engaging storytelling across your channels.",
-      "SelfRun AI adapts one core idea into platform-native formats for LinkedIn, Facebook, and Twitter simultaneously.",
+      "SRB AI adapts one core idea into platform-native formats for LinkedIn, Facebook, and Twitter simultaneously.",
       "An integrated visual calendar with approval workflows prevents accidental or off-brand posts from going live.",
     ],
     sections: [
@@ -415,7 +415,7 @@ export const POSTS: BlogPost[] = [
         heading: "Step 2: Use AI to Tailor One Idea Across Multiple Channels",
         body: [
           "One of the biggest mistakes brands make is copy-pasting the exact same message to every platform. What works on LinkedIn will look stiff on Twitter, and what works on Instagram needs strong visual framing.",
-          "In SelfRun ViralPulse AI, you simply enter your core concept: for example, 'How our new automated invoicing saves business owners 10 hours a month.' Click 'Generate with AI', and the assistant produces three tailored variants:",
+          "In SRB ViralPulse AI, you simply enter your core concept: for example, 'How our new automated invoicing saves business owners 10 hours a month.' Click 'Generate with AI', and the assistant produces three tailored variants:",
           "- LinkedIn: A polished, structured professional post with bullet points, strategic line breaks, and clear business takeaways.",
           "- Twitter / X: A punchy, hook-driven post under 280 characters with relevant hashtags.",
           "- Facebook / Instagram: A conversational, community-oriented caption with an engaging call-to-action question at the end.",
@@ -432,7 +432,7 @@ export const POSTS: BlogPost[] = [
         heading: "Step 4: Built-in Approval Workflows for Brand Safety",
         body: [
           "If you have interns, junior marketers, or freelance copywriters helping with content, brand safety is a major concern. You do not want unvetted drafts going live automatically without editorial oversight.",
-          "SelfRun AI includes role-based publishing permissions. Writers can draft and schedule content, but posts remain in 'Pending Approval' status until a manager reviews the copy, makes any necessary tweaks, and clicks 'Approve for Auto-Publish'.",
+          "SRB AI includes role-based publishing permissions. Writers can draft and schedule content, but posts remain in 'Pending Approval' status until a manager reviews the copy, makes any necessary tweaks, and clicks 'Approve for Auto-Publish'.",
         ],
       },
       {
@@ -459,7 +459,7 @@ export const POSTS: BlogPost[] = [
     keyTakeaways: [
       "Traditional 50-page PDF policy manuals are ignored because they are hard to search and tedious to read.",
       "High-clarity SOPs focus on specific outcomes with numbered action checklists and visual screenshots.",
-      "SelfRun AI can turn raw bulleted notes into complete, structured operational procedures in seconds.",
+      "SRB AI can turn raw bulleted notes into complete, structured operational procedures in seconds.",
       "Tracking read receipts and version acknowledgments ensures team compliance across all departments.",
     ],
     sections: [
@@ -473,7 +473,7 @@ export const POSTS: BlogPost[] = [
       {
         heading: "The Anatomy of an SOP People Will Actually Use",
         body: [
-          "A great Standard Operating Procedure is not an academic paper; it is a reliable recipe. Every SOP in your SelfRun AI library should contain four simple elements:",
+          "A great Standard Operating Procedure is not an academic paper; it is a reliable recipe. Every SOP in your SRB AI library should contain four simple elements:",
           "1. Purpose & Scope: One clear sentence explaining why this task exists and who is responsible for executing it.",
           "2. Prerequisites: Everything required before starting (software logins, client files, or approval clearances).",
           "3. Step-by-Step Checklist: Short, numbered action items starting with an imperative verb (e.g., '1. Open the Finance product', '2. Click New Invoice', '3. Verify VAT rate').",
@@ -484,13 +484,13 @@ export const POSTS: BlogPost[] = [
         heading: "Using AI to Turn Raw Notes into Structured Procedures",
         body: [
           "You do not need to spend your entire weekend writing documentation. The fastest way to create an SOP is to perform the task yourself while jotting down quick bullet points or recording a two-minute voice note.",
-          "Paste those raw notes into SelfRun AI's SOP generator. The built-in assistant formats your thoughts into a professional procedure complete with clear headings, safety caveats, prerequisite lists, and verification checkpoints. You review the draft, tweak company-specific details, and publish it to your company library in under five minutes.",
+          "Paste those raw notes into SRB AI's SOP generator. The built-in assistant formats your thoughts into a professional procedure complete with clear headings, safety caveats, prerequisite lists, and verification checkpoints. You review the draft, tweak company-specific details, and publish it to your company library in under five minutes.",
         ],
       },
       {
         heading: "Organizing by Department and Role",
         body: [
-          "Tag your procedures by department (Sales, HR, Engineering, Customer Support) and target role (Junior Rep, Account Manager, Team Lead). When a new customer support specialist logs into SelfRun AI, their SOP tab highlights the exact ten procedures they need for their daily job rather than overwhelming them with fifty irrelevant engineering docs.",
+          "Tag your procedures by department (Sales, HR, Engineering, Customer Support) and target role (Junior Rep, Account Manager, Team Lead). When a new customer support specialist logs into SRB AI, their SOP tab highlights the exact ten procedures they need for their daily job rather than overwhelming them with fifty irrelevant engineering docs.",
           "Because the library features instant full-text search, an employee can type 'client refund' or 'holiday policy' and find the exact step-by-step checklist in three seconds.",
         ],
       },
@@ -498,7 +498,7 @@ export const POSTS: BlogPost[] = [
         heading: "Tracking Read Receipts and Version Acknowledgments",
         body: [
           "How do you know if your team has actually read an updated compliance policy or security procedure? In traditional setups, managers send an email and hope for the best.",
-          "In SelfRun Playbook AI, you can mark critical procedures as requiring mandatory acknowledgment. When an SOP is published or revised, affected employees receive a notification and must click 'Acknowledge Policy'. Managers can view a live compliance dashboard showing exactly who has read the procedure and who still needs a reminder.",
+          "In SRB Playbook AI, you can mark critical procedures as requiring mandatory acknowledgment. When an SOP is published or revised, affected employees receive a notification and must click 'Acknowledge Policy'. Managers can view a live compliance dashboard showing exactly who has read the procedure and who still needs a reminder.",
         ],
       },
       {
@@ -524,7 +524,7 @@ export const POSTS: BlogPost[] = [
     author: "Product Team",
     keyTakeaways: [
       "Over 60% of website visitors bounce if they cannot find answers to basic pricing and service questions immediately.",
-      "SelfRun AI's chatbot trains directly on your website pages, FAQs, and uploaded service documentation.",
+      "SRB AI's chatbot trains directly on your website pages, FAQs, and uploaded service documentation.",
       "The bot provides accurate answers without hallucinating unsupported claims or making up discounts.",
       "Every meaningful conversation captures contact details and deposits a qualified lead directly into your CRM.",
     ],
@@ -541,7 +541,7 @@ export const POSTS: BlogPost[] = [
         heading: "Training Your AI Bot on Your Real Business Knowledge",
         body: [
           "The greatest concern business owners have with AI chatbots is accuracy: 'What if the bot makes up false pricing or promises features we do not offer?'",
-          "SelfRun AI solves this through strict source grounding. You populate your chatbot's Knowledge Base (KB) by connecting your website pages, product catalogs, FAQ documents, and service guidelines. When a visitor asks a question, the AI searches your verified records and constructs a clear, friendly answer using only your authentic information.",
+          "SRB AI solves this through strict source grounding. You populate your chatbot's Knowledge Base (KB) by connecting your website pages, product catalogs, FAQ documents, and service guidelines. When a visitor asks a question, the AI searches your verified records and constructs a clear, friendly answer using only your authentic information.",
           "If a visitor asks about something not covered in your knowledge base, the bot politely states that it does not have that detail and offers to connect them with a human specialist.",
         ],
       },
@@ -556,13 +556,13 @@ export const POSTS: BlogPost[] = [
         heading: "Turning Conversations into Qualified CRM Leads",
         body: [
           "A great support bot does more than answer questions; it acts as an active sales assistant. When a visitor asks an in-depth question about your enterprise plans or requests a tailored quote, the chatbot smoothly asks: 'I would be happy to have our solutions specialist send you the full breakdown. What is the best email address and phone number to reach you?'",
-          "The moment the visitor types their details, SelfRun AI creates a lead card in your SelfRun DealFlow AI pipeline, tags it as 'Chatbot Inquiry', and attaches the full conversation transcript so your sales team knows the prospect's exact requirements before picking up the phone.",
+          "The moment the visitor types their details, SRB AI creates a lead card in your SRB DealFlow AI pipeline, tags it as 'Chatbot Inquiry', and attaches the full conversation transcript so your sales team knows the prospect's exact requirements before picking up the phone.",
         ],
       },
       {
         heading: "Seamless Escalation to Human Support",
         body: [
-          "AI should empower your human team, not replace human connection where it matters most. If a customer expresses frustration or specifically requests to speak with a human agent, the bot creates a priority ticket in SelfRun ResolveIQ.",
+          "AI should empower your human team, not replace human connection where it matters most. If a customer expresses frustration or specifically requests to speak with a human agent, the bot creates a priority ticket in SRB ResolveIQ.",
           "Your customer support team receives an immediate notification with the conversation history and can take over the chat live or follow up via email within minutes.",
         ],
       },
@@ -604,7 +604,7 @@ export const POSTS: BlogPost[] = [
       {
         heading: "Breaking Big Deliverables into Milestones and Tasks",
         body: [
-          "In SelfRun AI's SelfRun SprintOS, every client engagement is structured hierarchically: Project > Milestones > Tasks.",
+          "In SRB AI's SRB SprintOS, every client engagement is structured hierarchically: Project > Milestones > Tasks.",
           "Milestones represent major achievements that client stakeholders care about—such as 'Architecture Sign-off', 'Beta Build Review', or 'Final Launch'. Each milestone contains specific, actionable tasks assigned to individual team members with firm start and due dates.",
           "Visual Kanban boards and Gantt calendar views let your team see task dependencies clearly. If a frontend task depends on an API design task, everyone knows why work has not started and who needs support.",
         ],
@@ -613,21 +613,21 @@ export const POSTS: BlogPost[] = [
         heading: "Tracking Real Hours with Integrated Timesheets",
         body: [
           "Do you know the true cost of delivering your services? If your team does not track hours against specific projects, you cannot know whether a fifty-thousand-dollar contract actually made money or cost you fifty-five thousand dollars in staff payroll.",
-          "SelfRun AI includes built-in timesheets. Team members log hours against tasks with a single click, either using live timers or end-of-day entries. Because employee salary costs are already configured in SelfRun TalentOS, the platform calculates real-time project cost and gross margin automatically as work happens.",
+          "SRB AI includes built-in timesheets. Team members log hours against tasks with a single click, either using live timers or end-of-day entries. Because employee salary costs are already configured in SRB TalentOS, the platform calculates real-time project cost and gross margin automatically as work happens.",
         ],
       },
       {
         heading: "Connecting Task Milestones Directly to Client Invoicing",
         body: [
-          "One of the biggest advantages of an all-in-one platform is milestone billing. Instead of having project managers send a message to the finance team saying 'Milestone 2 is complete, please raise an invoice', SelfRun AI handles the transition seamlessly.",
-          "When a project manager marks a milestone as 'Delivered', the system prompts them to generate the corresponding invoice in SelfRun CashFlow AI with the agreed contract price. The invoice is created, sent, and tracked without administrative delay.",
+          "One of the biggest advantages of an all-in-one platform is milestone billing. Instead of having project managers send a message to the finance team saying 'Milestone 2 is complete, please raise an invoice', SRB AI handles the transition seamlessly.",
+          "When a project manager marks a milestone as 'Delivered', the system prompts them to generate the corresponding invoice in SRB CashFlow AI with the agreed contract price. The invoice is created, sent, and tracked without administrative delay.",
         ],
       },
       {
         heading: "Keeping Clients Informed with Dedicated Portals",
         body: [
           "Clients ask for status updates when they feel kept in the dark. Answering five 'any update on this?' emails every morning eats into productive delivery time.",
-          "SelfRun AI solves this through the Client Portal. You can grant clients access to view their project milestone progress, approved deliverables, and pending feedback items in a clean, read-only interface under your company brand. Clients feel informed and in control, and your team can focus on executing work.",
+          "SRB AI solves this through the Client Portal. You can grant clients access to view their project milestone progress, approved deliverables, and pending feedback items in a clean, read-only interface under your company brand. Clients feel informed and in control, and your team can focus on executing work.",
         ],
       },
       {
@@ -669,15 +669,15 @@ export const POSTS: BlogPost[] = [
       {
         heading: "Conducting a Fast 30-Minute Software Spend Audit",
         body: [
-          "Taking back control begins with visibility. In SelfRun AI's SelfRun SpendIQ, create an inventory of every active digital subscription your company pays for. Record the tool name, vendor, billing frequency (monthly or annual), monthly cost, seat count, and primary owner.",
-          "Next, compare the number of paid licenses against your active employee list in SelfRun TalentOS. You will almost certainly find that you are paying for twelve Figma seats when only six people are designing, or twenty Zoom licenses when five would suffice. Downgrading unused seats alone often pays for your entire operations software.",
+          "Taking back control begins with visibility. In SRB AI's SRB SpendIQ, create an inventory of every active digital subscription your company pays for. Record the tool name, vendor, billing frequency (monthly or annual), monthly cost, seat count, and primary owner.",
+          "Next, compare the number of paid licenses against your active employee list in SRB TalentOS. You will almost certainly find that you are paying for twelve Figma seats when only six people are designing, or twenty Zoom licenses when five would suffice. Downgrading unused seats alone often pays for your entire operations software.",
         ],
       },
       {
         heading: "Implementing Purchase Requisitions and Spend Approvals",
         body: [
           "Preventing future subscription waste requires a simple rule: nobody can purchase company software without a formal digital requisition.",
-          "In SelfRun AI, employees can submit a Purchase Requisition in seconds, explaining the business need, estimated cost, and vendor. You can configure approval thresholds: requests under one hundred dollars require manager sign-off, while requests over five hundred dollars route to the finance director.",
+          "In SRB AI, employees can submit a Purchase Requisition in seconds, explaining the business need, estimated cost, and vendor. You can configure approval thresholds: requests under one hundred dollars require manager sign-off, while requests over five hundred dollars route to the finance director.",
           "This ensures that before any card is charged, leadership verifies whether an existing internal tool already fulfills that requirement.",
         ],
       },
@@ -685,14 +685,14 @@ export const POSTS: BlogPost[] = [
         heading: "Automated Renewal Alerts That Prevent Surprise Auto-Charges",
         body: [
           "SaaS vendors rely heavily on auto-renewals. You intend to cancel an expensive enterprise tool, but the renewal date passes unnoticed, and your card gets charged for another non-refundable full year.",
-          "SelfRun AI's SelfRun SpendIQ includes contract expiry tracking. You set a renewal notice date (such as thirty or sixty days before contract expiry). When that date arrives, the system alerts the tool owner and finance manager, giving you ample time to evaluate usage, negotiate a discount, or cancel the contract cleanly.",
+          "SRB AI's SRB SpendIQ includes contract expiry tracking. You set a renewal notice date (such as thirty or sixty days before contract expiry). When that date arrives, the system alerts the tool owner and finance manager, giving you ample time to evaluate usage, negotiate a discount, or cancel the contract cleanly.",
         ],
       },
       {
         heading: "Managing Hardware Assets and Vendor Relationships",
         body: [
           "Procurement is not just about software; physical hardware assets (laptops, monitors, smartphones, testing tablets) must also be accounted for. When an employee resigns, failing to track company-assigned hardware results in lost equipment.",
-          "The Assets module links equipment serial numbers directly to employee profiles in SelfRun TalentOS. When an employee completes their exit clearance, HR sees every piece of hardware and every software seat assigned to that person, ensuring a smooth return process.",
+          "The Assets module links equipment serial numbers directly to employee profiles in SRB TalentOS. When an employee completes their exit clearance, HR sees every piece of hardware and every software seat assigned to that person, ensuring a smooth return process.",
         ],
       },
       {
@@ -700,7 +700,7 @@ export const POSTS: BlogPost[] = [
         body: [
           "Review your last two months of credit card statements and highlight every recurring SaaS charge.",
           "Survey your team: ask each member which software tools they actually opened during the last seven days.",
-          "Consolidate fragmented single-purpose apps into an all-in-one business platform like SelfRun AI to eliminate redundant subscriptions permanently.",
+          "Consolidate fragmented single-purpose apps into an all-in-one business platform like SRB AI to eliminate redundant subscriptions permanently.",
         ],
       },
     ],
@@ -733,14 +733,14 @@ export const POSTS: BlogPost[] = [
       {
         heading: "How Conversational AI Queries Your Live Operations",
         body: [
-          "SelfRun DataBrain AI provides conversational business intelligence using the records available to that product. Each SelfRun product keeps its own database; connect approved data sources when you want a broader view.",
-          "You do not need to know SQL, Python, or data modeling formulas. You simply open SelfRun DataBrain AI and type your question in ordinary conversational English, exactly as if you were asking a senior operational director.",
+          "SRB DataBrain AI provides conversational business intelligence using the records available to that product. Each SRB product keeps its own database; connect approved data sources when you want a broader view.",
+          "You do not need to know SQL, Python, or data modeling formulas. You simply open SRB DataBrain AI and type your question in ordinary conversational English, exactly as if you were asking a senior operational director.",
         ],
       },
       {
         heading: "Realistic Questions You Can Ask Your Data Right Now",
         body: [
-          "Here are examples of real-world queries business owners run inside SelfRun AI every day:",
+          "Here are examples of real-world queries business owners run inside SRB AI every day:",
           "- 'What was our total revenue collected last month, and how does it compare to our operating expenses?'",
           "- 'List all active projects that have exceeded 80% of their estimated hours but are less than halfway through their milestones.'",
           "- 'Which marketing channel produced the highest number of closed-won deals over the last ninety days?'",
@@ -752,20 +752,20 @@ export const POSTS: BlogPost[] = [
         heading: "Inspecting the Working: Trust Built on Transparent Math",
         body: [
           "A common weakness of generic consumer AI chatbots is hallucination: they often invent convincing numbers that have no basis in reality. In financial and operational management, a fabricated metric can lead to disastrous decisions.",
-          "SelfRun AI prevents this by showing its working. When the AI delivers an answer, it provides an expandable 'Working & Data Sources' tab. You can click to see the exact database collections queried, the date filters applied, and the step-by-step arithmetic used to reach the final number. If you ever want to audit the result, the proof is right in front of you.",
+          "SRB AI prevents this by showing its working. When the AI delivers an answer, it provides an expandable 'Working & Data Sources' tab. You can click to see the exact database collections queried, the date filters applied, and the step-by-step arithmetic used to reach the final number. If you ever want to audit the result, the proof is right in front of you.",
         ],
       },
       {
         heading: "Role-Based Security: Confidentiality Guaranteed",
         body: [
-          "Not everyone in your organization should have access to company-wide financial records or executive salary figures. SelfRun AI enforces strict role-based access control inside SelfRun DataBrain AI.",
+          "Not everyone in your organization should have access to company-wide financial records or executive salary figures. SRB AI enforces strict role-based access control inside SRB DataBrain AI.",
           "A project manager asking questions will only receive answers drawn from the projects, timesheets, and tasks they have permission to view. Executive financials, bank account balances, and payroll specifics remain strictly accessible to Directors and authorized Finance Officers.",
         ],
       },
       {
         heading: "How to Build a Smarter Morning Routine with AI",
         body: [
-          "Start your Monday morning by opening SelfRun DataBrain AI and asking: 'Summarize our top operational priorities, overdue invoices, and blocked project tasks for this week.'",
+          "Start your Monday morning by opening SRB DataBrain AI and asking: 'Summarize our top operational priorities, overdue invoices, and blocked project tasks for this week.'",
           "Use the answers to set your team's agenda before stepping into your morning meetings.",
           "Prompt the AI to spot trends before they become problems: 'Are any client accounts taking longer to settle invoices this quarter compared to last quarter?'",
         ],
@@ -802,14 +802,14 @@ export const POSTS: BlogPost[] = [
         body: [
           "Avoid trying to rank for broad, hyper-competitive terms like 'accounting' or 'web development'. You will be competing against massive multinational directories with multimillion-dollar budgets.",
           "Instead, focus on specific, long-tail phrases that indicate immediate buyer intent: for example, 'b2b payroll software for small teams', 'commercial electrical contractor in Austin', or 'custom packaging design services'. These searchers know exactly what they need and are ready to contact your business today.",
-          "In SelfRun RankMax AI, you can track your target keywords, observe search volume, and monitor your ranking progression over time.",
+          "In SRB RankMax AI, you can track your target keywords, observe search volume, and monitor your ranking progression over time.",
         ],
       },
       {
         heading: "Step 2: Optimize Your On-Page Content Elements",
         body: [
           "For every page and blog post on your website, verify that these core elements are in place:",
-          "- Page Title Tag: Keep it under 60 characters and include your primary keyword and brand name (e.g., 'Payroll Automation for Small Teams | SelfRun AI').",
+          "- Page Title Tag: Keep it under 60 characters and include your primary keyword and brand name (e.g., 'Payroll Automation for Small Teams | SRB AI').",
           "- Meta Description: Write a compelling 150-character summary that gives searchers a clear reason to click your link.",
           "- Heading Structure: Use only one H1 tag per page for your primary title, followed by logical H2 and H3 subheadings for sections.",
           "- Image Alt Text: Provide descriptive text for every image so search engines and screen readers understand the visual context.",
@@ -819,14 +819,14 @@ export const POSTS: BlogPost[] = [
         heading: "Step 3: Run an Automated Technical Site Health Audit",
         body: [
           "Technical SEO errors quietly sabotage your rankings. Broken links (404 errors), missing title tags, uncompressed images that slow down page loads, and pages missing mobile viewport tags cause search engine crawlers to penalize your domain.",
-          "In SelfRun RankMax AI, click 'Run Site Audit'. The system crawls your public website in seconds, checks every page against search best practices, and presents a prioritized list of issues with direct links to fix them inside SelfRun SiteCraft AI.",
+          "In SRB RankMax AI, click 'Run Site Audit'. The system crawls your public website in seconds, checks every page against search best practices, and presents a prioritized list of issues with direct links to fix them inside SRB SiteCraft AI.",
         ],
       },
       {
         heading: "Step 4: Generate Structured Schema Markup Without Code",
         body: [
           "Structured data (JSON-LD schema) tells Google specific facts about your business in a language machines understand: your business address, opening hours, customer review ratings, and blog article authors.",
-          "Websites with proper schema markup are rewarded with rich search results, such as star ratings and FAQ dropdowns directly on Google search pages. SelfRun AI generates validated Organization, WebSite, Article, and LocalBusiness schema automatically from your workspace branding settings.",
+          "Websites with proper schema markup are rewarded with rich search results, such as star ratings and FAQ dropdowns directly on Google search pages. SRB AI generates validated Organization, WebSite, Article, and LocalBusiness schema automatically from your workspace branding settings.",
         ],
       },
       {
@@ -866,7 +866,7 @@ export const POSTS: BlogPost[] = [
       {
         heading: "Setting Up an Encrypted Corporate Credential Vault",
         body: [
-          "SelfRun AI's SelfRun CyberVault provides a secure, centralized digital vault for your company's credentials and vital documents. Instead of sharing plain-text passwords, credentials are stored in encrypted vaults with strict role-based access.",
+          "SRB AI's SRB CyberVault provides a secure, centralized digital vault for your company's credentials and vital documents. Instead of sharing plain-text passwords, credentials are stored in encrypted vaults with strict role-based access.",
           "You can categorize entries by type: Software Logins, Hosting & Servers, API Keys, Banking Portals, and Client Accounts. You decide who can view passwords: for instance, granting the marketing team access to the social media login without exposing financial accounts.",
         ],
       },
@@ -881,14 +881,14 @@ export const POSTS: BlogPost[] = [
         heading: "Automated Expiration Alerts for Licenses and Credentials",
         body: [
           "Few operational failures are as embarrassing as having your primary website domain expire or receiving a legal penalty because an operating permit lapsed unnoticed.",
-          "Every credential and document in SelfRun AI can be assigned an expiration date. The system monitors these dates and issues automated warnings sixty, thirty, and seven days before expiration. The assigned owner and administrative staff receive reminders, ensuring critical renewals happen well before business disruption occurs.",
+          "Every credential and document in SRB AI can be assigned an expiration date. The system monitors these dates and issues automated warnings sixty, thirty, and seven days before expiration. The assigned owner and administrative staff receive reminders, ensuring critical renewals happen well before business disruption occurs.",
         ],
       },
       {
         heading: "One-Click Access Revocation When Staff Members Depart",
         body: [
           "Employee offboarding is a critical security vulnerability for small businesses. When a staff member resigns, having to manually remember thirty different passwords they might know is nearly impossible.",
-          "In SelfRun AI, revoking an employee's workspace account instantly severs their access to every connected product, SelfRun CyberVault, team channels, and internal documents in a single click. The master audit log records the exact timestamp of account termination for compliance records.",
+          "In SRB AI, revoking an employee's workspace account instantly severs their access to every connected product, SRB CyberVault, team channels, and internal documents in a single click. The master audit log records the exact timestamp of account termination for compliance records.",
         ],
       },
       {
@@ -932,7 +932,7 @@ export const POSTS: BlogPost[] = [
         heading: "Step 1: The Pre-Boarding Phase (Before Day 1)",
         body: [
           "Great onboarding begins the moment the candidate signs their offer letter. Send a warm, branded welcome email from your company domain outlining what they can expect on their first day, what time to arrive, what to wear, and who their team buddy will be.",
-          "In SelfRun AI's SelfRun TalentOS, provision their employee profile, assign their department, set their initial role permissions, and send an invitation to their employee self-service portal. New hires can upload their identification documents, tax records, and direct deposit banking details from home before their official start date.",
+          "In SRB AI's SRB TalentOS, provision their employee profile, assign their department, set their initial role permissions, and send an invitation to their employee self-service portal. New hires can upload their identification documents, tax records, and direct deposit banking details from home before their official start date.",
         ],
       },
       {
@@ -945,7 +945,7 @@ export const POSTS: BlogPost[] = [
       {
         heading: "Step 3: Clear Day 1 Starter Learning Modules",
         body: [
-          "Nothing creates more anxiety for new hires than sitting idle wondering what they are supposed to do. In SelfRun AI's SelfRun Playbook AI and SelfRun Cohort AI, assign a curated 'New Hire Onboarding' track.",
+          "Nothing creates more anxiety for new hires than sitting idle wondering what they are supposed to do. In SRB AI's SRB Playbook AI and SRB Cohort AI, assign a curated 'New Hire Onboarding' track.",
           "This track should include essential starter guides: Company Mission & Values, Remote Work Guidelines, Communication Norms, and Department Procedures. The new hire can read each guide and click 'Acknowledge', giving both the employee and manager a clear visual checklist of completed orientation steps.",
         ],
       },
@@ -996,14 +996,14 @@ export const POSTS: BlogPost[] = [
       {
         heading: "Building Your Question Bank in Minutes",
         body: [
-          "In SelfRun AI's SelfRun EvalIQ, you can build comprehensive question banks categorized by topic, difficulty, and department. Supported question formats include Multiple Choice (single or multiple answer), True/False, Short Answer, and Long Explanations.",
+          "In SRB AI's SRB EvalIQ, you can build comprehensive question banks categorized by topic, difficulty, and department. Supported question formats include Multiple Choice (single or multiple answer), True/False, Short Answer, and Long Explanations.",
           "If you have existing questions in spreadsheets, use the bulk CSV import tool to upload hundreds of questions in seconds. You can tag questions by subject—such as 'Digital Marketing', 'Python Fundamentals', 'Customer Service SOPs', or 'Financial Compliance'—and randomly generate balanced test papers from the bank.",
         ],
       },
       {
         heading: "Setting Up Timed Tests with Anti-Cheating Controls",
         body: [
-          "Fairness is critical when assessing candidates or evaluating student training cohorts. SelfRun AI includes configurable exam security settings:",
+          "Fairness is critical when assessing candidates or evaluating student training cohorts. SRB AI includes configurable exam security settings:",
           "- Time Limits: Set strict overall test durations or individual question timers.",
           "- Question & Option Shuffling: Every candidate receives questions and answer choices in a randomized sequence, preventing direct copying.",
           "- Tab Switch Detection: The test interface monitors window focus and alerts candidates if they attempt to switch browser tabs to search for answers.",
@@ -1013,14 +1013,14 @@ export const POSTS: BlogPost[] = [
       {
         heading: "Automated Grading and Detailed Performance Analytics",
         body: [
-          "Grading twenty tests manually by hand takes hours of tedious checking. With SelfRun AI, objective questions are graded automatically the instant the candidate clicks 'Submit'.",
+          "Grading twenty tests manually by hand takes hours of tedious checking. With SRB AI, objective questions are graded automatically the instant the candidate clicks 'Submit'.",
           "The candidate and examiner immediately receive a comprehensive scorecard showing total percentage, section-by-section performance, time taken per question, and pass/fail status based on your custom cutoff score. You can filter applicant pools instantly to review only candidates scoring above 80%.",
         ],
       },
       {
         heading: "Issuing Verified Digital Completion Certificates",
         body: [
-          "Testing is equally valuable for ongoing staff training, regulatory compliance, and client academy programs. When employees complete a mandatory safety course or quarterly cybersecurity test, SelfRun AI can automatically generate a branded, verifiable digital certificate.",
+          "Testing is equally valuable for ongoing staff training, regulatory compliance, and client academy programs. When employees complete a mandatory safety course or quarterly cybersecurity test, SRB AI can automatically generate a branded, verifiable digital certificate.",
           "Each certificate includes the recipient's name, test title, completion date, and a unique verification code. Employees can download the certificate for their records, and HR keeps proof of company compliance in the employee profile.",
         ],
       },
@@ -1065,13 +1065,13 @@ export const POSTS: BlogPost[] = [
           "Sound cash flow management requires real-time visibility into two opposing forces:",
           "1. Cash Coming In (Accounts Receivable): Invoices that have been billed, categorized by due date (Due this week, Due in 15 days, Overdue).",
           "2. Cash Going Out (Accounts Payable): Vendor bills, software subscriptions, contractor fees, and tax payments with firm deadlines.",
-          "In SelfRun AI's SelfRun CashFlow AI, the Cash Flow dashboard plots these numbers side by side on a visual timeline. You can see your projected cash balance thirty, sixty, and ninety days into the future based on realistic payment schedules.",
+          "In SRB AI's SRB CashFlow AI, the Cash Flow dashboard plots these numbers side by side on a visual timeline. You can see your projected cash balance thirty, sixty, and ninety days into the future based on realistic payment schedules.",
         ],
       },
       {
         heading: "Daily Bank and Cash Reconciliation in Minutes",
         body: [
-          "Waiting until the end of the quarter to balance your books is a recipe for accounting disaster. In SelfRun AI, bank transactions and cash accounts reconcile daily.",
+          "Waiting until the end of the quarter to balance your books is a recipe for accounting disaster. In SRB AI, bank transactions and cash accounts reconcile daily.",
           "When client payments arrive via payment links or direct transfers, the system matches the deposit to the open invoice with a single confirmation click. Your ledger stays continuously balanced, so leadership always makes spending decisions based on verified numbers rather than estimates.",
         ],
       },
@@ -1082,7 +1082,7 @@ export const POSTS: BlogPost[] = [
           "- Require upfront deposits: Never deliver 100% of a service project before receiving at least 30% to 50% upfront.",
           "- Offer early-payment incentives: A small 2% discount for invoices settled within five days can motivate clients to pay immediately.",
           "- Shorten payment terms: Shift new client agreements from 'Net 30' to 'Net 7' or 'Due on Receipt'.",
-          "- Automate payment reminders: Activate SelfRun AI's polite follow-up emails so late payers are chased systematically without awkward manual calls.",
+          "- Automate payment reminders: Activate SRB AI's polite follow-up emails so late payers are chased systematically without awkward manual calls.",
         ],
       },
       {
@@ -1095,7 +1095,7 @@ export const POSTS: BlogPost[] = [
       {
         heading: "The Weekly 10-Minute Financial Review Checklist",
         body: [
-          "Every Friday afternoon, open SelfRun CashFlow AI and review three numbers: Total Bank Balance, Overdue Invoices older than 7 days, and Bills Due next week.",
+          "Every Friday afternoon, open SRB CashFlow AI and review three numbers: Total Bank Balance, Overdue Invoices older than 7 days, and Bills Due next week.",
           "Follow up immediately on any high-value overdue invoice before the weekend begins.",
           "Verify that planned vendor payments for next week do not exceed expected incoming receipts.",
         ],
@@ -1144,10 +1144,10 @@ export const POSTS: BlogPost[] = [
       {
         heading: "The Power of One Connected Business Record",
         body: [
-          "SelfRun products operate independently, with their own sign-ins and databases. Where a business wants a handoff, it can configure an automation or integration between the relevant products:",
+          "SRB products operate independently, with their own sign-ins and databases. Where a business wants a handoff, it can configure an automation or integration between the relevant products:",
           "1. A prospective client fills out a form on your public Website.",
-          "2. The inquiry immediately appears as a lead card in your SelfRun DealFlow AI pipeline.",
-          "3. When the sales rep closes the deal, one click creates the Client profile, kicks off a delivery project in SelfRun SprintOS, and generates the deposit invoice in SelfRun CashFlow AI.",
+          "2. The inquiry immediately appears as a lead card in your SRB DealFlow AI pipeline.",
+          "3. When the sales rep closes the deal, one click creates the Client profile, kicks off a delivery project in SRB SprintOS, and generates the deposit invoice in SRB CashFlow AI.",
           "4. The delivery team logs hours on project tasks, which automatically flow into milestone billing and payroll calculations.",
           "5. The client tracks progress through their branded Client Portal without sending a single status-check email.",
           "These handoffs are configured workflows; each product remains usable on its own and keeps its own records.",
@@ -1157,17 +1157,17 @@ export const POSTS: BlogPost[] = [
         heading: "Product Sign-Ins, Access, and Audit Logs",
         body: [
           "Managing employee access across ten separate tools is an IT nightmare. When someone is hired or promoted, you have to create accounts across eight different platforms with separate passwords.",
-          "Each SelfRun product has its own sign-in and access settings. Administrators can assign roles within each product, and its audit log records the actions available there. This keeps access and activity clear without requiring products to share accounts or data.",
+          "Each SRB product has its own sign-in and access settings. Administrators can assign roles within each product, and its audit log records the actions available there. This keeps access and activity clear without requiring products to share accounts or data.",
         ],
       },
       {
         heading: "A Practical Migration Plan: Transitioning Without Friction",
         body: [
           "Transitioning from separate apps to a unified platform does not have to happen overnight. Follow a phased rollout:",
-          "- Week 1: Set up company branding, invite your team, and establish your employee directory in SelfRun TalentOS.",
-          "- Week 2: Import your existing clients and active leads via CSV into SelfRun DealFlow AI.",
-          "- Week 3: Transition active projects and tasks into SelfRun SprintOS.",
-          "- Week 4: Move month-end invoicing and billing onto SelfRun CashFlow AI and cancel redundant subscriptions.",
+          "- Week 1: Set up company branding, invite your team, and establish your employee directory in SRB TalentOS.",
+          "- Week 2: Import your existing clients and active leads via CSV into SRB DealFlow AI.",
+          "- Week 3: Transition active projects and tasks into SRB SprintOS.",
+          "- Week 4: Move month-end invoicing and billing onto SRB CashFlow AI and cancel redundant subscriptions.",
         ],
       },
       {
@@ -1175,7 +1175,7 @@ export const POSTS: BlogPost[] = [
         body: [
           "Calculate your total monthly software spend across all corporate credit cards this afternoon.",
           "Involve your team early: show them how an all-in-one platform saves them time by eliminating tedious copy-pasting.",
-          "Take advantage of SelfRun AI's free-forever plan to test your workflows thoroughly before migrating company-wide.",
+          "Take advantage of SRB AI's free-forever plan to test your workflows thoroughly before migrating company-wide.",
         ],
       },
     ],
@@ -1208,7 +1208,7 @@ export const POSTS: BlogPost[] = [
       {
         heading: "Setting Up Structured Programs, Batches, and Schedules",
         body: [
-          "In SelfRun AI's SelfRun Cohort AI, education is organized logically: Program > Batches > Classes.",
+          "In SRB AI's SRB Cohort AI, education is organized logically: Program > Batches > Classes.",
           "You define your course curriculum, syllabus modules, and schedule. You can create multiple cohorts or batches (e.g., 'Spring 2026 Cohort - Evening Batch') with specific start dates, maximum seat limits, and assigned instructors.",
           "The interactive batch calendar displays scheduled lectures, assignment deadlines, and exam dates, keeping instructors and students synchronized.",
         ],
@@ -1216,7 +1216,7 @@ export const POSTS: BlogPost[] = [
       {
         heading: "Handling Enrollments, Fee Payments, and Invoices",
         body: [
-          "Managing student tuition and course fees should not require separate accounting software. When a student registers for a training program, SelfRun AI generates their fee schedule and digital invoice automatically.",
+          "Managing student tuition and course fees should not require separate accounting software. When a student registers for a training program, SRB AI generates their fee schedule and digital invoice automatically.",
           "Students can pay full tuition or structured installment fees online using embedded payment links. The moment payment is verified, the student is marked as 'Enrolled', granted access to their student portal, and sent an automated receipt.",
         ],
       },
@@ -1239,7 +1239,7 @@ export const POSTS: BlogPost[] = [
         body: [
           "Keep individual class sessions focused: combine thirty minutes of instruction with twenty minutes of hands-on practical exercises.",
           "Set assignment due dates with automated 24-hour reminder notifications to encourage on-time submissions.",
-          "Conduct mid-term knowledge check tests using SelfRun EvalIQ to identify struggling students early.",
+          "Conduct mid-term knowledge check tests using SRB EvalIQ to identify struggling students early.",
           "Celebrate completions publicly: encourage students to share their verified digital certificates on LinkedIn to drive organic referrals for your next cohort.",
         ],
       },
@@ -1273,7 +1273,7 @@ export const POSTS: BlogPost[] = [
       {
         heading: "Creating Specialized Bots for Different Departments",
         body: [
-          "Rather than building one generic, overloaded bot, SelfRun AI's SelfRun AgentOS lets you create specialized personas tailored to specific organizational functions:",
+          "Rather than building one generic, overloaded bot, SRB AI's SRB AgentOS lets you create specialized personas tailored to specific organizational functions:",
           "- HR Helper Bot: Answers questions on leave policies, health insurance, company holidays, and expense reimbursement guidelines.",
           "- Sales Objection Coach: Helps reps handle customer pushback, explains competitor comparisons, and suggests relevant case studies.",
           "- Technical Onboarding Bot: Guides new developers and engineers through repository setups, coding standards, and deployment pipelines.",
@@ -1282,7 +1282,7 @@ export const POSTS: BlogPost[] = [
       {
         heading: "Grounding Bots in Your Verified Company Playbooks",
         body: [
-          "The biggest fear with AI assistants is that they might invent company policies or give inaccurate advice. SelfRun AI prevents this by anchoring your bots strictly in your uploaded knowledge base.",
+          "The biggest fear with AI assistants is that they might invent company policies or give inaccurate advice. SRB AI prevents this by anchoring your bots strictly in your uploaded knowledge base.",
           "You connect the bot to your approved SOPs, employee handbooks, sales decks, and policy documents. The AI is instructed: 'Answer only based on the provided company materials. If the answer is not contained in the documents, advise the employee to speak directly with their department head.'",
         ],
       },
@@ -1298,7 +1298,7 @@ export const POSTS: BlogPost[] = [
       {
         heading: "Analyzing Logs to Discover Organizational Knowledge Gaps",
         body: [
-          "One of the most valuable benefits of internal AI bots is the visibility they provide into what your team is struggling with. By reviewing anonymous conversation logs in SelfRun AgentOS, managers can see recurring themes.",
+          "One of the most valuable benefits of internal AI bots is the visibility they provide into what your team is struggling with. By reviewing anonymous conversation logs in SRB AgentOS, managers can see recurring themes.",
           "If fifteen employees ask the HR bot about maternity leave policy within two weeks, that is a clear signal that your current handbook documentation on that topic needs clarification.",
         ],
       },
@@ -1306,7 +1306,7 @@ export const POSTS: BlogPost[] = [
         heading: "Actionable Steps to Build Your First Internal Bot",
         body: [
           "Start with your HR department: gather your employee handbook, leave policy, and expense guidelines into clean PDF or text files.",
-          "Create a new bot named 'HR Assistant' inside SelfRun AgentOS and upload those documents.",
+          "Create a new bot named 'HR Assistant' inside SRB AgentOS and upload those documents.",
           "Invite three team members to test the bot and provide feedback before rolling it out company-wide.",
         ],
       },
@@ -1340,7 +1340,7 @@ export const POSTS: BlogPost[] = [
       {
         heading: "Step 1: Upload Your Visual Identity in Clicks",
         body: [
-          "In SelfRun AI's Workspace product, open Settings > Branding. In two minutes, you can fully customize the visual identity of your entire operating environment:",
+          "In SRB AI's Workspace product, open Settings > Branding. In two minutes, you can fully customize the visual identity of your entire operating environment:",
           "- Company Name and Tagline: Appears across browser titles, header banners, and client invoices.",
           "- Primary Brand Logo & Dark Mode Logo: High-resolution PNGs that display across your navigation bars and exported documents.",
           "- Favicon: The small browser tab icon that reinforces brand identity on every open page.",
@@ -1353,20 +1353,20 @@ export const POSTS: BlogPost[] = [
           "Your workspace should live on your domain, not ours. Under Settings > Domains, you can map two distinct web addresses:",
           "1. Your Public Website: e.g., yourcompany.com (serving your marketing pages, blog, and contact forms).",
           "2. Your Secure App & Client Portal: e.g., app.yourcompany.com or portal.yourcompany.com (serving your workspace products and client self-service).",
-          "Add the simple CNAME records to your DNS provider. SelfRun AI automatically verifies ownership and provisions a free, automatic TLS/SSL certificate that renews seamlessly in the background.",
+          "Add the simple CNAME records to your DNS provider. SRB AI automatically verifies ownership and provisions a free, automatic TLS/SSL certificate that renews seamlessly in the background.",
         ],
       },
       {
         heading: "Step 3: Customizing Outbound Transactional Emails",
         body: [
           "System communications should always come from your own company domain. When a client receives an invoice, a candidate receives an interview invite, or an employee receives a payslip, the email must carry your name and address.",
-          "SelfRun AI allows you to configure your sender address (e.g., billing@yourcompany.com or support@yourcompany.com) with SPF, DKIM, and DMARC verification records. Your emails land reliably in client inboxes rather than spam folders, carrying your signature and footer branding.",
+          "SRB AI allows you to configure your sender address (e.g., billing@yourcompany.com or support@yourcompany.com) with SPF, DKIM, and DMARC verification records. Your emails land reliably in client inboxes rather than spam folders, carrying your signature and footer branding.",
         ],
       },
       {
         heading: "Step 4: Branded Mobile and Desktop Applications",
         body: [
-          "White-labeling extends beyond the web browser. SelfRun AI's platform architecture allows you to generate progressive web apps (PWAs), native desktop installers (Windows, macOS, Linux), and mobile builds (Android and iOS) that carry your icon and name.",
+          "White-labeling extends beyond the web browser. SRB AI's platform architecture allows you to generate progressive web apps (PWAs), native desktop installers (Windows, macOS, Linux), and mobile builds (Android and iOS) that carry your icon and name.",
           "Your clients and staff can install the app directly onto their phone home screen or laptop dock. Every time they launch it, they see your company splash screen, not a third-party software provider's.",
         ],
       },

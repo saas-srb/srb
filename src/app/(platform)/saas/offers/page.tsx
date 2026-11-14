@@ -15,7 +15,7 @@ import FaqSection from "@/components/platform/saas/FaqSection";
 import Reveal from "@/components/platform/saas/Reveal";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = pageMeta({ path: "/offers", title: "Launch Offer on Every Paid Plan", description: "The current SelfRun AI launch offer on paid plans, with its real end date. Every plan includes every product and every feature, starting free.", keywords: ["business software offer", "SaaS launch offer", "discount on business software", "CRM software deal", "SaaS pricing offer", "limited time software offer"], tag: "Offer" });
+export const metadata: Metadata = pageMeta({ path: "/offers", title: "Launch Offer on Every Paid Plan", description: "The current SRB AI launch offer on paid plans, with its real end date. Every plan includes every product and every feature, starting free.", keywords: ["business software offer", "SaaS launch offer", "discount on business software", "CRM software deal", "SaaS pricing offer", "limited time software offer"], tag: "Offer" });
 
 export default async function OffersPage() {
   const [o, modules] = await Promise.all([getOffers(), getFeatureModules()]);
@@ -23,7 +23,7 @@ export default async function OffersPage() {
   const topYearly = yearly.reduce<(typeof yearly)[number] | null>((a, b) => (!a || (b.yearly?.pct ?? 0) > (a.yearly?.pct ?? 0) ? b : a), null);
   return (
     <>
-      <JsonLd data={[webPage({ type: "WebPage", path: "/offers", name: "Offers", description: "The current SelfRun AI launch offer on paid plans, with its real end date. Every plan includes every product and every feature, starting free." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Offers", path: "/offers" }])]} />
+      <JsonLd data={[webPage({ type: "WebPage", path: "/offers", name: "Offers", description: "The current SRB AI launch offer on paid plans, with its real end date. Every plan includes every product and every feature, starting free." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Offers", path: "/offers" }])]} />
       <PageHero
         art="pricing"
         eyebrow={o.topPct > 0 ? o.label : "Offers"}

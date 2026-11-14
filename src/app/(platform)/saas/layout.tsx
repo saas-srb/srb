@@ -40,7 +40,7 @@ export default async function SaasLayout({ children }: { children: React.ReactNo
       { "@type": "ContactPoint", contactType: "customer support", email: contact.support, availableLanguage: ["English"] },
     ],
   };
-  const site = { "@context": "https://schema.org", "@type": "WebSite", "@id": `${origin}/#website`, name: SAAS_BRAND.name, alternateName: ["SelfRun", "SelfRun Business"], url: origin, inLanguage: "en-IN", publisher: { "@id": `${origin}/#organization` } };
+  const site = { "@context": "https://schema.org", "@type": "WebSite", "@id": `${origin}/#website`, name: SAAS_BRAND.name, alternateName: ["SRB AI", "SRB", "Selfrun Business AI", "SRB - Selfrun Business", "SRB AI", "SRB - Selfrun Business"], url: origin, inLanguage: "en-IN", publisher: { "@id": `${origin}/#organization` } };
   // The product's own colours (light by default, dark when chosen), set on the wrapper.
   return (
     <SrRoot>

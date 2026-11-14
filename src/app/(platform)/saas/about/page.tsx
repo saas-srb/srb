@@ -22,14 +22,14 @@ import CustomerStoriesSection from "@/components/platform/saas/CustomerStoriesSe
 import { SAAS_BRAND } from "@/lib/platform/saas/brand";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = pageMeta({ path: "/about", title: "About SelfRun AI: What We Build and Why", description: "SelfRun AI is one software for running your whole business. Learn what we build, who it is for, how a business grows on it and the values behind it.", keywords: ["about SelfRun AI", "business automation company", "AI software company India", "who makes SelfRun AI", "business software mission", "SaaS company values", "all-in-one business platform company"], tag: "About" });
+export const metadata: Metadata = pageMeta({ path: "/about", title: "About SRB AI: What We Build and Why", description: "SRB AI is one software for running your whole business. Learn what we build, who it is for, how a business grows on it and the values behind it.", keywords: ["about SRB AI", "business automation company", "AI software company India", "who makes SRB AI", "business software mission", "SaaS company values", "all-in-one business platform company"], tag: "About" });
 
 const VALUES = [
-  { title: "Built for every business", body: "We design for the many businesses that use SelfRun AI, never for one special case. If one customer needs something, it becomes a feature that everyone can use.", icon: "building" as const },
+  { title: "Built for every business", body: "We design for the many businesses that use SRB AI, never for one special case. If one customer needs something, it becomes a feature that everyone can use.", icon: "building" as const },
   { title: "Automation you can trust", body: "Automation is only useful if you can trust it. Every automatic action is recorded, explained and under your control, and people stay in the loop wherever a decision matters.", icon: "workflow" as const },
   { title: "Your data stays yours", body: "Every business's data is kept strictly apart from every other business's. You decide who can do what, secrets are stored encrypted, and you can export your data at any time.", icon: "lock" as const },
   { title: "Easy to start", body: "Powerful software should still be easy to begin with. A guided setup, sensible defaults and one consistent look across every product.", icon: "bolt" as const },
-  { title: "Your brand, not ours", body: "Every business uses SelfRun AI under its own name, with its own logo, colours, web address, emails and apps. SelfRun stays out of sight.", icon: "target" as const },
+  { title: "Your brand, not ours", body: "Every business uses SRB AI under its own name, with its own logo, colours, web address, emails and apps. SRB stays out of sight.", icon: "target" as const },
   { title: "Honest by default", body: "We describe the product as it is. Where there is no customer story to share yet, we say so instead of inventing one.", icon: "check" as const },
 ];
 
@@ -70,12 +70,12 @@ export default async function AboutPage() {
   const orbitPanels = modules.map((module) => ({ ...module, color: panelColor(module.key) }));
   return (
     <>
-      <JsonLd data={[organizationPage({ type: "AboutPage", path: "/about", name: "About us", description: "SelfRun AI is one software for running your whole business. Learn what we build, who it is for, how a business grows on it and the values behind it." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "About us", path: "/about" }])]} />
+      <JsonLd data={[organizationPage({ type: "AboutPage", path: "/about", name: "About us", description: "SRB AI is one software for running your whole business. Learn what we build, who it is for, how a business grows on it and the values behind it." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "About us", path: "/about" }])]} />
       <PageHero artContent={<AboutHeroArtwork panels={orbitPanels} brand={SAAS_BRAND.name} />}
-        eyebrow="About SelfRun AI"
+        eyebrow="About SRB AI"
         title="We believe a business"
         accent="should run itself."
-        lead="Too many businesses spend their best hours copying details from one app to another, chasing approvals and building reports by hand. SelfRun AI exists to take that work off people's plates. It is one software, with a product for each job, that handles the routine so your team can focus on customers and growth."
+        lead="Too many businesses spend their best hours copying details from one app to another, chasing approvals and building reports by hand. SRB AI exists to take that work off people's plates. It is one software, with a product for each job, that handles the routine so your team can focus on customers and growth."
       >
         <HeroCtas primary={{ label: "Get started free", href: "/signup" }} secondary={{ label: "Contact us", href: "/contact" }} />
       </PageHero>
@@ -91,7 +91,7 @@ export default async function AboutPage() {
             <div className="space-y-4 leading-relaxed text-muted-foreground">
               <p className="text-lg font-medium leading-relaxed text-foreground">{SAAS_BRAND.name} brings the everyday work of a business into one software: customers and sales, staff and payroll, accounts and invoices, projects, purchasing, training, documents, a website builder, team chat and more. Each job has its own product, and each product can work on its own.</p>
               <p>Use the products you need, one at a time or all together. The AI works with the records in each product, and whenever you choose to connect products you can set up automatic steps between them, such as creating a client record when a deal is won.</p>
-              <p>SelfRun AI is built for many businesses at once. Every business gets the same features, the same guided setup and the same safeguards, and there is no special version for anyone. Each business uses it under its own name: in a web browser, as an installable app, on Android and iPhone, and on a computer.</p>
+              <p>SRB AI is built for many businesses at once. Every business gets the same features, the same guided setup and the same safeguards, and there is no special version for anyone. Each business uses it under its own name: in a web browser, as an installable app, on Android and iPhone, and on a computer.</p>
             </div>
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
               {([
@@ -109,7 +109,7 @@ export default async function AboutPage() {
               ))}
             </div>
           </div>
-          <Reveal><MarketingShot screenKey="workspace" name="SelfRun CommandOS" /></Reveal>
+          <Reveal><MarketingShot screenKey="workspace" name="SRB CommandOS" /></Reveal>
         </div>
         </div>
       </section>

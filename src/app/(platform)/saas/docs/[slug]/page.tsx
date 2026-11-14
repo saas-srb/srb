@@ -28,7 +28,7 @@ export function generateStaticParams() {
 }
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const g = docBySlug((await params).slug);
-  return g ? pageMeta({ path: `/docs/${g.slug}`, title: g.title, description: `${g.summary} A step-by-step ${g.category.toLowerCase()} guide from SelfRun AI, with the real screen.`, keywords: [g.title, g.category, `${g.category} guide`, "business software guide", "how to set up business software", "SaaS documentation"], tag: "Guide" }) : {};
+  return g ? pageMeta({ path: `/docs/${g.slug}`, title: g.title, description: `${g.summary} A step-by-step ${g.category.toLowerCase()} guide from SRB AI, with the real screen.`, keywords: [g.title, g.category, `${g.category} guide`, "business software guide", "how to set up business software", "SaaS documentation"], tag: "Guide" }) : {};
 }
 
 export default async function DocArticle({ params }: { params: Promise<{ slug: string }> }) {
@@ -48,7 +48,7 @@ export default async function DocArticle({ params }: { params: Promise<{ slug: s
   return (
     <>
       <JsonLd data={[
-        article({ type: "TechArticle", path: `/docs/${g.slug}`, title: g.title, description: g.summary, date: "2026-01-01", author: "SelfRun AI", authorOrg: true, section: g.category }),
+        article({ type: "TechArticle", path: `/docs/${g.slug}`, title: g.title, description: g.summary, date: "2026-01-01", author: "SRB AI", authorOrg: true, section: g.category }),
         breadcrumbList([{ name: "Home", path: "/" }, { name: "Documentation", path: "/docs" }, { name: g.title, path: `/docs/${g.slug}` }]),
       ]} />
       <PageHero art="docs" eyebrow={`${g.category} · ${g.readMinutes} min read`} title={g.title} lead={g.summary} photo="laptop-talk" shot={g.shot} shotName={g.title}>

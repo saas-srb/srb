@@ -93,19 +93,27 @@ export const PRODUCT_SEO: Record<string, ProductSeo> = {
   },
 };
 
-/** Words that describe the whole platform: used on the home page and added to every page after its own keywords. */
+/** Words that describe the whole platform: used on the home page and added to every page after its own keywords. Priority-ordered for Google. */
 export const BASE_KEYWORDS = [
-  "SelfRun AI",
-  "business automation software",
-  "AI business platform",
-  "all-in-one business software",
-  "business management software",
-  "ERP alternative for small business",
-  "CRM and HR and accounting in one platform",
-  "free business software",
+  "SRB AI",
+  "SRB - Selfrun Business",
+  "Selfrun Business AI",
+  "SRB AI",
+  "selfrunbusiness.ai",
+  "business automation software India",
+  "AI business platform for startups",
+  "all-in-one business software India",
+  "business management software for MSME",
+  "ERP alternative for small business India",
+  "CRM HR accounting in one platform",
+  "free business software for startups",
   "white label business software",
-  "business software for startups and SMEs",
-  "automate business processes",
+  "business software for SMB",
+  "automate business processes with AI",
+  "24/7 business automation software",
+  "replace Salesforce Jira QuickBooks with one tool",
+  "AI platform for Indian businesses",
+  "business operating system India",
 ];
 
 /** schema.org `applicationSubCategory` for each product: what kind of software it is. */

@@ -18,7 +18,7 @@ import { productShort } from "@/lib/platform/saas/product-short";
 import { productPath } from "@/lib/platform/saas/product-routes";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = pageMeta({ path: "/products", title: "SelfRun AI Features: CRM, HR, Accounting, Projects & More", description: "See everything SelfRun AI does, product by section: customers and sales, HR and payroll, accounting, projects, purchasing, training, documents, AI, SEO and a website builder. Free to start.", keywords: ["business software products", "CRM software", "HR and payroll software", "accounting software", "project management software", "procurement software", "helpdesk software", "website builder", "AI chatbot for business", "SEO software", "contract management software", "online test software"], tag: "Products" });
+export const metadata: Metadata = pageMeta({ path: "/products", title: "SRB AI Features: CRM, HR, Accounting, Projects & More", description: "See everything SRB AI does, product by section: customers and sales, HR and payroll, accounting, projects, purchasing, training, documents, AI, SEO and a website builder. Free to start.", keywords: ["business software products", "CRM software", "HR and payroll software", "accounting software", "project management software", "procurement software", "helpdesk software", "website builder", "AI chatbot for business", "SEO software", "contract management software", "online test software"], tag: "Products" });
 
 function IconList({
   items,
@@ -73,13 +73,13 @@ export default async function ProductsPage() {
 
   return (
     <>
-      <JsonLd data={[webPage({ type: "CollectionPage", path: "/products", name: "Products", description: "See everything SelfRun AI does, product by section: customers and sales, HR and payroll, accounting, projects, purchasing, training, documents, AI, SEO and a website builder. Free to start." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Products", path: "/products" }]), itemList({ name: "SelfRun AI products", items: all.map((m) => ({ name: m.name, path: productPath(m.key) })) })]} />
+      <JsonLd data={[webPage({ type: "CollectionPage", path: "/products", name: "Products", description: "See everything SRB AI does, product by section: customers and sales, HR and payroll, accounting, projects, purchasing, training, documents, AI, SEO and a website builder. Free to start." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Products", path: "/products" }]), itemList({ name: "SRB AI products", items: all.map((m) => ({ name: m.name, path: productPath(m.key) })) })]} />
       <PageHero
         art="features"
         eyebrow="Every product · every feature included"
-        title="Everything SelfRun AI does,"
+        title="Everything SRB AI does,"
         accent="product by product."
-        lead="SelfRun AI is one software for your whole business. It is made of products, one for each job: customers and sales, staff and payroll, invoices and accounts, projects, buying, training, documents, your website and more. Browse them below and open any product to see exactly what it does. Use only the ones you need. Every product and every feature is included in every plan."
+        lead="SRB AI is one software for your whole business. It is made of products, one for each job: customers and sales, staff and payroll, invoices and accounts, projects, buying, training, documents, your website and more. Browse them below and open any product to see exactly what it does. Use only the ones you need. Every product and every feature is included in every plan."
         photo="analytics"
         shot="workspace"
         chip={{
@@ -103,7 +103,7 @@ export default async function ProductsPage() {
                       <Link href={productPath(w.key)} className="group flex h-full flex-col rounded-3xl border border-border/60 bg-card p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10">
                         <span className="text-xs font-bold uppercase tracking-[0.16em] text-primary">I want to</span>
                         <span className="mt-1 text-lg font-black leading-snug">{w.text}</span>
-                        <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-muted-foreground group-hover:text-primary">Open {m.name.replace(/^SelfRun\s+/i, "")} <ArrowRight className="h-4 w-4" /></span>
+                        <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-muted-foreground group-hover:text-primary">Open {m.name.replace(/^(SRB|SRB)\s+/i, "")} <ArrowRight className="h-4 w-4" /></span>
                       </Link>
                     </Reveal>
                   )] : [];
@@ -153,7 +153,7 @@ export default async function ProductsPage() {
               eyebrow="Your brand"
               title="Your business name,"
               accent="everywhere."
-              lead="Your team, your customers and your website visitors see your business, not SelfRun. Every item below is a real setting inside your workspace."
+              lead="Your team, your customers and your website visitors see your business, not SRB. Every item below is a real setting inside your workspace."
             />
             <IconList
               items={YOUR_BRAND.map((b) => ({

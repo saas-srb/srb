@@ -12,7 +12,7 @@ import { productShort } from "@/lib/platform/saas/product-short";
 import Reveal from "@/components/platform/saas/Reveal";
 import { ArrowRight, Check, ShieldCheck } from "lucide-react";
 
-export const metadata: Metadata = pageMeta({ path: "/login", title: "Log In to Your Workspace", description: "Sign in to your SelfRun AI workspace with your company's own address. New here? Create a free workspace in minutes.", keywords: ["SelfRun AI login", "business software sign in"], tag: "Log in", noindex: true });
+export const metadata: Metadata = pageMeta({ path: "/login", title: "Log In to Your Workspace", description: "Sign in to your SRB AI workspace with your company's own address. New here? Create a free workspace in minutes.", keywords: ["SRB AI login", "business software sign in"], tag: "Log in", noindex: true });
 
 const HOW_IT_WORKS = [
   {
@@ -81,7 +81,7 @@ export default async function LoginPage() {
             eyebrow="How sign-in works"
             title="Your address,"
             accent="your workspace."
-            lead="SelfRun is multi-tenant — every company is completely isolated. Your workspace address is the key that takes you straight to your company's sign-in."
+            lead="SRB is multi-tenant — every company is completely isolated. Your workspace address is the key that takes you straight to your company's sign-in."
           />
 
           <div className="grid items-stretch gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-8">

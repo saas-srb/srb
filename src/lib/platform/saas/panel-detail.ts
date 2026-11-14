@@ -67,7 +67,7 @@ export const PANEL_DETAIL: Record<string, PanelDetail> = {
       { title: "Hire", text: "Applications move through the hiring steps; an accepted offer creates the employee record." },
       { title: "Onboard", text: "Documents, department and reporting line are filled in one place." },
       { title: "Run daily operations", text: "Attendance, leave requests, holidays and approvals flow to the right manager." },
-      { title: "Pay", text: "Payroll runs, salary revisions and payslips — and the payout posts to SelfRun CashFlow AI." },
+      { title: "Pay", text: "Payroll runs, salary revisions and payslips — and the payout posts to SRB CashFlow AI." },
     ],
     connects: [
       { panel: "fms", text: "Salary payments are passed to accounts automatically." },
@@ -112,10 +112,10 @@ export const PANEL_DETAIL: Record<string, PanelDetail> = {
       { title: "Plan", text: "Create the project with milestones, tasks, owners and dates on a board and timeline." },
       { title: "Deliver", text: "Team members update tasks and log time; overdue work notifies the assignee." },
       { title: "Control", text: "Timesheets are approved and costs are compared with the budget." },
-      { title: "Bill", text: "A completed milestone can raise the invoice in SelfRun CashFlow AI." },
+      { title: "Bill", text: "A completed milestone can raise the invoice in SRB CashFlow AI." },
     ],
     connects: [
-      { panel: "lms", text: "Projects start from clients won in SelfRun DealFlow AI." },
+      { panel: "lms", text: "Projects start from clients won in SRB DealFlow AI." },
       { panel: "fms", text: "Billing by milestone and profit per project." },
       { panel: "messenger", text: "Every project can have its own discussion channel." },
       { panel: "portal", text: "Customers see progress on their own page." },
@@ -134,7 +134,7 @@ export const PANEL_DETAIL: Record<string, PanelDetail> = {
       { title: "Request", text: "A purchase request goes through the approval chain for its amount." },
       { title: "Source", text: "Run an RFQ, compare suppliers and issue the purchase order." },
       { title: "Receive & match", text: "Record the delivery record, then match order, receipt and invoice." },
-      { title: "Pay", text: "The matched invoice becomes a bill to pay in SelfRun CashFlow AI." },
+      { title: "Pay", text: "The matched invoice becomes a bill to pay in SRB CashFlow AI." },
     ],
     connects: [
       { panel: "fms", text: "Supplier invoices that match an order are passed to accounts as bills to pay." },
@@ -356,7 +356,7 @@ export const PANEL_DETAIL: Record<string, PanelDetail> = {
       { title: "Build", text: "Compose pages from sections in the builder, as drafts." },
       { title: "Style", text: "Choose a theme, preview it live and customise colours, fonts and components." },
       { title: "Publish", text: "Review, then publish; maintenance mode protects the site while you work." },
-      { title: "Grow", text: "Forms feed SelfRun DealFlow AI; offers, wallet credits, push notifications and the AI chatbot bring visitors back." },
+      { title: "Grow", text: "Forms feed SRB DealFlow AI; offers, wallet credits, push notifications and the AI chatbot bring visitors back." },
     ],
     connects: [
       { panel: "lms", text: "Every form submission becomes a lead." },
@@ -376,7 +376,7 @@ export const PANEL_DETAIL: Record<string, PanelDetail> = {
       { title: "Choose a theme", text: "Start from a neutral starter site that is live from day one." },
       { title: "Connect your domain", text: "Add your domain and publish the DNS records shown." },
       { title: "SSL", text: "Verification and the certificate are automatic." },
-      { title: "Capture leads", text: "Enquiries land in SelfRun DealFlow AI." },
+      { title: "Capture leads", text: "Enquiries land in SRB DealFlow AI." },
     ],
     connects: [
       { panel: "cms", text: "Everything is edited in the website builder." },

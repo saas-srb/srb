@@ -4,7 +4,7 @@ import type { FaqHubGroup } from "@/lib/platform/saas/faqs";
 export const BUSINESS_WORKFLOWS_FAQS: FaqHubGroup[] = [
   {
     id: "cashflow-ai",
-    title: "SelfRun CashFlow AI",
+    title: "SRB CashFlow AI",
     href: productPath("fms"),
     items: [
       {
@@ -281,7 +281,7 @@ export const BUSINESS_WORKFLOWS_FAQS: FaqHubGroup[] = [
   },
   {
     id: "spendiq",
-    title: "SelfRun SpendIQ",
+    title: "SRB SpendIQ",
     href: productPath("prms"),
     items: [
       {
@@ -548,7 +548,7 @@ export const BUSINESS_WORKFLOWS_FAQS: FaqHubGroup[] = [
   },
   {
     id: "sprintos",
-    title: "SelfRun SprintOS",
+    title: "SRB SprintOS",
     href: productPath("pms"),
     items: [
       {
@@ -805,7 +805,7 @@ export const BUSINESS_WORKFLOWS_FAQS: FaqHubGroup[] = [
   },
   {
     id: "contractflow-ai",
-    title: "SelfRun ContractFlow AI",
+    title: "SRB ContractFlow AI",
     href: productPath("lpms"),
     items: [
       {

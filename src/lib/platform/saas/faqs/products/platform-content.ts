@@ -4,7 +4,7 @@ import type { FaqHubGroup } from "@/lib/platform/saas/faqs";
 export const PLATFORM_CONTENT_FAQS: FaqHubGroup[] = [
   {
     id: "sitecraft-ai",
-    title: "SelfRun SiteCraft AI",
+    title: "SRB SiteCraft AI",
     href: productPath("cms"),
     items: [
       { q: "What does SiteCraft manage?", a: "It manages website pages, sections, navigation, footer, forms, themes and publishing; collections can hold products or blog posts.", evidence: ["docs/products.md:268-276"] },
@@ -63,10 +63,10 @@ export const PLATFORM_CONTENT_FAQS: FaqHubGroup[] = [
   },
   {
     id: "sites",
-    title: "SelfRun Sites",
+    title: "SRB Sites",
     href: productPath("website"),
     items: [
-      { q: "What is SelfRun Sites?", a: "It serves each company's published public website on its configured domain; SiteCraft AI is the paired content-management product.", evidence: ["docs/products.md:279-281"] },
+      { q: "What is SRB Sites?", a: "It serves each company's published public website on its configured domain; SiteCraft AI is the paired content-management product.", evidence: ["docs/products.md:279-281"] },
       { q: "Is there a /sites product-app page?", a: "No. Sites is served at the root of each company's website host; the repo explicitly says there is no /sites app URL.", evidence: ["src/app/(products)/sites/README.md:1-3", "docs/architecture.md:166"] },
       { q: "What does a company website host serve?", a: "The site host serves public pages; the separate app host serves products.", evidence: ["docs/architecture.md:11-17"] },
       { q: "Can the public website host product screens?", a: "No. The site host never serves a product; product paths on that host are redirected to the app host.", evidence: ["docs/architecture.md:13-20"] },
@@ -105,7 +105,7 @@ export const PLATFORM_CONTENT_FAQS: FaqHubGroup[] = [
       { q: "Are public website metadata and canonical URLs tied to its domain?", a: "Yes. The current public-site origin is used for sitemap, robots, canonical and Open Graph URLs, JSON-LD and other public links.", evidence: ["src/lib/platform/tenancy/site-url.ts:17-25"] },
       { q: "Is the site's primary-domain change immediate?", a: "The site URL cache is cleared on a primary-domain change, and the URL memoization TTL is one minute.", evidence: ["src/lib/platform/tenancy/site-url.ts:31-33", "src/lib/platform/tenancy/site-url.ts:75-78"] },
       { q: "Can a website visitor get a product session cookie?", a: "Site and app hosts have separate session cookies, so a visitor on the website host does not hold a product session.", evidence: ["docs/architecture.md:21-23"] },
-      { q: "Is SelfRun Sites a general website-builder app separate from SiteCraft?", a: "No. Sites is the delivery surface for the published company website, paired with SiteCraft AI for editing its content.", evidence: ["docs/products.md:279-281", "src/app/(products)/sites/README.md:1-3"] },
+      { q: "Is SRB Sites a general website-builder app separate from SiteCraft?", a: "No. Sites is the delivery surface for the published company website, paired with SiteCraft AI for editing its content.", evidence: ["docs/products.md:279-281", "src/app/(products)/sites/README.md:1-3"] },
       { q: "Does signup wait for AI site writing in every flow?", a: "No. Self-serve signup can wait up to four minutes when requested; other provisioning can run it in the background, and scripts do not start automatic AI spend.", evidence: ["src/lib/platform/tenancy/provisioning.ts:175-188"] },
       { q: "What happens if AI site writing fails during signup?", a: "The published starter remains available and the company can retry from SiteCraft CMS → AI Website.", evidence: ["src/lib/platform/tenancy/provisioning.ts:175-188"] },
       { q: "Can the website stay up if maintenance settings cannot be read?", a: "Yes. The maintenance check fails open and treats an unavailable flag as maintenance off.", evidence: ["src/lib/products/sitecraft-ai/maintenance-gate.ts:32-47"] },
@@ -120,7 +120,7 @@ export const PLATFORM_CONTENT_FAQS: FaqHubGroup[] = [
   },
   {
     id: "rankmax-ai",
-    title: "SelfRun RankMax AI",
+    title: "SRB RankMax AI",
     href: productPath("seo"),
     items: [
       { q: "What areas does RankMax cover?", a: "It covers audits, technical and on-page SEO, keywords and rankings, content SEO, internal links, backlinks, competitors, sitemap, robots.txt, schema, issues and tasks.", evidence: ["docs/products.md:251-256"] },
@@ -185,7 +185,7 @@ export const PLATFORM_CONTENT_FAQS: FaqHubGroup[] = [
   },
   {
     id: "viralpulse-ai",
-    title: "SelfRun ViralPulse AI",
+    title: "SRB ViralPulse AI",
     href: productPath("smms"),
     items: [
       { q: "Which social platforms can ViralPulse connect to?", a: "Its provider integrations are Meta, Google and LinkedIn; the app maps Meta to Facebook and Instagram, Google to YouTube and Google Business Profile, and LinkedIn to LinkedIn.", evidence: ["src/lib/products/viralpulse-ai/constants.ts:7-16", "src/lib/products/viralpulse-ai/integrations.ts:105-139"] },

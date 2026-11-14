@@ -19,7 +19,7 @@ import Icon from "@/components/platform/saas/Icon";
 import Reveal from "@/components/platform/saas/Reveal";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = pageMeta({ path: "/docs", title: "Documentation: Guides and Walkthroughs", description: "Step-by-step guides and walkthroughs for every feature of SelfRun AI, with the real screen beside each step. Set up your business workspace and learn each product.", keywords: ["business software documentation", "CRM user guide", "HR software setup guide", "payroll software how to", "project management software tutorial", "accounting software guide", "SaaS help center", "how to set up business software", "step by step software guides"], tag: "Docs" });
+export const metadata: Metadata = pageMeta({ path: "/docs", title: "Documentation: Guides and Walkthroughs", description: "Step-by-step guides and walkthroughs for every feature of SRB AI, with the real screen beside each step. Set up your business workspace and learn each product.", keywords: ["business software documentation", "CRM user guide", "HR software setup guide", "payroll software how to", "project management software tutorial", "accounting software guide", "SaaS help center", "how to set up business software", "step by step software guides"], tag: "Docs" });
 
 const NAV = [
   { id: "start", label: "Start here" },
@@ -54,8 +54,8 @@ export default async function DocsPage() {
 
   return (
     <>
-      <JsonLd data={[webPage({ type: "CollectionPage", path: "/docs", name: "Documentation", description: "Step-by-step guides and walkthroughs for every feature of SelfRun AI, with the real screen beside each step. Set up your business workspace and learn each product." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Documentation", path: "/docs" }]), itemList({ name: "SelfRun AI guides by product", items: panels.map((m) => ({ name: `${m.name} guides`, path: `/docs#${m.key}` })) }), itemList({ name: "SelfRun AI walkthroughs", items: TUTORIALS.map((t) => ({ name: t.title, path: `/docs/walkthroughs/${t.slug}` })) })]} />
-      <PageHero art="docs" eyebrow="A guide for every feature · general guides · walkthroughs" title="Learn SelfRun AI" accent="one step at a time." lead="Everything you need to set up SelfRun AI and use it every day, from creating your account to running payroll or publishing your website. Every guide shows the real screen and the exact steps to follow. New here? Follow the learning path below, or search for the job you want to do." photo="laptop-talk" shot="support" shotName="SelfRun ResolveIQ">
+      <JsonLd data={[webPage({ type: "CollectionPage", path: "/docs", name: "Documentation", description: "Step-by-step guides and walkthroughs for every feature of SRB AI, with the real screen beside each step. Set up your business workspace and learn each product." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Documentation", path: "/docs" }]), itemList({ name: "SRB AI guides by product", items: panels.map((m) => ({ name: `${m.name} guides`, path: `/docs#${m.key}` })) }), itemList({ name: "SRB AI walkthroughs", items: TUTORIALS.map((t) => ({ name: t.title, path: `/docs/walkthroughs/${t.slug}` })) })]} />
+      <PageHero art="docs" eyebrow="A guide for every feature · general guides · walkthroughs" title="Learn SRB AI" accent="one step at a time." lead="Everything you need to set up SRB AI and use it every day, from creating your account to running payroll or publishing your website. Every guide shows the real screen and the exact steps to follow. New here? Follow the learning path below, or search for the job you want to do." photo="laptop-talk" shot="support" shotName="SRB ResolveIQ">
         <HeroCtas primary={{ label: "Get started free", href: "/signup" }} secondary={{ label: "Browse walkthroughs", href: "#walkthroughs" }} />
       </PageHero>
 
@@ -137,8 +137,8 @@ export default async function DocsPage() {
                 <SectionHead
                   icon={<ProductLogo productKey={p.key} size={34} title={p.name} />}
                   eyebrow="Product"
-                  title="SelfRun"
-                  accent={p.name.replace(/^SelfRun\s+/i, "")}
+                  title="SRB"
+                  accent={p.name.replace(/^(SRB|SRB)\s+/i, "")}
                   lead={p.summary}
                 />
                 <div className="-mt-6 mb-10 flex justify-center">

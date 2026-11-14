@@ -15,7 +15,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = pageMeta({ path: "/gallery", title: "Product Gallery: Real Screens of Every Product", description: "See every real screen of SelfRun AI in one place: CRM, HR, finance, projects, website builder and more. Filter by product, search and open any screen full size.", keywords: ["business software screenshots", "CRM software screenshots", "HR software demo screens", "accounting software interface", "project management software screenshots", "business dashboard examples", "SaaS product gallery", "software UI screens"], tag: "Gallery" });
+export const metadata: Metadata = pageMeta({ path: "/gallery", title: "Product Gallery: Real Screens of Every Product", description: "See every real screen of SRB AI in one place: CRM, HR, finance, projects, website builder and more. Filter by product, search and open any screen full size.", keywords: ["business software screenshots", "CRM software screenshots", "HR software demo screens", "accounting software interface", "project management software screenshots", "business dashboard examples", "SaaS product gallery", "software UI screens"], tag: "Gallery" });
 
 const NAV = [
   { id: "browse", label: "Browse the screens" },
@@ -29,7 +29,7 @@ export default async function GalleryPage({ searchParams }: { searchParams: Prom
   const { items, panels } = await getGallery();
   return (
     <>
-      <JsonLd data={[webPage({ type: "CollectionPage", path: "/gallery", name: "Product gallery", description: "See every real screen of SelfRun AI in one place: CRM, HR, finance, projects, website builder and more. Filter by product, search and open any screen full size." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Gallery", path: "/gallery" }]), imageGallery({ path: "/gallery", name: "SelfRun AI product gallery", description: "Real screens of every SelfRun AI product, captured in a demo workspace.", images: items.slice(0, 40).map((i) => ({ url: i.src, name: `${i.panel}: ${i.title}` })) })]} />
+      <JsonLd data={[webPage({ type: "CollectionPage", path: "/gallery", name: "Product gallery", description: "See every real screen of SRB AI in one place: CRM, HR, finance, projects, website builder and more. Filter by product, search and open any screen full size." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Gallery", path: "/gallery" }]), imageGallery({ path: "/gallery", name: "SRB AI product gallery", description: "Real screens of every SRB AI product, captured in a demo workspace.", images: items.slice(0, 40).map((i) => ({ url: i.src, name: `${i.panel}: ${i.title}` })) })]} />
       <PageHero art="gallery" eyebrow="Real screens from every product" title="The product," accent="every screen." lead="Not mock-ups: captures of the live product, taken in a demo workspace with sample data. Filter by product, search, and open any screen full size." photo="analytics" shot="workspace" shotName="Workspace" chip={{ title: "Real screens", text: "Captured from the real product" }}>
         <HeroCtas />
       </PageHero>

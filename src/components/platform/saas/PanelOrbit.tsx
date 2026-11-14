@@ -38,7 +38,7 @@ export default function PanelOrbit({ panels, brand }: { panels: OrbitPanel[]; br
               >
                 <ProductLogo productKey={p.key} size={46} title={p.name} />
               </span>
-              <span className="mt-1.5 hidden max-w-[96px] -translate-x-0 truncate text-center text-[11px] font-semibold text-foreground md:block">{(p as any).shortName || p.name.replace(/^SelfRun\s+/i, "")}</span>
+              <span className="mt-1.5 hidden max-w-[96px] -translate-x-0 truncate text-center text-[11px] font-semibold text-foreground md:block">{(p as any).shortName || p.name.replace(/^(SelfRun|SRB)\s+/i, "")}</span>
             </span>
           </Link>
         );
@@ -56,7 +56,7 @@ export default function PanelOrbit({ panels, brand }: { panels: OrbitPanel[]; br
       <div className="absolute inset-[35%] flex flex-col items-center justify-center rounded-full bg-card p-3 text-center" style={{ boxShadow: "0 20px 50px -18px color-mix(in oklch, var(--primary) 45%, transparent)", border: "1px solid var(--border)" }}>
         <Image
           src="/selfrun/logo/logo.png"
-          alt="SelfRun Business logo"
+          alt="SRB AI logo"
           width={56}
           height={56}
           className="mb-1 size-12 rounded-xl object-cover sm:size-14"

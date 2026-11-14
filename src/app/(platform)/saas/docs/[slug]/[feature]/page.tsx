@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!key) return {};
   const d = await load(key, feature);
   if (!d) return {};
-  const bare = d.m.name.replace(/^SelfRun\s+/i, "");
+  const bare = d.m.name.replace(/^(SRB|SRB)\s+/i, "");
   const seo = PRODUCT_SEO[d.m.key];
   return pageMeta({
     path: productDocsPath(d.m.key, feature),
@@ -285,7 +285,7 @@ export default async function FeatureGuidePage({ params }: { params: Promise<{ s
       lead={`About ${f.name} and ${m.name}.`}
       extra={[
         { q: `I cannot see ${f.name} in the menu.`, a: `Your role may not include it. Ask your workspace owner to open Workspace → Users and give your role access to ${m.name}.` },
-        { q: "Can I do this on my phone?", a: "Yes. SelfRun AI works in the browser on any device and can be installed as an app on Android, iOS and desktop, with the same screens and the same data." },
+        { q: "Can I do this on my phone?", a: "Yes. SRB AI works in the browser on any device and can be installed as an app on Android, iOS and desktop, with the same screens and the same data." },
         { q: "Does this cost extra?", a: `No. ${f.name} comes with the ${m.name} product, and every product is included in every plan.` },
       ]}
     />

@@ -6,7 +6,7 @@ import { loadLegalContext } from "@/lib/platform/saas/legal-context";
 import InquiryForm from "@/components/platform/saas/InquiryForm";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = pageMeta({ path: "/data-requests", title: "Your Data Rights and Requests", description: "How to use your rights under India's Digital Personal Data Protection Act, 2023 with SelfRun AI: a summary of your data, correction, erasure, grievance redressal and nomination." });
+export const metadata: Metadata = pageMeta({ path: "/data-requests", title: "Your Data Rights and Requests", description: "How to use your rights under India's Digital Personal Data Protection Act, 2023 with SRB AI: a summary of your data, correction, erasure, grievance redressal and nomination." });
 
 export default async function Page() {
   return <LegalPage doc={dataRequestsDoc(await loadLegalContext())} after={<InquiryForm kind="privacy" />} />;

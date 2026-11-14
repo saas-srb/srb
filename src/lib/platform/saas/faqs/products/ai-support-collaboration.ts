@@ -4,7 +4,7 @@ import { productPath } from "@/lib/platform/saas/product-routes";
 export const AI_SUPPORT_COLLABORATION_FAQS: FaqHubGroup[] = [
   {
     id: "agentos",
-    title: "SelfRun AgentOS",
+    title: "SRB AgentOS",
     href: productPath("aibots"),
     items: [
       {
@@ -608,7 +608,7 @@ export const AI_SUPPORT_COLLABORATION_FAQS: FaqHubGroup[] = [
       },
       {
         q: "Does the Help Assistant use my company's OpenAI key?",
-        a: "No. Help Assistant model calls use SelfRun AI's platform-owner connection, not the asking company's key.",
+        a: "No. Help Assistant model calls use SRB AI's platform-owner connection, not the asking company's key.",
         evidence: ["src/lib/support/ai.ts:18-20", "src/lib/support/ai.ts:37-49"],
       },
       {

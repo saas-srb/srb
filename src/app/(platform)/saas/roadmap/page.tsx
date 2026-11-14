@@ -17,7 +17,7 @@ import { productPath } from "@/lib/platform/saas/product-routes";
 import { productShort } from "@/lib/platform/saas/product-short";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = pageMeta({ path: "/roadmap", title: "Roadmap: What You Can Use Today and What Comes Next", description: "See everything SelfRun AI offers today, what we are looking into next, and how your feedback decides what we build. No made-up release dates.", keywords: ["SelfRun AI roadmap", "product roadmap", "business software roadmap", "what is new in SelfRun AI", "software release notes", "product updates"], tag: "Roadmap" });
+export const metadata: Metadata = pageMeta({ path: "/roadmap", title: "Roadmap: What You Can Use Today and What Comes Next", description: "See everything SRB AI offers today, what we are looking into next, and how your feedback decides what we build. No made-up release dates.", keywords: ["SRB AI roadmap", "product roadmap", "business software roadmap", "what is new in SRB AI", "software release notes", "product updates"], tag: "Roadmap" });
 
 const NAV = [
   { id: "what", label: "What this page is" },
@@ -64,7 +64,7 @@ const CONSTANT = [
   { icon: "layers" as const, title: "Every plan has everything", text: "Every feature is included in every plan, starting free. Nothing is held back for a higher plan." },
   { icon: "building" as const, title: "Start small, add what you need", text: "Each product works on its own, so you use what you need and nothing forces you to take the rest." },
   { icon: "lock" as const, title: "Your data stays yours", text: "One business's data is never visible to another's, and roles and permissions decide who sees what inside yours." },
-  { icon: "target" as const, title: "Your brand on everything", text: "Your logo, colours, web address and apps stay yours, with SelfRun out of sight." },
+  { icon: "target" as const, title: "Your brand on everything", text: "Your logo, colours, web address and apps stay yours, with SRB out of sight." },
   { icon: "brain" as const, title: "AI that asks permission", text: "Assistants see only what the person asking is allowed to see, and any change they suggest waits for approval." },
   { icon: "file" as const, title: "A record of what happens", text: "Sign-ins, changes and admin actions are recorded, and automatic runs are logged and explained." },
 ];
@@ -72,7 +72,7 @@ const CONSTANT = [
 const FOLLOW = [
   { icon: "chart" as const, title: "Status", text: "Is everything running right now? Any open problem is shown here.", href: "/status", cta: "Open the status page" },
   { icon: "book" as const, title: "Documentation", text: "Step-by-step guides and walkthroughs for every product and feature.", href: "/docs", cta: "Read the docs" },
-  { icon: "file" as const, title: "Guides and articles", text: "Practical articles on running a business with SelfRun AI.", href: "/blog", cta: "Browse the blog" },
+  { icon: "file" as const, title: "Guides and articles", text: "Practical articles on running a business with SRB AI.", href: "/blog", cta: "Browse the blog" },
   { icon: "shield" as const, title: "Security and trust", text: "How your data is protected, kept separate and handled.", href: "/security", cta: "Read about security" },
   { icon: "target" as const, title: "Our vision", text: "Where we are heading and why we build the way we do.", href: "/vision", cta: "Read the vision" },
   { icon: "chat" as const, title: "Talk to us", text: "Ask a question or tell us what your business needs.", href: "/contact", cta: "Contact the team" },
@@ -116,7 +116,7 @@ export default async function RoadmapPage() {
 
   return (
     <>
-      <JsonLd data={[webPage({ type: "WebPage", path: "/roadmap", name: "Product roadmap", description: "See everything SelfRun AI offers today, what we are looking into next, and how your feedback decides what we build. No made-up release dates." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Roadmap", path: "/roadmap" }])]} />
+      <JsonLd data={[webPage({ type: "WebPage", path: "/roadmap", name: "Product roadmap", description: "See everything SRB AI offers today, what we are looking into next, and how your feedback decides what we build. No made-up release dates." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Roadmap", path: "/roadmap" }])]} />
       <PageHero
         art="features"
         eyebrow="Roadmap"
@@ -125,7 +125,7 @@ export default async function RoadmapPage() {
         lead="A roadmap should help you decide. So ours keeps two things apart: what you can use today, which we can prove, and what we are only looking into, which we never put a date on. Here is how to read it, what is available now and how you can influence what we build next."
         photo="team-desk"
         shot="workspace"
-        shotName="SelfRun CommandOS"
+        shotName="SRB CommandOS"
         chip={{ title: "Products available now", text: "Taken from the live product" }}
       >
         <HeroCtas primary={{ label: "Explore the products", href: "/products" }} secondary={{ label: "Share feedback", href: "/contact" }} />
@@ -347,7 +347,7 @@ export default async function RoadmapPage() {
         accent="the roadmap."
         lead="What the roadmap shows, what it leaves out and how you can influence it."
         extra={[
-          { q: "What is the roadmap?", a: "A public page that shows what SelfRun AI offers today and how we handle what comes next. It lists what is available now and explains how feedback is handled, but it does not publish dated plans." },
+          { q: "What is the roadmap?", a: "A public page that shows what SRB AI offers today and how we handle what comes next. It lists what is available now and explains how feedback is handled, but it does not publish dated plans." },
           { q: "What does “Exploring” mean?", a: "It is an idea we are looking into because businesses ask for it. It is not a feature you can use today and it is not a promise to deliver, so it never has a date." },
           { q: "Why are there no release dates?", a: "Because a date we cannot reliably keep helps nobody. We announce a feature when it is ready to be described clearly." },
           { q: "How do I ask for a feature?", a: "Use the contact form and describe the job you want to make easier. We will show you how the current product handles it and record anything that is missing." },

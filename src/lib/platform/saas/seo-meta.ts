@@ -57,7 +57,7 @@ export function pageMeta(i: PageMetaInput): Metadata {
   const description = trimDescription(i.description);
   const fullTitle = `${i.title} | ${SAAS_BRAND.name}`;
   const image = ogImageUrl(i.title, description, i.tag);
-  const images = [{ url: image, ...OG_SIZE, alt: `${i.title}: ${SAAS_BRAND.name}` }];
+  const images = [{ url: image, ...OG_SIZE, alt: `${i.title}: ${SAAS_BRAND.name} - Selfrun Business AI` }];
   // Search results show about 60 characters: a long title keeps its own words and drops the brand suffix; a very long one is cut at a word.
   const room = 60 - ` | ${SAAS_BRAND.name}`.length;
   const shortTitle = i.title.length <= 60 ? i.title : `${i.title.slice(0, 58).replace(/\s+\S*$/, "")}…`;

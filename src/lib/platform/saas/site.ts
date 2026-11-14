@@ -1,5 +1,5 @@
 /**
- * Structure of the SelfRun AI product website: navigation, feature groups, roadmap and legal copy.
+ * Structure of the SRB AI product website: navigation, feature groups, roadmap and legal copy.
  * Everything is drawn from what the product really does (see `content.ts`); where the product has no genuine data yet
  * (releases, posts, customer stories) the list is empty and the page shows its structure with an honest empty state.
  */
@@ -13,7 +13,7 @@ export interface NavLink {
 
 /** The header's links: no dropdowns, one click to each place. */
 export const NAV_LINKS: NavLink[] = [
-  { href: "/", label: "Home", hint: "What SelfRun AI is and why companies use it" },
+  { href: "/", label: "Home", hint: "What SRB AI is and why companies use it" },
   { href: "/products", label: "Products", hint: "Every product and feature, with a details page for each" },
   { href: "/pricing", label: "Pricing", hint: "Plans, allowances and a details page for each plan" },
   { href: "/docs", label: "Documentation", hint: "A guide for every product and every feature" },
@@ -65,11 +65,11 @@ export interface Flow {
   action: string[];
 }
 export const FLOWS: Flow[] = [
-  { id: "lead", area: "SelfRun DealFlow AI", trigger: "A new lead is created", condition: "Matches your assignment rule", action: ["Assign the lead to its owner", "Notify the owner", "Send a welcome message"] },
-  { id: "deal", area: "SelfRun DealFlow AI → SelfRun SprintOS", trigger: "A deal is won", condition: "Always", action: ["Create the client record", "Notify the account team"] },
-  { id: "leave", area: "SelfRun TalentOS", trigger: "A leave request is filed", condition: "Needs approval", action: ["Notify the manager", "Track the approval"] },
-  { id: "invoice", area: "SelfRun CashFlow AI", trigger: "An invoice goes overdue", condition: "Past the reminder date", action: ["Send a payment reminder", "Notify finance"] },
-  { id: "task", area: "SelfRun SprintOS", trigger: "A task is assigned or overdue", condition: "Always", action: ["Notify the assignee"] },
+  { id: "lead", area: "SRB DealFlow AI", trigger: "A new lead is created", condition: "Matches your assignment rule", action: ["Assign the lead to its owner", "Notify the owner", "Send a welcome message"] },
+  { id: "deal", area: "SRB DealFlow AI → SRB SprintOS", trigger: "A deal is won", condition: "Always", action: ["Create the client record", "Notify the account team"] },
+  { id: "leave", area: "SRB TalentOS", trigger: "A leave request is filed", condition: "Needs approval", action: ["Notify the manager", "Track the approval"] },
+  { id: "invoice", area: "SRB CashFlow AI", trigger: "An invoice goes overdue", condition: "Past the reminder date", action: ["Send a payment reminder", "Notify finance"] },
+  { id: "task", area: "SRB SprintOS", trigger: "A task is assigned or overdue", condition: "Always", action: ["Notify the assignee"] },
 ];
 
 export type RoadmapStatus = "Completed" | "In Progress" | "Planned" | "Future";
@@ -118,7 +118,7 @@ export interface LegalDoc {
   highlights?: { title: string; text: string; icon: IconKey }[];
 }
 
-const SERVICE = "SelfRun AI";
+const SERVICE = "SRB AI";
 
 export const LEGAL_EXTRA: Record<"security" | "sla", LegalDoc> = {
   sla: {
@@ -368,7 +368,7 @@ export const YOUR_BRAND: BrandPoint[] = [
   { key: "website", title: "Your website", text: "A complete website builder with pages, blog, forms and SEO — published under your brand.", icon: "book", shot: "cms" },
 ];
 
-/** SelfRun AI against the usual way of running a business: a separate tool for each job. No competitor is named or priced. */
+/** SRB AI against the usual way of running a business: a separate tool for each job. No competitor is named or priced. */
 export const COMPARISON: { row: string; us: string; them: string }[] = [
   { row: "Software", us: "One software with a product for every department", them: "A different business for every job" },
   { row: "Your data", us: "Your records stay with your business, kept apart from every other business's", them: "Data spread across unrelated businesses" },

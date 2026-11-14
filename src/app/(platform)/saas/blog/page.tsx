@@ -22,7 +22,7 @@ import type { IconKey } from "@/lib/platform/saas/content";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = pageMeta({ path: "/blog", title: "Blog and Guides for Running a Business", description: "Practical guides on lead management, payroll, invoicing, social media, websites and automation: how to run and grow a business with SelfRun AI.", keywords: ["business automation blog", "small business tips", "how to automate invoicing", "how to manage leads", "how to run payroll", "business productivity tips", "website for business guide", "social media planning guide", "SME growth guides"], tag: "Blog" });
+export const metadata: Metadata = pageMeta({ path: "/blog", title: "Blog and Guides for Running a Business", description: "Practical guides on lead management, payroll, invoicing, social media, websites and automation: how to run and grow a business with SRB AI.", keywords: ["business automation blog", "small business tips", "how to automate invoicing", "how to manage leads", "how to run payroll", "business productivity tips", "website for business guide", "social media planning guide", "SME growth guides"], tag: "Blog" });
 
 /** Tag → module key + icon mapping for product pill badges. */
 const TAG_META: Record<string, { key: string; icon: IconKey }> = {
@@ -69,7 +69,7 @@ export default function BlogIndexPage() {
 
   return (
     <>
-      <JsonLd data={[webPage({ type: "CollectionPage", path: "/blog", name: "Blog", description: "Practical guides on lead management, payroll, invoicing, social media, websites and automation: how to run and grow a business with SelfRun AI." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Blog", path: "/blog" }]), blog({ path: "/blog", name: "SelfRun AI blog and guides", description: "Practical guides on running and growing a business.", posts: POSTS.map((x) => ({ title: x.title, path: `/blog/${x.slug}`, date: x.date, author: x.author, description: x.summary })) })]} />
+      <JsonLd data={[webPage({ type: "CollectionPage", path: "/blog", name: "Blog", description: "Practical guides on lead management, payroll, invoicing, social media, websites and automation: how to run and grow a business with SRB AI." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Blog", path: "/blog" }]), blog({ path: "/blog", name: "SRB AI blog and guides", description: "Practical guides on running and growing a business.", posts: POSTS.map((x) => ({ title: x.title, path: `/blog/${x.slug}`, date: x.date, author: x.author, description: x.summary })) })]} />
       <PageHero
         eyebrow="Practical Business Guides"
         title="Simple, proven advice"
@@ -77,7 +77,7 @@ export default function BlogIndexPage() {
         lead="Actionable guides, step-by-step tutorials, and productivity strategies anyone can follow. Written in clear, plain language with real product screenshots and zero fluff."
         photo="laptop-talk"
         shot="cms"
-        shotName="SelfRun SiteCraft AI"
+        shotName="SRB SiteCraft AI"
         chip={{
           title: "In-Depth Guides",
           text: "Actionable playbooks for every department",
@@ -381,7 +381,7 @@ export default function BlogIndexPage() {
               Ready to automate your business operations?
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg">
-              Get started with SelfRun AI today. Free forever plan includes every product, every feature, and your own live website.
+              Get started with SRB AI today. Free forever plan includes every product, every feature, and your own live website.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
               <Link

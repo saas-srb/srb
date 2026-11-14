@@ -23,8 +23,8 @@ const general: FaqHubGroup = {
   title: "General system FAQs",
   items: [
     {
-      q: "What is SelfRun AI?",
-      a: "SelfRun AI is a suite of independent business products for sales, people, finance, projects, purchasing, training, documents, websites, collaboration and support. CommandOS provides a shared company control center, and configured workflows connect specific records and actions across products.",
+      q: "What is SRB AI?",
+      a: "SRB AI is a suite of independent business products for sales, people, finance, projects, purchasing, training, documents, websites, collaboration and support. CommandOS provides a shared company control center, and configured workflows connect specific records and actions across products.",
     },
     {
       q: "Do I have to use every product?",
@@ -47,12 +47,12 @@ const general: FaqHubGroup = {
       a: "DataBrain AI answers questions from the current user’s permitted business data with read-only queries. Other AI features have their own product-specific behavior and permissions, so the DataBrain read-only rule should not be assumed to describe every assistant or generator.",
     },
     {
-      q: "Can I bring existing data into SelfRun?",
+      q: "Can I bring existing data into SRB?",
       a: "The platform includes CSV imports for supported record types such as leads, clients and employees. Importers validate supported fields and report rows that need correction; available import types vary by product.",
     },
     {
       q: "Where can users get product help?",
-      a: "ResolveIQ includes a searchable help center, an assistant that searches published help content, and support requests with status tracking. Users can also contact the SelfRun team through the website contact page.",
+      a: "ResolveIQ includes a searchable help center, an assistant that searches published help content, and support requests with status tracking. Users can also contact the SRB team through the website contact page.",
     },
     {
       q: "Can I use my own domain for my website?",
@@ -259,8 +259,8 @@ const general: FaqHubGroup = {
       evidence: ["src/app/(products)/sitecraft-ai/(protected)/pages/NewPageDialog.tsx:28-45"],
     },
     {
-      q: "Where does SelfRun Sites serve a company's public website?",
-      a: "SelfRun Sites serves the company's published public website on its configured domain, while SiteCraft AI is its paired content-management product.",
+      q: "Where does SRB Sites serve a company's public website?",
+      a: "SRB Sites serves the company's published public website on its configured domain, while SiteCraft AI is its paired content-management product.",
       evidence: ["docs/products.md:279-281"],
     },
     {

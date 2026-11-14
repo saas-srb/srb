@@ -16,7 +16,7 @@ import { saasCanonicalHost } from "@/lib/platform/saas/hosts";
 import { saasContact } from "@/lib/platform/saas/brand";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = pageMeta({ path: "/contact", title: "Contact Us: Sales, Support and Security", description: "Talk to the SelfRun AI team about plans, a demo, support or security. Send a message and we reply within one business day.", keywords: ["contact SelfRun AI", "business software sales contact", "software support contact", "request business software demo", "talk to sales", "SelfRun AI support", "report a security issue"], tag: "Contact" });
+export const metadata: Metadata = pageMeta({ path: "/contact", title: "Contact Us: Sales, Support and Security", description: "Talk to the SRB AI team about plans, a demo, support or security. Send a message and we reply within one business day.", keywords: ["contact SRB AI", "business software sales contact", "software support contact", "request business software demo", "talk to sales", "SRB AI support", "report a security issue"], tag: "Contact" });
 
 const NAV = [
   { id: "reach", label: "Reach the right team" },
@@ -36,8 +36,8 @@ export default async function ContactPage() {
   ];
   return (
     <>
-      <JsonLd data={[organizationPage({ type: "ContactPage", path: "/contact", name: "Contact us", description: "Talk to the SelfRun AI team about plans, a demo, support or security. Send a message and we reply within one business day." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Contact us", path: "/contact" }])]} />
-      <PageHero art="contact" photo="colleagues" shot="support" shotName="SelfRun ResolveIQ" eyebrow="Contact Us" title="Let's talk about" accent="your business." lead="Questions about plans, how the platform fits your business, or security? Send a message and we'll reply within one business day." chip={{ title: "Reply within one business day", text: "From the people who build the platform" }}>
+      <JsonLd data={[organizationPage({ type: "ContactPage", path: "/contact", name: "Contact us", description: "Talk to the SRB AI team about plans, a demo, support or security. Send a message and we reply within one business day." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Contact us", path: "/contact" }])]} />
+      <PageHero art="contact" photo="colleagues" shot="support" shotName="SRB ResolveIQ" eyebrow="Contact Us" title="Let's talk about" accent="your business." lead="Questions about plans, how the platform fits your business, or security? Send a message and we'll reply within one business day." chip={{ title: "Reply within one business day", text: "From the people who build the platform" }}>
         <HeroCtas primary={{ label: "Get started free", href: "/signup" }} secondary={{ label: "Request a demo", href: "/demo" }} />
       </PageHero>
       <SectionScrollNav items={NAV} label="Contact sections" numbered />

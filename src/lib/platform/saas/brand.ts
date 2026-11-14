@@ -4,14 +4,18 @@
  */
 
 export const SAAS_BRAND = {
-  /** Wordmark parts: "SelfRun" + "Business". */
-  namePrimary: "SelfRun",
-  nameAccent: "Business",
-  name: "SelfRun AI",
-  tagline: "The AI business platform that runs itself",
+  /** Wordmark parts: "SRB" + "AI". SRB = Selfrun Business. */
+  namePrimary: "SRB",
+  nameAccent: "AI",
+  name: "SRB AI",
+  /** Full expanded name used for SEO and legal contexts. */
+  nameExpanded: "SRB - Selfrun Business AI",
+  /** Short abbreviation used in compact UI areas. */
+  nameShort: "SRB",
+  tagline: "One AI platform. Every business tool. 100x productivity.",
   /** One line for search results and link previews. */
   description:
-    "SelfRun AI is one AI-powered platform that automates sales, HR, finance, projects, procurement, training and your website — so your business keeps running without you chasing it.",
+    "SRB AI (Selfrun Business AI) is one AI-powered platform that automates sales, HR, finance, projects, procurement, training and your website — so your business runs 24/7 without you chasing it. Free forever.",
   /** The palette of the product. Customers' themes never touch these. */
   colors: {
     primary: "#4338ca",

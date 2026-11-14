@@ -54,7 +54,7 @@ export function softwareApplication(o: {
     offers: { "@type": "Offer", price: "0", priceCurrency: "INR", url: "/pricing", availability: "https://schema.org/InStock", description: "Free plan with every product and every feature" },
     publisher: { "@id": ORG_ID },
     provider: { "@id": ORG_ID },
-    isPartOf: { "@type": "SoftwareApplication", name: "SelfRun AI", url: "/" },
+    isPartOf: { "@type": "SoftwareApplication", name: "SRB AI", alternateName: "SRB - Selfrun Business AI", url: "/" },
   };
 }
 
@@ -63,7 +63,7 @@ export function planOffers(plans: { id: string; name: string; description: strin
   return {
     "@context": ctx,
     "@type": "OfferCatalog",
-    name: "SelfRun AI plans",
+    name: "SRB AI plans",
     itemListElement: plans.flatMap((p) => {
       if (p.kind === "contact" || (p.kind === "paid" && !p.monthly)) return [];
       const price = p.kind === "free" ? 0 : (p.monthly as number) / 100;
@@ -77,7 +77,7 @@ export function planOffers(plans: { id: string; name: string; description: strin
         priceCurrency: p.currency || "INR",
         priceSpecification: { "@type": "UnitPriceSpecification", price: price.toFixed(2), priceCurrency: p.currency || "INR", billingDuration: "P1M", unitText: "month" },
         availability: "https://schema.org/InStock",
-        itemOffered: { "@type": "SoftwareApplication", name: "SelfRun AI", url: "/" },
+        itemOffered: { "@type": "SoftwareApplication", name: "SRB AI", url: "/" },
         ...(p.validUntil ? { priceValidUntil: p.validUntil.slice(0, 10) } : {}),
       }];
     }),

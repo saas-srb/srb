@@ -6,7 +6,7 @@ import type { LegalDoc } from "@/lib/platform/saas/site";
  * `legal-india.ts` from the operator's profile; they describe what the platform actually does (see docs/compliance/ for the control each
  * sentence rests on).
  */
-const SERVICE = "SelfRun AI";
+const SERVICE = "SRB AI";
 
 export interface Mailboxes { privacy: string; security: string; sales: string }
 

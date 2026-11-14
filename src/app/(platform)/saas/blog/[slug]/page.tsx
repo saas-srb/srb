@@ -167,7 +167,7 @@ export default async function BlogPostPage({
                     Written by {post.author}
                   </h4>
                   <p className="mt-0.5 text-sm text-muted-foreground">
-                    SelfRun AI offers independent products for your website, leads, project delivery, payroll, and finance, managed as a suite under your own brand.
+                    SRB AI offers independent products for your website, leads, project delivery, payroll, and finance, managed as a suite under your own brand.
                   </p>
                 </div>
               </div>
@@ -247,7 +247,7 @@ export default async function BlogPostPage({
             {/* Bottom Free Signup CTA */}
             <div className="mt-14 overflow-hidden rounded-[2rem] border border-border/50 bg-gradient-to-br from-primary/15 via-background to-brand-accent/15 p-8 text-center shadow-xl sm:p-10">
               <h3 className="text-2xl font-black tracking-tight sm:text-3xl">
-                Start automating your business with SelfRun AI
+                Start automating your business with SRB AI
               </h3>
               <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
                 Every product included on our free plan. Launch your website, manage your sales pipeline, and run payroll with zero complexity.
