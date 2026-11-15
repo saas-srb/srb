@@ -1,3 +1,4 @@
+import { isDirector } from "@/lib/access/director";
 import HubSidebarShell from "@/components/hub/HubSidebarShell";
 import HubTopbar from "@/components/hub/HubTopbar";
 import SessionWatch from "@/components/hub/SessionWatch";
@@ -40,7 +41,7 @@ export default async function WorkspaceShell({ user, nav, children }: { user: Cu
   ]);
   const verifyStrip = showVerifyStrip({ emailVerified: user.emailVerified !== false, isPlatformOwnerCompany: ownCompany });
   // Directors are offered the next plan up; nobody else can buy one.
-  const upgrade = user.roles.includes("super_admin") ? await getUpgradeOffer() : null;
+  const upgrade = isDirector(user) ? await getUpgradeOffer() : null;
   const verifyDaysLeft = verifyStrip ? (await getEmailLapse().catch(() => null))?.daysLeft : undefined;
 
   return (

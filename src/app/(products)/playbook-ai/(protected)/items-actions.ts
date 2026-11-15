@@ -139,7 +139,7 @@ export async function saveWizardItemAction(input: { kind: ItemKind; details: Ite
   const d = input.details;
   const pbdoc = input.sections && input.sections.length > 0 ? assembleItemDoc(input.sections.slice(0, 40).map((s) => ({ title: String(s.title).slice(0, 200), blocks: Array.isArray(s.blocks) ? s.blocks.slice(0, 400) : [] }))) : undefined;
   if (input.sections && input.sections.length > 0 && !pbdoc) return { ok: false, message: "The generated content could not be turned into a document. Regenerate the sections that failed." };
-  const r = await createDocument(a, { title: String(d.title ?? ""), kind: input.kind, meta: cleanItemMeta({ department: d.department, designation: d.designation, description: d.description, reviewPeriod: d.reviewPeriod }), pbdoc });
+  const r = await createDocument(a, { title: String(d.title ?? ""), kind: input.kind, meta: cleanItemMeta({ department: d.department, designation: d.designation, departmentId: d.departmentId, designationId: d.designationId, description: d.description, reviewPeriod: d.reviewPeriod }), pbdoc });
   if (!r.ok) return { ok: false, message: r.error.message };
   if (input.ai) await auditWizardAi(a, r.document._id, input.kind);
   bust(input.kind);

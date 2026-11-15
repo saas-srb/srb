@@ -1,3 +1,4 @@
+import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -10,6 +11,11 @@ import { currentCompanyId } from "@/lib/platform/tenancy/context";
 import { appUrlForCompany } from "@/lib/platform/tenancy/site-url";
 import { listCompanyDomains, MAX_CUSTOM_DOMAINS } from "@/lib/platform/domains/custom";
 import DomainsManager from "@/components/platform/DomainsManager";
+import { getOnboarding } from "@/lib/platform/onboarding/state";
+import { getCompanySender, suggestedSenderDomain } from "@/lib/platform/email/sender";
+import { defaultFrom } from "@/lib/platform/email";
+import EmailSenderManager from "../email/EmailSenderManager";
+import { checkSenderAction, removeSenderAction, saveSenderAction } from "../email/actions";
 import { addDomainAction, removeDomainAction, setPrimaryDomainAction, verifyDomainAction } from "./actions";
 
 export const metadata: Metadata = { title: "Domains", robots: { index: false, follow: false } };
@@ -17,8 +23,10 @@ export const metadata: Metadata = { title: "Domains", robots: { index: false, fo
 export default async function DomainsSettingsPage() {
   const user = await getCurrentHubUser();
   if (!user) redirect("/commandos/login");
-  if (!user.roles.includes("super_admin")) redirect("/commandos");
+  await requireWorkspaceAccess("company.domains"); // Director-only item: anyone else sees the locked page inside this shell
   const domains = await listCompanyDomains();
+  const [sender, { company }, platformFrom] = await Promise.all([getCompanySender(), getOnboarding(), defaultFrom()]);
+  const suggested = sender ? null : await suggestedSenderDomain();
   const panelsUrl = await appUrlForCompany(await currentCompanyId());
 
   return (
@@ -39,6 +47,26 @@ export default async function DomainsSettingsPage() {
             />
           </CardContent>
         </GlassCard>
+        <section id="sender-email" aria-labelledby="sender-email-title" className="scroll-mt-4">
+          <GlassCard>
+            <CardHeader>
+              <CardTitle id="sender-email-title">Send emails from your own address</CardTitle>
+              <CardDescription>
+                By default your emails (invitations, sign-in codes, invoices, notifications) go out from SRB&apos;s address, <strong>{platformFrom}</strong>, and nothing needs setting up. If you would rather they come from your own address, like <strong>hello@yourbusiness.com</strong>, do these three steps.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <EmailSenderManager
+                initial={sender}
+                defaultName={company.name}
+                suggested={suggested}
+                platformFrom={platformFrom}
+                actions={{ save: saveSenderAction, check: checkSenderAction, remove: removeSenderAction }}
+              />
+              <p className="mt-4 text-sm text-muted-foreground">Prefer &quot;Use SRB&apos;s address instead&quot;? Press Remove above (or leave this empty): emails keep going out from SRB&apos;s address.</p>
+            </CardContent>
+          </GlassCard>
+        </section>
       </div>
 </div>
     </div>

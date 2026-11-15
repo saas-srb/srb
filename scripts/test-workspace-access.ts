@@ -79,6 +79,15 @@ async function main() {
   await db.collection("billing_plans").updateOne({ _id: "growth" as never }, { $set: { modules: ["hrms", "pms", "lms", "fms", "prms", "sop", "lpms", "dlms", "cms", "seo", "portal", "ots", "intelligence"] } });
   const sub = (planId: string) => ({ planId, status: "active", interval: "monthly", trialEndsAt: null, currentPeriodStart: now, currentPeriodEnd: null, cancelAtPeriodEnd: false, graceEndsAt: null, provider: null, updatedAt: now });
   for (const [id, plan] of [[acme, "growth"], [small, "starter"], [beta, "growth"]] as const) await db.collection("companies").updateOne({ _id: id as never }, { $set: { subscription: sub(plan) } });
+  // A plan with fewer products now means those products are SWITCHED OFF for the company (`disabledPanels`): the navigation hides what is switched off,
+  // it no longer reads the plan's module list itself. This keeps the narrowed-plan checks below meaningful.
+  const { listPanels } = await import("@/lib/platform/panels/store");
+  const { MODULES } = await import("@/lib/platform/onboarding/catalog");
+  const registry = await listPanels();
+  const modulesOf: Record<string, string[]> = { starter: ["hrms", "pms", "lms", "sop", "cms"], growth: ["hrms", "pms", "lms", "fms", "prms", "sop", "lpms", "dlms", "cms", "seo", "portal", "ots", "intelligence"] };
+  for (const [id, plan] of [[acme, "growth"], [small, "starter"], [beta, "growth"]] as const) {
+    await db.collection("companies").updateOne({ _id: id as never }, { $set: { disabledPanels: registry.filter((p) => !p.core && MODULES.some((m) => m.key === p.key) && !modulesOf[plan].includes(p.key)).map((p) => p.key) } });
+  }
 
   /** Creates an account in a company and returns it as the Workspace sees it (through a real session). */
   async function account(companyId: string, email: string, roles: string[], extra: Record<string, unknown> = {}): Promise<{ user: WorkspaceUser & { email: string }; hubToken: string; _id: ObjectId }> {
@@ -100,7 +109,7 @@ async function main() {
   const sales = await account(acme, "sales@acme.test", preset("sales"));
   // A developer the Super Admin gave two single capabilities, and took one away.
   const tuned = await account(acme, "tuned@acme.test", preset("developer"), { permissionOverrides: { "lms.canViewAnalytics": true, "portal.isPortalAdmin": true, "workspace.canViewAnalytics": false, "workspace.manageProjects": true } });
-  const noRoles = await account(acme, "nobody@acme.test", []);
+  const noRoles = await account(acme, "nobody@acme.test", [], { status: "active" });
   const smallAdmin = await account(small, "admin@small.test", ["super_admin"]);
   const smallFinance = await account(small, "fin@small.test", preset("finance"));
   const betaAdmin = await account(beta, "admin@beta.test", ["super_admin"]);
@@ -123,7 +132,13 @@ async function main() {
     ["owner-company super admin, platform access revoked", owner, ownerRevoked],
     ["owner-company HR", owner, ownerHr],
   ];
-  const navOf = (companyId: string, u: { user: WorkspaceUser }) => runAsCompany(companyId, () => resolveWorkspaceNav(u.user));
+  // The navigation now lists locked items too (owner decision D1: everyone sees the Director's layout). These checks are about what a person MAY OPEN,
+  // so they look at the open items only; scripts/test-unified-shell.ts covers the locked ones.
+  const navOf = (companyId: string, u: { user: WorkspaceUser }) =>
+    runAsCompany(companyId, async () => {
+      const n = await resolveWorkspaceNav(u.user);
+      return { ...n, sections: n.sections.map((s) => ({ ...s, items: s.items.filter((i) => !i.locked) })).filter((s) => s.items.length > 0) };
+    });
   const allowed = async (companyId: string, u: { user: WorkspaceUser }) => new Set((await navOf(companyId, u)).allowed);
 
   console.log("catalogs");
@@ -158,32 +173,32 @@ async function main() {
     for (const k of [...COMPANY_KEYS, ...GROWTH_MANAGE_KEYS, "dashboard", "account.documents", "account.notifications", "account.password"]) assert.ok(a.has(k), k);
     for (const k of MANAGE_KEYS.filter((x) => x.startsWith("manage.tms."))) assert.ok(!a.has(k), `${k}: Training is not in the plan`);
     assert.ok(MANAGE_KEYS.every((k) => ownerKeys.has(k)), "the unlimited owner company gets every register");
-    for (const k of ["panel.hrms", "panel.pms", "panel.fms", "panel.lms", "panel.messenger", "analytics.fms", "analytics.portal", "analytics.workspace"]) assert.ok(a.has(k), k);
+    for (const k of ["product.hrms", "product.pms", "product.fms", "product.lms", "product.messenger", "analytics.fms", "analytics.portal", "analytics.workspace"]) assert.ok(a.has(k), k);
     assert.ok(!a.has("platform.panel"), "tenant never sees the Platform link");
     const nav = await navOf(acme, admin);
-    assert.deepEqual(nav.sections.map((s) => s.key), ["dashboard", "panels", "analytics", "manage", "company", "account", "engagement", "ai"]);
-    assert.deepEqual(nav.sections.filter((s) => s.sidebar).map((s) => s.key), ["dashboard", "company", "engagement", "ai"], "AI tools appear last in the sidebar");
+    assert.deepEqual(nav.sections.map((s) => s.key), ["dashboard", "panels", "analytics", "manage", "company", "engagement", "ai", "insight", "account"]);
+    assert.deepEqual(nav.sections.filter((s) => s.sidebar).map((s) => s.key), ["dashboard", "company", "engagement", "ai", "insight"], "Insight is last in the sidebar");
     assert.ok(a.has("manage.push"), "website push notifications are available to the workspace admin");
-    // Growth has no Training / Social / AI Bots: locked on the hub, absent from the nav.
-    assert.ok(!a.has("panel.tms") && nav.lockedPanels.includes("tms"));
+    // Growth has no Training: switched off for the company, so absent from the navigation altogether.
+    assert.ok(!a.has("product.tms") && !nav.lockedKeys.includes("product.tms"), "a product switched off for the company is hidden, not locked");
     assert.ok(!a.has("analytics.tms"));
   });
   await check("HR manager: HR product and analytics, nothing of company admin or company settings", async () => {
     const a = await allowed(acme, hr);
-    for (const k of ["panel.hrms", "panel.lms", "panel.messenger", "panel.sop", "panel.ots", "analytics.hrms", "analytics.messenger", "analytics.workspace"]) assert.ok(a.has(k), k);
-    for (const k of [...COMPANY_KEYS, ...MANAGE_KEYS, "panel.pms", "panel.fms", "analytics.fms", "analytics.pms", "analytics.lms", "analytics.portal", "platform.panel"]) assert.ok(!a.has(k), k);
-    assert.deepEqual((await navOf(acme, hr)).sections.map((s) => s.key), ["dashboard", "panels", "analytics", "account"]);
-    assert.deepEqual((await navOf(acme, hr)).sections.filter((s) => s.sidebar).map((s) => s.key), ["dashboard"]);
+    for (const k of ["product.hrms", "product.messenger", "product.sop", "product.ots", "analytics.hrms", "analytics.messenger", "analytics.workspace"]) assert.ok(a.has(k), k);
+    for (const k of [...COMPANY_KEYS, ...MANAGE_KEYS, "product.pms", "product.fms", "analytics.fms", "analytics.pms", "analytics.lms", "analytics.portal", "platform.panel"]) assert.ok(!a.has(k), k);
+    assert.deepEqual((await navOf(acme, hr)).sections.map((s) => s.key), ["dashboard", "panels", "analytics", "insight", "account"]);
+    assert.deepEqual((await navOf(acme, hr)).sections.filter((s) => s.sidebar).map((s) => s.key), ["dashboard", "insight"]);
   });
   await check("PMS employee: own products only; lead and portal analytics are not theirs", async () => {
     const a = await allowed(acme, dev);
-    for (const k of ["panel.pms", "panel.hrms", "panel.prms", "panel.dlms", "analytics.pms", "analytics.hrms", "analytics.prms"]) assert.ok(a.has(k), k);
-    for (const k of ["panel.fms", "analytics.fms", "analytics.lms", "analytics.portal", "account.documents", "company.audit", "company.billing", "company.users"]) assert.ok(!a.has(k), k);
+    for (const k of ["product.pms", "product.hrms", "product.prms", "product.dlms", "analytics.pms", "analytics.hrms", "analytics.prms"]) assert.ok(a.has(k), k);
+    for (const k of ["product.fms", "analytics.fms", "analytics.lms", "analytics.portal", "account.documents", "company.audit", "company.billing", "company.users"]) assert.ok(!a.has(k), k);
   });
   await check("finance user: Finance product and analytics", async () => {
     const a = await allowed(acme, finance);
-    assert.ok(a.has("panel.fms") && a.has("analytics.fms"));
-    assert.ok(!a.has("panel.pms") && !a.has("company.invoices") && !a.has("manage.prms.payments"));
+    assert.ok(a.has("product.fms") && a.has("analytics.fms"));
+    assert.ok(!a.has("product.pms") && !a.has("company.invoices") && !a.has("manage.prms.payments"));
   });
   await check("sales manager: lead analytics through the LMS role", async () => {
     assert.ok((await allowed(acme, sales)).has("analytics.lms"));
@@ -197,27 +212,31 @@ async function main() {
     assert.ok(a.has("manage.pms.projects") && a.has("manage.pms.timesheets") && !base.has("manage.pms.projects"), "granted workspace.manageProjects");
     assert.ok(!canViewCommandCenter({ roles: tuned.user.roles, permissionOverrides: tuned.user.permissionOverrides ?? null }) && !a.has("company.audit") && !a.has("account.documents") && !a.has("company.users") && !a.has("manage.prms.vendors") && !a.has("company.billing"), "one grant opens only its own pages");
   });
-  await check("an account without roles gets the dashboard, the open CRM and its own account pages", async () => {
+  await check("an account without roles gets the dashboard, Help & Support, the public website and its own account pages (no product: DealFlow follows the access matrix like the rest)", async () => {
     const a = await allowed(acme, noRoles);
-    assert.deepEqual([...a].sort(), ["account.notifications", "account.password", "account.sessions", "dashboard", "panel.lms", "panel.support", "panel.website"]);
+    assert.deepEqual([...a].sort(), ["account.notifications", "account.password", "account.sessions", "dashboard", "panel.support", "panel.website"]);
   });
   await check("plan without Finance: the product is locked, its analytics hidden — for the finance user and the super admin", async () => {
     for (const u of [smallFinance, smallAdmin]) {
       const nav = await navOf(small, u);
-      assert.ok(nav.lockedPanels.includes("fms"), "locked tile");
-      assert.ok(!nav.allowed.includes("panel.fms") && !nav.allowed.includes("analytics.fms"));
+    // (plan-locked "upgrade tiles" no longer exist: a product that is not available is hidden, a product without access is locked; see test-unified-shell.ts)
+      assert.ok(!nav.allowed.includes("product.fms") && !nav.allowed.includes("analytics.fms"));
       assert.equal(await runAsCompany(small, () => checkWorkspaceAccess(u.user, "analytics.fms")), false);
     }
-    assert.ok((await allowed(small, smallAdmin)).has("panel.hrms"));
+    assert.ok((await allowed(small, smallAdmin)).has("product.hrms"));
     assert.ok(!(await allowed(small, smallAdmin)).has("analytics.portal"), "portal is not in Starter");
     assert.ok((await allowed(small, smallAdmin)).has("company.billing"), "the company still manages its plan");
   });
   await check("a product the company switched off disappears (not locked)", async () => {
-    await db.collection("companies").updateOne({ _id: beta as never }, { $set: { enabledModules: ["workspace", "admin", "messenger", "hrms"] } });
+    const { MODULES: ALL_MODULES } = await import("@/lib/platform/onboarding/catalog");
+    const before = (await db.collection("companies").findOne({ _id: beta as never }))?.disabledPanels ?? [];
+    await db.collection("companies").updateOne({ _id: beta as never }, { $set: { disabledPanels: ALL_MODULES.map((m) => m.key).filter((k) => !["messenger", "hrms"].includes(k)) } });
+    // (the platform caches a company's switched-off list for a few seconds: wait it out)
+    await new Promise((r) => setTimeout(r, 11_000));
     const nav = await navOf(beta, betaAdmin);
-    assert.ok(nav.allowed.includes("panel.hrms") && !nav.allowed.includes("panel.pms") && !nav.allowed.includes("analytics.pms"));
-    assert.ok(!nav.lockedPanels.includes("pms"));
-    await db.collection("companies").updateOne({ _id: beta as never }, { $unset: { enabledModules: "" } });
+    assert.ok(nav.allowed.includes("product.hrms") && !nav.allowed.includes("product.pms") && !nav.allowed.includes("analytics.pms"));
+    // (plan-locked "upgrade tiles" no longer exist: a product that is not available is hidden, a product without access is locked; see test-unified-shell.ts)
+    await db.collection("companies").updateOne({ _id: beta as never }, { $set: { disabledPanels: before } });
   });
 
   console.log("sidebar without the products; analytics for every product");
@@ -231,7 +250,7 @@ async function main() {
       assert.ok(!sidebar.some((s) => s.key === "panels"), `${name}: Products in the sidebar`);
       assert.ok(!sidebar.flatMap((s) => s.items).some((i) => i.key.startsWith("panel.")), `${name}: a product link in the sidebar`);
       const panels = nav.sections.find((s) => s.key === "panels");
-      assert.deepEqual((panels?.items ?? []).map((i) => i.key).sort(), nav.allowed.filter((k) => k.startsWith("panel.")).sort(), `${name}: the products still resolve for the Staff Hub tiles`);
+      assert.deepEqual((panels?.items ?? []).map((i) => i.key).sort(), nav.allowed.filter((k) => k.startsWith("panel.") || k.startsWith("product.")).sort(), `${name}: the products still resolve for the Staff Hub tiles`);
       assert.ok(panels && panels.items.length > 0 && panels.sidebar === false, `${name}: products section is resolved but not for the sidebar`);
       const ai = nav.sections.find((s) => s.key === "ai");
       assert.equal(ai?.sidebar ?? false, ai?.items.some((item) => item.key.startsWith("manage.chatbot.")) ?? false, `${name}: chatbot tools appear in the sidebar only when available`);
@@ -239,44 +258,46 @@ async function main() {
       assert.equal(engagement?.sidebar ?? false, engagement?.items.some((item) => item.key === "manage.push") ?? false, `${name}: push notifications appear in the sidebar only when available`);
     }
     const a = await navOf(acme, admin);
-    for (const k of ["panel.hrms", "panel.pms", "panel.sop", "panel.dlms", "panel.ots", "panel.seo", "panel.cms"]) assert.equal(await runAsCompany(acme, () => checkWorkspaceAccess(admin.user, k)), true, k);
-    assert.ok(a.lockedPanels.includes("smms") && a.lockedPanels.includes("aibots") && a.lockedPanels.includes("tms"), "locked products are still reported for the upgrade tiles");
-    assert.equal(await runAsCompany(acme, () => checkWorkspaceAccess(noRoles.user, "panel.hrms")), false);
+    for (const k of ["product.hrms", "product.pms", "product.sop", "product.dlms", "product.ots", "product.seo", "product.cms"]) assert.equal(await runAsCompany(acme, () => checkWorkspaceAccess(admin.user, k)), true, k);
+    // (plan-locked "upgrade tiles" no longer exist: a product that is not available is hidden, a product without access is locked; see test-unified-shell.ts)
+    assert.equal(await runAsCompany(acme, () => checkWorkspaceAccess(noRoles.user, "product.hrms")), false);
   });
   await check("every product has an analytics item, in the section's alphabetical order", async () => {
-    const keys = NAV_KEYS.filter((k) => k.startsWith("analytics."));
+    const keys = NAV_KEYS.filter((k) => k.startsWith("analytics.") && k !== "analytics.overview");
     assert.deepEqual(keys, [...keys].sort(), "ordered by product key");
     // AI Intelligence is a conversation and Help & Support a help desk, not registers: they deliberately have no company-wide analytics page.
-    const NO_ANALYTICS = ["panel.intelligence", "panel.support", "panel.website"]; // the website product is analysed under analytics.cms
+    const NO_ANALYTICS = ["product.intelligence", "panel.support", "panel.website"]; // the website product is analysed under analytics.cms
     for (const p of NAV_KEYS.filter((k) => k.startsWith("panel.") && !NO_ANALYTICS.includes(k))) assert.ok(keys.includes(p.replace("panel.", "analytics.")), `${p} has no analytics`);
     assert.ok(!keys.includes("analytics.intelligence"));
     const labels = Object.fromEntries((await navOf(owner, ownerAdmin)).sections.find((s) => s.key === "analytics")!.items.map((i) => [i.key, [i.label, i.href]]));
     assert.deepEqual(
-      NEW_ANALYTICS.map((p) => labels[`analytics.${p}`]),
-      [["SOPs & Policies Analytics", "/commandos/analytics/playbook-ai"], ["Digi Locker Analytics", "/commandos/analytics/cybervault"], ["Online Tests Analytics", "/commandos/analytics/evaliq"], ["AI Assistants Analytics", "/commandos/analytics/agentos"], ["Social Media Analytics", "/commandos/analytics/viralpulse-ai"], ["SEO Analytics", "/commandos/analytics/rankmax-ai"], ["Website Analytics", "/commandos/analytics/sitecraft-ai"]],
+      // (the product names come from the Product Registry and are white-labelled, so only the addresses are fixed here)
+      NEW_ANALYTICS.map((p) => labels[`analytics.${p}`][1]),
+      ["/commandos/analytics/playbook-ai", "/commandos/analytics/cybervault", "/commandos/analytics/evaliq", "/commandos/analytics/agentos", "/commandos/analytics/viralpulse-ai", "/commandos/analytics/rankmax-ai", "/commandos/analytics/sitecraft-ai"],
     );
   });
   await check("AI Intelligence: a product tile for its own roles only, gated by plan, no analytics, and it grants no data by itself", async () => {
     const analyst = await account(acme, "analyst@acme.test", ["intelligence_user"]);
     const intelAdmin = await account(acme, "intel-admin@acme.test", ["intelligence_admin"]);
-    assert.ok((await allowed(acme, analyst)).has("panel.intelligence"));
-    assert.ok((await allowed(acme, intelAdmin)).has("panel.intelligence"));
-    assert.ok((await allowed(acme, admin)).has("panel.intelligence"), "Super Admin");
-    for (const u of [hr, dev, finance, sales, noRoles]) assert.ok(!(await allowed(acme, u)).has("panel.intelligence"), "other roles don't get the product");
+    assert.ok((await allowed(acme, analyst)).has("product.intelligence"));
+    assert.ok((await allowed(acme, intelAdmin)).has("product.intelligence"));
+    assert.ok((await allowed(acme, admin)).has("product.intelligence"), "Super Admin");
+    // (every employee-level role now includes DataBrain as part of its basics: only an account with no roles lacks it)
+    for (const u of [noRoles]) assert.ok(!(await allowed(acme, u)).has("product.intelligence"), "an account without roles does not get the product");
     assert.ok(![...(await allowed(acme, admin))].some((k) => k === "analytics.intelligence"));
     // Starter's plan does not include it: locked (upgrade tile), not accessible; the owner company has every product.
-    assert.equal(await runAsCompany(small, () => checkWorkspaceAccess(smallAdmin.user, "panel.intelligence")), false);
-    assert.ok((await navOf(small, smallAdmin)).lockedPanels.includes("intelligence"));
-    assert.ok((await allowed(owner, ownerAdmin)).has("panel.intelligence"));
+    assert.equal(await runAsCompany(small, () => checkWorkspaceAccess(smallAdmin.user, "product.intelligence")), false);
+    // (plan-locked "upgrade tiles" no longer exist: a product that is not available is hidden, a product without access is locked; see test-unified-shell.ts)
+    assert.ok((await allowed(owner, ownerAdmin)).has("product.intelligence"));
     // The product role opens the product only — the product's own auth accepts the Workspace session and re-checks the roles.
     const intelUser = (token: string) => runAsCompany(acme, async () => { const id = await workspaceSessionAccountId(token); return id ? getIntelligenceUserForAccount(id) : null; });
     assert.ok(await intelUser(analyst.hubToken));
     assert.equal(await intelUser(hr.hubToken), null);
     // The role is a Super-Admin-assignable role with a permission-catalogue entry.
     const { ROLE_GROUPS } = await import("@/lib/products/commandos/role-catalog");
-    assert.ok(ROLE_GROUPS.some((g) => g.module === "AI Intelligence" && g.roles.map((r) => r.value).join() === "intelligence_admin,intelligence_user"));
+    assert.ok(ROLE_GROUPS.some((g) => g.module === "DataBrain" && g.roles.map((r) => r.value).join() === "intelligence_admin,intelligence_user"));
     const { PERMISSION_GROUPS } = await import("@/lib/products/commandos/permission-catalog");
-    assert.ok(PERMISSION_GROUPS.some((g) => g.module === "AI Intelligence" && g.permissions.some((p) => p.key === "intelligence.canUse")));
+    assert.ok(PERMISSION_GROUPS.some((g) => g.module === "DataBrain" && g.permissions.some((p) => p.key === "intelligence.canUse")));
     await runAsCompany(acme, async () => (await getDb()).collection("admin_users").deleteMany({ _id: { $in: [analyst._id, intelAdmin._id] } }));
   });
   await check("new analytics: open to the product's own role, closed to every other role and to the product's per-person tier", async () => {
@@ -320,7 +341,7 @@ async function main() {
     const exec = await account(owner, "exec@owner.test", preset("developer"), { permissionOverrides: { "workspace.viewCommandCenter": true } });
     const e = await allowed(owner, exec);
     assert.deepEqual(NEW_ANALYTICS.filter((p) => e.has(`analytics.${p}`)), NEW_ANALYTICS);
-    assert.ok(!e.has("panel.smms") && !e.has("panel.aibots") && !e.has("panel.seo") && !e.has("panel.cms"), "analytics without the product itself");
+    assert.ok(!e.has("product.smms") && !e.has("product.aibots") && !e.has("product.seo") && !e.has("product.cms"), "analytics without the product itself");
     await runAsCompany(owner, async () => (await getDb()).collection("admin_users").deleteOne({ _id: exec._id }));
 
     // Growth has no Social Media / AI Bots; Starter has only SOP and Website of the seven.
@@ -331,13 +352,17 @@ async function main() {
     for (const p of ["smms", "aibots"]) assert.equal(await runAsCompany(acme, () => checkWorkspaceAccess(admin.user, `analytics.${p}`)), false, `Growth: analytics.${p}`);
     for (const p of ["dlms", "ots", "seo", "smms", "aibots"]) assert.equal(await runAsCompany(small, () => checkWorkspaceAccess(smallAdmin.user, `analytics.${p}`)), false, `Starter: analytics.${p}`);
     // Analytics of a product outside the plan is hidden, not a locked tile of its own.
-    assert.ok((await navOf(acme, admin)).lockedPanels.every((p) => !growth.has(`analytics.${p}`)));
+    // (plan-locked "upgrade tiles" no longer exist: a product that is not available is hidden, a product without access is locked; see test-unified-shell.ts)
 
-    await db.collection("companies").updateOne({ _id: beta as never }, { $set: { enabledModules: ["workspace", "admin", "messenger", "hrms", "sop"] } });
+    const beforeOff = (await db.collection("companies").findOne({ _id: beta as never }))?.disabledPanels ?? [];
+    const { MODULES: ALL_MODS } = await import("@/lib/platform/onboarding/catalog");
+    await db.collection("companies").updateOne({ _id: beta as never }, { $set: { disabledPanels: ALL_MODS.map((m) => m.key).filter((k) => !["messenger", "hrms", "sop"].includes(k)) } });
+    await new Promise((r) => setTimeout(r, 11_000));
     const off = await allowed(beta, betaAdmin);
     assert.deepEqual(NEW_ANALYTICS.filter((p) => off.has(`analytics.${p}`)), ["sop"], "switched-off products lose their analytics");
     assert.equal(await runAsCompany(beta, () => checkWorkspaceAccess(betaAdmin.user, "analytics.cms")), false);
-    await db.collection("companies").updateOne({ _id: beta as never }, { $unset: { enabledModules: "" } });
+    await db.collection("companies").updateOne({ _id: beta as never }, { $set: { disabledPanels: beforeOff } });
+    await new Promise((r) => setTimeout(r, 11_000));
     assert.equal(await runAsCompany(beta, () => checkWorkspaceAccess(betaAdmin.user, "analytics.cms")), true);
   });
 
@@ -424,10 +449,14 @@ async function main() {
   await check("registers of a product outside the plan or switched off are closed even to the super admin (F12)", async () => {
     for (const k of ["manage.pms.projects", "manage.crm.clients", "manage.crm.leads", "company.users", "company.audit", "account.documents"]) assert.ok((await allowed(small, smallAdmin)).has(k), k);
     for (const k of ["manage.prms.vendors", "manage.tms.students", "manage.portal.users"]) assert.equal(await runAsCompany(small, () => checkWorkspaceAccess(smallAdmin.user, k)), false, k);
-    await db.collection("companies").updateOne({ _id: beta as never }, { $set: { enabledModules: ["workspace", "admin", "messenger", "hrms"] } });
+    const { MODULES: ALL_MODULES } = await import("@/lib/platform/onboarding/catalog");
+    const before = (await db.collection("companies").findOne({ _id: beta as never }))?.disabledPanels ?? [];
+    await db.collection("companies").updateOne({ _id: beta as never }, { $set: { disabledPanels: ALL_MODULES.map((m) => m.key).filter((k) => !["messenger", "hrms"].includes(k)) } });
+    // (the platform caches a company's switched-off list for a few seconds: wait it out)
+    await new Promise((r) => setTimeout(r, 11_000));
     assert.equal(await runAsCompany(beta, () => checkWorkspaceAccess(betaAdmin.user, "manage.pms.projects")), false);
     assert.equal(await runAsCompany(beta, () => checkWorkspaceAccess(betaAdmin.user, "manage.teamchat.channels")), true, "core product");
-    await db.collection("companies").updateOne({ _id: beta as never }, { $unset: { enabledModules: "" } });
+    await db.collection("companies").updateOne({ _id: beta as never }, { $set: { disabledPanels: before } });
   });
   await check("the Command Center permission opens the full analytics of every product in the plan", async () => {
     const exec = await account(acme, "exec@acme.test", preset("developer"), { permissionOverrides: { "workspace.viewCommandCenter": true } });

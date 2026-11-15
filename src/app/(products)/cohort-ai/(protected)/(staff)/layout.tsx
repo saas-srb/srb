@@ -1,3 +1,4 @@
+import ProductLocked from "@/components/products/common/ProductLocked";
 import { redirect } from "next/navigation";
 import { getCurrentTmsUser } from "@/lib/tms-auth";
 import { hasTmsStaffRole } from "@/lib/tms-roles";
@@ -17,6 +18,6 @@ import { hasTmsStaffRole } from "@/lib/tms-roles";
 export default async function StaffTmsLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentTmsUser();
   if (!user) redirect("/cohort-ai/login");
-  if (!hasTmsStaffRole(user.roles)) redirect(user.studentId ? "/cohort-ai/me" : "/cohort-ai/login");
+  if (!hasTmsStaffRole(user.roles)) return <ProductLocked product="cohort-ai" feature="Management pages" />; // locked, not bounced: everyone has the same shell (owner decision D1)
   return <>{children}</>;
 }

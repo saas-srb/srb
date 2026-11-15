@@ -1,7 +1,7 @@
-import KnowledgeBasePage from "@/components/products/sitecraft-ai/chatbot/KnowledgeBasePage";
-import { requireChatbotViewAccess } from "../access";
+import { redirect } from "next/navigation";
+import { movedTarget } from "@/lib/products/commandos/moved-urls";
 
-export default async function Page() {
-  await requireChatbotViewAccess();
-  return <KnowledgeBasePage />;
+/** This address moved (see lib/products/commandos/moved-urls.ts): it keeps working and opens the new place. */
+export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  redirect(movedTarget("/commandos/chatbot/knowledge-base", await searchParams) ?? "/commandos");
 }

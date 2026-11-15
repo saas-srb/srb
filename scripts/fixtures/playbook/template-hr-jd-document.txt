@@ -2,19 +2,29 @@ Role description v2
 
 Role summary
 
+This role exists to deliver the work of the {{input.department}} team at {{company.name}} reliably and to a high standard. The summary below explains why the position is needed, what the person in it is accountable for, and how it supports the people and teams around it.
+
 The {{input.role}} role sits in the {{input.department}} team at {{company.name}} and is based in {{input.location}}. [Role summary]
+
+{{input.responsibility_notes}}
 
 Key responsibilities
 
-- [Responsibilities]
+The {{input.role}} is accountable for the duties below. Each duty is a day-to-day expectation of the role; the reporting manager will agree priorities and how performance is judged with the person who joins.
+
+- {{input.responsibility_notes}}
 
 Qualifications and experience
 
-- [Qualifications]
+The education and experience below describe what a successful {{input.role}} brings to the role. They are the standard the hiring panel will assess every candidate against, so that selection stays fair and consistent.
+
+- {{input.qualification_notes}}
 
 Skills and competencies
 
-- [Skills]
+These are the technical and behavioural skills a {{input.role}} needs in order to perform well from the first months in the role. Candidates are assessed on them in the interview and, where the role requires, through a practical exercise.
+
+- {{input.skill_notes}}
 
 Reporting and working conditions
 

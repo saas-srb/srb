@@ -39,7 +39,7 @@ export const workspaceEvents = {
     await tell(await admins(actor), `Access changed for ${email}`, body, "/commandos/users");
     if (userId !== actor) await tell([userId], "Your access was changed", body, "/commandos");
   },
-  customRoleChanged: async (roleName: string, holders: number, actor: string) => tell(await admins(actor), `Custom role updated: ${short(roleName, 50)}`, `${plural(holders, "person")} with this role now have the new access.`, "/commandos/roles"),
+  customRoleChanged: async (roleName: string, holders: number, actor: string) => tell(await admins(actor), `Custom role updated: ${short(roleName, 50)}`, `${plural(holders, "person")} with this role now have the new access.`, "/commandos/settings/organization/designations"),
   overridesChanged: async (userId: string, actor: string) => {
     const email = await emailOf(userId);
     await tell(await admins(actor), `Permissions adjusted for ${email}`, "Individual permissions were switched on or off.", "/commandos/users");

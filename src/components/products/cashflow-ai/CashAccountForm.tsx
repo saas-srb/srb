@@ -1,5 +1,7 @@
 "use client";
 
+import OrgPicker from "@/components/platform/OrgPicker";
+import { toOptions } from "@/lib/platform/organization/rules";
 import { useState, useTransition, type ReactElement, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -17,9 +19,12 @@ import type { SerializedCashAccount } from "@/lib/products/cashflow-ai/cash-acco
 export default function CashAccountForm({
   account,
   trigger,
+  departments,
   onSaved,
 }: {
   account?: SerializedCashAccount;
+  /** Departments from the organization service. */
+  departments?: { _id: string; name: string }[];
   trigger: ReactNode;
   onSaved?: (id: string) => void;
 }) {
@@ -31,6 +36,7 @@ export default function CashAccountForm({
     accountName: account?.accountName ?? "",
     location: account?.location ?? "",
     department: account?.department ?? "",
+    departmentId: account?.departmentId ?? "",
     currency: account?.currency ?? "INR",
     openingBalance: account ? String(account.openingBalance) : "0",
     status: account?.status ?? "active",
@@ -86,7 +92,8 @@ export default function CashAccountForm({
             </div>
             <div className="space-y-1.5">
               <Label>Department</Label>
-              <Input value={form.department} onChange={(e) => set("department", e.target.value)} />
+              <OrgPicker kind="department" options={toOptions("department", departments ?? [])} value={form.departmentId} onChange={(v) => { set("departmentId", v); set("department", (departments ?? []).find((d) => d._id === v)?.name ?? ""); }} noneLabel="No department" />
+              {form.department && !form.departmentId && <p className="text-xs text-muted-foreground">Saved as text: &ldquo;{form.department}&rdquo;. Pick a department to link it.</p>}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">

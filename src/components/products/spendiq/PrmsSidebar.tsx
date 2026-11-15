@@ -1,5 +1,6 @@
 "use client";
 
+import LockedNavItem from "@/components/products/common/LockedNavItem";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -96,46 +97,41 @@ export default function PrmsSidebar({
   collapsed?: boolean;
 }) {
   const nav = (props: {
+    locked?: boolean;
     href: string;
     label: string;
     icon: React.ComponentType<{ className?: string }>;
     exact?: boolean;
-  }) => <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />;
+  }) => (props.locked ? <LockedNavItem label={props.label} icon={props.icon} collapsed={collapsed} product="spendiq" onNavigate={onNavigate} /> : <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />);
 
   const isStaff = hasPrmsStaffRole(roles);
   const roleCtx = { roles, permissionOverrides };
-
-  // Employee self-service
-  if (!isStaff) {
-    return (
-      <nav className="flex h-full flex-col gap-1 p-3">
-        {nav({ href: "/spendiq/me", label: "My Dashboard", icon: LayoutDashboard, exact: true })}
-        {nav({ href: "/spendiq/me/requisitions", label: "My Requests", icon: ClipboardList })}
-        {nav({ href: "/spendiq/me/expenses", label: "My Expenses", icon: Receipt })}
-      </nav>
-    );
-  }
 
   return (
     <nav className="flex h-full flex-col gap-1 p-3">
 
       {/* Overview */}
-      {nav({ href: "/spendiq", label: "Dashboard", icon: LayoutDashboard, exact: true })}
+      {nav({ href: "/spendiq", label: "Dashboard", icon: LayoutDashboard, exact: true, locked: !isStaff })}
 
       {/* ── Procurement ── */}
       <SectionLabel collapsed={collapsed}>Procurement</SectionLabel>
-      {nav({ href: "/spendiq/requisitions", label: "Purchase Requests", icon: ClipboardList })}
-      {nav({ href: "/spendiq/purchase-orders", label: "Purchase Orders", icon: FileText })}
-      {nav({ href: "/spendiq/expenses", label: "Expenses", icon: Receipt })}
-      {nav({ href: "/spendiq/vendors", label: "Vendors", icon: Building2 })}
+      {nav({ href: "/spendiq/requisitions", label: "Purchase Requests", icon: ClipboardList, locked: !isStaff })}
+      {nav({ href: "/spendiq/purchase-orders", label: "Purchase Orders", icon: FileText, locked: !isStaff })}
+      {nav({ href: "/spendiq/expenses", label: "Expenses", icon: Receipt, locked: !isStaff })}
+      {nav({ href: "/spendiq/vendors", label: "Vendors", icon: Building2, locked: !isStaff })}
 
       {/* ── Company Assets ── */}
       <SectionLabel collapsed={collapsed}>Company Assets</SectionLabel>
-      {nav({ href: "/spendiq/assets", label: "Hardware & Assets", icon: Boxes })}
-      {nav({ href: "/spendiq/subscriptions", label: "Subscriptions", icon: Cloud })}
+      {nav({ href: "/spendiq/assets", label: "Hardware & Assets", icon: Boxes, locked: !isStaff })}
+      {nav({ href: "/spendiq/subscriptions", label: "Subscriptions", icon: Cloud, locked: !isStaff })}
 
       <SectionLabel collapsed={collapsed}>Governance</SectionLabel>
-      {nav({ href: "/spendiq/analytics", label: "Analytics", icon: BarChart3 })}
+      {nav({ href: "/spendiq/analytics", label: "Analytics", icon: BarChart3, locked: !isStaff })}
+
+      <SectionLabel collapsed={collapsed}>Me</SectionLabel>
+      {nav({ href: "/spendiq/me", label: "My Dashboard", icon: LayoutDashboard, exact: true })}
+      {nav({ href: "/spendiq/me/requisitions", label: "My Requests", icon: ClipboardList })}
+      {nav({ href: "/spendiq/me/expenses", label: "My Expenses", icon: Receipt })}
     </nav>
   );
 }

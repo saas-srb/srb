@@ -1,3 +1,4 @@
+import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentHubUser } from "@/lib/hub-auth";
@@ -16,7 +17,7 @@ export const metadata: Metadata = { title: "Set up your workspace", robots: { in
 export default async function OnboardingPage() {
   const user = await getCurrentHubUser();
   if (!user) redirect("/commandos/login");
-  if (!user.roles.includes("super_admin")) redirect("/commandos");
+  await requireWorkspaceAccess("company.setup"); // Director-only item: anyone else sees the locked page inside this shell
 
   const [{ company, state }, details, departments, invitations, stored, brand] = await Promise.all([getOnboarding(), getCompanyDetails(), listDepartments(), listPendingInvitations(), getStoredBranding(), getCompanyBrand()]);
   const { options: themes, activeKey, appliedKey } = await listThemeOptions();

@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import OrgPicker from "@/components/platform/OrgPicker";
+import { toOptions } from "@/lib/platform/organization/rules";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import {
@@ -161,15 +163,7 @@ export default function ExpenseForm({
             </div>
             <div className="space-y-1.5">
               <Label>Department</Label>
-              <Select value={sv("departmentId") || "none"} onValueChange={(v) => set("departmentId", !v || v === "none" ? "" : v)}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {departments.map((d) => (
-                    <SelectItem key={d._id} value={d._id}>{d.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <OrgPicker kind="department" options={toOptions("department", departments)} value={sv("departmentId")} onChange={(v) => set("departmentId", v)} allowNone={true} />
             </div>
             <div className="space-y-1.5">
               <Label>Project</Label>

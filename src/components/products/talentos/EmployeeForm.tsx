@@ -9,6 +9,8 @@ import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import OrgPicker from "@/components/platform/OrgPicker";
+import { toOptions } from "@/lib/platform/organization/rules";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import {
   EMPLOYEE_STATUSES,
@@ -84,8 +86,6 @@ export default function EmployeeForm({ mode, employee, departments, designations
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  const filteredDesignations = form.departmentId ? designations.filter((d) => d.departmentId === form.departmentId) : designations;
-  const filteredTeams = form.departmentId ? teams.filter((t) => t.departmentId === form.departmentId) : teams;
 
   function buildPayload() {
     return {
@@ -236,45 +236,15 @@ export default function EmployeeForm({ mode, employee, departments, designations
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label>Department</Label>
-            <Select
-              value={form.departmentId || NONE}
-              onValueChange={(v) => {
-                const next = v === NONE ? "" : (v ?? "");
-                setForm((f) => ({ ...f, departmentId: next, designationId: "", teamId: "" }));
-              }}
-            >
-              <SelectTrigger className="w-full"><SelectValue placeholder="Unassigned" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>Unassigned</SelectItem>
-                {departments.map((d) => (
-                  <SelectItem key={d._id} value={d._id}>{d.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <OrgPicker kind="department" options={toOptions("department", departments)} value={form.departmentId} onChange={(v) => setForm((f) => ({ ...f, departmentId: v, designationId: "", teamId: "" }))} noneLabel="Unassigned" />
           </div>
           <div className="space-y-1.5">
             <Label>Designation</Label>
-            <Select value={form.designationId || NONE} onValueChange={(v) => set("designationId", v === NONE ? "" : (v ?? ""))}>
-              <SelectTrigger className="w-full"><SelectValue placeholder="Unassigned" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>Unassigned</SelectItem>
-                {filteredDesignations.map((d) => (
-                  <SelectItem key={d._id} value={d._id}>{d.title}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <OrgPicker kind="designation" options={toOptions("designation", designations)} departmentId={form.departmentId} value={form.designationId} onChange={(v) => set("designationId", v)} noneLabel="Unassigned" />
           </div>
           <div className="space-y-1.5">
             <Label>Team</Label>
-            <Select value={form.teamId || NONE} onValueChange={(v) => set("teamId", v === NONE ? "" : (v ?? ""))}>
-              <SelectTrigger className="w-full"><SelectValue placeholder="None" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE}>None</SelectItem>
-                {filteredTeams.map((t) => (
-                  <SelectItem key={t._id} value={t._id}>{t.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <OrgPicker kind="team" options={toOptions("team", teams)} departmentId={form.departmentId} value={form.teamId} onChange={(v) => set("teamId", v)} noneLabel="None" />
           </div>
           <div className="space-y-1.5">
             <Label>Reporting manager</Label>

@@ -1,5 +1,6 @@
 "use server";
 
+import { isDirector } from "@/lib/access/director";
 import { revalidatePath } from "next/cache";
 import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/mongodb";
@@ -14,7 +15,7 @@ const PATH = "/commandos/settings/backups";
 
 async function superAdmin() {
   const user = await requireWorkspaceAction(KEY);
-  if (!user.roles.includes("super_admin")) throw new Error("Only a Director can do this.");
+  if (!isDirector(user)) throw new Error("Only a Director can do this.");
   return user;
 }
 const msg = (err: unknown) => (isBillingLimitError(err) || err instanceof Error ? (err as Error).message : "Something went wrong.");

@@ -4,7 +4,7 @@ import { currentCompanyId } from "@/lib/platform/tenancy/context";
 import { COMPANIES_COLLECTION, forgetCompanyRouting, type Company } from "@/lib/platform/tenancy/companies";
 import { getCompanyDetails, updateCompanyDetails } from "@/lib/products/talentos/company";
 import { syncSiteContact } from "@/lib/platform/website/starter";
-import { createDepartment, createDesignation, listDepartments, listDesignations } from "@/lib/products/talentos/departments";
+import { createDepartment, createDesignation, listDepartments, listDesignations } from "@/lib/platform/organization";
 import { isOnboardingOwner, postLoginTarget, showSetupStrip } from "@/lib/platform/onboarding/gate";
 import { unavailablePanelKeys } from "@/lib/platform/panels/store";
 import { getPlatformAccessForUser } from "@/lib/platform/console/roles";

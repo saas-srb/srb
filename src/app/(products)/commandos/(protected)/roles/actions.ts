@@ -1,5 +1,6 @@
 "use server";
 
+import { isDirector } from "@/lib/access/director";
 import { revalidatePath } from "next/cache";
 import { requireWorkspaceAction } from "@/lib/products/commandos/access";
 import { createCustomRole, deleteCustomRole, updateCustomRole } from "@/lib/products/commandos/custom-roles";
@@ -11,8 +12,8 @@ type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
 /** Defining who can do what is the Director's alone: a custom role is a way to hand out permissions. */
 async function superAdminOnly() {
-  const user = await requireWorkspaceAction("company.roles");
-  if (!user.roles.includes("super_admin")) throw new Error("Forbidden");
+  const user = await requireWorkspaceAction("company.users");
+  if (!isDirector(user)) throw new Error("Forbidden");
   const readOnly = await writeBlockReason();
   if (readOnly) return { user, error: readOnly };
   return { user, error: null as string | null };

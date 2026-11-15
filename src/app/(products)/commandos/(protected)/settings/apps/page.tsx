@@ -1,3 +1,4 @@
+import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -23,7 +24,7 @@ export const dynamic = "force-dynamic";
 export default async function AppsPage() {
   const user = await getCurrentHubUser();
   if (!user) redirect("/commandos/login");
-  if (!user.roles.includes("super_admin")) redirect("/commandos");
+  await requireWorkspaceAccess("company.app"); // Director-only item: anyone else sees the locked page inside this shell
   const companyId = await currentCompanyId();
 
   const [brand, theme, { settings }, panels, overview, identity] = await Promise.all([

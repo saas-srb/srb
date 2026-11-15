@@ -199,6 +199,10 @@ export async function ensureDesignations(): Promise<void> {
       if (!onlyDuplicates) throw err;
     }
   }
+
+  // Designations are plain titles (owner decision D6): they no longer create or update a role here. Roles that earlier
+  // designations created stay as they are, so people who hold them keep their access; the access migration converts them.
+
   seeded.set(companyId, Date.now());
 }
 

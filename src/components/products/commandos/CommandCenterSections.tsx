@@ -40,6 +40,7 @@ import {
   MessagesSquare,
   LayoutDashboard,
   FileText,
+  Lock,
 } from "lucide-react";
 import { CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
@@ -395,6 +396,7 @@ export function PanelPerformanceMatrix({
   stats,
   panels,
   analyticsPanels,
+  lockedPanels,
   query,
   names,
   unavailable,
@@ -407,6 +409,8 @@ export function PanelPerformanceMatrix({
   panels?: string[];
   /** Product keys whose analytics this person may open; omitted = all. */
   analyticsPanels?: string[];
+  /** Products the person has no access to: shown in the same place as locked cards (owner decision D1). */
+  lockedPanels?: string[];
   /** Case-insensitive text matched against the product name. */
   query?: string;
   /** Product Registry names, so every card is titled like the product everywhere else. */
@@ -454,10 +458,13 @@ export function PanelPerformanceMatrix({
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {grid.map((panel) => {
             const mStats = moduleStats[panel.key] ?? [];
+            const isLocked = Boolean(lockedPanels?.includes(panel.key));
             return (
               <GlassCard
                 key={panel.key}
-                className="group relative flex h-[340px] flex-col overflow-hidden rounded-3xl border border-border/50 bg-gradient-to-br from-primary/[0.07] via-card/95 to-background shadow-sm transition-all duration-300 hover:border-primary/40 hover:shadow-[0_18px_48px_-24px_rgba(16,185,129,0.45)]"
+                data-locked={isLocked || undefined}
+                aria-label={isLocked ? `${panel.label} (no access)` : undefined}
+                className={isLocked ? "group relative flex h-[340px] flex-col overflow-hidden opacity-60 grayscale-[40%] rounded-3xl border border-border/50 bg-card/80 shadow-sm" : "group relative flex h-[340px] flex-col overflow-hidden rounded-3xl border border-border/50 bg-gradient-to-br from-primary/[0.07] via-card/95 to-background shadow-sm transition-all duration-300 hover:border-primary/40 hover:shadow-[0_18px_48px_-24px_rgba(16,185,129,0.45)]"}
               >
                 <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-14 z-0 size-36 rounded-full bg-primary/10 blur-3xl transition-colors duration-300 group-hover:bg-primary/20" />
                 <CardHeader className="relative z-10 grid-cols-[auto_minmax(0,1fr)] items-start gap-3 pb-2">
@@ -494,6 +501,14 @@ export function PanelPerformanceMatrix({
                       );
                     })}
                   </dl>
+                  {isLocked ? (
+                    <div className="flex items-center gap-2 pt-0.5">
+                      <Link href={`/commandos/locked?item=${encodeURIComponent(panel.key === "workspace" ? "dashboard" : panel.key === "portal" || panel.key === "support" || panel.key === "website" ? `panel.${panel.key}` : `product.${panel.key}`)}`} className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl border border-border/60 bg-muted/60 px-3 text-xs font-medium text-muted-foreground">
+                        <Lock className="size-3" aria-hidden />
+                        No access. Ask your Director
+                      </Link>
+                    </div>
+                  ) : (
                   <div className="flex items-center gap-2 pt-0.5">
                     {panel.analyticsHref && (!analyticsPanels || analyticsPanels.includes(panel.key)) && (
                     <Link
@@ -514,6 +529,7 @@ export function PanelPerformanceMatrix({
                       <ArrowUpRight className="size-3" />
                     </Link>
                   </div>
+                  )}
                 </CardContent>
               </GlassCard>
             );

@@ -1,5 +1,6 @@
 "use server";
 
+import { isDirector } from "@/lib/access/director";
 import { redirect } from "next/navigation";
 import { getCurrentHubUser } from "@/lib/hub-auth";
 import { paymentGate } from "@/lib/products/cashflow-ai/payment-guard";
@@ -14,7 +15,7 @@ import {
 async function requireOwner() {
   const user = await getCurrentHubUser();
   if (!user) redirect("/commandos/login");
-  if (!user.roles.includes("super_admin")) redirect("/commandos");
+  if (!isDirector(user)) redirect("/commandos");
   return user;
 }
 

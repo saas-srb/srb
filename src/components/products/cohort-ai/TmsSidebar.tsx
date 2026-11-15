@@ -1,5 +1,6 @@
 "use client";
 
+import LockedNavItem from "@/components/products/common/LockedNavItem";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -98,59 +99,44 @@ export default function TmsSidebar({
   onNavigate?: () => void;
   collapsed?: boolean;
 }) {
-  const nav = (props: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean }) => (
-    <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />
+  const nav = (props: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean ; locked?: boolean }) => (
+    (props.locked ? <LockedNavItem label={props.label} icon={props.icon} collapsed={collapsed} product="cohort-ai" onNavigate={onNavigate} /> : <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />)
   );
   const roleCtx = { roles, permissionOverrides };
   const isStaff = hasTmsStaffRole(roles);
 
-  // Student-only portal. Schedule / assignments / projects / certificates /
-  // payments tabs light up with their respective phases (5–8).
-  if (!isStaff) {
-    return (
-      <nav className="flex h-full flex-col gap-1 p-3">
-        {nav({ href: "/cohort-ai/me", label: "My Dashboard", icon: LayoutDashboard, exact: true })}
-        {nav({ href: "/cohort-ai/me/program", label: "My Program", icon: GraduationCap })}
-        {nav({ href: "/cohort-ai/me/batch", label: "My Batch", icon: Layers })}
-        {nav({ href: "/cohort-ai/me/schedule", label: "Class Schedule", icon: CalendarDays })}
-        {nav({ href: "/cohort-ai/me/assignments", label: "Assignments", icon: ClipboardList })}
-        {nav({ href: "/cohort-ai/me/projects", label: "Live Projects", icon: FolderGit2 })}
-        {nav({ href: "/cohort-ai/me/certificates", label: "Certificates", icon: BadgeCheck })}
-        {nav({ href: "/cohort-ai/me/payments", label: "Payments", icon: Wallet })}
-        <SectionLabel collapsed={collapsed}>Account</SectionLabel>
-        {nav({ href: "/cohort-ai/me/profile", label: "Profile", icon: CircleUser })}
-      </nav>
-    );
-  }
-
   return (
     <nav className="flex h-full flex-col gap-1 p-3">
-      {nav({ href: "/cohort-ai", label: "Dashboard", icon: LayoutDashboard, exact: true })}
+      {nav({ href: "/cohort-ai", label: "Dashboard", icon: LayoutDashboard, exact: true, locked: !isStaff })}
 
       <SectionLabel collapsed={collapsed}>Training</SectionLabel>
-      {nav({ href: "/cohort-ai/programs", label: "Programs", icon: GraduationCap })}
-      {nav({ href: "/cohort-ai/batches", label: "Batches", icon: Layers })}
-      {nav({ href: "/cohort-ai/students", label: "Students", icon: Users })}
+      {nav({ href: "/cohort-ai/programs", label: "Programs", icon: GraduationCap, locked: !isStaff })}
+      {nav({ href: "/cohort-ai/batches", label: "Batches", icon: Layers, locked: !isStaff })}
+      {nav({ href: "/cohort-ai/students", label: "Students", icon: Users, locked: !isStaff })}
 
       <SectionLabel collapsed={collapsed}>Delivery</SectionLabel>
-      {nav({ href: "/cohort-ai/classes", label: "Classes", icon: CalendarDays })}
-      {nav({ href: "/cohort-ai/projects", label: "Projects", icon: FolderGit2 })}
-      {nav({ href: "/cohort-ai/assignments", label: "Assignments", icon: ClipboardList })}
+      {nav({ href: "/cohort-ai/classes", label: "Classes", icon: CalendarDays, locked: !isStaff })}
+      {nav({ href: "/cohort-ai/projects", label: "Projects", icon: FolderGit2, locked: !isStaff })}
+      {nav({ href: "/cohort-ai/assignments", label: "Assignments", icon: ClipboardList, locked: !isStaff })}
 
       <SectionLabel collapsed={collapsed}>Records</SectionLabel>
-      {nav({ href: "/cohort-ai/certificates", label: "Certificates", icon: BadgeCheck })}
-      {canManagePayments(roleCtx) && nav({ href: "/cohort-ai/payments", label: "Payments", icon: Wallet })}
-      {canManageTraining(roleCtx) && nav({ href: "/cohort-ai/placements", label: "Placements", icon: Briefcase })}
+      {nav({ href: "/cohort-ai/certificates", label: "Certificates", icon: BadgeCheck, locked: !isStaff })}
+      {nav({ href: "/cohort-ai/payments", label: "Payments", icon: Wallet , locked: !(isStaff && canManagePayments(roleCtx)) })}
+      {nav({ href: "/cohort-ai/placements", label: "Placements", icon: Briefcase , locked: !(isStaff && canManageTraining(roleCtx)) })}
 
       <SectionLabel collapsed={collapsed}>Governance</SectionLabel>
-      {canManageTraining(roleCtx) && nav({ href: "/cohort-ai/reports", label: "Analytics", icon: BarChart3 })}
+      {nav({ href: "/cohort-ai/reports", label: "Analytics", icon: BarChart3 , locked: !(isStaff && canManageTraining(roleCtx)) })}
 
-      {studentId && !roles.includes("super_admin") && (
-        <>
-          <SectionLabel collapsed={collapsed}>Me</SectionLabel>
-          {nav({ href: "/cohort-ai/me", label: "My Dashboard", icon: CircleUser, exact: true })}
-        </>
-      )}
+      <SectionLabel collapsed={collapsed}>Me</SectionLabel>
+      {nav({ href: "/cohort-ai/me", label: "My Dashboard", icon: CircleUser, exact: true })}
+      {nav({ href: "/cohort-ai/me/program", label: "My Program", icon: GraduationCap })}
+      {nav({ href: "/cohort-ai/me/batch", label: "My Batch", icon: Layers })}
+      {nav({ href: "/cohort-ai/me/schedule", label: "Class Schedule", icon: CalendarDays })}
+      {nav({ href: "/cohort-ai/me/assignments", label: "My Assignments", icon: ClipboardList })}
+      {nav({ href: "/cohort-ai/me/projects", label: "Live Projects", icon: FolderGit2 })}
+      {nav({ href: "/cohort-ai/me/certificates", label: "My Certificates", icon: BadgeCheck })}
+      {nav({ href: "/cohort-ai/me/payments", label: "My Payments", icon: Wallet })}
+      {nav({ href: "/cohort-ai/me/profile", label: "Profile", icon: CircleUser })}
     </nav>
   );
 }

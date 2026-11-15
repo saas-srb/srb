@@ -1,3 +1,4 @@
+import ProductLocked from "@/components/products/common/ProductLocked";
 import { redirect } from "next/navigation";
 import { getCurrentPrmsUser } from "@/lib/prms-auth";
 import { hasPrmsStaffRole } from "@/lib/prms-roles";
@@ -6,6 +7,6 @@ import { hasPrmsStaffRole } from "@/lib/prms-roles";
 export default async function ProcurementLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentPrmsUser();
   if (!user) redirect("/spendiq/login");
-  if (!hasPrmsStaffRole(user.roles)) redirect("/spendiq/me");
+  if (!hasPrmsStaffRole(user.roles)) return <ProductLocked product="spendiq" feature="Procurement pages" />; // locked, not bounced: everyone has the same shell (owner decision D1)
   return <>{children}</>;
 }

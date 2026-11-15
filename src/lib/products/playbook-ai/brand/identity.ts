@@ -27,6 +27,8 @@ export const IDENTITY_TOGGLES: { key: Exclude<keyof IdentitySettings, "show">; l
 
 /** What the layout prints: a brand side (logo, name, address lines) and a details side (one "Label: value" per line). */
 export interface IdentityBlockInput {
+  /** True when the details block is off and only the logo is printed (no details, no rule). */
+  logoOnly?: boolean;
   /** The side the brand side sits on (follows the brand's logo position; "center" prints on the left). */
   align: "left" | "right";
   name: string;
@@ -54,7 +56,8 @@ export function identityBlockInput(
   s: IdentitySettings,
   opts: { align: "left" | "center" | "right"; hasLogo: boolean; logoWidthMm: number },
 ): IdentityBlockInput | null {
-  if (!s.show) return null;
+  // The details block is off: a company with a logo still prints the logo, alone, at the top of page 1 (brand alignment and width).
+  if (!s.show) return opts.hasLogo ? { align: opts.align === "right" ? "right" : "left", name: "", address: [], details: [], logo: { widthMm: Math.min(Math.max(opts.logoWidthMm, 10), 60) }, logoOnly: true } : null;
   const name = val(values, "company.legal_name") || val(values, "company.name");
   const address = s.address && val(values, "company.address") ? addressLines(val(values, "company.address")) : [];
   const details: { label: string; value: string }[] = [];

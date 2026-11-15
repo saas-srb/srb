@@ -365,7 +365,7 @@ function pdfDocument(c: Ctx) {
   const { p, t } = c;
   const g = zoneGeometry(t);
   const m = t.page.margins;
-  const hasHeader = !p.identity && p.letterhead !== "none" && (p.doc.header.length > 0 || !!p.logo);
+  const hasHeader = !p.identity && p.letterhead !== "none" && p.doc.header.length > 0;
   // With the company details block on page 1, the running header is a small line in the top margin from page 2 on (never over the block).
   const runningHeader = p.identity && p.letterhead === "all" && p.doc.header.length > 0;
   const hasFooter = p.doc.footer.length > 0 || !!p.footerText;
@@ -395,7 +395,6 @@ function pdfDocument(c: Ctx) {
         ) : null}
         {hasHeader ? (
           <View fixed={p.letterhead === "all"} style={{ minHeight: mm(t.page.headerHeightMm), marginBottom: mm(t.gapMm) }}>
-            {logoNode(c)}
             {zone(c, p.doc.header)}
           </View>
         ) : null}
@@ -406,6 +405,8 @@ function pdfDocument(c: Ctx) {
           </View>
         ) : null}
 
+        {/* The logo alone, once, at the top of page 1 (the company details block is off). Not fixed, so it is never a running header. */}
+        {p.logo ? logoNode(c) : null}
         {blockList(c, p.doc.body, 0, "b")}
 
         {hasFooter ? (

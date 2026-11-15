@@ -1,3 +1,4 @@
+import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -15,7 +16,7 @@ export const metadata: Metadata = { title: "Branding", robots: { index: false, f
 export default async function BrandingSettingsPage() {
   const user = await getCurrentHubUser();
   if (!user) redirect("/commandos/login");
-  if (!user.roles.includes("super_admin")) redirect("/commandos");
+  await requireWorkspaceAccess("company.branding"); // Director-only item: anyone else sees the locked page inside this shell
   const [stored, brand, { options: themes, activeKey, appliedKey }] = await Promise.all([getStoredBranding(), getCompanyBrand(), listThemeOptions()]);
 
   return (

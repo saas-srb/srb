@@ -1,7 +1,7 @@
-import VoiceDashboardPage from "@/components/products/sitecraft-ai/chatbot/VoiceDashboardPage";
-import { requireChatbotViewAccess } from "../access";
+import { redirect } from "next/navigation";
+import { movedTarget } from "@/lib/products/commandos/moved-urls";
 
-export default async function Page(props: Parameters<typeof VoiceDashboardPage>[0]) {
-  await requireChatbotViewAccess();
-  return <VoiceDashboardPage {...props} />;
+/** This address moved (see lib/products/commandos/moved-urls.ts): it keeps working and opens the new place. */
+export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  redirect(movedTarget("/commandos/chatbot/voice", await searchParams) ?? "/commandos");
 }

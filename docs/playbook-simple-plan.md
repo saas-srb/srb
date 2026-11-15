@@ -272,3 +272,22 @@ Rule: a popup that is a FORM (the user fills in or chooses something) is a page,
 **Platform infra: hosts stuck on a disabled previous project, missing settings, file audit: DONE.** `sync/engine.ts`: `cacheHealthy` is only a cache; a host is "already fine" only when the live list has it AND the live list says verified (`unverified` set from the list), otherwise it is re-checked (release from the previous project first when a token exists, `verifyDomain`, TXT records saved with the plain next step, `needs_txt` events); `touchHosts` refreshes "last checked" in one bulk write per batch; `buildTargets` adds the www/apex counterpart (`custom-alt`); `startDomainSync({restart})` replaces a stuck run. `custom.ts` `lastCheckedAt` is the newest of the TXT check and the provider check. `setup/blocked.ts` (402 DEPLOYMENT_DISABLED, staff-only note on Domains & SSL and Setup status), `setup/missing.ts` + `health/MissingSettings.tsx` (checklist, Tests, hints), registry section for GitHub/desktop-build keys mirrored into `process.env` (`mirrorConfigToEnv`), Blob token paste starts `ensureLegacyCopy` + a tick, `blob-to-gridfs.ts` `auditMissingFiles`/`missingFilesCsv`, `blob.ts` `getObject` swallows an unreachable Blob store, resume routes answer "This file isn't available right now."
 
 **Platform infra: automatic moves (previous Vercel project): DONE.** `engine.ts` lists the previous project first (`loadProjectDomainInfo`, events `previous_listed` / `previous_unavailable`) and releases only hosts that sit there; a refused release is remembered per host (`HostWrite.staffNote`, stored as `provider.syncNote`, staff list only) while the company-facing `OWNED_MESSAGE` stays calm. `integrations/index.ts`: `previousToKeep` (Console save to a new project) and `keepPreviousProject` (boot on a different project, `run.ts maybeSyncOnProjectChange`) keep the credentials being left; `testPreviousProject` records `lastTest` for "Connected: <project> (<team>)"; `getDomainSyncOverview().movedAll` drives "Remove the previous token now". Domains & SSL: one banner with a link to `#previous-project`, per-host TXT collapsed as a manual alternative.
+
+**Build memory: measured, prebuilt deploy path: DONE.** `scripts/measure-build.sh`, `check:build-memory`, `deploy:prebuilt`, `.github/workflows/deploy.yml`; full build still OOM under 7.5 GB (see `docs/build-memory.md`).
+
+**CommandOS restructure P0 audit: DONE.** `docs/commandos-audit.md` and generated `docs/commandos-audit-*.md` (`scripts/audit-*.ts`).
+
+**CommandOS P1: central organization service: DONE.** `src/lib/platform/organization/` (store, rules, defaults, migration plan), `OrgPicker`, `scripts/migrate-organization.ts`, `npm run test:organization`; owner decisions D1-D10 recorded in `docs/commandos-restructure-plan.md` section 5.
+
+**CommandOS P2: access model: DONE.** `src/lib/access/` (catalogue, can/requireAccess, adapter, read model, migration), `npm run test:access` (parity harness, 0 differences), `docs/commandos-access-model.md`.
+
+**CommandOS P1/P2 leftovers: DONE.** OrgPicker/OrgMultiPicker across forms and filters, free-text department fields converted (CashFlow, Playbook items), D6 designation roles removed, Playbook tests and catalogue content bugs fixed (see PROGRESS).
+
+**CommandOS P3 People & Access: DONE.** Three-step add/edit pages, list with filters and KPI row, access matrix over every product and feature, Preview with seats and invitation, saves the access map plus derived older roles; `npm run test:people`, dev harness screenshots.
+
+**Playbook logo and test:playbook chain: DONE.** Logo alone on page 1 when the details block is off; chain green end to end.
+
+**CommandOS P4 unified employee experience: DONE in code.** Director's shell for everyone, locked items, locked page + request access, sidebars and dashboards, `npm run test:shell`.
+
+**CommandOS P5 sidebar regroup and Integrations/Product settings panels (P6 core): DONE in code.** Exact target sidebar, redirects for every moved address, SRB/own per connection, right-hand panels, sender email inside Custom domains, combined AI & Voice insight; `npm run test:restructure`.
+

@@ -193,45 +193,9 @@ export const LIMITS = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// Seed taxonomy — every department in the SOP spec. All of it is data in
-// `sop_departments` afterwards, so admins can add / rename / retire freely and
-// any new HRMS department is picked up automatically (see `taxonomy.ts`).
+// Seed taxonomy: categories only. Departments are NOT defined here: they come from the one organization
+// service (`@/lib/platform/organization`), and `taxonomy.ts` mirrors them into the SOP structure.
 // ---------------------------------------------------------------------------
-
-export const DEFAULT_DEPARTMENTS: { name: string; code: string }[] = [
-  { name: "Management", code: "MGT" },
-  { name: "HR", code: "HR" },
-  { name: "Recruitment", code: "REC" },
-  { name: "Finance", code: "FIN" },
-  { name: "Accounts", code: "ACC" },
-  { name: "Sales", code: "SAL" },
-  { name: "Business Development", code: "BD" },
-  { name: "Marketing", code: "MKT" },
-  { name: "Customer Support", code: "CS" },
-  { name: "Project Management", code: "PM" },
-  { name: "Product", code: "PRD" },
-  { name: "Engineering", code: "ENG" },
-  { name: "Frontend", code: "FE" },
-  { name: "Backend", code: "BE" },
-  { name: "Mobile", code: "MOB" },
-  { name: "QA", code: "QA" },
-  { name: "DevOps", code: "DEV" },
-  { name: "Cloud", code: "CLD" },
-  { name: "AI/ML", code: "AI" },
-  { name: "IT", code: "IT" },
-  { name: "Security", code: "SEC" },
-  { name: "Procurement", code: "PRC" },
-  { name: "Operations", code: "OPS" },
-  { name: "Administration", code: "ADM" },
-  { name: "Training", code: "TRN" },
-  { name: "Cohort AI", code: "Cohort AI" },
-  { name: "LMS", code: "LMS" },
-  { name: "Legal", code: "LEG" },
-  { name: "Compliance", code: "CMP" },
-  { name: "Facilities", code: "FAC" },
-  { name: "Internal Audit", code: "IA" },
-  { name: "Risk Management", code: "RSK" },
-];
 
 export const DEFAULT_CATEGORIES: { name: string; color: string; description: string }[] = [
   { name: "Operational", color: "#3b82f6", description: "Day-to-day operating procedures." },

@@ -1,5 +1,6 @@
 "use client";
 
+import LockedNavItem from "@/components/products/common/LockedNavItem";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -79,8 +80,8 @@ function SectionLabel({ children, collapsed }: { children: React.ReactNode; coll
 }
 
 export default function DlmsSidebar({ flags, onNavigate, collapsed = false }: { flags: DlmsNavFlags; onNavigate?: () => void; collapsed?: boolean }) {
-  const nav = (props: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean; badge?: string | number }) => (
-    <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />
+  const nav = (props: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean; badge?: string | number ; locked?: boolean }) => (
+    (props.locked ? <LockedNavItem label={props.label} icon={props.icon} collapsed={collapsed} product="cybervault" onNavigate={onNavigate} /> : <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />)
   );
 
   return (
@@ -88,7 +89,7 @@ export default function DlmsSidebar({ flags, onNavigate, collapsed = false }: { 
       {nav({ href: "/cybervault", label: "Dashboard", icon: LayoutDashboard, exact: true })}
 
       <SectionLabel collapsed={collapsed}>Owners</SectionLabel>
-      {flags.company && nav({ href: "/cybervault/company", label: "Company Vault", icon: Building2 })}
+      {nav({ href: "/cybervault/company", label: "Company Vault", icon: Building2 , locked: !(flags.company) })}
       {nav({ href: "/cybervault/clients", label: "Clients Vault", icon: Users })}
 
       <SectionLabel collapsed={collapsed}>Vault</SectionLabel>

@@ -1,3 +1,4 @@
+import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -21,7 +22,7 @@ const STATUS: Record<string, string> = { paid: "Paid", unpaid: "Unpaid", void: "
 export default async function BillingInvoicesPage() {
   const user = await getCurrentHubUser();
   if (!user) redirect("/commandos/login");
-  if (!user.roles.includes("super_admin")) redirect("/commandos");
+  await requireWorkspaceAccess("company.invoices"); // Director-only item: anyone else sees the locked page inside this shell
   const { invoices, payments } = await getCompanyBillingHistory();
   const ledger = await listCompanyTransactions(await currentCompanyId()).catch(() => []);
   // Payments made before the ledger existed (or whose entry is missing) still show, from their invoices: the invoice is their receipt.

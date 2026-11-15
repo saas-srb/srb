@@ -1,5 +1,6 @@
 "use server";
 
+import { isDirector } from "@/lib/access/director";
 import { redirect } from "next/navigation";
 import { getCurrentHubUser } from "@/lib/hub-auth";
 import { addCustomDomain, removeCustomDomain, setPrimaryDomain, verifyCustomDomain } from "@/lib/platform/domains/custom";
@@ -8,7 +9,7 @@ import type { DomainActionResult } from "@/lib/platform/domains/types";
 async function requireOwner() {
   const user = await getCurrentHubUser();
   if (!user) redirect("/commandos/login");
-  if (!user.roles.includes("super_admin")) redirect("/commandos");
+  if (!isDirector(user)) redirect("/commandos");
   return user;
 }
 

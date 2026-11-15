@@ -1,5 +1,6 @@
 "use server";
 
+import { getDepartment } from "@/lib/platform/organization";
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
 import { canManageBanking } from "@/lib/fms-roles";
@@ -32,7 +33,7 @@ export async function saveCashAccountAction(input: Record<string, unknown>, id?:
   const data: CashAccountWriteData = {
     accountName,
     location: (input.location as string)?.trim() || null,
-    department: (input.department as string)?.trim() || null,
+    ...(await resolveDepartment(input)),
     currency: String(input.currency ?? DEFAULT_CURRENCY),
     status: isValidFundAccountStatus(status) ? status : "active",
     notes: (input.notes as string)?.trim() || null,
@@ -62,4 +63,15 @@ export async function deleteCashAccountAction(id: string): Promise<CashAccountAc
   await recordAudit({ actorId: user.id, actorEmail: user.email, action: "delete", entity: "cash_account", entityId: id, entityLabel: before?.accountName });
   revalidate();
   return { ok: true };
+}
+
+/** The department chosen in the picker: the id is stored and the name is kept beside it (older rows only have the name). */
+async function resolveDepartment(input: Record<string, unknown>): Promise<{ department: string | null; departmentId: string | null }> {
+  const id = typeof input.departmentId === "string" ? input.departmentId.trim() : "";
+  if (id) {
+    const d = await getDepartment(id);
+    if (d) return { department: d.name, departmentId: d._id };
+  }
+  const text = typeof input.department === "string" ? input.department.trim() : "";
+  return { department: text || null, departmentId: null };
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import OrgMultiPicker from "@/components/platform/OrgMultiPicker";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Bold, Italic, List, Link2, Code, Eye, Paperclip, X, Loader2, Send, CalendarClock, FileDown } from "lucide-react";
@@ -283,7 +284,9 @@ export default function AnnouncementComposer({
         </div>
 
         {audienceKind === "roles" && multi("Roles", roleOptions, roles, setRoles)}
-        {audienceKind === "departments" && multi("Departments", departmentOptions, depts, setDepts)}
+        {audienceKind === "departments" && (
+          <OrgMultiPicker kind="department" label="Departments" options={departmentOptions} value={[...depts]} onChange={(v) => setDepts(new Set(v))} />
+        )}
         {audienceKind === "channels" && multi("Channels", channelOptions, channels, setChannels)}
 
         <div className="grid gap-3 sm:grid-cols-2">

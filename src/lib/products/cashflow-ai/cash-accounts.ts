@@ -16,6 +16,8 @@ export interface CashAccount extends AuditFields {
   accountName: string;
   location: string | null;
   department: string | null;
+  /** Reference into the organization service; `department` keeps the name. */
+  departmentId?: string | null;
   currency: string;
   openingBalance: number;
   currentBalance: number;
@@ -87,6 +89,8 @@ export interface CashAccountWriteData {
   accountName: string;
   location: string | null;
   department: string | null;
+  /** Reference into the organization service; `department` keeps the name. */
+  departmentId?: string | null;
   currency: string;
   status: FundAccountStatus;
   notes: string | null;
@@ -103,6 +107,7 @@ export async function createCashAccount(
     accountName: data.accountName,
     location: data.location,
     department: data.department,
+    departmentId: data.departmentId ?? null,
     currency: data.currency,
     openingBalance: opening,
     currentBalance: opening,

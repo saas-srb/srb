@@ -20,9 +20,12 @@ export interface HrFileInput {
   name: string;
   /** The designation's title: it becomes (or reuses) the matching TalentOS designation. */
   designationTitle: string;
+  /** The organization designation chosen for the person; used as is when it exists (the title is then only a fallback). */
+  designationId?: string | null;
   /** The part of the business, used to find or create the department when none is chosen. */
   departmentName?: string | null;
   departmentId?: string | null;
+  teamId?: string | null;
   reportingManagerId?: string | null;
   employmentType?: EmploymentType | null;
   joiningDate?: string | null;
@@ -74,7 +77,7 @@ export async function ensureHrFile(input: HrFileInput): Promise<HrFileResult> {
     const user = await db.collection(USERS).findOne({ _id: input.userId } as never, { projection: { status: 1, roles: 1, employeeId: 1, platformRoleId: 1 } });
     const existing = await col.findOne({ deletedAt: null, $or: [{ adminUserId: String(input.userId) }, { adminUserId: email }, { workEmail: email }, ...(user?.employeeId ? [{ _id: user.employeeId as string }] : [])] } as never);
     const deptId = await departmentFor(input.departmentId, input.departmentName, input.actorId);
-    const designationId = await designationFor(input.designationTitle, deptId, input.actorId);
+    const designationId = input.designationId && (await listDesignations()).some((d) => d._id === input.designationId) ? input.designationId : await designationFor(input.designationTitle, deptId, input.actorId);
 
     let employee: Employee | null = existing;
     let created = false;
@@ -91,7 +94,7 @@ export async function ensureHrFile(input: HrFileInput): Promise<HrFileResult> {
           professional: {
             departmentId: deptId,
             designationId,
-            teamId: null,
+            teamId: input.teamId ?? null,
             reportingManagerId: input.reportingManagerId ?? null,
             employmentType: input.employmentType ?? "full_time",
             workLocation: null,
@@ -104,8 +107,20 @@ export async function ensureHrFile(input: HrFileInput): Promise<HrFileResult> {
         input.actorId,
       );
       created = true;
-    } else if (employee.professional.designationId !== designationId) {
-      await col.updateOne({ _id: employee._id } as never, { $set: { "professional.designationId": designationId, "professional.departmentId": employee.professional.departmentId ?? deptId, updatedAt: new Date(), updatedBy: input.actorId } });
+    } else {
+      const updates: Record<string, unknown> = { updatedAt: new Date(), updatedBy: input.actorId };
+      if (employee.professional.designationId !== designationId) {
+        updates["professional.designationId"] = designationId;
+      }
+      if (input.departmentId && employee.professional.departmentId !== deptId) {
+        updates["professional.departmentId"] = deptId;
+      }
+      if (input.teamId !== undefined && employee.professional.teamId !== input.teamId) {
+        updates["professional.teamId"] = input.teamId ?? null;
+      }
+      if (Object.keys(updates).length > 2) {
+        await col.updateOne({ _id: employee._id } as never, { $set: updates });
+      }
     }
     await col.updateOne({ _id: employee._id } as never, { $set: { adminUserId: String(input.userId) } });
     await db.collection(USERS).updateOne({ _id: input.userId } as never, { $set: { employeeId: employee._id } });

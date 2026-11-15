@@ -50,6 +50,8 @@ export interface ItemDetails {
   title: string;
   department: string;
   designation: string;
+  departmentId?: string;
+  designationId?: string;
   description: string;
   reviewPeriod: string;
 }

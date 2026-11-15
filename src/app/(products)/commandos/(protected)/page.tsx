@@ -40,11 +40,14 @@ export default async function HubDashboardPage() {
     support: "panel.support",
     website: "panel.website",
   }[key] ?? `product.${key}`);
-  const matrixPanels = dashboardPanels.map((p) => p.key).filter((k) => allowed.has(productNavKey(k)));
+  // Every product is on the dashboard for everyone (the Director's layout); the ones the person has no access to are locked cards.
+  const matrixPanels = dashboardPanels.map((p) => p.key);
+  const openPanels = matrixPanels.filter((k) => allowed.has(productNavKey(k)));
+  const lockedPanels = matrixPanels.filter((k) => !allowed.has(productNavKey(k)));
   const analyticsPanels = dashboardPanels.map((p) => p.key).filter((k) => allowed.has(`analytics.${k}`));
 
   const headline = Object.fromEntries(
-    await Promise.all(matrixPanels.filter(isPanelKey).map(async (k) => [k, await getPanelHeadlineStats(k)] as const)),
+    await Promise.all(openPanels.filter(isPanelKey).map(async (k) => [k, await getPanelHeadlineStats(k)] as const)),
   );
 
   const hour = new Date().getHours();
@@ -71,7 +74,7 @@ export default async function HubDashboardPage() {
 
       {/* Product performance matrix */}
       <section id="dashboard-overview" data-section="overview" className="space-y-6 rounded-3xl border border-border/60 border-t-2 border-t-primary/60 bg-muted/70 dark:bg-[color-mix(in_oklch,var(--background)_82%,black)] p-5 shadow-sm sm:p-6">
-        <PanelPerformanceMatrix modules={executive?.modules} stats={headline} panels={matrixPanels} analyticsPanels={analyticsPanels} names={registryNames} unavailable={[...unavailable]} registry={dashboardPanels.map((p) => ({ key: p.key, name: p.name, description: p.description, route: p.route }))} />
+        <PanelPerformanceMatrix modules={executive?.modules} stats={headline} panels={matrixPanels} analyticsPanels={analyticsPanels} lockedPanels={lockedPanels} names={registryNames} unavailable={[...unavailable]} registry={dashboardPanels.map((p) => ({ key: p.key, name: p.name, description: p.description, route: p.route }))} />
       </section>
 
     </div>

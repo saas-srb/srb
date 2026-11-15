@@ -12,6 +12,8 @@ import KpiGrid from "@/components/products/dealflow-ai/KpiGrid";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import OrgPicker from "@/components/platform/OrgPicker";
+import { toOptions } from "@/lib/platform/organization/rules";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import PayoutStatusBadge from "@/components/products/talentos/PayoutStatusBadge";
@@ -172,15 +174,7 @@ export default function PayoutsDashboard({
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium text-muted-foreground">Department</label>
-            <Select value={filters.department || "all"} onValueChange={(v) => setParam("department", !v || v === "all" ? undefined : (v as string))}>
-              <SelectTrigger className="h-9 w-44 rounded-xl border-border/50 bg-background focus-visible:border-primary focus-visible:ring-primary/40"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All departments</SelectItem>
-                {departments.map((d) => (
-                  <SelectItem key={d._id} value={d._id}>{d.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <OrgPicker kind="department" options={toOptions("department", departments)} value={filters.department} onChange={(v) => setParam("department", v || undefined)} noneLabel="All departments" className="h-9 w-44" />
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium text-muted-foreground">Search</label>

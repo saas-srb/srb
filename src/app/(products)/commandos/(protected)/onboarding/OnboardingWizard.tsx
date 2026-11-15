@@ -1,5 +1,7 @@
 "use client";
 
+import OrgPicker from "@/components/platform/OrgPicker";
+import { toOptions } from "@/lib/platform/organization/rules";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -397,14 +399,7 @@ function TeamStep({ departments, invitations, customRoles, onDone }: { departmen
                 ))}
               </select>
             )}
-            <select className={selectClass} aria-label="Department" value={row.departmentId ?? ""} onChange={(e) => update(i, { departmentId: e.target.value })}>
-              <option value="">No department</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
+            <OrgPicker kind="department" options={toOptions("department", departments.map((d) => ({ _id: d.id, name: d.name })))} value={row.departmentId ?? ""} onChange={(v) => update(i, { departmentId: v })} noneLabel="No department" />
             <Button type="button" variant="ghost" size="icon" aria-label="Remove row" onClick={() => setRows((r) => r.filter((_, j) => j !== i))}>
               <Trash2 className="size-4" />
             </Button>

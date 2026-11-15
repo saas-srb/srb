@@ -1,5 +1,6 @@
 "use server";
 
+import { isDirector } from "@/lib/access/director";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getCurrentHubUser } from "@/lib/hub-auth";
@@ -10,7 +11,7 @@ import { confirmTopup, startTopup, type ConfirmTopupResult, type StartTopupResul
 async function requireDirector(): Promise<{ companyId: string; userId: string }> {
   const user = await getCurrentHubUser();
   if (!user) redirect("/commandos/login");
-  if (!user.roles.includes("super_admin")) redirect("/commandos");
+  if (!isDirector(user)) redirect("/commandos");
   return { companyId: await currentCompanyId(), userId: user.id };
 }
 

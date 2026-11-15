@@ -175,7 +175,7 @@ Object.assign(EXTRA, {
   "mk.profile": [{ at: "start", key: "intro", title: "Introduction", body: ["{{company.name}}: {{input.tagline}}. This profile presents who we are, what we do and the customers we serve, in one place for partners and prospects."] }],
   "mk.product_brochure": [{ at: "start", key: "intro", title: "Introduction", body: ["{{input.product}}: {{input.tagline}}. This brochure explains what the product does, its main features and its specifications, so that you can decide whether it fits your needs."] }],
   "mk.one_pager": [{ at: "start", key: "intro", title: "Introduction", body: ["This one-page summary introduces {{input.offering}} from {{company.name}}: what it is, who it is for and the main reasons to choose it. Read this page first; the sections below give the detail."] }, { at: "end", key: "brief", title: "In brief", body: ["{{company.name}} offers {{input.offering}}. {{input.offering_notes}}"] }],
-  "mk.flyer": [{ at: "end", key: "details_more", title: "Details", body: ["{{input.offer_title}} runs from {{input.start_date|date}} to {{input.end_date|date}} at {{input.venue}}, {{input.time}}. {{input.offer_notes}}"] }],
+  "mk.flyer": [{ at: "end", key: "details_more", title: "Offer details", body: ["{{input.offer_title}} runs from {{input.start_date|date}} to {{input.end_date|date}} at {{input.venue}}, {{input.time}}. {{input.offer_notes}}"] }],
   "mk.content_calendar": [{ at: "start", key: "purpose", title: "Purpose", body: ["This calendar plans what {{company.name}} will publish during {{input.period}}, on which channels and by whom, so that content is regular, consistent and reviewed before it goes out."] }],
   "lg.declaration": [{ at: "start", key: "declarant", title: "Declarant", body: ["This declaration is made by {{party.name}}, {{party.address}}, for the purpose of {{input.purpose}}."] }],
 });
@@ -193,6 +193,11 @@ function tailorBoilerplate(def: TemplateDef, sections: TemplateSection[]): Templ
     if (Array.isArray(n)) return n.map(walk);
     if (typeof n !== "object" || n === null) return n;
     const o = n as Raw;
+    // The sentence names the owner with a {{input.owner}} token, so it is rebuilt by the same inline parser every other paragraph uses (a token
+    // placed inside a plain text node would never be resolved and would show as raw braces in the finished document).
+    if ((o.type === "paragraph" || o.type === "clause") && Array.isArray(o.content) && (o.content as Raw[]).some((c) => c.type === "text" && typeof c.text === "string" && GENERIC_STARTS.some((g) => (c.text as string).startsWith(g)))) {
+      return { ...o, content: (p(text) as unknown as { content: unknown }).content };
+    }
     if (o.type === "text" && typeof o.text === "string" && GENERIC_STARTS.some((g) => (o.text as string).startsWith(g))) return { ...o, text };
     const out: Raw = {};
     for (const [k, v] of Object.entries(o)) out[k] = typeof v === "object" ? walk(v) : v;
@@ -206,8 +211,9 @@ export function enrich(def: TemplateDef): TemplateDef {
   const extra = EXTRA[def.id];
   if (extra) {
     const mk = (e: (typeof extra)[number]): TemplateSection => ({ key: e.key, title: e.title, aiMode: "fixed", locked: false, body: e.body.map((t) => p(t)) });
-    const start = extra.filter((e) => e.at === "start").map(mk);
-    const end = extra.filter((e) => e.at === "end").map(mk);
+    const fresh = (e: (typeof extra)[number]) => !sections.some((x) => x.key === e.key || x.title.trim().toLowerCase() === e.title.trim().toLowerCase());
+    const start = extra.filter((e) => e.at === "start" && fresh(e)).map(mk);
+    const end = extra.filter((e) => e.at === "end" && fresh(e)).map(mk);
     const sigAt = sections.findIndex((s) => JSON.stringify(s.body).includes('"signatureBlock"'));
     sections = [...sections.filter((s) => s.draftOnly), ...start, ...sections.filter((s) => !s.draftOnly)];
     if (end.length) { const i = sigAt >= 0 ? sections.findIndex((s) => JSON.stringify(s.body).includes('"signatureBlock"')) : -1; sections = i >= 0 ? [...sections.slice(0, i), ...end, ...sections.slice(i)] : [...sections, ...end]; }

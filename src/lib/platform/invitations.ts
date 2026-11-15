@@ -40,6 +40,8 @@ export interface Invitation {
   designationId: string | null;
   /** Platform Console role granted on acceptance (owner company only; see console/roles.ts). */
   platformRoleId?: string | null;
+  /** People & Access: the access map and the person's details, applied when the invitation is accepted (additive). */
+  person?: InvitedPerson | null;
   invitedBy: string;
   status: "pending" | "accepted" | "revoked";
   createdAt: Date;
@@ -59,6 +61,20 @@ async function col() {
   return c;
 }
 
+/** What an invitation made by the People & Access screen carries: the completed access map, the roles derived from it, and the details. */
+export interface InvitedPerson {
+  access: Record<string, Record<string, "read" | "write">>;
+  derivedRoles: string[];
+  derivedOverrides: Record<string, boolean>;
+  phone: string;
+  joiningDate: string;
+  userType: "employee" | "contractor" | "partner" | "system";
+  departmentIds: string[];
+  teamIds: string[];
+  designationIds: string[];
+  designationTitle: string;
+}
+
 export interface InviteInput {
   email: string;
   name: string;
@@ -69,6 +85,8 @@ export interface InviteInput {
   platformRoleId?: string | null;
   /** Custom roles to grant on acceptance (the sender must be allowed to assign them — checked by the caller). */
   customRoleIds?: string[];
+  /** People & Access: access map and details; the preset is then only a label. */
+  person?: InvitedPerson;
 }
 
 export type InviteResult = { ok: true; email: string } | { ok: false; error: string };
@@ -78,8 +96,8 @@ export async function inviteTeammate(input: InviteInput, inviter: { id: string; 
   const email = input.email.trim().toLowerCase();
   const name = input.name.trim();
   if (!EMAIL_RE.test(email)) return { ok: false, error: `"${input.email}" isn't a valid email address.` };
-  const roles = rolesForPreset(input.preset);
-  if (!roles) return { ok: false, error: "Choose a role." };
+  const roles = input.person ? input.person.derivedRoles : rolesForPreset(input.preset);
+  if (!roles || (!input.person && roles.length === 0)) return { ok: false, error: "Choose a role." };
 
   const db = await getDb();
   if (await db.collection("admin_users").findOne({ email }, { projection: { _id: 1 } })) return { ok: false, error: `${email} already has an account in this workspace.` };
@@ -107,6 +125,7 @@ export async function inviteTeammate(input: InviteInput, inviter: { id: string; 
     departmentId: input.departmentId || null,
     designationId: input.designationId || null,
     platformRoleId: input.platformRoleId || null,
+    person: input.person ?? null,
     invitedBy: inviter.id,
     status: "pending",
     createdAt: now,
@@ -116,7 +135,7 @@ export async function inviteTeammate(input: InviteInput, inviter: { id: string; 
 
   const company = await getCompany(await currentCompanyId());
   const companyName = company?.name ?? "your company";
-  const presetLabel = ROLE_PRESETS.find((p) => p.value === (presetToDesignationKey(input.preset) ?? input.preset))?.label ?? "team member";
+  const presetLabel = input.person ? input.person.designationTitle || "team member" : ROLE_PRESETS.find((p) => p.value === (presetToDesignationKey(input.preset) ?? input.preset))?.label ?? "team member";
   const { html, text } = renderEmail({
     brand: companyName,
     heading: `Join ${companyName}`,
@@ -176,6 +195,7 @@ export async function acceptInvitation(token: string, input: { name: string; pas
   const inv = await c.findOneAndUpdate({ tokenHash: sha256(token), status: "pending", expiresAt: { $gt: new Date() } }, { $set: { status: "accepted", acceptedAt: new Date() } });
   if (!inv) return { ok: false, error: "This invitation has expired or was already used. Ask your admin to send a new one." };
 
+  const person = inv.person ?? null;
   // HRMS employee record first, then the linked login.
   // Everyone, the Director included, has an HR file in TalentOS.
   const needsEmployee = true;
@@ -192,7 +212,7 @@ export async function acceptInvitation(token: string, input: { name: string; pas
           workEmail: inv.email,
           status: "active",
           personal: { dateOfBirth: null, gender: null, maritalStatus: null, personalEmail: null, phone: null, addressLine: null, city: null, state: null, postalCode: null, photoKey: null },
-          professional: { departmentId: inv.departmentId, designationId: inv.designationId, teamId: null, reportingManagerId: null, employmentType: null, workLocation: null, joiningDate: new Date().toISOString().slice(0, 10), probationEndDate: null, relievingDate: null },
+          professional: { departmentId: person ? person.departmentIds[0] ?? inv.departmentId : inv.departmentId, designationId: person ? person.designationIds[0] ?? inv.designationId : inv.designationId, teamId: person ? person.teamIds[0] ?? null : null, reportingManagerId: null, employmentType: null, workLocation: null, joiningDate: (person?.joiningDate || new Date().toISOString().slice(0, 10)), probationEndDate: null, relievingDate: null },
           emergencyContacts: [],
         },
         inv.invitedBy,
@@ -219,7 +239,8 @@ export async function acceptInvitation(token: string, input: { name: string; pas
     }
   }
   const customFound = await getCustomRoles(customIds);
-  const eff = computeEffective(manualRoles, {}, customFound);
+  const eff = person ? { roles: person.derivedRoles, overrides: person.derivedOverrides } : computeEffective(manualRoles, {}, customFound);
+  if (person) { manualRoles = person.derivedRoles; designationId = person.designationIds[0] ?? null; }
   await users.insertOne({
     _id: adminId,
     email: inv.email,
@@ -228,9 +249,10 @@ export async function acceptInvitation(token: string, input: { name: string; pas
     roles: eff.roles,
     permissionOverrides: eff.overrides,
     manualRoles,
-    manualOverrides: {},
-    customRoleIds: customFound.map((r) => r.id),
+    manualOverrides: person ? person.derivedOverrides : {},
+    customRoleIds: person ? [] : customFound.map((r) => r.id),
     designationId,
+    ...(person ? { designationIds: person.designationIds, departmentIds: person.departmentIds, teamIds: person.teamIds, access: person.access, phone: person.phone || undefined, userType: person.userType } : {}),
     status: "active",
     employeeId: employee?._id ?? null,
     mustChangePassword: false,
@@ -250,7 +272,7 @@ export async function acceptInvitation(token: string, input: { name: string; pas
   }
   if (employee) await db.collection("hrms_employees").updateOne({ _id: employee._id as never }, { $set: { adminUserId: String(adminId) } });
   // The HR file shows the designation and the department that goes with it.
-  await ensureHrFile({ userId: adminId, email: inv.email, name, designationTitle: tpl?.title ?? (key === "director" ? DIRECTOR_TITLE : "Team Member"), departmentName: tpl?.department ?? "Management", departmentId: inv.departmentId, actorId: String(adminId) });
+  await ensureHrFile({ userId: adminId, email: inv.email, name, designationTitle: person?.designationTitle || (tpl?.title ?? (key === "director" ? DIRECTOR_TITLE : "Team Member")), designationId: person?.designationIds[0] ?? null, departmentName: tpl?.department ?? "Management", departmentId: person ? person.departmentIds[0] ?? inv.departmentId : inv.departmentId, teamId: person?.teamIds[0] ?? null, joiningDate: person?.joiningDate || null, phone: person?.phone || null, actorId: String(adminId) });
   await workspaceEvents.inviteAccepted(inv.email, name);
   return { ok: true, adminId };
 }

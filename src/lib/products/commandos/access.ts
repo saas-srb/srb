@@ -8,7 +8,7 @@ import { listPanels, unavailablePanelKeys } from "@/lib/platform/panels/store";
 import { whiteLabelProductName } from "@/lib/platform/panels/types";
 import { getPlatformAccessForUser } from "@/lib/platform/console/roles";
 import { writeBlockReason } from "@/lib/platform/billing/enforce";
-import { navAllows, resolveNav, type NavContext, type ResolvedNav } from "@/lib/products/commandos/nav";
+import { navAllows, resolveNav, stateOf, NAV_ITEMS, lockedHref, type NavContext, type ResolvedNav } from "@/lib/products/commandos/nav";
 
 /**
  * Server side of the Workspace navigation (`nav.ts`): loads what the rules
@@ -25,14 +25,21 @@ export type WorkspaceUser = Pick<CurrentHubUser, "id" | "roles" | "permissionOve
  * company AND a platform role (or the legacy super_admin fallback). Workspace
  * roles never grant it and it grants no Workspace permission.
  */
-async function hasPlatformAccess(userId: string): Promise<boolean> {
+const hasPlatformAccess = cache(async (userId: string): Promise<boolean> => {
   if (!(await isPlatformOwnerContext())) return false;
   return (await getPlatformAccessForUser(userId)) !== null;
-}
+});
 
-export async function loadNavContext(user: WorkspaceUser): Promise<NavContext> {
+/** What does not depend on the person: the company's switched-off products and the Product Registry. Once per request, shared by every check. */
+const companyNavFacts = cache(async () => {
   const companyId = await currentCompanyId();
-  const [platformAccess, unavailable, registry] = await Promise.all([hasPlatformAccess(user.id), unavailablePanelKeys(companyId), listPanels()]);
+  const [unavailable, registry] = await Promise.all([unavailablePanelKeys(companyId), listPanels()]);
+  return { unavailable, registry };
+});
+
+/** One cheap computation per request: the shell, the page and every action's guard reuse the same facts (no repeated reads). */
+export async function loadNavContext(user: WorkspaceUser): Promise<NavContext> {
+  const [platformAccess, { unavailable, registry }] = await Promise.all([hasPlatformAccess(user.id), companyNavFacts()]);
   return {
     unavailablePanels: unavailable,
     panels: Object.fromEntries(registry.map((p) => [p.key, { name: whiteLabelProductName(p.name), description: p.description }])),
@@ -65,8 +72,17 @@ export async function requireWorkspaceAccess(key: string): Promise<CurrentHubUse
   const user = await getCurrentHubUser();
   if (!user) redirect("/commandos/login");
   if (user.mustChangePassword) redirect("/commandos/change-password");
-  if (!(await checkWorkspaceAccess(user, key))) redirect("/commandos");
+  if (!(await checkWorkspaceAccess(user, key))) {
+    // A locked item (it exists for the company, the person has no access) opens the explanation inside the same shell; one that does not exist goes home.
+    redirect((await workspaceItemState(user, key)) === "locked" ? lockedHref(key) : "/commandos");
+  }
   return user;
+}
+
+/** open / locked / hidden for one item (hidden also covers unknown keys). */
+export async function workspaceItemState(user: WorkspaceUser, key: string): Promise<"open" | "locked" | "hidden"> {
+  const item = NAV_ITEMS.find((i) => i.key === key);
+  return item ? stateOf(item, await loadNavContext(user)) : "hidden";
 }
 
 /**

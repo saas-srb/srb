@@ -8,6 +8,8 @@ import { CardContent } from "@/components/ui/card";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import OrgPicker from "@/components/platform/OrgPicker";
+import { toOptions } from "@/lib/platform/organization/rules";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import EmployeeStatusBadge from "@/components/products/talentos/EmployeeStatusBadge";
@@ -122,15 +124,7 @@ export default function EmployeesDataTable({ items, total, page, totalPages, dep
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium text-muted-foreground">Department</label>
-            <Select value={initial.department || "all"} onValueChange={(v) => updateParams({ department: !v || v === "all" ? undefined : v })}>
-              <SelectTrigger className="h-9 w-48 rounded-xl border-border/50 bg-background focus-visible:border-primary focus-visible:ring-primary/40"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All departments</SelectItem>
-                {departments.map((d) => (
-                  <SelectItem key={d._id} value={d._id}>{d.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <OrgPicker kind="department" options={toOptions("department", departments)} value={initial.department} onChange={(v) => updateParams({ department: v || undefined })} noneLabel="All departments" className="h-9 w-48" />
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium text-muted-foreground">Type</label>

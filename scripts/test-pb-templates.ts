@@ -200,7 +200,7 @@ const sampleInputs = (d: TemplateDef) => Object.fromEntries(d.inputs.filter((i) 
     assert.deepEqual(tw.conflicts, [`section.${k1}`]);
   });
   await t("stripDraftOnly removes the legal and verification notices (and draft_ sections) and nothing else", () => {
-    assert.deepEqual([...DRAFT_ONLY_SECTION_KEYS], ["legal_notice", "verify_notice", "registration_notice"]);
+    assert.deepEqual([...DRAFT_ONLY_SECTION_KEYS], ["legal_notice", "verify_notice", "registration_notice", "advocate_notes"]);
     const shipped = new Set(ALL_TEMPLATES.flatMap((d) => d.sections.filter((s) => s.draftOnly).map((s) => s.key)));
     for (const k of shipped) assert.ok((DRAFT_ONLY_SECTION_KEYS as readonly string[]).includes(k), `the catalogue has a draft-only section "${k}" that stripDraftOnly does not know: add it to DRAFT_ONLY_SECTION_KEYS`);
     const withBoth = ALL_TEMPLATES.find((d) => d.legal.review && d.legal.statute)!;

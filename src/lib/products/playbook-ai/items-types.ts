@@ -33,6 +33,9 @@ export const kindFromSegment = (s: string): ItemKind | null => ITEM_KINDS.find((
 export interface ItemMeta {
   department?: string;
   designation?: string;
+  /** References into the organization service, kept beside the names (additive). */
+  departmentId?: string;
+  designationId?: string;
   description?: string;
   /** KPI sheets: the period the sheet covers ("Quarterly", "FY 2026-27"). */
   reviewPeriod?: string;
@@ -45,6 +48,9 @@ export const cleanItemMeta = (v: unknown): ItemMeta => {
   const s = (k: string, max: number): string | undefined => (typeof o[k] === "string" && (o[k] as string).trim() ? (o[k] as string).trim().slice(0, max) : undefined);
   const out: ItemMeta = {};
   const d = s("department", 120), g = s("designation", 120), t = s("description", 2000), r = s("reviewPeriod", 80), l = s("libraryId", 80);
+  const di = s("departmentId", 80), gi = s("designationId", 80);
+  if (di) out.departmentId = di;
+  if (gi) out.designationId = gi;
   if (d) out.department = d;
   if (g) out.designation = g;
   if (t) out.description = t;

@@ -222,3 +222,6 @@ export const providerByKey = new Map(CONNECTION_PROVIDERS.map((p) => [p.key, p])
 export const PLATFORM_FALLBACK: readonly string[] = ["openai", "elevenlabs", "twilio", "pagespeed", "turn", "google-service-account", "livekit"];
 /** Hidden from a company's Integrations page: the automations tile has its own page. */
 export const HIDDEN_FROM_COMPANIES: readonly string[] = ["webhooks"];
+
+/** Services SelfRun can run for a company on its own account (the default): AI, voice, calls, search data, and email and push. Anything else needs the company's own account. */
+export const canUseSrb = (key: string): boolean => PLATFORM_FALLBACK.includes(key) || providerByKey.get(key)?.group === "email" || key === "vapid";

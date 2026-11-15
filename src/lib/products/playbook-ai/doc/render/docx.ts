@@ -559,6 +559,8 @@ export async function renderDocx(doc: PBDoc, opts: DocxOptions): Promise<DocxRes
   const flagged = p.flagged.unresolved.length + p.flagged.placeholders.length > 0;
 
   const body = blocks(c, p.doc.body);
+  // The logo alone, once, at the top of page 1 (the company details block is off): the first paragraph of the body, not a header.
+  if (p.logo) body.unshift(imageParagraph(c, p.logo.asset, p.logo.widthMm, (p.logo.widthMm * p.logo.asset.heightPx) / p.logo.asset.widthPx, p.logo.align, "Company logo", "logo"));
 
   // Header content is built per use (a component instance belongs to one part). `scope`: every page, first page only, or no letterhead.
   const scope = p.letterhead;
@@ -571,10 +573,6 @@ export async function renderDocx(doc: PBDoc, opts: DocxOptions): Promise<DocxRes
   const letterheadKids = (): Out[] => {
     if (scope === "none") return [];
     const out: Out[] = [];
-    if (p.logo) {
-      const hMm = (p.logo.widthMm * p.logo.asset.heightPx) / p.logo.asset.widthPx;
-      out.push(imageParagraph(c, p.logo.asset, p.logo.widthMm, hMm, p.logo.align, "Company logo", "logo"));
-    }
     out.push(...zoneChildren(c, p.doc.header));
     return out;
   };
@@ -594,7 +592,7 @@ export async function renderDocx(doc: PBDoc, opts: DocxOptions): Promise<DocxRes
         : wmOnly.length ? { default: hdr(wmOnly) } : undefined)
     : scope === "first"
     ? { first: hdr([...watermarkKids(), ...letterheadKids()]), default: hdr(wmOnly) }
-    : (wmOnly.length || p.doc.header.length || p.logo) && scope === "all"
+    : (wmOnly.length || p.doc.header.length) && scope === "all"
       ? { default: hdr([...watermarkKids(), ...letterheadKids()]) }
       : wmOnly.length ? { default: hdr(wmOnly) } : undefined;
   const footers = !hasFooter ? undefined : scope === "first" || (p.identity && scope === "all")

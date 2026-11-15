@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import OrgPicker from "@/components/platform/OrgPicker";
+import { toOptions } from "@/lib/platform/organization/rules";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { BUDGET_LEVELS, BUDGET_PERIODS, EXPENSE_CATEGORIES, SUPPORTED_CURRENCIES } from "@/lib/products/spendiq/constants";
@@ -111,14 +113,18 @@ export default function BudgetForm({
             {form.level !== "company" && (
               <div className="space-y-1.5">
                 <Label>Scope</Label>
-                <Select value={form.scopeId} onValueChange={(v) => set("scopeId", v ?? "")}>
-                  <SelectTrigger className="w-full"><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>
-                    {scopeOptions.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {form.level === "department" ? (
+                  <OrgPicker kind="department" options={toOptions("department", departments)} value={form.scopeId} onChange={(v) => set("scopeId", v)} allowNone={false} placeholder="Select" />
+                ) : (
+                  <Select value={form.scopeId} onValueChange={(v) => set("scopeId", v ?? "")}>
+                    <SelectTrigger className="w-full"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {scopeOptions.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             )}
             <div className="space-y-1.5">

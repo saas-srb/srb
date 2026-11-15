@@ -1,0 +1,38 @@
+/**
+ * The ONLY list of starter departments. A new company gets these through `seedDefaultDepartments`
+ * (store.ts); no product keeps its own copy. Names are plain, codes short and unique.
+ */
+export const DEFAULT_DEPARTMENTS: { name: string; code: string }[] = [
+  { name: "Management", code: "MGT" },
+  { name: "HR", code: "HR" },
+  { name: "Recruitment", code: "REC" },
+  { name: "Finance", code: "FIN" },
+  { name: "Accounts", code: "ACC" },
+  { name: "Sales", code: "SAL" },
+  { name: "Business Development", code: "BD" },
+  { name: "Marketing", code: "MKT" },
+  { name: "Customer Support", code: "CS" },
+  { name: "Project Management", code: "PM" },
+  { name: "Product", code: "PRD" },
+  { name: "Engineering", code: "ENG" },
+  { name: "Frontend", code: "FE" },
+  { name: "Backend", code: "BE" },
+  { name: "Mobile", code: "MOB" },
+  { name: "QA", code: "QA" },
+  { name: "DevOps", code: "DEV" },
+  { name: "Cloud", code: "CLD" },
+  { name: "AI/ML", code: "AI" },
+  { name: "IT", code: "IT" },
+  { name: "Security", code: "SEC" },
+  { name: "Procurement", code: "PRC" },
+  { name: "Operations", code: "OPS" },
+  { name: "Administration", code: "ADM" },
+  { name: "Training", code: "TRN" },
+  { name: "Cohort AI", code: "COH" },
+  { name: "LMS", code: "LMS" },
+  { name: "Legal", code: "LEG" },
+  { name: "Compliance", code: "CMP" },
+  { name: "Facilities", code: "FAC" },
+  { name: "Internal Audit", code: "IA" },
+  { name: "Risk Management", code: "RSK" },
+];

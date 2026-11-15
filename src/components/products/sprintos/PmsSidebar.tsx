@@ -1,5 +1,6 @@
 "use client";
 
+import LockedNavItem from "@/components/products/common/LockedNavItem";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -96,46 +97,33 @@ export default function PmsSidebar({
   collapsed?: boolean;
 }) {
   const roleCtx = { roles, permissionOverrides };
-  const nav = (props: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean }) => (
-    <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />
+  const nav = (props: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean ; locked?: boolean }) => (
+    (props.locked ? <LockedNavItem label={props.label} icon={props.icon} collapsed={collapsed} product="sprintos" onNavigate={onNavigate} /> : <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />)
   );
   const isStaff = hasPmsStaffRole(roles);
 
-  // Employee-only portal.
-  if (!isStaff) {
-    return (
-      <nav className="flex h-full flex-col gap-1 p-3">
-        {nav({ href: "/sprintos/me", label: "Dashboard", icon: LayoutDashboard, exact: true })}
-        {nav({ href: "/sprintos/me/projects", label: "My Projects", icon: FolderKanban })}
-        {nav({ href: "/sprintos/me/tasks", label: "My Tasks", icon: CheckSquare })}
-        {nav({ href: "/sprintos/me/timesheet", label: "Timesheet", icon: Clock })}
-      </nav>
-    );
-  }
-
+  // One menu for everyone: the Director's. What a person cannot use is locked; "Me" is self-service and always open.
+  const staff = isStaff;
   return (
     <nav className="flex h-full flex-col gap-1 p-3">
-      {nav({ href: "/sprintos", label: "Dashboard", icon: LayoutDashboard, exact: true })}
+      {nav({ href: "/sprintos", label: "Dashboard", icon: LayoutDashboard, exact: true, locked: !staff })}
 
       <SectionLabel collapsed={collapsed}>Delivery</SectionLabel>
-      {nav({ href: "/sprintos/projects", label: "Projects", icon: FolderKanban })}
-      {nav({ href: "/sprintos/clients", label: "Clients", icon: Building2 })}
-      {nav({ href: "/sprintos/calendar", label: "Calendar", icon: CalendarDays })}
+      {nav({ href: "/sprintos/projects", label: "Projects", icon: FolderKanban, locked: !staff })}
+      {nav({ href: "/sprintos/clients", label: "Clients", icon: Building2, locked: !staff })}
+      {nav({ href: "/sprintos/calendar", label: "Calendar", icon: CalendarDays, locked: !staff })}
 
       <SectionLabel collapsed={collapsed}>Timesheets & Tracking</SectionLabel>
-      {canReviewTimesheets(roleCtx) && nav({ href: "/sprintos/timesheets", label: "Timesheet", icon: Clock })}
+      {nav({ href: "/sprintos/timesheets", label: "Timesheet", icon: Clock, locked: !(staff && canReviewTimesheets(roleCtx)) })}
 
       <SectionLabel collapsed={collapsed}>Governance</SectionLabel>
-      {nav({ href: "/sprintos/analytics", label: "Analytics", icon: BarChart3 })}
+      {nav({ href: "/sprintos/analytics", label: "Analytics", icon: BarChart3, locked: !staff })}
 
-      {employeeId && !roles.includes("super_admin") && (
-        <>
-          <SectionLabel collapsed={collapsed}>Me</SectionLabel>
-          {nav({ href: "/sprintos/me", label: "My Dashboard", icon: CircleUser, exact: true })}
-          {nav({ href: "/sprintos/me/tasks", label: "My Tasks", icon: CheckSquare })}
-          {nav({ href: "/sprintos/me/timesheet", label: "My Timesheet", icon: Clock })}
-        </>
-      )}
+      <SectionLabel collapsed={collapsed}>Me</SectionLabel>
+      {nav({ href: "/sprintos/me", label: "My Dashboard", icon: CircleUser, exact: true })}
+      {nav({ href: "/sprintos/me/projects", label: "My Projects", icon: FolderKanban })}
+      {nav({ href: "/sprintos/me/tasks", label: "My Tasks", icon: CheckSquare })}
+      {nav({ href: "/sprintos/me/timesheet", label: "My Timesheet", icon: Clock })}
     </nav>
   );
 }

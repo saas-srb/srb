@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import OrgPicker from "@/components/platform/OrgPicker";
+import { toOptions } from "@/lib/platform/organization/rules";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import {
@@ -118,14 +120,7 @@ export default function RequisitionForm({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Department *</Label>
-              <Select value={s("departmentId")} onValueChange={(v) => set("departmentId", v ?? "")}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  {departments.map((d) => (
-                    <SelectItem key={d._id} value={d._id}>{d.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <OrgPicker kind="department" options={toOptions("department", departments)} value={s("departmentId")} onChange={(v) => set("departmentId", v)} allowNone={false} />
               {err("departmentId")}
             </div>
             <div className="space-y-1.5">

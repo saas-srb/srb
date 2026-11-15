@@ -1,5 +1,6 @@
 "use server";
 
+import { isDirector } from "@/lib/access/director";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getCurrentHubUser } from "@/lib/hub-auth";
@@ -12,7 +13,7 @@ import { markOnboardingStep } from "@/lib/platform/onboarding/state";
 async function requireOwner() {
   const user = await getCurrentHubUser();
   if (!user) redirect("/commandos/login");
-  if (!user.roles.includes("super_admin")) redirect("/commandos");
+  if (!isDirector(user)) redirect("/commandos");
   return user;
 }
 

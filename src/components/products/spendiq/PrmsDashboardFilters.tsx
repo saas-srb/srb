@@ -5,6 +5,8 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { CalendarRange, SlidersHorizontal, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import OrgPicker from "@/components/platform/OrgPicker";
+import { toOptions } from "@/lib/platform/organization/rules";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { DATE_RANGE_PRESETS } from "@/lib/date-ranges";
@@ -221,13 +223,7 @@ export default function PrmsDashboardFilters({
           {/* ── Department ── */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-muted-foreground">Department</label>
-            <Select value={departmentId || "all"} onValueChange={(v) => updateParams({ departmentId: !v || v === "all" ? undefined : v })}>
-              <SelectTrigger className="w-40 h-9 text-xs rounded-xl border-border/50 bg-background focus-visible:border-primary focus-visible:ring-primary/40"><SelectValue placeholder="All Departments" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Departments</SelectItem>
-                {departments.map((d) => (<SelectItem key={d._id} value={d._id}>{d.name}</SelectItem>))}
-              </SelectContent>
-            </Select>
+            <OrgPicker kind="department" options={toOptions("department", departments)} value={departmentId} onChange={(v) => updateParams({ departmentId: v || undefined })} noneLabel="All Departments" className="h-9 w-48" />
           </div>
 
           {/* ── Project ── */}

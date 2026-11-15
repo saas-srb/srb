@@ -1,3 +1,4 @@
+import { isDirector } from "@/lib/access/director";
 import BillingNotice from "@/components/platform/BillingNotice";
 import SetupBanner from "@/components/products/commandos/SetupBanner";
 import { getEmailLapse } from "@/lib/platform/email-lapse";
@@ -38,7 +39,7 @@ export default async function PanelBackBar() {
       verifyDismissed = verifyIsDismissed;
       setupDismissed = setupIsDismissed;
       upgradeDismissed = upgradeIsDismissed;
-      if (user.roles.includes("super_admin")) upgrade = await getUpgradeOffer();
+      if (isDirector(user)) upgrade = await getUpgradeOffer();
       if (verify) daysLeft = (await getEmailLapse().catch(() => null))?.daysLeft;
     }
   } catch {

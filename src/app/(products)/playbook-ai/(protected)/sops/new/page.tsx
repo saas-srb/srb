@@ -1,3 +1,4 @@
+import { loadOrgOptions } from "@/lib/platform/organization/options";
 import { redirect } from "next/navigation";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import ItemWizard from "@/components/products/playbook-ai/items/ItemWizard";
@@ -18,7 +19,12 @@ export default async function Page() {
   return (
     <div className="space-y-4">
       <PanelPageHeader title={<>{info.create}</>} description={<>Three steps: details, an AI draft you check, then the editor with a live PDF preview.</>} />
-      <ItemWizard kind="sop" aiEnabled={settings.ai.enabled && playbookCan(actor, "USE_AI")} brand={await brandSummary(actor)} />
+      <ItemWizard kind="sop" aiEnabled={settings.ai.enabled && playbookCan(actor, "USE_AI")} brand={await brandSummary(actor)} org={await orgForWizard()} />
     </div>
   );
+}
+
+async function orgForWizard() {
+  const o = await loadOrgOptions();
+  return { departments: o.departments, designations: o.designations };
 }

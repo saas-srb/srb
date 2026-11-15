@@ -117,8 +117,10 @@ t("A4 portrait is the only exposed page size and orientation, and the defaults a
 console.log("route and navigation scaffold");
 t("the documents page, nav entry and layout flag exist and are permission-gated", () => {
   const page = read("src/app/(products)/playbook-ai/(protected)/documents/page.tsx");
-  assert.match(page, /playbookCan\(ctx, "SETTINGS"\)/);
-  assert.match(page, /redirect\("\/playbook-ai\/login"\)/);
+  // The page is the shared "My items" page; the sign-in redirect lives there and the permission is enforced by the service (listDocuments needs VIEW).
+  assert.match(page, /<MyItemsPage kind="document"/);
+  assert.match(read("src/components/products/playbook-ai/items/MyItemsPage.tsx"), /redirect\("\/playbook-ai\/login"\)/);
+  assert.match(read("src/lib/products/playbook-ai/documents.ts"), /export async function listDocuments[\s\S]{0,200}playbookCan\(actor, "VIEW"\)/);
   assert.match(read("src/lib/products/playbook-ai/nav.ts"), /\/playbook-ai\/documents/);
   assert.match(read("src/app/(products)/playbook-ai/(protected)/layout.tsx"), /documents: playbookCan\(ctx, "SETTINGS"\)/);
   assert.ok(existsSync(path.join(ROOT, "src/lib/products/playbook-ai/doc/validate.ts")));

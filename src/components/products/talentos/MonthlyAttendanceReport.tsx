@@ -5,6 +5,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { CardContent } from "@/components/ui/card";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import { Button } from "@/components/ui/button";
+import OrgPicker from "@/components/platform/OrgPicker";
+import { toOptions } from "@/lib/platform/organization/rules";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
@@ -65,18 +67,7 @@ export default function MonthlyAttendanceReport({
               <ChevronRight className="size-4" />
             </Button>
           </div>
-          <Select
-            value={searchParams.get("department") || "all"}
-            onValueChange={(v) => setParam("department", !v || v === "all" ? undefined : v)}
-          >
-            <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All departments</SelectItem>
-              {departments.map((d) => (
-                <SelectItem key={d._id} value={d._id}>{d.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <OrgPicker kind="department" options={toOptions("department", departments)} value={searchParams.get("department")} onChange={(v) => setParam("department", v || undefined)} noneLabel="All departments" className="h-9 w-48" />
         </CardContent>
       </GlassCard>
 

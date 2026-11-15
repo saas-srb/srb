@@ -15,10 +15,17 @@ interface StoredConnection {
   values: Record<string, string>;
   secrets: Record<string, { enc: EncryptedValue; last4: string }>;
   lastTest: { ok: boolean; at: Date; message: string } | null;
+  /**
+   * Whose account is used: SelfRun's ("srb", the default) or the company's own saved keys ("own"). The saved keys are kept when it is switched
+   * to "srb" and used again when it is switched back. A connection saved before this field existed is "own".
+   */
+  mode?: ConnectionMode;
   connectedAt: Date;
   updatedAt: Date;
   updatedBy: string | null;
 }
+
+export type ConnectionMode = "srb" | "own";
 
 const context = (companyId: string, provider: string, field: string) => `connection:${companyId}:${provider}:${field}`;
 
@@ -40,7 +47,8 @@ export async function getSavedConnection(provider: string): Promise<Record<strin
   if (hit && Date.now() - hit.at < TTL_MS) return hit.values;
   const doc = await (await col()).findOne({ _id: provider });
   let values: Record<string, string> | null = null;
-  if (doc) {
+  // Switched to SelfRun's account: the company's own keys stay saved but are not used.
+  if (doc && doc.mode !== "srb") {
     values = { ...doc.values };
     for (const [field, s] of Object.entries(doc.secrets ?? {})) {
       const plain = decryptPlatformSecret(s.enc, context(companyId, provider, field));
@@ -55,6 +63,8 @@ export interface ConnectionView {
   key: string;
   saved: boolean;
   values: Record<string, string>;
+  /** Which account is used: "srb" (SelfRun's, the default) or "own" (the company's saved keys). Saved keys are kept while it is "srb". */
+  mode: ConnectionMode;
   /** Which secret fields are set, with their last four characters. */
   secrets: Record<string, { set: true; last4: string }>;
   lastTest: { ok: boolean; at: string; message: string } | null;
@@ -66,6 +76,7 @@ export async function getConnectionView(provider: string): Promise<ConnectionVie
   return {
     key: provider,
     saved: !!doc,
+    mode: doc ? (doc.mode ?? "own") : "srb",
     values: doc?.values ?? {},
     secrets: Object.fromEntries(Object.entries(doc?.secrets ?? {}).map(([k, s]) => [k, { set: true as const, last4: s.last4 }])),
     lastTest: doc?.lastTest ? { ok: doc.lastTest.ok, at: doc.lastTest.at.toISOString(), message: doc.lastTest.message } : null,
@@ -80,6 +91,7 @@ export async function listConnectionViews(): Promise<Record<string, ConnectionVi
     out[d._id] = {
       key: d._id,
       saved: true,
+      mode: d.mode ?? "own",
       values: d.values ?? {},
       secrets: Object.fromEntries(Object.entries(d.secrets ?? {}).map(([k, s]) => [k, { set: true as const, last4: s.last4 }])),
       lastTest: d.lastTest ? { ok: d.lastTest.ok, at: d.lastTest.at.toISOString(), message: d.lastTest.message } : null,
@@ -124,7 +136,7 @@ export async function saveConnection(providerKey: string, input: Record<string, 
   const now = new Date();
   await collection.updateOne(
     { _id: providerKey },
-    { $set: { values, secrets, lastTest: null, updatedAt: now, updatedBy: actorId }, $setOnInsert: { connectedAt: now } },
+    { $set: { values, secrets, lastTest: null, mode: "own" as ConnectionMode, updatedAt: now, updatedBy: actorId }, $setOnInsert: { connectedAt: now } },
     { upsert: true }
   );
   bust(companyId, providerKey);
@@ -139,4 +151,18 @@ export async function disconnectConnection(providerKey: string): Promise<void> {
 
 export async function recordTestResult(providerKey: string, ok: boolean, message: string): Promise<void> {
   await (await col()).updateOne({ _id: providerKey }, { $set: { lastTest: { ok, at: new Date(), message: message.slice(0, 300) } } });
+}
+
+/**
+ * Chooses whose account a connection uses. "srb" keeps any saved own keys (they are used again when switched back); "own" needs saved keys.
+ * Returns false when "own" is chosen but nothing is saved yet (the keys must be saved first).
+ */
+export async function setConnectionMode(providerKey: string, mode: ConnectionMode, actorId: string | null): Promise<{ ok: boolean }> {
+  const companyId = await currentCompanyId();
+  const collection = await col();
+  const doc = await collection.findOne({ _id: providerKey });
+  if (!doc) return { ok: mode === "srb" }; // nothing saved: SelfRun's account is already what is used
+  await collection.updateOne({ _id: providerKey }, { $set: { mode, updatedAt: new Date(), updatedBy: actorId } });
+  bust(companyId, providerKey);
+  return { ok: true };
 }

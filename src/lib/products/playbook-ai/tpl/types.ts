@@ -79,8 +79,8 @@ export interface TemplateVersionRecord {
 }
 
 /** Sections that exist only to carry drafting notices. The issue step removes them from the issued document. */
-/** `registration_notice` is the lease template's reminder that registration may be needed. A test fails if the catalogue adds a draft-only key that is not listed here. */
-export const DRAFT_ONLY_SECTION_KEYS = ["legal_notice", "verify_notice", "registration_notice"] as const;
+/** `registration_notice` is the lease template's reminder that registration may be needed; `advocate_notes` is the legal templates' note to the reviewing advocate. A test fails if the catalogue adds a draft-only key that is not listed here. */
+export const DRAFT_ONLY_SECTION_KEYS = ["legal_notice", "verify_notice", "registration_notice", "advocate_notes"] as const;
 /** A company's own drafting-only section uses this key prefix (the catalogue's two notices are listed above). */
 export const DRAFT_ONLY_PREFIX = "draft_";
 export const isDraftOnlySectionKey = (key: string): boolean => (DRAFT_ONLY_SECTION_KEYS as readonly string[]).includes(key) || key.startsWith(DRAFT_ONLY_PREFIX);

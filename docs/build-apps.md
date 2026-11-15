@@ -539,3 +539,6 @@ new `npm run build:…` command, add it to the Quick start, the quick reference 
 
 ## ViralPulse Analytics sync (cron `viralpulse-metrics`)
 Run `npm run cron:sync` after pulling this change so `vercel.json` has the daily `0 9 * * *` entry. On Vercel Hobby, the analytics sync runs once daily. No new env var. To test: `npm run test:viralpulse` (includes `scripts/test-viralpulse-wp7.ts`, throwaway DB `zz_throwaway_vpwp7`, fake platform server). Platforms need the analytics permissions listed in `src/lib/products/viralpulse-ai/metrics/SPEC.md` (Meta `instagram_manage_insights` + `read_insights`, Google `yt-analytics.readonly`, LinkedIn Community Management API approval); without them the account shows a plain "not synced yet" reason.
+
+## Vercel build runs out of memory
+The 825-page build needs more than 7.5 GB. Use `npm run deploy:prebuilt` (or `.github/workflows/deploy.yml`) from a machine with 12+ GB and turn off Vercel Git auto-build. Details: `docs/build-memory.md`. Measure with `scripts/measure-build.sh`.

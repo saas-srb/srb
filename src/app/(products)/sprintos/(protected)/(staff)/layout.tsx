@@ -1,3 +1,4 @@
+import ProductLocked from "@/components/products/common/ProductLocked";
 import { redirect } from "next/navigation";
 import { getCurrentPmsUser } from "@/lib/pms-auth";
 import { hasPmsStaffRole } from "@/lib/pms-roles";
@@ -17,6 +18,6 @@ import { hasPmsStaffRole } from "@/lib/pms-roles";
 export default async function StaffPmsLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentPmsUser();
   if (!user) redirect("/sprintos/login");
-  if (!hasPmsStaffRole(user.roles)) redirect(user.employeeId ? "/sprintos/me" : "/sprintos/login");
+  if (!hasPmsStaffRole(user.roles)) return <ProductLocked product="sprintos" feature="Management pages" />; // locked, not bounced: everyone has the same shell (owner decision D1)
   return <>{children}</>;
 }

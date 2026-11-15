@@ -1,5 +1,7 @@
 "use client";
 
+import OrgPicker from "@/components/platform/OrgPicker";
+import { toOptions } from "@/lib/platform/organization/rules";
 import { useState, useTransition, type ReactElement, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -28,6 +30,7 @@ export default function TransactionForm({
   accounts,
   fundAccounts = [],
   trigger,
+  departments,
   onSaved,
 }: {
   transaction?: SerializedTransaction;
@@ -37,6 +40,8 @@ export default function TransactionForm({
   accounts: Option[];
   /** Bank/cash accounts this transaction can settle through (§19/§21) — optional so callers built before Phase 4 keep working unchanged. */
   fundAccounts?: FundAccountOption[];
+  /** Departments from the organization service. */
+  departments?: { _id: string; name: string }[];
   trigger: ReactNode;
   onSaved?: (id: string) => void;
 }) {
@@ -58,6 +63,7 @@ export default function TransactionForm({
     vendorId: transaction?.vendorId ?? "",
     projectId: transaction?.projectId ?? "",
     department: transaction?.department ?? "",
+    departmentId: transaction?.departmentId ?? "",
     accountId: transaction?.accountId ?? "",
     fundAccountKey: transaction?.fundAccountType && transaction?.fundAccountId ? `${transaction.fundAccountType}:${transaction.fundAccountId}` : "",
     referenceNumber: transaction?.referenceNumber ?? "",
@@ -211,7 +217,8 @@ export default function TransactionForm({
             </div>
             <div className="space-y-1.5">
               <Label>Department</Label>
-              <Input value={form.department} onChange={(e) => set("department", e.target.value)} />
+              <OrgPicker kind="department" options={toOptions("department", departments ?? [])} value={form.departmentId} onChange={(v) => { set("departmentId", v); set("department", (departments ?? []).find((d) => d._id === v)?.name ?? ""); }} noneLabel="No department" />
+              {form.department && !form.departmentId && <p className="text-xs text-muted-foreground">Saved as text: &ldquo;{form.department}&rdquo;. Pick a department to link it.</p>}
             </div>
           </div>
 

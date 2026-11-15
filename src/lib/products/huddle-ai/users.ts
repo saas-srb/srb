@@ -93,18 +93,13 @@ export async function ensureChatUser(user: CurrentChatUser): Promise<void> {
           "hrms_employees"
         )
         .findOne({ _id: user.employeeId });
+      const { listDesignations, getDepartment } = await import("@/lib/platform/organization");
       if (emp?.professional?.designationId) {
-        const d = await db
-          .collection<{ _id: string; name?: string; title?: string }>("hrms_designations")
-          .findOne({ _id: emp.professional.designationId })
-          .catch(() => null);
-        title = d?.title ?? d?.name ?? undefined;
+        const d = (await listDesignations({ includeArchived: true }).catch(() => [])).find((x) => x._id === emp.professional!.designationId);
+        title = d?.title ?? undefined;
       }
       if (emp?.professional?.departmentId) {
-        const d = await db
-          .collection<{ _id: string; name?: string }>("hrms_departments")
-          .findOne({ _id: emp.professional.departmentId })
-          .catch(() => null);
+        const d = await getDepartment(emp.professional.departmentId).catch(() => null);
         department = d?.name ?? undefined;
       }
     }

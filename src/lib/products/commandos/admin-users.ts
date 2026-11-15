@@ -55,8 +55,15 @@ export interface AdminUserDoc {
   userType?: "employee" | "contractor" | "partner" | "system";
   notes?: string;
   name?: string;
-  /** The person's designation: the id of a designation (a custom role), or `"director"` for the company's top role. */
+  /** The person's main designation: the id of an organization designation, or `"director"` for the company's top role. */
   designationId?: string | null;
+  /** Everything the person belongs to in the organization (the first designation is the main title). Additive: older accounts have only `designationId`. */
+  designationIds?: string[];
+  departmentIds?: string[];
+  teamIds?: string[];
+  /** The access map (`src/lib/access`): `{ product: { feature: "read" | "write" } }`. The derived `roles` / `permissionOverrides` keep every product working. */
+  access?: Record<string, Record<string, "read" | "write">> | null;
+  phone?: string;
   status?: AccountStatus;
   statusReason?: string;
   statusChangedAt?: Date;
@@ -118,6 +125,8 @@ export interface AdminUserFilter {
   status?: StatusFilter;
   designationId?: string;
   userType?: "employee" | "contractor" | "partner" | "system";
+  /** An extra Mongo filter ANDed with the rest (the People screen uses it for department / team / designation). */
+  extra?: Record<string, unknown>;
 }
 
 function getRolesForPanel(panel: string): string[] {
@@ -171,6 +180,8 @@ function buildFilter(opts: AdminUserFilter): Record<string, unknown> {
     and.push(opts.designationId === DIRECTOR_DESIGNATION_ID ? { roles: DIRECTOR_ROLE } : { $or: [{ designationId: opts.designationId }, { customRoleIds: opts.designationId }] });
   }
 
+  if (opts.extra) and.push(opts.extra);
+
   if (opts.userType) {
     and.push(opts.userType === "employee" ? { $or: [{ userType: "employee" }, { userType: { $exists: false } }] } : { userType: opts.userType });
   }
@@ -204,6 +215,8 @@ export async function searchAdminUsers(opts: SearchAdminUsersOptions = {}) {
 
   return {
     items: docs.map((d) => serialize(d, names)),
+    /** The raw documents of this page, for callers that need fields the row does not carry (the People screen). */
+    docs,
     total,
     /** People who can sign in. */
     activeCount,
@@ -218,7 +231,7 @@ export async function searchAdminUsers(opts: SearchAdminUsersOptions = {}) {
 
 /** Designation id → title, for showing what each person holds. */
 async function designationNames(): Promise<Map<string, string>> {
-  await ensureDesignations();
+  // Designations are plain titles now (owner decision D6): nothing is seeded here. Rows older accounts already point at are read as they are.
   const rows = await (await getDb()).collection<{ _id: string; name: string }>("custom_roles").find({}, { projection: { name: 1 } }).toArray();
   return new Map(rows.map((r) => [r._id, r.name]));
 }
@@ -292,7 +305,7 @@ export interface CreateAdminUserInput {
   extraOverrides?: Record<string, boolean>;
   userType?: "employee" | "contractor" | "partner" | "system";
   notes?: string;
-  hr?: Pick<HrFileInput, "departmentId" | "reportingManagerId" | "employmentType" | "joiningDate" | "phone">;
+  hr?: Pick<HrFileInput, "departmentId" | "teamId" | "reportingManagerId" | "employmentType" | "joiningDate" | "phone">;
 }
 
 /** The roles and custom roles a designation (plus extras) stands for. */
@@ -488,4 +501,108 @@ export async function setUserTypeAndNotes(
   }
   const res = await col.updateOne({ _id: new ObjectId(id) }, { $set: updatePayload });
   return { ok: res.matchedCount === 1 };
+}
+
+
+// ── People & Access: a person made or changed from an access map ─────────────
+
+export interface PersonAccountInput {
+  email: string;
+  name: string;
+  phone?: string;
+  joiningDate?: string;
+  userType: "employee" | "contractor" | "partner" | "system";
+  departmentIds: string[];
+  teamIds: string[];
+  designationIds: string[];
+  /** The completed access map and the legacy roles / overrides derived from it (see `people.ts`). */
+  access: Record<string, Record<string, "read" | "write">>;
+  roles: string[];
+  overrides: Record<string, boolean>;
+  /** Title of the main designation, for the HR file. */
+  designationTitle: string;
+  departmentName?: string | null;
+}
+
+/** Makes the account with a temporary password, the roles derived from the access map, and the HR file. */
+export async function createPersonAccount(input: PersonAccountInput, actorId: string): Promise<CreateAdminUserResult> {
+  const email = input.email.trim().toLowerCase();
+  const col = await collection();
+  if (await col.findOne({ email })) return { ok: false, error: "An account with this email already exists." };
+  const seatBlock = await newAccountBlockReason(input.roles);
+  if (seatBlock) return { ok: false, error: seatBlock };
+  const tempPassword = generateTempPassword();
+  const doc: AdminUserDoc = {
+    _id: new ObjectId(),
+    email,
+    name: input.name,
+    passwordHash: hashPassword(tempPassword),
+    roles: input.roles,
+    permissionOverrides: input.overrides,
+    manualRoles: input.roles,
+    manualOverrides: input.overrides,
+    customRoleIds: [],
+    designationId: input.designationIds[0] ?? null,
+    designationIds: input.designationIds,
+    departmentIds: input.departmentIds,
+    teamIds: input.teamIds,
+    access: input.access,
+    phone: input.phone || undefined,
+    status: "active",
+    userType: input.userType,
+    employeeId: null,
+    mustChangePassword: true,
+    failedLoginAttempts: 0,
+    lockedUntil: null,
+    createdAt: new Date(),
+    lastLoginAt: null,
+  };
+  await col.insertOne(doc);
+  const rolledBack = await rollbackIfOverSeats(doc._id);
+  if (rolledBack) return { ok: false, error: rolledBack };
+  const hr = await ensureHrFile({
+    userId: doc._id, email, name: input.name, designationTitle: input.designationTitle, designationId: input.designationIds[0] ?? null,
+    departmentName: input.departmentName ?? null, departmentId: input.departmentIds[0] ?? null, teamId: input.teamIds[0] ?? null,
+    joiningDate: input.joiningDate || null, phone: input.phone || null, actorId,
+  });
+  return { ok: true, id: doc._id.toString(), tempPassword, ...(hr.ok ? { employeeId: hr.employeeId } : { hrWarning: hr.error }) };
+}
+
+/**
+ * Saves a person's details and (unless they are a Director) their access map and the roles derived from it. Custom roles are
+ * cleared: whatever they contributed is already inside the derived roles, so nobody loses or gains access by saving.
+ */
+export async function updatePersonAccount(
+  id: string,
+  input: Omit<PersonAccountInput, "email" | "roles" | "overrides" | "access"> & { access?: PersonAccountInput["access"]; roles?: string[]; overrides?: Record<string, boolean> },
+  actorId: string
+): Promise<{ ok: boolean; error?: string }> {
+  if (!ObjectId.isValid(id)) return { ok: false, error: "Unknown account." };
+  const col = await collection();
+  const current = await col.findOne({ _id: new ObjectId(id) });
+  if (!current) return { ok: false, error: "Unknown account." };
+  const isDirector = (current.roles ?? []).includes(DIRECTOR_ROLE);
+  const set: Record<string, unknown> = {
+    name: input.name,
+    phone: input.phone || undefined,
+    userType: input.userType,
+    departmentIds: input.departmentIds,
+    teamIds: input.teamIds,
+    designationIds: input.designationIds,
+    designationId: isDirector ? DIRECTOR_DESIGNATION_ID : input.designationIds[0] ?? null,
+    updatedAt: new Date(),
+  };
+  if (!isDirector && input.access && input.roles && input.overrides) {
+    if (!rolesUseSeat(current.roles) && rolesUseSeat(input.roles) && canSignIn(current)) {
+      const seatBlock = await seatBlockReason(1);
+      if (seatBlock) return { ok: false, error: seatBlock };
+    }
+    Object.assign(set, await effectiveUpdate(current, { manualRoles: input.roles, manualOverrides: input.overrides, customRoleIds: [] }), { access: input.access, ...pinLegacyStatus(current) });
+  }
+  await col.updateOne({ _id: current._id }, { $set: set as never });
+  await ensureHrFile({
+    userId: current._id, email: current.email, name: input.name, designationTitle: input.designationTitle, designationId: input.designationIds[0] ?? null,
+    departmentName: input.departmentName ?? null, departmentId: input.departmentIds[0] ?? null, teamId: input.teamIds[0] ?? null, actorId,
+  });
+  return { ok: true };
 }

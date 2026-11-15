@@ -1,5 +1,6 @@
 "use server";
 
+import { isDirector } from "@/lib/access/director";
 import { redirect } from "next/navigation";
 import { getCurrentHubUser } from "@/lib/hub-auth";
 import { isBillingLimitError } from "@/lib/platform/billing/enforce";
@@ -14,7 +15,7 @@ export type AutomationResult = { ok: true; workflows: WorkflowView[]; message?: 
 async function requireOwner() {
   const user = await getCurrentHubUser();
   if (!user) redirect("/commandos/login");
-  if (!user.roles.includes("super_admin")) redirect("/commandos");
+  if (!isDirector(user)) redirect("/commandos");
   return user;
 }
 

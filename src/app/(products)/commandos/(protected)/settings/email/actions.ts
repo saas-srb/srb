@@ -1,5 +1,6 @@
 "use server";
 
+import { isDirector } from "@/lib/access/director";
 import { redirect } from "next/navigation";
 import { getCurrentHubUser } from "@/lib/hub-auth";
 import { checkCompanySender, removeCompanySender, saveCompanySender, type SenderResult, type SenderView } from "@/lib/platform/email/sender";
@@ -7,7 +8,7 @@ import { checkCompanySender, removeCompanySender, saveCompanySender, type Sender
 async function requireOwner() {
   const user = await getCurrentHubUser();
   if (!user) redirect("/commandos/login");
-  if (!user.roles.includes("super_admin")) redirect("/commandos");
+  if (!isDirector(user)) redirect("/commandos");
 }
 
 export async function saveSenderAction(input: { domain: string; localPart: string; fromName: string; replyTo: string }): Promise<SenderResult<SenderView>> {

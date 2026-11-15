@@ -241,8 +241,14 @@ export function prepareRender(input: PBDoc, opts: RenderOptions): Prepared {
     images.set(id, s.asset);
   }
   if (total > IMAGE_LIMITS.maxTotalBytes) reasons.push({ code: "image", detail: `images total more than ${IMAGE_LIMITS.maxTotalBytes / 1024 / 1024} MB` });
-  // The logo is printed by the company details block (an image block); there is no header logo any more.
-  const logo = null as Prepared["logo"];
+  // The logo is printed by the company details block (an image block). When that block is off and the company has a logo, the logo is printed
+  // alone at the top of page 1 (brand alignment and width), never as a running header.
+  let logo: Prepared["logo"] = null;
+  if (!opts.brand?.identity && opts.brand?.logo?.bytes) {
+    const s = sniffImage(opts.brand.logo.bytes);
+    if (s.ok) logo = { asset: s.asset, align: opts.brand.logo.align, widthMm: Math.min(Math.max(opts.brand.logo.widthMm, 10), 60) };
+    else reasons.push({ code: "image", detail: `company logo: ${s.reason}` });
+  }
   if (reasons.length) throw new RenderBlockedError("An image in the document cannot be used.", reasons);
 
   const tokens = buildTokens(doc.page, opts.brand);

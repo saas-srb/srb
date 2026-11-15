@@ -36,7 +36,8 @@ export function brandRenderOptions(b: LoadedBrand, footerText?: string): RenderB
     fontPair: s.fontPair,
     // There is no running header any more: the company details block (with the logo) is printed once, at the top of page 1.
     letterhead: "none",
-    ...(identityOn(s) ? { identity: true } : {}),
+    // The block (details, or the logo alone when the details are off) is part of the document body, so the renderer adds no logo of its own.
+    ...(identityOn(s) || b.logo ? { identity: true } : {}),
     ...(b.logo ? { logo: { bytes: b.logo.bytes, align: s.logo.position, widthMm: s.logo.widthMm } } : {}),
     ...(footerText ? { footerText } : {}),
   };
@@ -44,7 +45,7 @@ export function brandRenderOptions(b: LoadedBrand, footerText?: string): RenderB
 
 /** The details block for the editor's first sheet (the same input the export builds), or null when it is switched off. */
 export function identityFor(brand: BrandSettings, values: VarValues, orientation: "portrait" | "landscape" = "portrait") {
-  if (!identityOn(brand)) return null;
+  // With the details block off, a company that has a logo still gets the logo alone at the top of the first sheet (see identityBlockInput).
   return identityBlockInput(values, brand.identity, { align: brand.logo.position, hasLogo: !!brand.logo.assetId, logoWidthMm: brand.logo.widthMm });
 }
 
@@ -75,7 +76,6 @@ export interface ApplyOptions {
 export function applyBrandToDoc(doc: PBDoc, brand: BrandSettings, values: VarValues, opts: ApplyOptions = {}): PBDoc {
   // No running header on any page: the company details block on page 1 replaces the letterhead.
   const header: ZoneBlock[] = [];
-  const idOn = identityOn(brand);
 
   const footer: ZoneBlock[] = [];
   const lines = brand.footerLines.filter((l) => l.key !== "company.email").map((l) => lineText(l, values)).filter((x): x is string => !!x);
@@ -108,7 +108,7 @@ export function applyBrandToDoc(doc: PBDoc, brand: BrandSettings, values: VarVal
   const collect = (bs: readonly { id: string }[]) => bs.forEach((b) => own.add(b.id));
   collect(doc.body);
   own.forEach((id) => taken.add(id));
-  const identity = idOn ? identityBlockInput(values, brand.identity, { align: brand.logo.position, hasLogo: !!brand.logo.assetId, logoWidthMm: brand.logo.widthMm }) : null;
+  const identity = identityBlockInput(values, brand.identity, { align: brand.logo.position, hasLogo: !!brand.logo.assetId, logoWidthMm: brand.logo.widthMm });
   // Callers without a kind layout still get the details block (a free-standing "layout" that wraps nothing else).
   const layoutIn: LayoutInput | undefined = opts.layout ? { ...opts.layout, identity } : identity ? { kind: "document", title: "", docTypeId: "identity-only", dateText: "", identity } : undefined;
   return { ...doc, page: page.ok ? page.value : doc.page, header: [], footer: footer.length ? unique(footer) : doc.footer, body: layoutIn ? wrapBody(doc.body as ContentBlock[], layoutIn) : (doc.body as ContentBlock[]) };

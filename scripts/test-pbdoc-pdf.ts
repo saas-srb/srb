@@ -221,6 +221,27 @@ const jpg = await sharp({ create: { width: 300, height: 300, channels: 3, backgr
       assert.ok(txt.includes("Figure 1") && txt.includes("Registered office: Mumbai") && txt.includes("Letterhead"));
     }
   });
+  const imageCount = (buf: Buffer) => (buf.toString("latin1").match(/\/Subtype\s*\/Image/g) ?? []).length;
+  const brandBase = { colors: { primary: "#0f766e", accent: "#b45309" }, fontPair: "classic", letterhead: "none" } as never;
+  await t("the logo with the company details block ON is drawn once, by the block (the renderer adds no logo of its own)", async () => {
+    const withBlock = doc({ ...minimalRaw(), body: [
+      { type: "letterhead", logoFileId: "brand-logo", logoWidthMm: 30, name: "Northwind Demo Pvt Ltd", address: ["Mumbai"], details: [], align: "left" },
+      { type: "paragraph", content: [{ type: "text", text: "Body text" }] },
+    ] });
+    const r = await renderPdf(withBlock, { meta: { title: "t", dateIso: "2026-11-05" }, values: {}, brand: { ...(brandBase as object), identity: true, logo: { bytes: logoPng, align: "left", widthMm: 30 } } as never });
+    assert.equal(imageCount(r.buffer), 1, "exactly one logo image");
+  });
+  await t("the logo with the details block OFF is printed alone at the top of page 1 only (no running header on any page)", async () => {
+    const noBlock = doc({ ...minimalRaw(), body: [{ type: "paragraph", content: [{ type: "text", text: "Body text" }] }] });
+    const r = await renderPdf(noBlock, { meta: { title: "t", dateIso: "2026-11-05" }, values: {}, brand: { ...(brandBase as object), logo: { bytes: logoPng, align: "left", widthMm: 30 } } as never });
+    assert.equal(imageCount(r.buffer), 1, "the logo is drawn once even though the block is off");
+    const long = doc(longDocRaw({ sections: 14, paras: 4 }));
+    const rl = await renderPdf(long, { meta: { title: "t", dateIso: "2026-11-05" }, values: {}, brand: { ...(brandBase as object), logo: { bytes: logoPng, align: "left", widthMm: 30 } } as never });
+    assert.ok(countPdfPages(rl.buffer) > 1);
+    assert.equal(imageCount(rl.buffer), 1, "page 1 only: never repeated on later pages");
+    const none = await renderPdf(noBlock, { meta: { title: "t", dateIso: "2026-11-05" }, values: {}, brand: brandBase });
+    assert.equal(imageCount(none.buffer), 0, "no logo, no image");
+  });
   await t("a tall image is scaled to fit the page and never overflows the text area", async () => {
     const tall = await sharp({ create: { width: 100, height: 4000, channels: 3, background: "#222" } }).png().toBuffer();
     const d = doc({ ...minimalRaw(), body: [{ type: "image", fileId: "tall-img-001", alt: "Tall", widthPct: 100, align: "left" }, { type: "paragraph", content: [{ type: "text", text: "After image" }] }] });

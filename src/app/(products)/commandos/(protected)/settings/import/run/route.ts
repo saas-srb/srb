@@ -1,3 +1,4 @@
+import { isDirector } from "@/lib/access/director";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getCurrentHubUser } from "@/lib/hub-auth";
@@ -17,7 +18,7 @@ const REVALIDATE: Record<string, string[]> = { leads: ["/dealflow-ai/leads", "/d
 export async function POST(req: Request) {
   const user = await getCurrentHubUser();
   if (!user) return NextResponse.json({ ok: false, error: "Sign in again to continue." }, { status: 401 });
-  if (!user.roles.includes("super_admin")) return NextResponse.json({ ok: false, error: "Only a Director can import data." }, { status: 403 });
+  if (!isDirector(user)) return NextResponse.json({ ok: false, error: "Only a Director can import data." }, { status: 403 });
   // Same-origin only: a cross-site page can't post a JSON body with this header check passing.
   if (!(req.headers.get("content-type") ?? "").includes("application/json")) return NextResponse.json({ ok: false, error: "Unsupported request." }, { status: 415 });
   const declared = Number(req.headers.get("content-length") ?? 0);

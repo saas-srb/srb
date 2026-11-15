@@ -176,9 +176,10 @@ function paragraphs(s: string): string[] {
     assert.equal(tbl.find("w\\:tr").first().find("w\\:tc w\\:shd").length, 2, "header cells shaded");
   });
   await t("signature blocks are visible lines: a rule, a caption and underscore-leader tab lines for name, designation, date", () => {
-    assert.ok(D("w\\:pBdr w\\:bottom").length >= 2, "signature rules");
+    // The rule is an underscore-leader tab line (not a paragraph border): see signatureBlock in docx.ts.
+    assert.ok(D("w\\:tab[w\\:leader='underscore']").length >= 2, "signature rules");
     const leaders = D("w\\:tab[w\\:leader='underscore']").length;
-    assert.equal(leaders, 5, "2 signatories: 3 + 2 lines");
+    assert.equal(leaders, 7, "2 signatories: the signature line plus name, designation and date lines (4 + 3)");
     assert.ok(D("w\\:keepNext").length >= 8);
   });
   await t("an explicit page break becomes pageBreakBefore on the next block", () => {
@@ -255,9 +256,12 @@ function paragraphs(s: string): string[] {
     const dx = xml(await x.text("word/document.xml"));
     const ext = dx("wp\\:extent").map((_, e) => `${dx(e).attr("cx")}x${dx(e).attr("cy")}`).get();
     // 50% of the 170 mm text width = 85 mm = 321 px at 96 dpi, height half of that.
-    assert.equal(ext[0], `${Math.round((85 / 25.4) * 96) * 9525}x${Math.round(((85 / 2) / 25.4) * 96) * 9525}`);
+    // The logo (details block off) is the first picture of page 1, brand width 30 mm, then the chart.
+    assert.equal(ext[0].split("x")[0], String(Math.round((30 / 25.4) * 96) * 9525), "the logo comes first, at the brand width");
+    assert.equal(ext[1], `${Math.round((85 / 25.4) * 96) * 9525}x${Math.round(((85 / 2) / 25.4) * 96) * 9525}`);
     assert.ok(dx("wp\\:docPr[descr='Delivery chart']").length === 1 && dx("wp\\:docPr[descr='Site photo']").length === 1);
-    assert.ok((await x.text("word/header1.xml")).includes("Company logo"));
+    assert.ok(dx("wp\\:docPr[descr='Company logo']").length === 1, "the logo is in the body once");
+    assert.ok(!x.names.includes("word/header1.xml") || !(await x.text("word/header1.xml")).includes("Company logo"), "the logo is never a running header");
     assert.ok((await x.text("word/footer1.xml")).includes("Registered office: Mumbai"));
   });
 
@@ -289,7 +293,8 @@ function paragraphs(s: string): string[] {
       const pdf = await renderPdf(d, o);
       const f = path.join(tmp, `${label.replace(/\W/g, "")}.pdf`);
       writeFileSync(f, pdf.buffer);
-      const b = noNumbers(words(execFileSync("pdftotext", ["-layout", f, "-"], { encoding: "utf8" })));
+      // Reading order of the drawing (not the visual line layout): two signature blocks side by side are read block by block, as in the DOCX.
+      const b = noNumbers(words(execFileSync("pdftotext", ["-raw", f, "-"], { encoding: "utf8" })));
       assert.equal(a.length, b.length, `${label}: word counts differ (docx ${a.length}, pdf ${b.length})`);
       const at = a.findIndex((w, i) => w !== b[i]);
       assert.ok(at === -1, `${label}: sequences differ at word ${at}: docx "${a.slice(at - 2, at + 4).join(" ")}" vs pdf "${b.slice(at - 2, at + 4).join(" ")}"`);

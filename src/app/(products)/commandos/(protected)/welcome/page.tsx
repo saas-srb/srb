@@ -1,3 +1,4 @@
+import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -15,7 +16,7 @@ export const metadata: Metadata = { title: "Welcome", robots: { index: false, fo
 export default async function WelcomePage() {
   const user = await getCurrentHubUser();
   if (!user) redirect("/commandos/login");
-  if (!user.roles.includes("super_admin")) redirect("/commandos");
+  await requireWorkspaceAccess("company.setup"); // Director-only item: anyone else sees the locked page inside this shell
   const brand = await getCompanyBrand();
 
   return (

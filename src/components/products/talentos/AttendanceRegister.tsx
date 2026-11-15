@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import OrgPicker from "@/components/platform/OrgPicker";
+import { toOptions } from "@/lib/platform/organization/rules";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -156,18 +158,7 @@ export default function AttendanceRegister({
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium text-muted-foreground">Department</label>
-            <Select
-              value={searchParams.get("department") || "all"}
-              onValueChange={(v) => setParam("department", !v || v === "all" ? undefined : v)}
-            >
-              <SelectTrigger className="h-9 w-48 rounded-xl border-border/50 bg-background focus-visible:border-primary focus-visible:ring-primary/40"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All departments</SelectItem>
-                {departments.map((d) => (
-                  <SelectItem key={d._id} value={d._id}>{d.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <OrgPicker kind="department" options={toOptions("department", departments)} value={searchParams.get("department")} onChange={(v) => setParam("department", v || undefined)} noneLabel="All departments" className="h-9 w-48" />
           </div>
           <div className="flex items-center gap-2 pb-1.5 text-sm text-muted-foreground">
             <CalendarDays className="size-4" />

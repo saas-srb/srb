@@ -1,3 +1,4 @@
+import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -15,7 +16,7 @@ export const metadata: Metadata = { title: "Import data", robots: { index: false
 export default async function ImportSettingsPage() {
   const user = await getCurrentHubUser();
   if (!user) redirect("/commandos/login");
-  if (!user.roles.includes("super_admin")) redirect("/commandos");
+  await requireWorkspaceAccess("company.import"); // Director-only item: anyone else sees the locked page inside this shell
 
   return (
     <div className="min-h-screen bg-muted/70 px-4 py-10 dark:bg-background">

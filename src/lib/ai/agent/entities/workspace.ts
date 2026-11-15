@@ -1,3 +1,4 @@
+import * as LegacyUsers from "@/lib/products/commandos/legacy-user-actions";
 import "server-only";
 import * as U from "@/app/(products)/commandos/(protected)/users/actions";
 import * as Brand from "@/app/(products)/commandos/(protected)/settings/branding/actions";
@@ -55,10 +56,10 @@ export const WORKSPACE_ACTIONS: ActionDef[] = [
     const wanted = String(v.designation ?? "").trim().toLowerCase();
     const designationId = wanted === "director" ? "director" : (await listCustomRoles()).find((r) => r.name.toLowerCase() === wanted)?.id;
     if (!designationId) return { ok: false, error: `There is no designation called "${String(v.designation ?? "")}". Use the name of one on the Designations page, or Director.` };
-    const r = await U.createAdminUserAction({ email: String(v.email ?? ""), name: String(v.name ?? ""), designationId, userType: (str(v.userType) as never) ?? undefined, notes: str(v.notes) ?? undefined });
+    const r = await LegacyUsers.createAdminUserAction({ email: String(v.email ?? ""), name: String(v.name ?? ""), designationId, userType: (str(v.userType) as never) ?? undefined, notes: str(v.notes) ?? undefined });
     return r.ok ? { ok: true, result: "Person added; their temporary password is shown to you on the Users page only." } : r;
   }, "Person added.", { destructive: true }),
-  act("workspace.set_user_roles", "Change a person's roles", `Replace the roles of a person (they gain or lose access to products). ${ROLES}.`, [f.ref("userId", "User (workspace.user id)", "workspace.user", true), f.list("roles", "New roles", )], (v) => U.updateAdminUserRolesAction(String(v.userId), (v.roles as string[]) ?? []), "Roles updated.", { destructive: true }),
+  act("workspace.set_user_roles", "Change a person's roles", `Replace the roles of a person (they gain or lose access to products). ${ROLES}.`, [f.ref("userId", "User (workspace.user id)", "workspace.user", true), f.list("roles", "New roles", )], (v) => LegacyUsers.updateAdminUserRolesAction(String(v.userId), (v.roles as string[]) ?? []), "Roles updated.", { destructive: true }),
   act("workspace.deactivate_user", "Deactivate a person", "Remove a person's access (their data stays); they can be reactivated.", [f.ref("userId", "User id", "workspace.user", true), f.text("reason", "Reason")], (v) => U.changeAccountStatusAction(String(v.userId), { status: "deactivated", reason: str(v.reason) ?? "" }), "User deactivated.", { destructive: true }),
   act("workspace.reactivate_user", "Reactivate a person", "Make a person active again (they can sign in).", [f.ref("userId", "User id", "workspace.user", true)], (v) => U.changeAccountStatusAction(String(v.userId), { status: "active" }), "User reactivated."),
   act("workspace.set_user_status", "Change a person's status", "Only a Director can. Active, probation, on leave and serving notice can sign in; suspended, deactivated and the left-the-company statuses (resigned, terminated, retired, contract ended) cannot, and end every sign-in at once.", [f.ref("userId", "User id", "workspace.user", true), f.enum("status", "Status", [...ACCOUNT_STATUS_VALUES], true), f.text("reason", "Reason (required for suspended and terminated)"), f.str("lastWorkingDay", "Last working day, YYYY-MM-DD (required for notice and leaving)")], (v) => U.changeAccountStatusAction(String(v.userId), { status: String(v.status), reason: str(v.reason) ?? "", lastWorkingDay: str(v.lastWorkingDay) ?? null }), "Status updated.", { destructive: true }),
@@ -83,12 +84,12 @@ export const WORKSPACE_ACTIONS: ActionDef[] = [
     const hasCustom = ((cur?.customRoleIds as string[] | undefined) ?? []).length > 0;
     const next: Record<string, boolean> = { ...(((cur?.manualOverrides ?? (hasCustom ? {} : cur?.permissionOverrides)) as Record<string, boolean>) ?? {}) };
     for (const [k, val] of Object.entries((v.overrides as Json) ?? {})) { if (val === null) delete next[k]; else if (typeof val === "boolean") next[k] = val; }
-    return U.updateAdminUserPermissionOverridesAction(String(v.userId), next);
+    return LegacyUsers.updateAdminUserPermissionOverridesAction(String(v.userId), next);
   }, "Permissions updated.", { allow: owner, destructive: true }),
   act("workspace.set_user_custom_roles", "Give a person custom roles", "Replace the custom roles (workspace.custom_role ids) a person holds. Their other roles are not touched. Roles carrying permission rules need the Director.", [f.ref("userId", "User (workspace.user id)", "workspace.user", true), f.list("customRoleIds", "Custom role ids")], async (v) => {
     const cur = await (await getDb()).collection("admin_users").findOne({ _id: new ObjectId(String(v.userId)) }, { projection: { roles: 1, manualRoles: 1, customRoleIds: 1 } });
     const manual = (cur?.manualRoles as string[] | undefined) ?? (((cur?.customRoleIds as string[] | undefined) ?? []).length === 0 ? ((cur?.roles as string[] | undefined) ?? []) : []);
-    return U.updateAdminUserRolesAction(String(v.userId), manual, (v.customRoleIds as string[]) ?? []);
+    return LegacyUsers.updateAdminUserRolesAction(String(v.userId), manual, (v.customRoleIds as string[]) ?? []);
   }, "Custom roles updated.", { destructive: true }),
   act("workspace.bulk_deactivate_users", "Deactivate several people", "Remove access for many people at once (their data stays).", [f.list("userIds", "User ids")], async (v) => { const r = await U.bulkChangeStatusAction((v.userIds as string[]) ?? [], { status: "deactivated" }); return r.changed > 0 ? { ok: true, result: `${r.changed} deactivated, ${r.skipped} skipped.` } : { ok: false, error: r.firstError ?? "Nothing was changed." }; }, "Users deactivated.", { destructive: true }),
   act("workspace.bulk_reactivate_users", "Reactivate several people", "Restore access for many people at once.", [f.list("userIds", "User ids")], async (v) => { const r = await U.bulkChangeStatusAction((v.userIds as string[]) ?? [], { status: "active" }); return r.changed > 0 ? { ok: true, result: `${r.changed} made active, ${r.skipped} skipped.` } : { ok: false, error: r.firstError ?? "Nothing was changed." }; }, "Users reactivated.", { destructive: true }),

@@ -1,6 +1,8 @@
+import { isDirector } from "@/lib/access/director";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { lockedHref } from "@/lib/products/commandos/nav";
 import { CardContent } from "@/components/ui/card";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import { getCurrentHubUser } from "@/lib/hub-auth";
@@ -21,11 +23,11 @@ export const metadata: Metadata = { title: "Payments & payouts", robots: { index
 export default async function PaymentsSettingsPage() {
   const user = await getCurrentHubUser();
   if (!user) redirect("/commandos/login");
-  const isOwner = user.roles.includes("super_admin");
+  const isOwner = isDirector(user);
   const payrollUser = await getCurrentHrmsUser();
   const canManageBanking =
     !!payrollUser && (canRunPayroll(payrollUser) || canManagePayrollConfig(payrollUser));
-  if (!isOwner && !canManageBanking) redirect("/commandos");
+  if (!isOwner && !canManageBanking) redirect(lockedHref("company.payments")); // locked page inside the shell, not a silent redirect home
 
   const [paymentAccount, allAccounts, provider, bankAccounts, config] = await Promise.all([
     isOwner ? getPaymentAccountView() : Promise.resolve(null),

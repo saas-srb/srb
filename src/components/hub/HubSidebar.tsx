@@ -93,6 +93,7 @@ function NavLink({
   exact = false,
   collapsed = false,
   external = false,
+  locked = false,
   onNavigate,
 }: {
   href: string;
@@ -101,6 +102,8 @@ function NavLink({
   exact?: boolean;
   collapsed?: boolean;
   external?: boolean;
+  /** No access: same place, greyed with a lock; opens the page that explains it. */
+  locked?: boolean;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
@@ -120,6 +123,27 @@ function NavLink({
       {!collapsed && external && <ExternalLink className="relative size-3 text-muted-foreground/60 opacity-0 group-hover:opacity-100 transition-opacity" />}
     </>
   );
+
+  if (locked) {
+    const node = (
+      <Link
+        href={href}
+        onClick={onNavigate}
+        aria-label={`${label} (no access)`}
+        className={cn("group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground/50 transition-colors hover:bg-muted/50", collapsed && "justify-center px-0", active && "bg-muted/60 text-muted-foreground")}
+      >
+        <Icon className="relative size-4 shrink-0" />
+        {!collapsed && <span className="relative flex-1 truncate">{label}</span>}
+        <Lock className="relative size-3 shrink-0" aria-hidden />
+      </Link>
+    );
+    return (
+      <Tooltip>
+        <TooltipTrigger render={node} />
+        <TooltipContent side="right">You don&apos;t have access. Ask your Director.</TooltipContent>
+      </Tooltip>
+    );
+  }
 
   const link = (
     <Link
@@ -171,11 +195,9 @@ export default function HubSidebar({
   return (
     <nav aria-label="Workspace" className="flex h-full flex-col gap-1 p-3 overflow-y-auto">
       {nav.filter((section) => section.sidebar).map((section) => {
-        const filteredItems = section.items.filter(
-          (item) =>
-            item.key !== "company.payments" &&
-            item.label !== "Payment account"
-        );
+        // Only items that belong in the sidebar: guarded items reached from another page (inSidebar: false) are not listed.
+        const filteredItems = section.items.filter((item) => item.inSidebar);
+        if (filteredItems.length === 0) return null;
         const links = (
           <>
             {filteredItems.map((item, i) => (
@@ -194,6 +216,7 @@ export default function HubSidebar({
                   icon={ICONS[item.icon]}
                   exact={item.href === "/commandos" || item.href === "/commandos/settings/billing"}
                   external={item.external}
+                  locked={item.locked}
                   collapsed={collapsed}
                   onNavigate={onNavigate}
                 />

@@ -1,3 +1,4 @@
+import ProductLocked from "@/components/products/common/ProductLocked";
 import { redirect } from "next/navigation";
 import { getCurrentHrmsUser } from "@/lib/hrms-auth";
 import { hasStaffRole } from "@/lib/hrms-roles";
@@ -17,6 +18,6 @@ import { hasStaffRole } from "@/lib/hrms-roles";
 export default async function StaffHrmsLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentHrmsUser();
   if (!user) redirect("/talentos/login");
-  if (!hasStaffRole(user.roles)) redirect(user.employeeId ? "/talentos/me" : "/talentos/login");
+  if (!hasStaffRole(user.roles)) return <ProductLocked product="talentos" feature="Management pages" />; // locked, not bounced: everyone has the same shell (owner decision D1)
   return <>{children}</>;
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import OrgPicker from "@/components/platform/OrgPicker";
+import type { OrgOption } from "@/lib/platform/organization/rules";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -29,7 +31,7 @@ function plainText(v: unknown): string {
 
 const PLACEHOLDER_NOTE = "Values the AI could not confirm from your details are shown as highlighted placeholders. Fill them in the editor.";
 
-export default function ItemWizard({ kind, aiEnabled, brand }: { kind: ItemKind; aiEnabled: boolean; brand?: { company: string; style: string; hasLogo: boolean; canChange: boolean } }) {
+export default function ItemWizard({ kind, aiEnabled, brand, org }: { kind: ItemKind; aiEnabled: boolean; org?: { departments: OrgOption[]; designations: OrgOption[] }; brand?: { company: string; style: string; hasLogo: boolean; canChange: boolean } }) {
   const router = useRouter();
   const info = ITEM_KIND_INFO[kind];
   const plan = ITEM_SECTIONS[kind];
@@ -150,10 +152,18 @@ export default function ItemWizard({ kind, aiEnabled, brand }: { kind: ItemKind;
         <div ref={formRef} className="grid gap-4 sm:grid-cols-2">
           <label className="space-y-1 text-sm sm:col-span-2"><span className="font-medium">{kind === "kpi" ? "Sheet title" : "Title"}</span>
             <input className={FIELD} autoComplete="off" name="item-title" value={d.title} maxLength={200} placeholder={kind === "sop" ? "Visitor management" : kind === "kpi" ? "Sales Executive KPI sheet" : "Internal travel letter"} onChange={(e) => set({ title: e.target.value })} /></label>
-          <label className="space-y-1 text-sm"><span className="font-medium">Department</span>
-            <input className={FIELD} autoComplete="off" name="item-department" value={d.department} maxLength={120} onChange={(e) => set({ department: e.target.value })} /></label>
-          <label className="space-y-1 text-sm"><span className="font-medium">{kind === "kpi" ? "Role or designation" : "Designation (who it concerns)"}</span>
-            <input className={FIELD} autoComplete="off" name="item-designation" value={d.designation} maxLength={120} onChange={(e) => set({ designation: e.target.value })} /></label>
+          <div className="space-y-1 text-sm"><span className="font-medium">Department</span>
+            {org ? (
+              <OrgPicker kind="department" options={org.departments} value={d.departmentId ?? ""} noneLabel="Not specific to a department" onChange={(v) => set({ departmentId: v, department: org.departments.find((o) => o.value === v)?.label ?? "" })} />
+            ) : (
+              <input className={FIELD} autoComplete="off" name="item-department" value={d.department} maxLength={120} onChange={(e) => set({ department: e.target.value })} />
+            )}</div>
+          <div className="space-y-1 text-sm"><span className="font-medium">{kind === "kpi" ? "Role or designation" : "Designation (who it concerns)"}</span>
+            {org ? (
+              <OrgPicker kind="designation" options={org.designations} departmentId={d.departmentId} value={d.designationId ?? ""} noneLabel="Not specific to a designation" onChange={(v) => set({ designationId: v, designation: org.designations.find((o) => o.value === v)?.label ?? "" })} />
+            ) : (
+              <input className={FIELD} autoComplete="off" name="item-designation" value={d.designation} maxLength={120} onChange={(e) => set({ designation: e.target.value })} />
+            )}</div>
           {kind === "kpi" && (
             <label className="space-y-1 text-sm"><span className="font-medium">Review period</span>
               <select className={FIELD} value={d.reviewPeriod} onChange={(e) => set({ reviewPeriod: e.target.value })}>{["Monthly", "Quarterly", "Half-yearly", "Annual"].map((x) => <option key={x}>{x}</option>)}</select></label>

@@ -28,11 +28,11 @@ import { hasIntelligenceAccess } from "@/lib/intelligence-roles";
 import { hasSmmsAccess, smmsCan } from "@/lib/smms-roles";
 import { hasOtsAccess, otsCan } from "@/lib/ots-roles";
 import { cmsCan, hasCmsAccess } from "@/lib/cms-roles";
-import { canViewLmsAnalytics, lmsCan } from "@/lib/lms-roles";
+import { canViewLmsAnalytics, hasLmsAccess, lmsCan } from "@/lib/lms-roles";
 import { canViewWorkspaceAnalytics } from "@/lib/workspace-roles";
 import { resolvePermission, type RoleContext } from "@/lib/permission-overrides";
 
-export type NavSectionKey = "dashboard" | "panels" | "analytics" | "manage" | "engagement" | "ai" | "company" | "account" | "platform";
+export type NavSectionKey = "dashboard" | "panels" | "analytics" | "manage" | "engagement" | "ai" | "company" | "insight" | "account" | "platform";
 
 export type NavIcon =
   | "smartphone"
@@ -90,6 +90,8 @@ interface NavItemDef {
   panel?: string;
   /** Opens in a new tab (products have their own shell). */
   external?: boolean;
+  /** `false`: a real, guarded item (its page and actions check it) that is not listed in the sidebar or on the settings cards. */
+  inSidebar?: boolean;
   /** Needs the Platform Console access check instead of a company role. */
   platform?: boolean;
   allow: (user: RoleContext) => boolean;
@@ -106,7 +108,7 @@ const PANELS: NavItemDef[] = (
   [
     ["hrms", "Human Resources", "users", has(normalizeRoles)],
     ["pms", "Projects", "projects", has(normalizePmsRoles)],
-    ["lms", "CRM & Leads", "grid", anyone], // the CRM has no role gate (see role-catalog.ts)
+    ["lms", "CRM & Leads", "grid", (u) => hasLmsAccess(u.roles)], // follows the access matrix like every other product (people who used it before keep it through the one-time migration)
     ["fms", "Finance", "finance", has(normalizeFmsRoles)],
     ["prms", "Procurement & Expenses", "cart", has(normalizePrmsRoles)],
     ["tms", "Training", "training", has(normalizeTmsRoles)],
@@ -250,32 +252,36 @@ const MANAGE: NavItemDef[] = MANAGE_PAGES.map(([group, path, label, icon, permis
   href: `/commandos/${path}`,
   icon,
   module: module ?? (AI_GROUPS.has(group) ? "cms" : undefined),
+  // The AI Chatbot Dashboard is the only chatbot item in the sidebar: conversations, knowledge base, AI config and every voice screen live in
+  // Integrations (AI Chatbot and Voice cards). They stay guarded items because their screens check them.
+  ...(AI_GROUPS.has(group) && path !== "chatbot" ? { inSidebar: false } : {}),
   allow: permission === P.chatbot ? chatbotAccess : permission === P.pushNotifications ? websitePushAccess : may(permission),
 }));
 
 // ── Company: the company managing itself ────────────────────────────────────
 const COMPANY_GROUPS: Record<string, string> = {
-  setup: "Organization", users: "Organization", roles: "Organization",
+  setup: "Organization Setup", integrations: "Organization Setup", products: "Organization Setup",
+  departments: "Users & Access", teams: "Users & Access", designations: "Users & Access", users: "Users & Access",
   billing: "Billing & plan", invoices: "Billing & plan", usage: "Billing & plan",
-  addresses: "Branding & domains", domains: "Branding & domains", app: "Branding & domains",
-  email: "Connections & automation", payments: "Connections & automation", integrations: "Connections & automation", notifications: "Connections & automation", schedules: "Connections & automation", pdfs: "Connections & automation", prompts: "Connections & automation", automations: "Connections & automation", import: "Connections & automation", backups: "Connections & automation",
-  audit: "Connections & automation", security: "Connections & automation",
-  products: "Product settings",
+  app: "Branding & domains", addresses: "Branding & domains", domains: "Branding & domains",
+  notifications: "System default", prompts: "System default", schedules: "System default", pdfs: "System default",
+  backups: "Security & Logs", import: "Security & Logs", audit: "Security & Logs", security: "Security & Logs",
 };
 const company = (key: string, href: string, icon: NavIcon, label: string, description: string, title?: string): NavItemDef => ({ key: `company.${key}`, section: "company", group: COMPANY_GROUPS[key], label, title, description, href, icon, allow: superAdmin });
 const COMPANY: NavItemDef[] = [
   company("setup", "/commandos/onboarding", "building", "Company setup", "Profile, departments, invitations and which products your team uses."),
-  { ...company("users", "/commandos/users", "users", "People & access", "Everyone who can sign in: their designation, status (active, on leave, left the company …), access in every product, and seats used.", "People & access"), allow: may(P.users) },
-  company("roles", "/commandos/roles", "users", "Designations & permissions", "The jobs in your company (HR Manager, Accountant …) and what each may do in every product. Start from the standard ones or add your own.", "Designations"),
+  company("integrations", "/commandos/settings/integrations", "plug", "Integrations", "What your workspace is connected to: payment gateway, webhooks and your own domain."),
+  company("products", "/commandos/settings/products", "grid", "Product settings", "Configure every product your company uses — HR, Projects, Finance, SEO, Social Media, Training and more — from one place.", "All product settings"),
+  company("departments", "/commandos/settings/organization/departments", "users", "Departments", "Create and manage the departments your company is divided into."),
+  company("teams", "/commandos/settings/organization/teams", "users", "Teams", "Groups of people within departments working on the same area."),
+  company("designations", "/commandos/settings/organization/designations", "users", "Designations", "Job titles and seniority levels for your company's positions."),
+  { ...company("users", "/commandos/users", "users", "People & access", "Everyone who can sign in: where they work, their status (active, on leave, left the company …), which products and features they can use, and seats used.", "People & access"), allow: may(P.users) },
   company("billing", "/commandos/settings/billing", "card", "Plan & billing", "Your plan, payments, coupon codes and GST billing details."),
   company("invoices", "/commandos/settings/billing/invoices", "receipt", "Invoices & payments", "Tax invoices, credit notes and every payment made for your subscription."),
   company("usage", "/commandos/settings/usage", "gauge", "Usage & limits", "What your workspace uses against its plan (seats, AI tokens, storage, emails, voice, domains), and where to add more capacity.", "Usage & limits"),
   company("app", "/commandos/settings/apps", "smartphone", "Apps & downloads", "Your company's own apps for phones and Windows, macOS and Linux computers: settings, and a Generate button and download link for each app.", "Apps"),
   company("addresses", "/commandos/addresses", "website", "Default domain", "The default addresses we give your company: your public website and the app where your team signs in to the Workspace and every product, ready to copy and share.", "Default domain"),
   company("domains", "/commandos/settings/domains", "globe", "Custom domains", "Your workspace address and your own custom domains, with automatic SSL.", "Domains"),
-  company("email", "/commandos/settings/email", "mail", "Sender email", "Send your emails from your own address, like hello@yourbusiness.com, by connecting your domain.", "Sender email"),
-  company("payments", "/commandos/settings/payments", "bank", "Payments & payouts", "Connect Razorpay and manage the company bank accounts used for invoice payments, salaries and government dues.", "Payments & payouts"),
-  company("integrations", "/commandos/settings/integrations", "plug", "Integrations", "What your workspace is connected to: payment gateway, webhooks and your own domain."),
   company("notifications", "/commandos/settings/notifications", "bell", "Notification center", "Every email, in-app and push notification your workspace sends: turn each on or off, change its wording, send your own announcements, and see what was delivered."),
   company("prompts", "/commandos/settings/prompts", "bot", "AI prompts", "How your AI assistants are told to write and behave: change the wording for your own workspace, with every version kept so you can go back to any of them. Fixed security rules always apply.", "AI prompts"),
   company("schedules", "/commandos/settings/schedules", "history", "Scheduled jobs", "What runs on its own and when: backups, reminders, notifications, billing checks and more. When each runs, when it last ran and what it does for your workspace.", "Scheduled jobs"),
@@ -288,11 +294,14 @@ const COMPANY: NavItemDef[] = [
     allow: canViewAuditLog,
   },
   company("security", "/commandos/settings/security", "lock", "Security", "Your sign-in, password, active sessions and accounts that need attention."),
-  company("products", "/commandos/settings/products", "grid", "Product settings", "Configure every product your company uses — HR, Projects, Finance, SEO, Social Media, Training and more — from one place.", "All product settings"),
-  { key: "analytics.overview", section: "company", label: "Analytics", href: "/commandos/analytics", icon: "chart", allow: (u) => canViewCommandCenter(u) || ANALYTICS.some((item) => item.allow(u)) },
+  { ...company("email", "/commandos/settings/email", "mail", "Sender email", "Send your emails from your own address, like hello@yourbusiness.com, by connecting your domain.", "Sender email"), inSidebar: false },
+  { ...company("payments", "/commandos/settings/payments", "bank", "Payments & payouts", "Connect Razorpay and manage the company bank accounts used for invoice payments, salaries and government dues.", "Payments & payouts"), inSidebar: false },
+  { ...company("automations", "/commandos/settings/automations", "zap", "Automations", "Rules that send a webhook, email or in-app notice when something happens.", "Automations"), inSidebar: false },
+  { ...company("branding", "/commandos/settings/branding", "palette", "Branding", "Your company name, logo, colours and theme.", "Branding"), inSidebar: false },
+  { key: "analytics.overview", section: "insight", label: "Analytics", href: "/commandos/analytics", icon: "chart", allow: (u) => canViewCommandCenter(u) || ANALYTICS.some((item) => item.allow(u)) },
 ];
 
-const NAV_ITEMS: NavItemDef[] = [
+export const NAV_ITEMS: NavItemDef[] = [
   { key: "dashboard", section: "dashboard", label: "Dashboard", href: "/commandos", icon: "dashboard", allow: anyone },
   ...PANELS,
   // Help & Support is the platform's own service for every company: no role gate and no plan module.
@@ -321,15 +330,18 @@ const NAV_ITEMS: NavItemDef[] = [
 
 export const NAV_SECTIONS: { key: NavSectionKey; label: string; href?: string; /** `false`: resolved and guarded like any section, but not listed in the sidebar. */ sidebar?: boolean }[] = [
   { key: "dashboard", label: "" },
-  // The products are opened from the Staff Hub tiles (which also show the locked ones), not from the sidebar.
+  // Not in the sidebar by design: products open from the dashboard cards, the Staff Hub tiles and each product's own sidebar, so their tiles stay
+  // guarded items (open or locked) without a second list; the Management registers are reached from their products; per-product analytics entries
+  // are what the Analytics page (Insight) lists.
   { key: "panels", label: "Products", sidebar: false },
   { key: "analytics", label: "Analytics", sidebar: false },
   { key: "manage", label: "Management", sidebar: false },
   { key: "company", label: "Company", href: "/commandos/settings" },
+  { key: "engagement", label: "Engagement" },
+  { key: "ai", label: "AI Chatbot" },
+  { key: "insight", label: "Insight" },
   { key: "account", label: "Account", sidebar: false },
   { key: "platform", label: "Platform" },
-  { key: "engagement", label: "Engagement" },
-  { key: "ai", label: "AI tools" },
 ];
 
 export const NAV_KEYS: string[] = NAV_ITEMS.map((i) => i.key);
@@ -345,15 +357,23 @@ export interface NavContext {
   panels?: Readonly<Record<string, { name: string; description: string }>>;
 }
 
-export type NavState = "open" | "hidden";
+/**
+ * open   = the person can use it;
+ * locked = it exists for the company but the person has no access: shown in the same place, greyed with a lock (owner decision D1);
+ * hidden = it does not exist for this company (product switched off by plan or platform, platform-staff items): left out for everyone, the Director included.
+ */
+export type NavState = "open" | "locked" | "hidden";
 
-function stateOf(item: NavItemDef, ctx: NavContext): NavState {
+export function stateOf(item: NavItemDef, ctx: NavContext): NavState {
   if (item.platform) return ctx.platformAccess ? "open" : "hidden";
-  if (!item.allow(ctx.user)) return "hidden";
   const panelKey = item.module ?? item.panel;
   if (panelKey && ctx.unavailablePanels?.has(panelKey)) return "hidden";
-  return "open";
+  // `allow` is the older role rule; a person's roles and overrides are the exact image of their access map (see src/lib/access), so this IS the matrix answer.
+  return item.allow(ctx.user) ? "open" : "locked";
 }
+
+/** Where a locked item leads: the in-shell page that explains it and lets the person ask a Director for access. */
+export const lockedHref = (key: string) => `/commandos/locked?item=${encodeURIComponent(key)}`;
 
 /** Serialisable — handed to the client sidebar. */
 export interface NavItem {
@@ -365,6 +385,10 @@ export interface NavItem {
   icon: NavIcon;
   group: string | null;
   external: boolean;
+  /** True when the person has no access: the sidebar shows it greyed with a lock and it opens the locked page. */
+  locked: boolean;
+  /** Listed in the sidebar and on the settings cards (false: reached from another page, still guarded). */
+  inSidebar: boolean;
 }
 
 export interface NavSection {
@@ -379,34 +403,36 @@ export interface NavSection {
 export interface ResolvedNav {
   /** Sections with at least one item the user may open, in display order. */
   sections: NavSection[];
-  /** Keys of every item the user may open. */
+  /** Keys of every item the user may open (locked items are in `sections`, not here). */
   allowed: string[];
+  /** Keys of the items shown locked. */
+  lockedKeys: string[];
 }
 
-/** Pure: what `ctx` may open. */
+/** Pure: the Director's navigation for everyone, each item open or locked for `ctx`. Items that do not exist for the company are left out. */
 export function resolveNav(ctx: NavContext): ResolvedNav {
-  const open: NavItemDef[] = [];
+  const shown: { item: NavItemDef; locked: boolean }[] = [];
   for (const item of NAV_ITEMS) {
     const state = stateOf(item, ctx);
-    if (state === "open") open.push(item);
+    if (state !== "hidden") shown.push({ item, locked: state === "locked" });
   }
   const sections = NAV_SECTIONS.map((s) => ({
     key: s.key,
     label: s.label,
     href: s.href ?? null,
     sidebar: s.sidebar !== false,
-    items: open
-      .filter((i) => i.section === s.key)
-      .map((i) => {
+    items: shown
+      .filter((x) => x.item.section === s.key)
+      .map(({ item: i, locked }) => {
         // Product tiles and analytics entries take their name / description from the Product Registry.
         const meta = ctx.panels?.[i.module ?? i.panel ?? ""];
         const named = meta && i.section === "panels" ? meta.name : meta && i.section === "analytics" ? `${meta.name} Analytics` : null;
         const label = named ?? i.label;
         const description = meta && i.section === "panels" ? meta.description : (i.description ?? null);
-        return { key: i.key, label, title: named ?? i.title ?? i.label, description, href: i.href, icon: i.icon, group: (i.group && ctx.panels?.[GROUP_PANEL[i.group] ?? ""]?.name) || i.group || null, external: i.external === true };
+        return { key: i.key, label, title: named ?? i.title ?? i.label, description, href: locked ? lockedHref(i.key) : i.href, icon: i.icon, group: (i.group && ctx.panels?.[GROUP_PANEL[i.group] ?? ""]?.name) || i.group || null, external: locked ? false : Boolean(i.external), locked, inSidebar: i.inSidebar !== false };
       }),
   })).filter((s) => s.items.length > 0);
-  return { sections, allowed: open.map((i) => i.key) };
+  return { sections, allowed: shown.filter((x) => !x.locked).map((x) => x.item.key), lockedKeys: shown.filter((x) => x.locked).map((x) => x.item.key) };
 }
 
 /** Pure: may `ctx` open the item `key`? Unknown keys are refused. */

@@ -80,6 +80,8 @@ export interface Transaction extends AuditFields {
   /** Reference into `pms_projects`. */
   projectId: string | null;
   department: string | null;
+  /** Reference into the organization service; `department` keeps the name (additive, owner decision). */
+  departmentId?: string | null;
   /** Reference into `fms_accounts` (Chart of Accounts / category). */
   accountId: string | null;
   /** Which real bank/cash account this settled through (§19/§21) — distinct from `accountId`'s category. */
@@ -269,6 +271,7 @@ export interface TransactionWriteData {
   employeeId: string | null;
   projectId: string | null;
   department: string | null;
+  departmentId?: string | null;
   accountId: string | null;
   fundAccountId?: string | null;
   fundAccountType?: FundAccountType | null;
@@ -337,6 +340,7 @@ async function insertTransaction(
     employeeId: data.employeeId,
     projectId: data.projectId,
     department: data.department,
+    departmentId: data.departmentId ?? null,
     accountId: data.accountId,
     fundAccountId: data.fundAccountId ?? null,
     fundAccountType: data.fundAccountType ?? null,

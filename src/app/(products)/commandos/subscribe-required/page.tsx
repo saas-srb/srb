@@ -1,3 +1,4 @@
+import { isDirector } from "@/lib/access/director";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -28,7 +29,7 @@ export default async function SubscribeRequiredPage() {
     getCompanySubscription(companyId),
     getDb().then((db) => db.collection("admin_users").find({ $or: [{ designationId: "director" }, { roles: "super_admin" }] }, { projection: { email: 1 } }).limit(5).toArray()),
   ]);
-  const isDirector = user.roles.includes("super_admin");
+  const userIsDirector = isDirector(user);
   const endedOn = sub?.trialEndsAt ? new Intl.DateTimeFormat("en-IN", { dateStyle: "long" }).format(sub.trialEndsAt) : null;
 
   return (
@@ -61,12 +62,12 @@ export default async function SubscribeRequiredPage() {
               <Users className="mt-0.5 size-4 shrink-0 text-primary" />
               <span>
                 <b>Who can fix it:</b> {directors.length ? <>the Director ({directors.map((d) => mask(String(d.email))).join(", ")})</> : "a Director"}.
-                {isDirector ? " That is you." : " Ask them to subscribe a plan."}
+                {userIsDirector ? " That is you." : " Ask them to subscribe a plan."}
               </span>
             </p>
           </div>
 
-          {isDirector && (
+          {userIsDirector && (
             <Link href="/commandos/settings/billing" className="mt-6 flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90">
               <CreditCard className="size-4" /> Choose a plan
             </Link>

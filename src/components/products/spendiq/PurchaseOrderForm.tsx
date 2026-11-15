@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import OrgPicker from "@/components/platform/OrgPicker";
+import { toOptions } from "@/lib/platform/organization/rules";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import LineItemsEditor, { blankLine, type EditableLine } from "@/components/products/spendiq/LineItemsEditor";
@@ -156,15 +158,7 @@ export default function PurchaseOrderForm({
             </div>
             <div className="space-y-1.5">
               <Label>Department</Label>
-              <Select value={form.departmentId || "none"} onValueChange={(v) => set("departmentId", !v || v === "none" ? "" : v)}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {departments.map((d) => (
-                    <SelectItem key={d._id} value={d._id}>{d.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <OrgPicker kind="department" options={toOptions("department", departments)} value={form.departmentId} onChange={(v) => set("departmentId", v)} allowNone={true} />
             </div>
             <div className="space-y-1.5">
               <Label>Project</Label>

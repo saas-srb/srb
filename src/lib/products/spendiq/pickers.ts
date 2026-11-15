@@ -38,17 +38,7 @@ export async function listProjectOptions(): Promise<ProjectOption[]> {
   }));
 }
 
-/** Resolve a set of department ids to `{ id: name }` for table rendering. */
-export async function departmentNameMap(ids: string[]): Promise<Map<string, string>> {
-  const unique = Array.from(new Set(ids.filter(Boolean)));
-  if (unique.length === 0) return new Map();
-  const db = await getDb();
-  const docs = await db
-    .collection<{ _id: string; name?: string }>("hrms_departments")
-    .find({ _id: { $in: unique } }, { projection: { name: 1 } })
-    .toArray();
-  return new Map(docs.map((d) => [d._id, d.name ?? "—"]));
-}
+export { departmentNameMap } from "@/lib/platform/organization";
 
 /** Resolve a set of project ids to `{ id: name }` for table rendering. */
 export async function projectNameMap(ids: string[]): Promise<Map<string, string>> {

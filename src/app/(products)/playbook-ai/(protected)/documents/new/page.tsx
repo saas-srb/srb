@@ -1,3 +1,4 @@
+import { loadOrgOptions } from "@/lib/platform/organization/options";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
@@ -27,7 +28,7 @@ export default async function NewDocumentPage({ searchParams }: { searchParams: 
       <div className="space-y-4">
         <PanelPageHeader title={<>Create document</>} description={<>Three steps: details, an AI draft you check, then the editor with a live PDF preview.</>} />
         <p className="rounded-xl border border-border/50 bg-card p-3 text-sm">Need a specific kind of document, such as an offer letter, NDA or service agreement? <Link href="/playbook-ai/documents/library" className="font-medium text-primary underline-offset-2 hover:underline">Choose it from the Document Library</Link>, and the form is built from what that document needs.</p>
-        <ItemWizard kind="document" aiEnabled={settings.ai.enabled && playbookCan(actor, "USE_AI")} brand={await brandSummary(actor)} />
+        <ItemWizard kind="document" aiEnabled={settings.ai.enabled && playbookCan(actor, "USE_AI")} brand={await brandSummary(actor)} org={await orgForWizard()} />
       </div>
     );
   }
@@ -49,4 +50,9 @@ export default async function NewDocumentPage({ searchParams }: { searchParams: 
       <p className="text-xs text-muted-foreground"><Link href={`/playbook-ai/catalogue/${t.typeId}`} className="underline-offset-2 hover:underline">About this template</Link></p>
     </div>
   );
+}
+
+async function orgForWizard() {
+  const o = await loadOrgOptions();
+  return { departments: o.departments, designations: o.designations };
 }

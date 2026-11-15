@@ -1,3 +1,4 @@
+import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -17,7 +18,7 @@ export const metadata: Metadata = { title: "Automations", robots: { index: false
 export default async function AutomationsSettingsPage() {
   const user = await getCurrentHubUser();
   if (!user) redirect("/commandos/login");
-  if (!user.roles.includes("super_admin")) redirect("/commandos");
+  await requireWorkspaceAccess("company.automations"); // Director-only item: anyone else sees the locked page inside this shell
 
   const [workflows, people] = await Promise.all([
     listWorkflows(),

@@ -1,5 +1,6 @@
 "use client";
 
+import LockedNavItem from "@/components/products/common/LockedNavItem";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -134,75 +135,47 @@ export default function HrmsSidebar({
 }) {
   const roleCtx = { roles, permissionOverrides };
   const isStaff = hasStaffRole(roles);
-  const nav = (props: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean }) => (
-    <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />
+  const nav = (props: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean ; locked?: boolean }) => (
+    (props.locked ? <LockedNavItem label={props.label} icon={props.icon} collapsed={collapsed} product="talentos" onNavigate={onNavigate} /> : <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />)
   );
 
-  // Employee-only: a single flat personal menu, no admin sections.
-  if (!isStaff) {
-    return (
-      <nav className="flex h-full flex-col gap-1 p-3">
-        {nav({ href: "/talentos/me", label: "Dashboard", icon: LayoutDashboard, exact: true })}
-        {nav({ href: "/talentos/me/attendance", label: "My Attendance", icon: CalendarClock })}
-        {nav({ href: "/talentos/me/leave", label: "My Leave", icon: CalendarDays })}
-        {nav({ href: "/talentos/me/salary", label: "My Salary", icon: Wallet })}
-        {nav({ href: "/talentos/me/tax", label: "My Tax", icon: FileText })}
-        {nav({ href: "/talentos/me/requests", label: "My Requests", icon: Inbox })}
-        {nav({ href: "/talentos/me/documents", label: "My Documents", icon: FileText })}
-        {nav({ href: "/talentos/me/profile", label: "My Profile", icon: UserRound })}
-
-        <SectionLabel collapsed={collapsed}>Company</SectionLabel>
-        {nav({ href: "/talentos/me/directory", label: "Directory", icon: Network })}
-        {nav({ href: "/talentos/holidays", label: "Holidays", icon: CalendarCheck })}
-      </nav>
-    );
-  }
-
-  // Staff (super_admin / hr / manager) — full product, plus a "Me" section when
-  // the account is also linked to an employee record.
+  // One menu for everyone: the Director's. What a person cannot use is locked (greyed, same place); the "Me" section is self-service and always open.
+  const staff = isStaff;
   return (
     <nav className="flex h-full flex-col gap-1 p-3">
-      {nav({ href: "/talentos", label: "Dashboard", icon: LayoutDashboard, exact: true })}
+      {nav({ href: "/talentos", label: "Dashboard", icon: LayoutDashboard, exact: true, locked: !staff })}
 
       <SectionLabel collapsed={collapsed}>People</SectionLabel>
-      {nav({ href: "/talentos/employees", label: "Employees", icon: Users })}
-      {nav({ href: "/talentos/departments", label: "Departments", icon: Building2 })}
-      {nav({ href: "/talentos/recruitment", label: "Recruitment", icon: UserPlus })}
+      {nav({ href: "/talentos/employees", label: "Employees", icon: Users, locked: !staff })}
+      {nav({ href: "/talentos/departments", label: "Departments", icon: Building2, locked: !staff })}
+      {nav({ href: "/talentos/recruitment", label: "Recruitment", icon: UserPlus, locked: !staff })}
 
       <SectionLabel collapsed={collapsed}>Operations</SectionLabel>
-      {nav({ href: "/talentos/attendance", label: "Attendance", icon: CalendarClock })}
-      {nav({ href: "/talentos/leave", label: "Leave", icon: CalendarDays })}
-      {canApproveLeave(roleCtx) && nav({ href: "/talentos/requests", label: "Requests", icon: Inbox })}
+      {nav({ href: "/talentos/attendance", label: "Attendance", icon: CalendarClock, locked: !staff })}
+      {nav({ href: "/talentos/leave", label: "Leave", icon: CalendarDays, locked: !staff })}
+      {nav({ href: "/talentos/requests", label: "Requests", icon: Inbox, locked: !(staff && canApproveLeave(roleCtx)) })}
       {nav({ href: "/talentos/holidays", label: "Holidays", icon: CalendarCheck })}
 
-      {canRunPayroll(roleCtx) && (
-        <>
-          <SectionLabel collapsed={collapsed}>Payroll</SectionLabel>
-          {nav({ href: "/talentos/payroll", label: "Payroll runs", icon: Wallet, exact: true })}
-          {nav({ href: "/talentos/payroll/items", label: "Payroll items", icon: ListChecks })}
-          {nav({ href: "/talentos/payroll/payouts", label: "Salary payouts", icon: Banknote })}
-          {nav({ href: "/talentos/payroll/compliance", label: "Government payments", icon: Landmark })}
-          {nav({ href: "/talentos/payroll/declarations", label: "Tax declarations", icon: FileText })}
-        </>
-      )}
+      <SectionLabel collapsed={collapsed}>Payroll</SectionLabel>
+      {nav({ href: "/talentos/payroll", label: "Payroll runs", icon: Wallet, exact: true, locked: !(staff && canRunPayroll(roleCtx)) })}
+      {nav({ href: "/talentos/payroll/items", label: "Payroll items", icon: ListChecks, locked: !(staff && canRunPayroll(roleCtx)) })}
+      {nav({ href: "/talentos/payroll/payouts", label: "Salary payouts", icon: Banknote, locked: !(staff && canRunPayroll(roleCtx)) })}
+      {nav({ href: "/talentos/payroll/compliance", label: "Government payments", icon: Landmark, locked: !(staff && canRunPayroll(roleCtx)) })}
+      {nav({ href: "/talentos/payroll/declarations", label: "Tax declarations", icon: FileText, locked: !(staff && canRunPayroll(roleCtx)) })}
 
       <SectionLabel collapsed={collapsed}>Governance</SectionLabel>
-      {nav({ href: "/talentos/analytics", label: "Analytics", icon: BarChart3 })}
+      {nav({ href: "/talentos/analytics", label: "Analytics", icon: BarChart3, locked: !staff })}
 
-      {employeeId && !roles.includes("super_admin") && (
-        <>
-          <SectionLabel collapsed={collapsed}>Me</SectionLabel>
-          {nav({ href: "/talentos/me", label: "My Dashboard", icon: LayoutDashboard, exact: true })}
-          {nav({ href: "/talentos/me/attendance", label: "My Attendance", icon: CalendarClock })}
-          {nav({ href: "/talentos/me/leave", label: "My Leave", icon: CalendarDays })}
-          {nav({ href: "/talentos/me/salary", label: "My Salary", icon: Wallet })}
-          {nav({ href: "/talentos/me/tax", label: "My Tax", icon: FileText })}
-          {nav({ href: "/talentos/me/requests", label: "My Requests", icon: Inbox })}
-          {nav({ href: "/talentos/me/documents", label: "My Documents", icon: FileText })}
-          {nav({ href: "/talentos/me/profile", label: "My Profile", icon: UserRound })}
-          {nav({ href: "/talentos/me/directory", label: "Directory", icon: Network })}
-        </>
-      )}
+      <SectionLabel collapsed={collapsed}>Me</SectionLabel>
+      {nav({ href: "/talentos/me", label: "My Dashboard", icon: LayoutDashboard, exact: true })}
+      {nav({ href: "/talentos/me/attendance", label: "My Attendance", icon: CalendarClock })}
+      {nav({ href: "/talentos/me/leave", label: "My Leave", icon: CalendarDays })}
+      {nav({ href: "/talentos/me/salary", label: "My Salary", icon: Wallet })}
+      {nav({ href: "/talentos/me/tax", label: "My Tax", icon: FileText })}
+      {nav({ href: "/talentos/me/requests", label: "My Requests", icon: Inbox })}
+      {nav({ href: "/talentos/me/documents", label: "My Documents", icon: FileText })}
+      {nav({ href: "/talentos/me/profile", label: "My Profile", icon: UserRound })}
+      {nav({ href: "/talentos/me/directory", label: "Directory", icon: Network })}
     </nav>
   );
 }

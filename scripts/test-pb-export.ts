@@ -176,12 +176,13 @@ class MemoryStore implements SealedExportStore {
       assert.ok(store.blobs.has(rec.exports.pdf!.key));
     });
 
-    await t("not-issued versions are always watermarked: an old submit version after a revise, and a revised draft", async () => {
+    await t("not-issued versions stay unsealed: an old submit version after a revise and a revised draft are rendered live; the company's own blank documents carry no DRAFT mark when every value is filled (template and unreviewed documents always do)", async () => {
       ok(await transitionDocument(mona, { id: issuedId, transition: "revise" }));
       const draftAgain = ok(await exportDocument(mona, { id: issuedId, format: "pdf" })).file;
-      assert.equal(draftAgain.sealed, false); assert.equal(draftAgain.watermark, "DRAFT");
+      // Own content (a blank document, SOP or KPI sheet with no gaps) is exported clean (exports-store.ts `ownContent`); anything with a gap or a template stays marked.
+      assert.equal(draftAgain.sealed, false); assert.equal(draftAgain.watermark, null);
       const submitVersion = ok(await exportDocument(mona, { id: issuedId, format: "pdf", version: 1 })).file;
-      assert.equal(submitVersion.watermark, "DRAFT"); assert.equal(submitVersion.sealed, false);
+      assert.equal(submitVersion.watermark, null); assert.equal(submitVersion.sealed, false);
       assert.match(submitVersion.filename, /^.*-Welcome-Letter-v1\.pdf$/);
     });
 

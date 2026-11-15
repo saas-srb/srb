@@ -1,3 +1,4 @@
+import { isDirector } from "@/lib/access/director";
 import { redirect } from "next/navigation";
 import BrandMark from "@/components/BrandMark";
 import { PanelName } from "@/components/platform/PanelsProvider";
@@ -32,7 +33,7 @@ export default async function TwoFactorSetupPage() {
           mode={mode}
           skipHours={SKIP_HOURS}
           continueHref="/commandos"
-          director={user.roles.includes("super_admin")}
+          director={isDirector(user)}
           initial={{ method: tf.method, enabledAt: tf.enabledAt ? tf.enabledAt.toISOString() : null, recoveryLeft: tf.recoveryLeft, available: tf.available, email: maskEmail(user.email) }}
         />
       </div>

@@ -1,3 +1,4 @@
+import { listDepartments } from "@/lib/platform/organization";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { Plus, ArrowLeftRight, Clock, CheckSquare, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -81,6 +82,7 @@ export default async function TransactionsPage({
             {accountByCode && ` Filtered to ${accountByCode.name}.`}</>}
         actions={<>{canManage && (
           <TransactionForm
+            departments={(await listDepartments()).map((d) => ({ _id: d._id, name: d.name }))}
             customers={customerOpts}
             vendors={vendorOpts}
             projects={projectOpts}

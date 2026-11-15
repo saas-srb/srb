@@ -1,3 +1,4 @@
+import { listDepartments } from "@/lib/platform/organization";
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import Link from "next/link";
@@ -30,6 +31,7 @@ export default async function CashAccountsPage() {
         description={<>{accounts.length} account{accounts.length === 1 ? "" : "s"}.</>}
         actions={<>{canManage && (
           <CashAccountForm
+            departments={(await listDepartments()).map((d) => ({ _id: d._id, name: d.name }))}
             trigger={
               <Button type="button" size="sm">
                 <Plus className="size-3.5" data-icon="inline-start" />

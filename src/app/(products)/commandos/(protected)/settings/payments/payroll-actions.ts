@@ -1,5 +1,6 @@
 "use server";
 
+import { isDirector } from "@/lib/access/director";
 import { revalidatePath } from "next/cache";
 import { getCurrentHubUser } from "@/lib/hub-auth";
 import { getCurrentHrmsUser } from "@/lib/hrms-auth";
@@ -20,7 +21,7 @@ async function requireBankingManager(): Promise<{ id: string; email: string }> {
   if (payrollUser && (canRunPayroll(payrollUser) || canManagePayrollConfig(payrollUser))) {
     return { id: payrollUser.id, email: payrollUser.email };
   }
-  if (hubUser?.roles.includes("super_admin") && (!payrollUser || payrollUser.id === hubUser.id)) {
+  if (hubUser && isDirector(hubUser) && (!payrollUser || payrollUser.id === hubUser.id)) {
     return { id: hubUser.id, email: hubUser.email };
   }
   if (!payrollUser && !hubUser) throw new Error("Unauthorized");

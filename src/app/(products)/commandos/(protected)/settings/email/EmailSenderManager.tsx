@@ -45,7 +45,7 @@ const STATE: Record<string, { label: string; cls: string; icon: typeof Check }> 
   pending: { label: "Waiting for DNS", cls: "bg-amber-500/10 text-amber-700 dark:text-amber-400", icon: CircleDashed },
   not_started: { label: "Waiting for DNS", cls: "bg-amber-500/10 text-amber-700 dark:text-amber-400", icon: CircleDashed },
   temporary_failure: { label: "Checking again", cls: "bg-amber-500/10 text-amber-700 dark:text-amber-400", icon: CircleDashed },
-  failed: { label: "Not verified", cls: "bg-destructive/10 text-destructive", icon: XCircle },
+  failed: { label: "Problem", cls: "bg-destructive/10 text-destructive", icon: XCircle },
 };
 function Pill({ state }: { state: string }) {
   const s = STATE[state] ?? STATE.pending;
@@ -95,6 +95,7 @@ export default function EmailSenderManager({ initial, defaultName, suggested, pl
         {sender?.status !== "verified" && <p className="mt-1 text-xs text-muted-foreground">That is our address, with replies going to your reply-to address if you set one. It changes as soon as your own domain is verified.</p>}
       </div>
 
+      <h3 className="text-sm font-semibold">Step 1. Choose your address</h3>
       <form
         className="grid gap-4 sm:grid-cols-2"
         onSubmit={(e) => {
@@ -147,13 +148,10 @@ export default function EmailSenderManager({ initial, defaultName, suggested, pl
               <h3 className="text-sm font-semibold">{sender.domain}</h3>
               <Pill state={sender.status} />
             </div>
-            <Button type="button" variant="outline" size="sm" onClick={check} disabled={pending}>
-              {pending ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />} Check now
-            </Button>
           </div>
           {sender.status === "failed" && <p className="text-sm text-muted-foreground">We could not verify these records. Make sure each one is published exactly as shown, then press Check now. Until then your emails go out from our sender.</p>}
           {sender.checkedAt && <p className="text-xs text-muted-foreground" suppressHydrationWarning>Last checked {formatDateTime(sender.checkedAt)}</p>}
-          <p className="text-sm font-medium">{sender.status === "verified" ? "Keep these records in place" : "Add these records at your DNS provider"}</p>
+          <p className="text-sm font-semibold">{sender.status === "verified" ? "Step 2. Keep these records in place" : "Step 2. Add these records at your DNS provider"}</p>
           <ul className="space-y-2" aria-label={`DNS records for ${sender.domain}`}>
             {sender.records.map((r) => (
               <li key={`${r.type}:${r.name}:${r.value}`} className="rounded-lg border bg-background/60 p-3">
@@ -173,6 +171,16 @@ export default function EmailSenderManager({ initial, defaultName, suggested, pl
             ))}
           </ul>
           <p className="text-xs text-muted-foreground">If your DNS provider adds your domain to names automatically, enter only the part before it.</p>
+          <div className="space-y-2 rounded-lg border bg-background/60 p-3">
+            <p className="text-sm font-semibold">Step 3. Check now</p>
+            <p className="text-xs text-muted-foreground">After you have added the records, press the button. DNS changes can take from a few minutes to an hour.</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="button" variant="default" size="sm" onClick={check} disabled={pending}>
+                {pending ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />} Check now
+              </Button>
+              <Pill state={sender.status} />
+            </div>
+          </div>
         </div>
       )}
     </div>

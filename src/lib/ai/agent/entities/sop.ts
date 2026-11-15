@@ -1,5 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
+import { COLLECTIONS } from "@/lib/products/playbook-ai/db";
 import * as A from "@/app/(products)/playbook-ai/(protected)/actions";
 import { sopCan, type SopPermission } from "@/lib/sop-roles";
 import { requireViewer } from "@/lib/products/playbook-ai/viewer";
@@ -26,7 +27,7 @@ const act = (key: string, label: string, description: string, params: FieldDef[]
 export const SOP_ENTITIES: EntityDef[] = [
   { key: "sop.document", panel: "sop", label: "SOP", description: "Standard operating procedures: code, title, department, owner, status (draft / published / active / expired / archived), version, review and expiry dates. Use sop.read for the text.", collection: "sops", idType: "string", baseFilter: soft, titleField: "title", search: ["title", "code", "tags"], read: "any", allowRead: can("VIEW"), hide: ["draft", "live", "accessUserIds"] },
   { key: "sop.version", panel: "sop", label: "SOP version", description: "Published versions of each SOP (version number, change type, summary, author, date).", collection: "sop_versions", idType: "string", search: ["code", "changeSummary"], read: "any", allowRead: can("VIEW"), hide: ["content"] },
-  { key: "sop.department", panel: "sop", label: "SOP department", description: "Departments SOPs belong to.", collection: "sop_departments", idType: "string", baseFilter: soft, titleField: "name", read: "any" },
+  { key: "sop.department", panel: "sop", label: "SOP department", description: "Departments SOPs belong to.", collection: COLLECTIONS.departments, idType: "string", baseFilter: soft, titleField: "name", read: "any" },
   { key: "sop.function", panel: "sop", label: "Function", description: "Business functions inside departments.", collection: "sop_functions", idType: "string", baseFilter: soft, titleField: "name", read: "any" },
   { key: "sop.process", panel: "sop", label: "Process", description: "Processes (and sub-processes) inside functions.", collection: "sop_processes", idType: "string", baseFilter: soft, titleField: "name", read: "any" },
   { key: "sop.category", panel: "sop", label: "SOP category", description: "Categories for organising SOPs.", collection: "sop_categories", idType: "string", baseFilter: soft, titleField: "name", read: "any" },

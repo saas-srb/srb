@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Organization profile", robots: { ind
  * step 1 of the setup wizard (`onboarding/state.ts` → `saveProfile`).
  */
 export default async function OrganizationProfilePage() {
-  await requireWorkspaceAccess("company.profile");
+  await requireWorkspaceAccess("company.setup");
   const [{ company }, details] = await Promise.all([getOnboarding(), getCompanyDetails()]);
 
   return (

@@ -2,7 +2,8 @@ import "server-only";
 import { cache } from "react";
 import { getDb } from "@/lib/mongodb";
 import { COLLECTIONS, newId, createStamp, updateStamp, notDeleted, type AuditFields } from "@/lib/products/playbook-ai/db";
-import { DEFAULT_CATEGORIES, DEFAULT_DEPARTMENTS } from "@/lib/products/playbook-ai/constants";
+import { DEFAULT_CATEGORIES } from "@/lib/products/playbook-ai/constants";
+import { createDepartment as createOrgDepartment, updateDepartment as updateOrgDepartment, seedDefaultDepartments, makeCode, OrgError } from "@/lib/platform/organization";
 import { listHrmsDepartments } from "@/lib/products/playbook-ai/people";
 import { currentCompanyId } from "@/lib/platform/tenancy/context";
 
@@ -99,11 +100,7 @@ async function ensureIndexes() {
 }
 
 function slugCode(name: string, taken: Set<string>): string {
-  const base = name.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 4) || "DEP";
-  let code = base;
-  let i = 2;
-  while (taken.has(code)) code = `${base}${i++}`;
-  return code;
+  return makeCode(name, taken);
 }
 
 /**
@@ -123,20 +120,10 @@ export async function ensureSopSeeded(): Promise<void> {
 
       // Each collection seeds independently, so a database that already has some of them (e.g. departments
       // created by the demo seeder) still gets the rest.
-      if ((await c.departments.countDocuments({})) === 0) {
-        await c.departments.insertMany(
-          DEFAULT_DEPARTMENTS.map((d) => ({
-            _id: newId(),
-            name: d.name,
-            code: d.code,
-            description: "",
-            hrmsDepartmentId: null,
-            active: true,
-            ...createStamp(systemActor),
-          })),
-          { ordered: false }
-        ).catch(() => {}); // a concurrent instance seeded first — the unique code index makes this safe
-      }
+      // Departments come from the organization service: a brand-new company gets the starter list there
+      // (once), and `syncFromHrms` below mirrors them into this structure.
+      if ((await c.departments.countDocuments({})) === 0) await seedDefaultDepartments(systemActor);
+      await syncFromHrms(true);
       if ((await c.functions.countDocuments({})) === 0) {
         const depts = await c.departments.find(notDeleted).toArray();
         const byCode = new Map(depts.map((d) => [d.code, d]));
@@ -188,7 +175,12 @@ export async function syncFromHrms(force = false): Promise<void> {
   const linked = new Set(all.map((d) => d.hrmsDepartmentId).filter(Boolean));
   const takenCodes = new Set(all.map((d) => d.code));
   for (const h of hrms) {
-    if (linked.has(h._id)) continue;
+    if (linked.has(h._id)) {
+      // The organization service owns the name: keep the mirror in step with a rename made there.
+      const row = all.find((d) => d.hrmsDepartmentId === h._id);
+      if (row && row.name !== h.name) await c.departments.updateOne({ _id: row._id }, { $set: { name: h.name, ...updateStamp(null) } });
+      continue;
+    }
     const match = all.find((d) => !d.hrmsDepartmentId && d.name.trim().toLowerCase() === h.name.trim().toLowerCase());
     if (match) {
       await c.departments.updateOne({ _id: match._id }, { $set: { hrmsDepartmentId: h._id, ...updateStamp(null) } });
@@ -238,6 +230,11 @@ function clean(v: unknown, max: number): string {
   return typeof v === "string" ? v.trim().slice(0, max) : "";
 }
 
+/**
+ * Departments are created and renamed in the organization service (the one source of truth); the SOP
+ * department is the mirror that carries the functions/processes tree. Creating here creates the
+ * organization department first and links the mirror to it.
+ */
 export async function createDepartment(
   data: { name: string; code?: string; description?: string; hrmsDepartmentId?: string | null },
   actorId: string
@@ -249,13 +246,21 @@ export async function createDepartment(
   if (all.some((d) => d.name.toLowerCase() === name.toLowerCase())) return { ok: false, error: "A department with that name already exists." };
   const code = (clean(data.code, 8).toUpperCase().replace(/[^A-Z0-9]/g, "") || slugCode(name, new Set(all.map((d) => d.code))));
   if (all.some((d) => d.code === code)) return { ok: false, error: `Code ${code} is already used.` };
-  if (data.hrmsDepartmentId && all.some((d) => d.hrmsDepartmentId === data.hrmsDepartmentId)) return { ok: false, error: "That TalentOS department is already linked." };
+  let orgId = data.hrmsDepartmentId || null;
+  if (orgId && all.some((d) => d.hrmsDepartmentId === orgId)) return { ok: false, error: "That organization department is already linked." };
+  if (!orgId) {
+    try {
+      orgId = (await createOrgDepartment({ name, code, description: clean(data.description, 400) || null }, actorId))._id;
+    } catch (err) {
+      return { ok: false, error: err instanceof OrgError ? err.message : "Could not create the department." };
+    }
+  }
   const doc: SopDepartment = {
     _id: newId(),
     name,
     code,
     description: clean(data.description, 400),
-    hrmsDepartmentId: data.hrmsDepartmentId || null,
+    hrmsDepartmentId: orgId,
     active: true,
     ...createStamp(actorId),
   };
@@ -278,6 +283,14 @@ export async function updateDepartment(
     const dup = await c.departments.findOne({ _id: { $ne: id }, name: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"), ...notDeleted });
     if (dup) return { ok: false, error: "A department with that name already exists." };
     set.name = name;
+    // A rename is made once, in the organization service, so every product shows the new name.
+    if (current.hrmsDepartmentId && name !== current.name) {
+      try {
+        await updateOrgDepartment(current.hrmsDepartmentId, { name }, actorId);
+      } catch (err) {
+        return { ok: false, error: err instanceof OrgError ? err.message : "Could not rename the department." };
+      }
+    }
   }
   if (data.description !== undefined) set.description = clean(data.description, 400);
   if (data.active !== undefined) set.active = !!data.active;

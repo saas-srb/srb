@@ -95,7 +95,7 @@ export function identityBlocks(x: IdentityBlockInput | null | undefined): Conten
   if (!x) return [];
   return [
     { id: id("letterhead"), type: "letterhead", ...(x.logo ? { logoFileId: BRAND_LOGO_ID, logoWidthMm: x.logo.widthMm } : {}), name: x.name, address: x.address, details: x.details, align: x.align },
-    { id: id("idr"), type: "divider" },
+    ...(x.logoOnly ? [] : [{ id: id("idr"), type: "divider" } as ContentBlock]),
     { id: id("ids"), type: "spacer", heightMm: 3 },
   ];
 }

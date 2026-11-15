@@ -74,3 +74,38 @@ Counting: 2 of about 40 features done = about 5%.
 2. Open each new screen in a browser and report problems.
 3. Real accounts: Twilio (public URL, number, verified numbers), ElevenLabs, Gemini, OpenAI keys; Meta/YouTube/LinkedIn/X/Google developer apps and approvals.
 4. Legal review of legal templates by a qualified advocate.
+
+## Build memory and CommandOS audit (2026-11-15)
+- Build memory: measured, still OOM at 7.5 GB (7407 MB at 643 s) even with shared runtime; options and exact deploy steps in docs/build-memory.md (prebuilt deploy path ready).
+- CommandOS restructure P0 audit: DONE, docs/commandos-audit.md plus 5 generated companions; P1 awaits owner decisions D1-D10.
+
+## CommandOS restructure P1: central organization service (2026-11-15)
+- `src/lib/platform/organization/` is the only accessor of departments, teams and designations (data stays in the canonical hrms_* collections, so every id keeps working). CRUD only, unique names (departments per company, teams and designations per department), archive instead of delete with "in use" counts, restore, audit events, company scoping via the scoped DB.
+- Replaced copies: starter list (32 names) lives only in `organization/defaults.ts`; Playbook's `sop_departments` is now a mirror created/renamed through the service; TalentOS Departments page is read-only with a link to CommandOS Organization; SpendIQ, Huddle and AI entities read through the service; `OrgPicker` used in the 4 SpendIQ forms.
+- Migration `scripts/migrate-organization.ts` (dry-run default, --apply, --revert, --id, throwaway DB only). Tests: `npm run test:organization` (16 pure + static, 15 on a throwaway DB).
+
+## CommandOS restructure P2: access model (2026-11-15)
+- `src/lib/access/`: 265 features (stable keys, generated from the 20 role files), one `access` map per person with two levels, `can` / `requireAccess`, Director always write, self-service outside the matrix, read model for Preview and locked items, compatibility adapter (matrix to legacy roles and overrides, verified against the legacy functions), legacy-to-map migration (dry-run/apply/revert, throwaway DB only).
+- Parity harness: 2,516,970 comparisons, zero differences. Intentional differences listed in `docs/commandos-access-model.md`. No UI changed.
+- D7 classified list (65 must guard, 37 intentionally open) added to `docs/commandos-audit.md`.
+
+## CommandOS restructure: leftovers from P1/P2 and P3 People & Access (2026-11-15)
+- Leftovers: `OrgPicker` / `OrgMultiPicker` now in TalentOS EmployeeForm, employee/attendance/payout/dashboard filters, SpendIQ filters, Huddle announcement composer, onboarding wizard, CommandOS team/designation sheets and the Playbook item wizard (department and designation, ids kept beside the names). Free-text department fields converted: CashFlow cash accounts and transactions (`departmentId` beside `department`), Playbook item meta. Designation actions no longer create a role per designation (D6); the 653-template role seeding is no longer run from the Users page.
+- Playbook tests fixed: the documents-page test was stale (the page is now the shared My items page and the service enforces VIEW); `advocate_notes` is a real draft-only key and was missing from the allowed list (code fixed, test list updated); the JD golden was stale (updated); the catalogue added duplicate section titles (a second Declaration, Details) and put merge tokens inside plain text nodes in the shared review sentence (both fixed in code). test:playbook still stops at `test-pbdoc-pdf` (image embedding), not touched by this work.
+- P3: `/commandos/users` (list: search, filters by department/team/designation/status, KPI row, `...` menu), `/commandos/users/new` and `/commandos/users/[id]/edit` (3 steps), person side panel without role language. Saving writes the `access` map and the derived older roles and overrides; maps older roles would widen are refused; an email invitation carries the map. The old role editor, custom role picker, access matrix, overrides sheet and create sheet are deleted. Tests: `npm run test:people` (19), `test:access`, `test:organization`. Screenshots from the dev harness (`/dev-editor-harness/people`, `scripts/shot-people.ts`).
+
+## CommandOS P4: unified employee experience (2026-11-15)
+- Logo fix: with the company details block off, the logo prints alone at the top of page 1 (PDF, DOCX, editor); never a running header. `test:playbook` now runs green to the end: stale tests updated (DOCX signature lines, text-order parity, own-content watermark rule, logo placement), catalogue content fixed (duplicate titles, merge tokens in text, reimbursement wording).
+- Nav: `resolveNav` returns the Director's list for everyone with each item open or locked; only items that do not exist for the company are hidden. `requireWorkspaceAccess` sends a locked item to `/commandos/locked` (same shell). One cached computation per request.
+- Locked page with Directors listed and "Request access" (rate limited, bell + email), request list and "Review and give access" under People & Access.
+- Sidebars of 7 products show every item locked or open; employee/student-only menus removed; staff layouts show the locked page. Dashboard and analytics show locked cards. 26 pages and 26 files converted from role checks. `npm run test:shell` (22), dev harness `/dev-editor-harness/shell`, `scripts/shot-shell.ts`.
+
+## CommandOS P5: sidebar regroup, Integrations and Product settings panels (2026-11-15)
+- Sidebar is exactly the owner's target (Dashboard; Organization Setup; Users & Access; Billing & plan; Branding & domains; System default; Security & Logs; Engagement; AI Chatbot (Dashboard only); Insight), same for everybody with locked items (P4). "Add a person" and "Sender email" left the sidebar; Voice and chatbot detail screens left it too. Every old address redirects (`lib/products/commandos/moved-urls.ts`).
+- Integrations: cards by plain category with SRB/own status badge, Configure opens a right-hand panel (`SidePanel`, address driven). Per-connection "Use SRB (recommended)" or "Use my own account" saved in `workspace_connections.mode` (default SRB; own keys kept; connections saved earlier count as own). AI Chatbot and Voice cards open tabbed panels that render the existing screens.
+- Product settings: card per product with Ready / Needs setup and Configure opening the existing settings screen in the same panel.
+- Custom domains has the "Send emails from your own address" section with three steps; `/commandos/settings/email` redirects there.
+- Analytics has one AI & Voice view; the Voice Dashboard address redirects to it.
+- Fixed: pages asked for navigation keys that did not exist (`company.automations`, `company.branding`, `company.roles`, `company.profile`), which would have locked Directors out since P4; a test now checks every guard key exists.
+- Tests: `npm run test:restructure` (27), `test:shell`, `test:access`, `test:people`, `test:organization`. Dev harness `/dev-editor-harness/restructure`, `scripts/shot-restructure.ts`.
+

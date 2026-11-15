@@ -1,3 +1,4 @@
+import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -49,7 +50,7 @@ function Shell({ title, description, children }: { title: string; description: s
 export default async function BillingSettingsPage() {
   const user = await getCurrentHubUser();
   if (!user) redirect("/commandos/login");
-  if (!user.roles.includes("super_admin")) redirect("/commandos");
+  await requireWorkspaceAccess("company.billing"); // Director-only item: anyone else sees the locked page inside this shell
   const companyId = await currentCompanyId();
   const sub = await getCompanySubscription(companyId);
 

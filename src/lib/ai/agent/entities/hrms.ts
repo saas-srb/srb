@@ -2,6 +2,7 @@ import "server-only";
 import { createEmployee, updateEmployee, deleteEmployee, changeEmployeeStatus, getEmployee, employeeFullName, descendantEmployeeIds, wouldCreateCycle, type Employee } from "@/lib/products/talentos/employees";
 import { rebuildHierarchyFor, removeFromHierarchy } from "@/lib/products/talentos/hierarchy";
 import { createDepartment, updateDepartment, deleteDepartment, createDesignation, updateDesignation, deleteDesignation, createTeam, updateTeam, deleteTeam } from "@/lib/products/talentos/departments";
+import { DEPARTMENTS_COLLECTION, DESIGNATIONS_COLLECTION, TEAMS_COLLECTION } from "@/lib/platform/organization";
 import { createHoliday, updateHoliday, deleteHoliday, getHoliday } from "@/lib/products/talentos/holidays";
 import { createLeaveRequest, decideLeaveRequest, cancelLeaveRequest, getLeaveRequest, setAllocation, upsertLeaveType, deleteLeaveType, getLeaveType, listLeaveTypes, getBalances, getLeaveAnalytics, getLeaveCalendar, employeesOnLeave } from "@/lib/products/talentos/leave";
 import { recordAttendance, bulkMarkAttendance, getTodaySnapshot, getMonthlyReport, getAttendanceOverview, MANUAL_ATTENDANCE_STATUSES } from "@/lib/products/talentos/attendance";
@@ -136,7 +137,7 @@ export const HRMS_ENTITIES: EntityDef[] = [
     },
   },
   {
-    key: "hrms.department", panel: "hrms", label: "Department", description: "Departments and their heads.", collection: "hrms_departments", idType: "string", baseFilter: soft, titleField: "name", search: ["name", "code"],
+    key: "hrms.department", panel: "hrms", label: "Department", description: "Departments and their heads.", collection: DEPARTMENTS_COLLECTION, idType: "string", baseFilter: soft, titleField: "name", search: ["name", "code"],
     read: "any", write: "staff", allow: canManageMasters, canDelete: true,
     fields: [
       { key: "name", label: "Name", type: "string", required: true },
@@ -171,7 +172,7 @@ export const HRMS_ENTITIES: EntityDef[] = [
     },
   },
   {
-    key: "hrms.designation", panel: "hrms", label: "Designation", description: "Job titles per department.", collection: "hrms_designations", idType: "string", baseFilter: soft, titleField: "title", search: ["title"],
+    key: "hrms.designation", panel: "hrms", label: "Designation", description: "Job titles per department.", collection: DESIGNATIONS_COLLECTION, idType: "string", baseFilter: soft, titleField: "title", search: ["title"],
     read: "any", write: "staff", allow: canManageMasters, canDelete: true,
     fields: [
       { key: "title", label: "Title", type: "string", required: true },
@@ -206,7 +207,7 @@ export const HRMS_ENTITIES: EntityDef[] = [
     },
   },
   {
-    key: "hrms.team", panel: "hrms", label: "Team", description: "Teams inside departments, with a lead.", collection: "hrms_teams", idType: "string", baseFilter: soft, titleField: "name", search: ["name"],
+    key: "hrms.team", panel: "hrms", label: "Team", description: "Teams inside departments, with a lead.", collection: TEAMS_COLLECTION, idType: "string", baseFilter: soft, titleField: "name", search: ["name"],
     read: "any", write: "staff", allow: canManageMasters, canDelete: true,
     fields: [
       { key: "name", label: "Name", type: "string", required: true },
