@@ -1,4 +1,5 @@
 import "server-only";
+import { getCompanyIdentity } from "@/lib/platform/company-identity";
 import { getDb } from "@/lib/mongodb";
 import { COLLECTIONS } from "@/lib/products/evaliq/db";
 import { OtsInputError } from "@/lib/products/evaliq/viewer";
@@ -42,7 +43,9 @@ export async function getOtsSettings(): Promise<OtsSettings> {
   const doc = await db.collection<{ _id: string } & Partial<OtsSettings>>(COLLECTIONS.settings).findOne({ _id: "global" });
   const { _id: _ignored, ...rest } = doc ?? { _id: "" };
   void _ignored;
-  return { ...DEFAULTS, ...rest };
+  // The organisation printed on certificates is the one company identity (Company setup); the value saved here is only a fallback.
+  const identity = await getCompanyIdentity();
+  return { ...DEFAULTS, ...rest, organizationName: identity.brandName || rest.organizationName || DEFAULTS.organizationName };
 }
 
 const num = (v: unknown, min: number, max: number, dflt: number) => {

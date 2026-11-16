@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentHubUser } from "@/lib/hub-auth";
 import { getOnboarding } from "@/lib/platform/onboarding/state";
-import { getCompanyDetails } from "@/lib/products/talentos/company";
+import { getCompanyIdentity } from "@/lib/platform/company-identity";
 import { listDepartments } from "@/lib/products/talentos/departments";
 import { listPendingInvitations } from "@/lib/platform/invitations";
 import OnboardingWizard from "./OnboardingWizard";
@@ -19,7 +19,7 @@ export default async function OnboardingPage() {
   if (!user) redirect("/commandos/login");
   await requireWorkspaceAccess("company.setup"); // Director-only item: anyone else sees the locked page inside this shell
 
-  const [{ company, state }, details, departments, invitations, stored, brand] = await Promise.all([getOnboarding(), getCompanyDetails(), listDepartments(), listPendingInvitations(), getStoredBranding(), getCompanyBrand()]);
+  const [{ company, state }, details, departments, invitations, stored, brand] = await Promise.all([getOnboarding(), getCompanyIdentity(), listDepartments(), listPendingInvitations(), getStoredBranding(), getCompanyBrand()]);
   const { options: themes, activeKey, appliedKey } = await listThemeOptions();
   const panelChoices = await listPanelChoices();
   const customRoles = await listCustomRoles();
@@ -29,16 +29,18 @@ export default async function OnboardingPage() {
       companyName={company.name}
       completedSteps={state.completedSteps}
       profile={{
-        name: details.name || company.name,
+        name: details.brandName || company.name,
         legalName: details.legalName,
         industry: company.profile?.industry ?? "",
         size: company.profile?.size ?? "",
-        country: company.profile?.country ?? details.country ?? "",
-        currency: company.profile?.currency ?? "INR",
-        timezone: company.profile?.timezone ?? company.timezone ?? "",
+        country: details.country || company.profile?.country || "",
+        currency: details.currency || company.profile?.currency || "INR",
+        timezone: details.timeZone || company.profile?.timezone || company.timezone || "",
         website: details.website,
         email: details.email,
         phone: details.phone,
+        addressLine1: details.addressLine1, addressLine2: details.addressLine2, city: details.city, state: details.state, postalCode: details.postalCode,
+        gstin: details.gstin, pan: details.pan, cin: details.cin, fiscalYearStartMonth: details.fiscalYearStartMonth, language: details.language,
       }}
       existingDepartments={departments.map((d) => ({ id: d._id, name: d.name }))}
       customRoles={customRoles.map((r) => ({ id: r.id, name: r.name }))}

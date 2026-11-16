@@ -1,5 +1,6 @@
-import { redirect } from "next/navigation";
+import { redirectLegacyChatbotRoute } from "@/lib/products/sitecraft-ai/chatbot/routes";
 
-export default function LegacyKnowledgeBasePage() {
-  redirect("/commandos/chatbot/knowledge-base");
+/** SiteCraft's own chatbot pages are gone: this address keeps working and opens the CommandOS AI Chatbot panel. */
+export default async function LegacyChatbotPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  await redirectLegacyChatbotRoute("/commandos/chatbot/knowledge-base", await searchParams);
 }

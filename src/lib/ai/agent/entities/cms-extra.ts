@@ -6,7 +6,9 @@ import * as Wallet from "@/app/(products)/sitecraft-ai/(protected)/wallet/action
 import * as WalletCampaigns from "@/app/(products)/sitecraft-ai/(protected)/wallet/campaigns/actions";
 import * as Rules from "@/app/(products)/sitecraft-ai/(protected)/wallet/rules/actions";
 import * as UsageRules from "@/app/(products)/sitecraft-ai/(protected)/wallet/usage-rules/actions";
-import * as Bot from "@/app/(products)/sitecraft-ai/(protected)/chatbot/actions";
+import * as Bot from "@/app/(products)/commandos/(protected)/chatbot/actions";
+import { deleteConversationAction } from "@/app/(products)/commandos/(protected)/chatbot/conversations/actions";
+import { deleteVoiceConversationAction } from "@/app/(products)/commandos/(protected)/chatbot/voice-conversations/actions";
 import * as Push from "@/app/(products)/commandos/(protected)/push/actions";
 import * as Settings from "@/app/(products)/sitecraft-ai/(protected)/settings/actions";
 import { getChatbotConfig } from "@/lib/chatbot-config";
@@ -89,8 +91,8 @@ export const CMS_EXTRA_ACTIONS: ActionDef[] = [
   act("cms.reindex_website", "Re-read the website into the chatbot's knowledge", "full = everything · incremental = only changed pages. Runs in the background.", [f.enum("mode", "Mode", ["incremental", "full"])], (v) => Bot.triggerWebsiteIndexAction(v.mode === "full" ? "full" : "incremental"), "Indexing started."),
   act("cms.reindex_pdf", "Re-index a knowledge-base document", "Re-read an uploaded PDF.", [id("Document")], (v) => Bot.reindexPdfAction(String(v.id)), "Re-indexing."),
   act("cms.delete_pdf", "Delete a knowledge-base document", "Remove a document from the chatbot's knowledge.", [id("Document")], (v) => Bot.deletePdfAction(String(v.id)), "Document deleted.", true),
-  act("cms.delete_chat_conversation", "Delete a website chat conversation", "Permanently delete one visitor chat.", [id("Conversation")], (v) => Bot.deleteConversationInPlaceAction(String(v.id)), "Conversation deleted.", true),
-  act("cms.delete_voice_conversation", "Delete a voice conversation", "Permanently delete one voice session.", [id("Conversation")], (v) => Bot.deleteVoiceConversationInPlaceAction(String(v.id)), "Conversation deleted.", true),
+  act("cms.delete_chat_conversation", "Delete a website chat conversation", "Permanently delete one visitor chat.", [id("Conversation")], async (v) => ((await deleteConversationAction(String(v.id))).ok ? {} : { error: "Conversation not found." }), "Conversation deleted.", true),
+  act("cms.delete_voice_conversation", "Delete a voice conversation", "Permanently delete one voice session.", [id("Conversation")], async (v) => ((await deleteVoiceConversationAction(String(v.id))).ok ? {} : { error: "Conversation not found." }), "Conversation deleted.", true),
 
   act("cms.save_web_push_settings", "Change website push-notification settings", "input: the push settings object (see cms.push → settings).", [input("Push settings")], async (v) => Push.saveWebPushSettingsAction({ ...(await getWebPushSettings()), ...(obj(v) as object) } as never), "Push settings saved.", true),
   act("cms.send_web_push", "Send a push notification to site visitors", "Goes to everyone subscribed to the topic — it cannot be recalled.", [f.str("topic", "Topic", true), f.str("title", "Title", true), f.text("body", "Message", true), f.str("url", "Link when tapped", true)], (v) => Push.sendWebPushAction({ topic: String(v.topic), title: String(v.title), body: String(v.body ?? ""), url: String(v.url ?? "") }), "Notification sent.", true),

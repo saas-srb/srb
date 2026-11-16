@@ -20,7 +20,7 @@ export default async function PanelBackBar() {
   let verify = false;
   let daysLeft: number | undefined;
   let upgrade: Awaited<ReturnType<typeof getUpgradeOffer>> = null;
-  let setup = { show: false, done: 0, total: 0 };
+  let setup = { show: false, done: 0, total: 0, percent: 0 };
   let verifyDismissed = false;
   let setupDismissed = false;
   let upgradeDismissed = false;
@@ -29,7 +29,7 @@ export default async function PanelBackBar() {
     if (user) {
       const [own, s, verifyIsDismissed, setupIsDismissed, upgradeIsDismissed] = await Promise.all([
         isPlatformOwnerContext().catch(() => false),
-        setupStripNeeded(user.roles).catch(() => ({ show: false, done: 0, total: 0 })),
+        setupStripNeeded(user.roles).catch(() => ({ show: false, done: 0, total: 0, percent: 0 })),
         isStripDismissedServer("verify-email"),
         isStripDismissedServer("setup"),
         isStripDismissedServer("upgrade"),
@@ -50,7 +50,7 @@ export default async function PanelBackBar() {
     <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 empty:hidden">
       {user && verify && <VerifyEmailBanner email={user.email} daysLeft={daysLeft} initiallyDismissed={verifyDismissed} />}
       <BillingNotice />
-      {user && setup.show && <SetupBanner done={setup.done} total={setup.total} initiallyDismissed={setupDismissed} />}
+      {user && setup.show && <SetupBanner percent={setup.percent} done={setup.done} total={setup.total} initiallyDismissed={setupDismissed} />}
       {user && upgrade && <UpgradeBanner offer={upgrade} initiallyDismissed={upgradeDismissed} />}
     </div>
   );

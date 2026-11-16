@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import IdentitySummary from "@/components/products/commandos/IdentitySummary";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -90,41 +91,15 @@ export default function PrmsSettingsForm({ settings }: { settings: PrmsSettings 
 
       <GlassCard interactive={false}>
         <CardContent className="space-y-4 py-5">
-          <p className="text-sm font-semibold text-foreground">Company identity</p>
-          <p className="text-xs text-muted-foreground">Printed on purchase orders and invoices.</p>
+          <IdentitySummary
+            note="Printed on purchase orders and invoices. Set once for the whole company."
+            rows={[
+              { label: "Company name", value: co.name }, { label: "Address", value: co.addressLine }, { label: "City", value: co.city }, { label: "GSTIN", value: co.gstin },
+              { label: "PAN", value: co.pan }, { label: "Email", value: co.email }, { label: "Phone", value: co.phone }, { label: "Website", value: co.website },
+            ]}
+          />
+          <p className="text-sm font-semibold text-foreground">Signatory</p>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Company name</Label>
-              <Input value={co.name} onChange={(e) => setC("name", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>City</Label>
-              <Input value={co.city ?? ""} onChange={(e) => setC("city", e.target.value)} />
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label>Address</Label>
-              <Input value={co.addressLine ?? ""} onChange={(e) => setC("addressLine", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>GSTIN</Label>
-              <Input value={co.gstin ?? ""} onChange={(e) => setC("gstin", e.target.value)} placeholder="22AAAAA0000A1Z5" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>PAN</Label>
-              <Input value={co.pan ?? ""} onChange={(e) => setC("pan", e.target.value)} placeholder="AAAAA0000A" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Email</Label>
-              <Input value={co.email ?? ""} onChange={(e) => setC("email", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Phone</Label>
-              <Input value={co.phone ?? ""} onChange={(e) => setC("phone", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Website</Label>
-              <Input value={co.website ?? ""} onChange={(e) => setC("website", e.target.value)} />
-            </div>
             <div className="space-y-1.5">
               <Label>Signatory name</Label>
               <Input value={co.signatoryName ?? ""} onChange={(e) => setC("signatoryName", e.target.value)} />

@@ -13,7 +13,7 @@ const ICONS = ["dashboard", "users", "projects", "cart", "training", "finance", 
 const INPUT = "w-full rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary";
 const L = ({ children }: { children: React.ReactNode }) => <label className="mb-1 block text-xs font-medium text-muted-foreground">{children}</label>;
 
-const BLANK: PanelRecord = { key: "", aliases: [], name: "", shortName: "", description: "", headerTitle: "", headerDescription: "", icon: "grid", route: "", order: 200, core: false, active: true };
+const BLANK: PanelRecord = { key: "", aliases: [], name: "", shortName: "", description: "", headerTitle: "", headerDescription: "", icon: "grid", route: "", order: 200, core: false, active: true, connections: ["email"] };
 
 function productListingName(name: string): string {
   return name.replace(/^SelfRun\s+/i, "");

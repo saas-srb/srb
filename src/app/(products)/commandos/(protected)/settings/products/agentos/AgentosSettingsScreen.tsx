@@ -8,6 +8,7 @@ import SettingsForm from "@/components/products/agentos/SettingsForm";
 import { getCurrentHubUser } from "@/lib/hub-auth";
 import { getSettings } from "@/lib/products/agentos/settings";
 import { isOpenAIConfigured } from "@/lib/openai";
+import ConnectionSummary from "@/components/products/commandos/ConnectionSummary";
 import { AIBOTS_PERMISSIONS, AIBOTS_PERMISSION_META, AIBOTS_ROLE_META, AIBOTS_ROLE_PERMISSIONS } from "@/lib/aibots-roles";
 import { formatDateTime } from "@/lib/utils";
 
@@ -33,12 +34,9 @@ export default async function AgentosSettingsScreen() {
         description={<>OpenAI models, cost estimates, usage limits and the Start New Chat assistant.</>}
       />
 
-      <SectionCard title="OpenAI connection" description="All AI runs through OpenAI from this server — the key never reaches a browser.">
-        <ul className="space-y-1.5 text-sm">
-          <li className="flex items-center gap-2">
-            {ready ? <Check className="size-4 text-emerald-600" /> : <Minus className="size-4 text-rose-600" />}
-            OPENAI_API_KEY {ready ? "is set on the server" : "is NOT set — bots can't reply or index files"}
-          </li>
+      <SectionCard title="OpenAI connection" description="All AI runs through the workspace OpenAI connection, which is managed once in CommandOS for every product. The key never reaches a browser.">
+        <ConnectionSummary provider="openai">{!ready && <p className="text-xs text-rose-600">Bots can&apos;t reply or index files until an AI account is available.</p>}</ConnectionSummary>
+        <ul className="mt-3 space-y-1.5 text-sm">
           <li className="flex items-center gap-2">
             <Check className="size-4 text-emerald-600" />
             Each bot has its own OpenAI vector store; file search is bound to that store only

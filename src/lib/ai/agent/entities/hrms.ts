@@ -15,7 +15,8 @@ import { createRun, deleteRun, approveRun, getRun, getPayslip, recomputePayslip,
 import { cancelPayout, refreshSalaryPayout } from "@/lib/products/talentos/salary-payouts";
 import { getOrgSettings, updateOrgSettings, isDateString } from "@/lib/products/talentos/settings";
 import { updatePayrollConfig, getPayrollConfig } from "@/lib/products/talentos/payroll-config";
-import { updateCompanyDetails, getCompanyDetails } from "@/lib/products/talentos/company";
+import { updateStatutoryDetails, getCompanyDetails } from "@/lib/products/talentos/company";
+import { saveCompanyIdentity } from "@/lib/platform/company-identity";
 import { getHrmsDashboardStats } from "@/lib/products/talentos/dashboard";
 import { recordAudit, diffSummary } from "@/lib/products/talentos/audit";
 import { notify } from "@/lib/products/talentos/notifications";
@@ -29,7 +30,7 @@ import { HOLIDAY_TYPES } from "@/lib/products/talentos/holiday-types";
 import { OFFER_STATUSES, isValidOfferStatus } from "@/lib/products/talentos/offers-status";
 import { canApproveLeave, canManageAttendance, canManageEmployees, canManageHolidays, canManageMasters, canManagePayroll, canManagePayrollConfig, canRunPayroll, canManageSettings, canViewAllEmployees, canViewAuditLog } from "@/lib/hrms-roles";
 import * as Bank from "@/app/(products)/talentos/(protected)/(staff)/employees/[id]/bank-actions";
-import { check, fail, formInput, str, viaAction } from "@/lib/ai/agent/entities/helpers";
+import { check, fail, formInput, invalid, str, viaAction } from "@/lib/ai/agent/entities/helpers";
 import type { ActionDef, AgentUser, EntityDef, Json, ReportDef } from "@/lib/ai/agent/types";
 
 /**
@@ -705,7 +706,11 @@ export const HRMS_ACTIONS: ActionDef[] = [
       const cur = (await getCompanyDetails()) as unknown as Json;
       const c = check(validateCompanyDetails(formInput(cur, v)));
       if (!c.ok) return c.error;
-      await updateCompanyDetails(c.data, u.id);
+      // Who the company is goes to the one company identity; only the payroll codes and payslip note stay in TalentOS.
+      const d = c.data;
+      const ident = await saveCompanyIdentity({ brandName: d.name, legalName: d.legalName, addressLine1: d.addressLine1, addressLine2: d.addressLine2, city: d.city, state: d.state, postalCode: d.postalCode, country: d.country, email: d.email, phone: d.phone, website: d.website, pan: d.pan, gstin: d.gstin, cin: d.cin }, u.id);
+      if (!ident.ok) return invalid(ident.errors as Record<string, string>);
+      await updateStatutoryDetails(d, u.id);
       await audit(u, { action: "update", entity: "company", entityId: "org", entityLabel: "Company details", summary: `${c.data.name}${c.data.pan ? ` · PAN ${c.data.pan}` : ""}` });
       return { ok: true, result: "Company details saved." };
     },

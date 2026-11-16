@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plug, ArrowRight, CheckCircle2, CircleSlash } from "lucide-react";
+import { ArrowRight, CheckCircle2, CircleSlash } from "lucide-react";
 import type { IntegrationConnectionStatus, IntegrationStatus } from "@/lib/dealflow-ai/types";
 
 const SETTINGS_HREF = "/commandos/settings/integrations";
@@ -31,10 +31,10 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 function Card({ title, subtitle, pill, children, footer }: { title: string; subtitle: string; pill: React.ReactNode; children: React.ReactNode; footer: React.ReactNode }) {
   return (
-    <div className="space-y-4 rounded-3xl border border-border/60 bg-card p-6 shadow-sm">
+    <div className="space-y-4 rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
       <div className="flex items-center justify-between gap-3 border-b border-border/50 pb-4">
         <div>
-          <h4 className="text-base font-black text-foreground">{title}</h4>
+          <h4 className="text-sm font-semibold text-foreground">{title}</h4>
           <p className="text-xs text-muted-foreground">{subtitle}</p>
         </div>
         {pill}
@@ -50,20 +50,9 @@ const linkClass = "inline-flex w-full items-center justify-center gap-2 rounded-
 export default function DealFlowSyncStatus({ integrations }: { integrations: IntegrationStatus }) {
   const { meta, whatsapp } = integrations.connections;
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3 rounded-3xl border border-primary/20 bg-primary/5 p-6">
-        <span className="flex size-12 items-center justify-center rounded-2xl bg-primary text-white shadow-lg">
-          <Plug className="size-6" />
-        </span>
-        <div>
-          <h3 className="text-lg font-black text-foreground">Where your leads and applications come from</h3>
-          <p className="text-xs text-muted-foreground">
-            Connection status comes from your workspace integrations. Counts are taken from the leads and applications recorded in your workspace.
-          </p>
-        </div>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2">
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">Connection status comes from your workspace integrations. Counts come from the leads and applications recorded in your workspace.</p>
+      <div className="grid gap-3 md:grid-cols-2">
         <Card
           title="Meta (Facebook & Instagram)"
           subtitle="Your Meta developer app"

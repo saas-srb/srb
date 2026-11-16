@@ -41,7 +41,7 @@ import { Separator } from "@/components/ui/separator";
 import ChatTranscript from "@/components/products/dealflow-ai/ChatTranscript";
 import { formatDateTime } from "@/lib/utils";
 import type { ConversationDetail } from "@/lib/chat-conversations";
-import { deleteConversationInPlaceAction } from "@/app/(products)/sitecraft-ai/(protected)/chatbot/actions";
+import { deleteConversationAction } from "@/app/(products)/commandos/(protected)/chatbot/conversations/actions";
 
 function MetaRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
   return (
@@ -94,10 +94,10 @@ export default function ConversationSheet({
   async function handleDelete() {
     if (!sessionId) return;
     setDeleting(true);
-    const res = await deleteConversationInPlaceAction(sessionId);
+    const res = await deleteConversationAction(sessionId);
     setDeleting(false);
-    if (res.error) {
-      toast.error(res.error);
+    if (!res.ok) {
+      toast.error("Conversation not found.");
       return;
     }
     toast.success("Conversation deleted");

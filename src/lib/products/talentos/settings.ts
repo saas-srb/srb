@@ -1,4 +1,5 @@
 import "server-only";
+import { getCompanyIdentity } from "@/lib/platform/company-identity";
 import { getDb } from "@/lib/mongodb";
 import { updateStamp } from "@/lib/products/talentos/db";
 import { dayOfWeek } from "@/lib/products/talentos/time";
@@ -50,11 +51,12 @@ export async function getOrgSettings(): Promise<OrgSettings> {
   const db = await getDb();
   const collection = db.collection<OrgSettings>(SETTINGS_COLLECTION);
   const existing = await collection.findOne({ _id: ORG_SETTINGS_ID });
-  if (existing) return { ...DEFAULTS, ...existing };
+  // The time zone is the company's one setting (Company setup).
+  if (existing) return { ...DEFAULTS, ...existing, timezone: (await getCompanyIdentity()).timeZone || existing.timezone || DEFAULTS.timezone };
 
   const doc: OrgSettings = { _id: ORG_SETTINGS_ID, ...DEFAULTS, updatedAt: new Date(), updatedBy: null };
   await collection.updateOne({ _id: ORG_SETTINGS_ID }, { $setOnInsert: doc }, { upsert: true });
-  return doc;
+  return { ...doc, timezone: (await getCompanyIdentity()).timeZone || doc.timezone };
 }
 
 export type OrgSettingsInput = Omit<OrgSettings, "_id" | "updatedAt" | "updatedBy">;

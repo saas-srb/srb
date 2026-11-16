@@ -6,6 +6,7 @@ import { forEachCompany } from "@/lib/platform/tenancy/context";
  * Platform Console's "Run now" and the in-app scheduler all come here, so a job behaves the same however it is started.
  */
 export const JOB_RUNNERS: Record<string, () => Promise<unknown>> = {
+  "setup-reminders": async () => forEachCompany(async (companyId) => { const m = await import("@/lib/platform/setup-progress/reminders"); const { getCompany } = await import("@/lib/platform/tenancy/companies"); if ((await getCompany(companyId))?.isPlatformOwner) return null; return m.runSetupReminders(); }),
   backups: async () => (await import("@/lib/products/commandos/data-lifecycle")).runLifecycleJobs(),
   "wallet-expiry": async () => forEachCompany(async () => (await import("@/lib/wallet/expiry")).runExpirySweep()),
   playbook: async () => forEachCompany(async () => (await import("@/lib/products/playbook-ai/reminders")).runSopReminders()),

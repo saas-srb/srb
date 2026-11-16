@@ -24,6 +24,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { DRAWER_HEADER_CLASS, DRAWER_SHELL_CLASS } from "@/components/ui/drawer-shell";
 import { cn } from "@/lib/utils";
 import { onNotifySignal } from "@/lib/notify/client";
 import type { NotifyPanel } from "@/lib/notify/panels";
@@ -226,10 +227,10 @@ export default function NotificationDrawer({
 
       <SheetContent
         side="right"
-        className="flex h-full w-[min(26rem,calc(100vw-1rem))] flex-col gap-0 border-border/70 p-0 sm:max-w-md"
+        className={DRAWER_SHELL_CLASS}
       >
         {/* Header */}
-        <SheetHeader className="border-b border-border/60 px-5 py-4 pr-12">
+        <SheetHeader className={DRAWER_HEADER_CLASS}>
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import IdentitySummary from "@/components/products/commandos/IdentitySummary";
 import { saveCompanyDetailsAction } from "@/app/(products)/talentos/(protected)/(staff)/settings/actions";
 
 export interface CompanyDetailsValues {
@@ -77,35 +78,20 @@ export default function CompanyDetailsForm({ details }: { details: CompanyDetail
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <GlassCard interactive={false}>
-        <CardHeader><CardTitle>Identity</CardTitle></CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          {field("name", "Display name", "Shown large on the payslip header")}
-          {field("legalName", "Registered legal name")}
-          {field("email", "Email")}
-          {field("phone", "Phone")}
-          {field("website", "Website")}
-        </CardContent>
-      </GlassCard>
+      <IdentitySummary
+        title="Company identity"
+        note="Printed on payslips and letters. Set once for the whole company: name, address, PAN, GSTIN and CIN."
+        rows={[
+          { label: "Display name", value: details.name }, { label: "Registered legal name", value: details.legalName },
+          { label: "Address", value: [details.addressLine1, details.addressLine2, details.city, details.state, details.postalCode, details.country].filter(Boolean).join(", ") },
+          { label: "Email", value: details.email }, { label: "Phone", value: details.phone }, { label: "Website", value: details.website },
+          { label: "PAN", value: details.pan }, { label: "GSTIN", value: details.gstin }, { label: "CIN", value: details.cin },
+        ]}
+      />
 
       <GlassCard interactive={false}>
-        <CardHeader><CardTitle>Registered address</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Payroll registrations</CardTitle></CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
-          {field("addressLine1", "Address line 1")}
-          {field("addressLine2", "Address line 2")}
-          {field("city", "City")}
-          {field("state", "State")}
-          {field("postalCode", "PIN code")}
-          {field("country", "Country")}
-        </CardContent>
-      </GlassCard>
-
-      <GlassCard interactive={false}>
-        <CardHeader><CardTitle>Statutory registrations</CardTitle></CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          {field("pan", "Company PAN", "e.g. AAACY1234F — left blank, it's hidden on the payslip")}
-          {field("gstin", "GSTIN")}
-          {field("cin", "CIN")}
           {field("pfEstablishmentCode", "PF establishment code")}
           {field("esiEstablishmentCode", "ESI establishment code")}
           {field("lin", "Labour Identification No. (LIN)")}

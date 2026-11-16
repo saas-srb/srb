@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import { Button } from "@/components/ui/button";
+import IdentitySummary from "@/components/products/commandos/IdentitySummary";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -163,9 +164,8 @@ export default function OrgSettingsForm({ settings }: { settings: Settings }) {
               <Input inputMode="decimal" value={form.fullDayHours} onChange={(e) => setForm((f) => ({ ...f, fullDayHours: e.target.value }))} aria-invalid={!!errors.fullDayHours || undefined} />
               {err("fullDayHours")}
             </div>
-            <div className="space-y-1.5">
-              <Label>Timezone label</Label>
-              <Input value={form.timezone} onChange={(e) => setForm((f) => ({ ...f, timezone: e.target.value }))} />
+            <div className="space-y-1.5 sm:col-span-2">
+              <IdentitySummary title="Time zone" note="Set once for the whole company." rows={[{ label: "Time zone", value: form.timezone }]} />
             </div>
           </div>
         </CardContent>

@@ -3,6 +3,7 @@ import { getDb } from "@/lib/mongodb";
 import { updateStamp } from "@/lib/products/talentos/db";
 import { currentCompanyId } from "@/lib/platform/tenancy/context";
 import { getCompany } from "@/lib/platform/tenancy/companies";
+import { getCompanyIdentity } from "@/lib/platform/company-identity";
 
 /**
  * Company / employer identity for payslips and other official documents. Single
@@ -85,10 +86,29 @@ export async function getCompanyDetails(): Promise<CompanyDetails> {
   const collection = db.collection<CompanyDetails>(COMPANY_COLLECTION);
   const DEFAULTS = await defaultsForCurrentCompany();
   const existing = await collection.findOne({ _id: COMPANY_ID });
-  if (existing) return { ...DEFAULTS, ...existing };
-  const doc: CompanyDetails = { _id: COMPANY_ID, ...DEFAULTS, updatedAt: new Date(), updatedBy: null };
-  await collection.updateOne({ _id: COMPANY_ID }, { $setOnInsert: doc }, { upsert: true });
-  return doc;
+  let base: CompanyDetails;
+  if (existing) base = { ...DEFAULTS, ...existing };
+  else {
+    base = { _id: COMPANY_ID, ...DEFAULTS, updatedAt: new Date(), updatedBy: null };
+    await collection.updateOne({ _id: COMPANY_ID }, { $setOnInsert: base }, { upsert: true });
+  }
+  return withIdentity(base);
+}
+
+/**
+ * Who the company is (name, address, registrations, contact) is read from the ONE company identity (Company setup); this record keeps only
+ * what TalentOS adds for payslips and statutory returns (PF/ESI/TAN codes, signatory, payslip note). A value the identity does not have yet
+ * falls back to what this record holds.
+ */
+async function withIdentity(c: CompanyDetails): Promise<CompanyDetails> {
+  const i = await getCompanyIdentity();
+  const or = (a: string, b: string) => a || b;
+  return {
+    ...c,
+    name: or(i.brandName, c.name), legalName: or(i.legalName, c.legalName), addressLine1: or(i.addressLine1, c.addressLine1), addressLine2: or(i.addressLine2, c.addressLine2),
+    city: or(i.city, c.city), state: or(i.state, c.state), postalCode: or(i.postalCode, c.postalCode), country: or(i.country, c.country),
+    email: or(i.email, c.email), phone: or(i.phone, c.phone), website: or(i.website, c.website), pan: or(i.pan, c.pan), gstin: or(i.gstin, c.gstin), cin: or(i.cin, c.cin),
+  };
 }
 
 export type CompanyDetailsInput = Omit<CompanyDetails, "_id" | "updatedAt" | "updatedBy">;
@@ -101,7 +121,17 @@ export async function updateCompanyDetails(data: CompanyDetailsInput, actorId: s
     { $set: { ...data, ...updateStamp(actorId) } },
     { upsert: true, returnDocument: "after" }
   );
-  return { ...(await defaultsForCurrentCompany()), ...(result as CompanyDetails) };
+  return withIdentity({ ...(await defaultsForCurrentCompany()), ...(result as CompanyDetails) });
+}
+
+/** What TalentOS itself keeps (statutory codes, signatory, payslip note). The company's identity is never written here: it lives in the one company identity. */
+export const STATUTORY_FIELDS = ["pfEstablishmentCode", "esiEstablishmentCode", "lin", "tan", "ptRegistration", "signatoryName", "signatoryDesignation", "payslipNote"] as const;
+
+export async function updateStatutoryDetails(data: Pick<CompanyDetails, (typeof STATUTORY_FIELDS)[number]>, actorId: string): Promise<CompanyDetails> {
+  const collection = (await getDb()).collection<CompanyDetails>(COMPANY_COLLECTION);
+  const set = Object.fromEntries(STATUTORY_FIELDS.map((k) => [k, data[k]]));
+  const result = await collection.findOneAndUpdate({ _id: COMPANY_ID }, { $set: { ...set, ...updateStamp(actorId) }, $setOnInsert: { ...(await defaultsForCurrentCompany()) } } as never, { upsert: true, returnDocument: "after" });
+  return withIdentity({ ...(await defaultsForCurrentCompany()), ...(result as CompanyDetails) });
 }
 
 /** One-line address string, e.g. for the payslip header. Blank parts dropped. */

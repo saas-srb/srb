@@ -15,7 +15,8 @@ import { getConfig } from "@/lib/platform/config/store";
  * Email and push have the same rule in `email/index.ts` and `push/vapid.ts`.
  */
 export const ENV_CONNECTION_PROVIDERS = (): string[] => Object.keys(ENV);
-const ENV: Record<string, Record<string, string[]>> = {
+/** Provider to field to the platform configuration / environment names that supply it (also read by the tests and the no-duplicate-config guard). */
+export const ENV: Record<string, Record<string, string[]>> = {
   openai: { apiKey: ["OPENAI_API_KEY"] },
   twilio: { accountSid: ["TWILIO_ACCOUNT_SID"], authToken: ["TWILIO_AUTH_TOKEN"], whatsappFrom: ["TWILIO_WHATSAPP_FROM"], smsFrom: ["TWILIO_SMS_FROM"] },
   elevenlabs: { apiKey: ["ELEVENLABS_API_KEY"] },

@@ -8,6 +8,7 @@ import {
   DEFAULT_CERTIFICATE_NUMBER_FORMAT,
 } from "@/lib/products/cohort-ai/constants";
 import { getCompanyBrand } from "@/lib/platform/branding";
+import { getCompanyIdentity } from "@/lib/platform/company-identity";
 
 /**
  * TMS-wide configuration (single document). Editable program categories,
@@ -59,6 +60,12 @@ const DEFAULT_INSTITUTE: InstituteIdentity = {
  * Defaults for a company that hasn't saved its institute identity yet: the
  * its own name with blank details.
  */
+/** The institute's name, address and contact come from the one company identity (Company setup); this block keeps only the signatory. */
+async function withIdentity(c: InstituteIdentity): Promise<InstituteIdentity> {
+  const i = await getCompanyIdentity();
+  return { ...c, name: i.brandName || c.name, addressLine: [i.addressLine1, i.addressLine2].filter(Boolean).join(", ") || c.addressLine, city: i.city || c.city, email: i.email || c.email, phone: i.phone || c.phone, website: i.website || c.website };
+}
+
 async function defaultInstituteIdentity(): Promise<InstituteIdentity> {
   return { ...DEFAULT_INSTITUTE, name: (await getCompanyBrand()).name, website: null };
 }
@@ -76,11 +83,11 @@ export async function getTmsSettings(): Promise<TmsSettings> {
   const collection = db.collection<TmsSettings>(TMS_SETTINGS_COLLECTION);
   const existing = await collection.findOne({ _id: TMS_SETTINGS_ID });
   const base = await defaultInstituteIdentity();
-  if (existing) return { ...DEFAULTS, ...existing, institute: { ...base, ...existing.institute, name: existing.institute?.name || base.name } };
+  if (existing) return { ...DEFAULTS, ...existing, institute: await withIdentity({ ...base, ...existing.institute, name: existing.institute?.name || base.name }) };
 
   const doc: TmsSettings = { _id: TMS_SETTINGS_ID, ...DEFAULTS, institute: base, updatedAt: new Date(), updatedBy: null };
   await collection.updateOne({ _id: TMS_SETTINGS_ID }, { $setOnInsert: doc }, { upsert: true });
-  return doc;
+  return { ...doc, institute: await withIdentity(doc.institute) };
 }
 
 export interface TmsSettingsInput {

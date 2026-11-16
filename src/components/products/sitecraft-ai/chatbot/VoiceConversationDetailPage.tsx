@@ -6,7 +6,7 @@ import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import VoiceTimeline from "@/components/products/dealflow-ai/VoiceTimeline";
-import DeleteVoiceConversationButton from "@/app/(products)/sitecraft-ai/(protected)/chatbot/voice/conversations/[id]/DeleteVoiceConversationButton";
+import DeleteVoiceConversationButton from "@/app/(products)/commandos/(protected)/chatbot/voice-conversations/[id]/DeleteVoiceConversationButton";
 import { getVoiceConversation } from "@/lib/voice-conversations";
 import { formatDateTime } from "@/lib/utils";
 

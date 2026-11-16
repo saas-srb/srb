@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Companies" };
 export default async function PlatformCompaniesPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; page?: string }> }) {
   const user = await requirePlatformPermission("companies.read");
   const sp = await searchParams;
-  const status = sp.status === "active" || sp.status === "suspended" || sp.status === "reactivation" ? sp.status : "all";
+  const status = sp.status === "active" || sp.status === "suspended" || sp.status === "reactivation" || sp.status === "stuck" ? sp.status : "all";
   const list = await listCompanies({ q: sp.q, status, page: Number(sp.page) || 1 });
 
   return (

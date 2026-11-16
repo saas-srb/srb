@@ -36,15 +36,18 @@ const buildColumns = (canImpersonate: boolean): AdminDataGridColumn<CompanyRow>[
       ),
   },
   {
-    key: "onboarding",
-    label: "Setup",
+    key: "setup",
+    label: "Setup %",
     render: (row) =>
       row.isPlatformOwner ? (
         "—"
+      ) : row.setup.percent === null ? (
+        <span className="text-xs text-muted-foreground" title="Not computed yet: the daily job or the company's Director has not opened Setup progress.">Not yet</span>
       ) : (
-        <span className="text-xs tabular-nums">
-          {row.onboarding.done}/{row.onboarding.total}
-          {row.onboarding.completedAt ? " · done" : row.onboarding.dismissedAt ? " · skipped" : ""}
+        <span className="flex flex-wrap items-center gap-1.5 text-xs tabular-nums" data-setup-percent={row.setup.percent}>
+          <span className="inline-block h-1.5 w-12 overflow-hidden rounded-full bg-muted" aria-hidden><span className={`block h-full rounded-full ${row.setup.percent >= 100 ? "bg-emerald-500" : "bg-primary"}`} style={{ width: `${row.setup.percent}%` }} /></span>
+          {row.setup.percent}%
+          {row.setup.stuck && <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-300">Stuck</span>}
         </span>
       ),
   },

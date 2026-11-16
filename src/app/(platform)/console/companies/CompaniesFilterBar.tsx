@@ -55,6 +55,7 @@ export default function CompaniesFilterBar({ initialSearch, initialStatus }: { i
             <SelectItem value="active">Active</SelectItem>
             <SelectItem value="suspended">Suspended</SelectItem>
             <SelectItem value="reactivation">Reactivation requested</SelectItem>
+            <SelectItem value="stuck">Setup stuck (under 50% for 7+ days)</SelectItem>
           </SelectContent>
         </Select>
       </div>

@@ -6,7 +6,7 @@ import { canManagePayrollConfig, canManageSettings } from "@/lib/hrms-roles";
 import { updateOrgSettings } from "@/lib/products/talentos/settings";
 import { upsertLeaveType, deleteLeaveType } from "@/lib/products/talentos/leave";
 import { updatePayrollConfig } from "@/lib/products/talentos/payroll-config";
-import { updateCompanyDetails } from "@/lib/products/talentos/company";
+import { updateStatutoryDetails } from "@/lib/products/talentos/company";
 import { validateOrgSettings, validateLeaveType, validateCompanyDetails } from "@/lib/products/talentos/validation-ops";
 import { validatePayrollConfig } from "@/lib/products/talentos/validation-payroll";
 import { recordAudit } from "@/lib/products/talentos/audit";
@@ -91,7 +91,8 @@ export async function saveCompanyDetailsAction(input: Record<string, unknown>): 
   const v = validateCompanyDetails(input);
   if (!v.valid) return { ok: false, fieldErrors: v.errors };
 
-  await updateCompanyDetails(v.data, user.id);
+  // Only what TalentOS adds is saved here; who the company is lives in Company setup (CommandOS).
+  await updateStatutoryDetails(v.data, user.id);
   await recordAudit({
     actorId: user.id,
     actorEmail: user.email,
@@ -99,7 +100,7 @@ export async function saveCompanyDetailsAction(input: Record<string, unknown>): 
     entity: "company",
     entityId: "org",
     entityLabel: "Company details",
-    summary: `${v.data.name}${v.data.pan ? ` · PAN ${v.data.pan}` : ""}`,
+    summary: `statutory codes and payslip note${v.data.tan ? ` · TAN ${v.data.tan}` : ""}`,
   });
   revalidatePath("/talentos/settings");
   return { ok: true };

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import IdentitySummary from "@/components/products/commandos/IdentitySummary";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -87,33 +88,16 @@ export default function TmsSettingsForm({ settings }: { settings: TmsSettings })
 
       <GlassCard interactive={false}>
         <CardContent className="space-y-4 py-5">
-          <p className="text-sm font-semibold text-foreground">Institute identity</p>
-          <p className="text-xs text-muted-foreground">Printed on certificates and invoices in later phases.</p>
+          <IdentitySummary
+            title="Institute identity"
+            note="Printed on certificates and invoices. Set once for the whole company."
+            rows={[
+              { label: "Name", value: inst.name }, { label: "Address", value: inst.addressLine }, { label: "City", value: inst.city },
+              { label: "Email", value: inst.email }, { label: "Phone", value: inst.phone }, { label: "Website", value: inst.website },
+            ]}
+          />
+          <p className="text-sm font-semibold text-foreground">Signatory</p>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Institute name</Label>
-              <Input value={inst.name} onChange={(e) => setI("name", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>City</Label>
-              <Input value={inst.city ?? ""} onChange={(e) => setI("city", e.target.value)} />
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label>Address</Label>
-              <Input value={inst.addressLine ?? ""} onChange={(e) => setI("addressLine", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Email</Label>
-              <Input value={inst.email ?? ""} onChange={(e) => setI("email", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Phone</Label>
-              <Input value={inst.phone ?? ""} onChange={(e) => setI("phone", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Website</Label>
-              <Input value={inst.website ?? ""} onChange={(e) => setI("website", e.target.value)} />
-            </div>
             <div className="space-y-1.5">
               <Label>Signatory name</Label>
               <Input value={inst.signatoryName ?? ""} onChange={(e) => setI("signatoryName", e.target.value)} />

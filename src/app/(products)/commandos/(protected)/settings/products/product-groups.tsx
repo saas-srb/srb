@@ -38,6 +38,16 @@ export interface ProductCard {
   settings: ProductSettingsLink[];
 }
 
+/** One plain sub-line under each category heading (the same pattern as the Integrations categories). */
+export const PRODUCT_GROUP_NOTES: Record<string, string> = {
+  "Human Resources & People": "People, projects and training.",
+  "Finance & Procurement": "Money coming in and going out.",
+  "AI & Intelligent Tools": "Assistants, analysis and testing.",
+  "Sales, Marketing & CRM": "Leads, social media and search.",
+  "Legal, Security & Docs": "Contracts, secure files and procedures.",
+  "Website & Customer Portal": "Your website and customer support.",
+};
+
 export const PRODUCT_GROUPS: { label: string; products: ProductCard[] }[] = [
   {
     label: "Human Resources & People",
@@ -45,7 +55,7 @@ export const PRODUCT_GROUPS: { label: string; products: ProductCard[] }[] = [
       {
         key: "talentos",
         name: "TalentOS",
-        description: "HR management — employees, payroll, leave and attendance.",
+        description: "Manage employees, payroll, leave and attendance rules.",
         icon: Users,
         color: "text-blue-600 dark:text-blue-400",
         settings: [
@@ -55,7 +65,7 @@ export const PRODUCT_GROUPS: { label: string; products: ProductCard[] }[] = [
       {
         key: "sprintos",
         name: "SprintOS",
-        description: "Project management — tasks, milestones, timesheets and teams.",
+        description: "Manage projects, tasks, timesheets and teams.",
         icon: ClipboardList,
         color: "text-indigo-600 dark:text-indigo-400",
         settings: [
@@ -65,7 +75,7 @@ export const PRODUCT_GROUPS: { label: string; products: ProductCard[] }[] = [
       {
         key: "cohort-ai",
         name: "Cohort AI",
-        description: "Training management — programs, batches, students and certificates.",
+        description: "Run training programs, batches and certificates.",
         icon: BookText,
         color: "text-teal-600 dark:text-teal-400",
         settings: [
@@ -80,7 +90,7 @@ export const PRODUCT_GROUPS: { label: string; products: ProductCard[] }[] = [
       {
         key: "cashflow-ai",
         name: "CashFlow AI",
-        description: "Accounting, invoicing, payroll and financial reports.",
+        description: "Keep your accounts, invoices and financial reports.",
         icon: Landmark,
         color: "text-emerald-600 dark:text-emerald-400",
         settings: [
@@ -90,7 +100,7 @@ export const PRODUCT_GROUPS: { label: string; products: ProductCard[] }[] = [
       {
         key: "spendiq",
         name: "SpendIQ",
-        description: "Procurement, expenses, vendor management and assets.",
+        description: "Control purchases, expenses, vendors and assets.",
         icon: ShoppingCart,
         color: "text-orange-600 dark:text-orange-400",
         settings: [
@@ -105,7 +115,7 @@ export const PRODUCT_GROUPS: { label: string; products: ProductCard[] }[] = [
       {
         key: "agentos",
         name: "AgentOS",
-        description: "AI chatbots — build, deploy and manage intelligent assistants.",
+        description: "Build and run AI assistants and phone agents.",
         icon: Bot,
         color: "text-violet-600 dark:text-violet-400",
         settings: [
@@ -116,7 +126,7 @@ export const PRODUCT_GROUPS: { label: string; products: ProductCard[] }[] = [
       {
         key: "databrain-ai",
         name: "DataBrain AI",
-        description: "Business intelligence — dashboards, reports and analytics.",
+        description: "Ask questions about your business data.",
         icon: BarChart3,
         color: "text-cyan-600 dark:text-cyan-400",
         settings: [],
@@ -124,7 +134,7 @@ export const PRODUCT_GROUPS: { label: string; products: ProductCard[] }[] = [
       {
         key: "evaliq",
         name: "EvalIQ",
-        description: "Online testing — create, manage and analyse assessments.",
+        description: "Run online tests and assessments.",
         icon: FileCheck2,
         color: "text-amber-600 dark:text-amber-400",
         settings: [
@@ -139,7 +149,7 @@ export const PRODUCT_GROUPS: { label: string; products: ProductCard[] }[] = [
       {
         key: "dealflow-ai",
         name: "DealFlow AI",
-        description: "CRM, pipeline and revenue — leads, clients, deals and invoices.",
+        description: "Track leads, deals and customers.",
         icon: Briefcase,
         color: "text-sky-600 dark:text-sky-400",
         settings: [],
@@ -147,7 +157,7 @@ export const PRODUCT_GROUPS: { label: string; products: ProductCard[] }[] = [
       {
         key: "viralpulse-ai",
         name: "ViralPulse AI",
-        description: "Social media — plan, create, schedule and analyse content.",
+        description: "Plan, create and publish social media posts.",
         icon: Megaphone,
         color: "text-pink-600 dark:text-pink-400",
         settings: [
@@ -157,7 +167,7 @@ export const PRODUCT_GROUPS: { label: string; products: ProductCard[] }[] = [
       {
         key: "rankmax-ai",
         name: "RankMax AI",
-        description: "SEO — keyword research, site crawls, rank tracking and reporting.",
+        description: "Track your search rankings and fix SEO problems.",
         icon: SearchCheck,
         color: "text-lime-600 dark:text-lime-400",
         settings: [
@@ -172,7 +182,7 @@ export const PRODUCT_GROUPS: { label: string; products: ProductCard[] }[] = [
       {
         key: "contractflow-ai",
         name: "ContractFlow AI",
-        description: "Contract lifecycle — drafting, signing, renewals and legal review.",
+        description: "Draft, sign and renew contracts.",
         icon: FileText,
         color: "text-slate-600 dark:text-slate-400",
         settings: [],
@@ -180,7 +190,7 @@ export const PRODUCT_GROUPS: { label: string; products: ProductCard[] }[] = [
       {
         key: "cybervault",
         name: "CyberVault",
-        description: "Digital document locker — secure storage for employee documents.",
+        description: "Store sensitive documents securely.",
         icon: Vault,
         color: "text-red-600 dark:text-red-400",
         settings: [
@@ -190,7 +200,7 @@ export const PRODUCT_GROUPS: { label: string; products: ProductCard[] }[] = [
       {
         key: "playbook-ai",
         name: "Playbook AI",
-        description: "SOPs and knowledge base — create and share operating procedures.",
+        description: "Write and share your operating procedures.",
         icon: BookText,
         color: "text-fuchsia-600 dark:text-fuchsia-400",
         settings: [
@@ -205,7 +215,7 @@ export const PRODUCT_GROUPS: { label: string; products: ProductCard[] }[] = [
       {
         key: "sitecraft-ai",
         name: "SiteCraft AI",
-        description: "CMS and website builder — pages, blog, SEO and media.",
+        description: "Build and edit your website.",
         icon: PanelsTopLeft,
         color: "text-green-600 dark:text-green-400",
         settings: [
@@ -215,7 +225,7 @@ export const PRODUCT_GROUPS: { label: string; products: ProductCard[] }[] = [
       {
         key: "resolveiq",
         name: "ResolveIQ",
-        description: "Help desk and support — tickets, SLA, canned responses.",
+        description: "Answer customer questions and handle support tickets.",
         icon: ShieldCheck,
         color: "text-purple-600 dark:text-purple-400",
         settings: [],

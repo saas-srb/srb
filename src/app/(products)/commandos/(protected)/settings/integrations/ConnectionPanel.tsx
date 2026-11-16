@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import type { ConnectionField } from "@/lib/platform/connections/catalog";
 import { cn } from "@/lib/utils";
-import { disconnectConnectionAction, saveConnectionAction, setConnectionModeAction, testConnectionAction } from "./actions";
+import { disconnectConnectionAction, saveConnectionAction, sendTestEmailAction, setConnectionModeAction, testConnectionAction } from "./actions";
 
 export interface PanelProvider {
   key: string;
@@ -22,6 +22,8 @@ export interface PanelProvider {
   testable: boolean;
   /** SelfRun can run this service for the company (the "Use SRB" choice is offered). */
   canSrb: boolean;
+  /** An email provider: offers "Send me a test email". */
+  isEmail?: boolean;
   /** SelfRun's own account for it is set up. */
   srbReady: boolean;
   mode: "srb" | "own";
@@ -68,6 +70,7 @@ export default function ConnectionPanel({ p, encryptionReady }: { p: PanelProvid
       router.refresh();
     });
   const test = () => startTest(async () => { setResult(await testConnectionAction(p.key).catch(() => ({ ok: false, message: "The check could not run." }))); router.refresh(); });
+  const sendMe = () => startTest(async () => { setResult(await sendTestEmailAction().catch(() => ({ ok: false, message: "The test email could not be sent." }))); });
   const disconnect = () => start(async () => { await disconnectConnectionAction(p.key); toast.success("Your own keys were removed."); setMode("srb"); router.refresh(); });
 
   const option = (value: "srb" | "own", title: string, text: string, disabled = false) => (
@@ -85,10 +88,21 @@ export default function ConnectionPanel({ p, encryptionReady }: { p: PanelProvid
       {!encryptionReady && <p role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">Secure storage is not available right now, so keys cannot be saved. Please try again in a few minutes, or contact support.</p>}
       <fieldset className="space-y-2" aria-label="Which account to use">
         <legend className="mb-1 text-sm font-semibold">Which account should be used?</legend>
-        {option("srb", "Use SRB (recommended)", p.canSrb ? (p.srbReady ? "SelfRun's own account. Nothing to set up and nothing to pay separately for this service." : "SelfRun's own account. It is not available on this server right now, so connect your own for now.") : "SelfRun does not provide this service. Connect your own account.", !p.canSrb)}
+        {option("srb", "Use SRB (recommended)", p.canSrb ? (p.srbReady ? "SelfRun's own account. Nothing to set up and nothing to pay separately for this service." : "Not available from SRB, add your own.") : "SelfRun does not provide this service. Connect your own account.", !p.canSrb)}
         {option("own", "Use my own account", "Your company's own keys. Used only by your workspace.")}
         {mode === "srb" && hasKeys && <p className="text-xs text-muted-foreground">Your saved keys are kept. They are used again if you switch back.</p>}
       </fieldset>
+
+      {mode === "srb" && p.srbReady && (p.testable || p.isEmail) && (
+        <div className="space-y-3">
+          {result && <p role="status" className={cn("rounded-lg px-3 py-2 text-sm", result.ok ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-destructive/10 text-destructive")}>{result.ok ? "Works: " : "Problem: "}{result.message}</p>}
+          <div className="flex flex-wrap items-center gap-2">
+            {p.testable && <Button variant="outline" onClick={test} disabled={testing || pending}>{testing && <Loader2 className="size-4 animate-spin" />}Test connection</Button>}
+            {p.isEmail && <Button variant="outline" onClick={sendMe} disabled={testing || pending}>Send me a test email</Button>}
+            <Button variant="outline" onClick={() => router.push("/commandos/settings/integrations", { scroll: false })}>Cancel</Button>
+          </div>
+        </div>
+      )}
 
       {mode === "own" && (
         <div className="space-y-4 rounded-2xl border border-border/60 p-4">
@@ -123,8 +137,10 @@ export default function ConnectionPanel({ p, encryptionReady }: { p: PanelProvid
           {formError && <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{formError}</p>}
           {result && <p role="status" className={cn("rounded-lg px-3 py-2 text-sm", result.ok ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-destructive/10 text-destructive")}>{result.ok ? "Works: " : "Problem: "}{result.message}</p>}
           <div className="flex flex-wrap items-center gap-2">
+            {p.testable && (p.saved || p.srbReady) && <Button variant="outline" onClick={test} disabled={testing || pending}>{testing && <Loader2 className="size-4 animate-spin" />}Test connection</Button>}
+            {p.isEmail && <Button variant="outline" onClick={sendMe} disabled={testing || pending}>Send me a test email</Button>}
             <Button onClick={save} disabled={pending || !encryptionReady}>{pending && <Loader2 className="size-4 animate-spin" />}{p.saved ? "Save changes" : "Save and connect"}</Button>
-            {p.testable && p.saved && <Button variant="outline" onClick={test} disabled={testing || pending}>{testing && <Loader2 className="size-4 animate-spin" />}Test connection</Button>}
+            <Button variant="outline" onClick={() => router.push("/commandos/settings/integrations", { scroll: false })} disabled={pending}>Cancel</Button>
             {p.saved && <Button variant="ghost" onClick={disconnect} disabled={pending} className="ml-auto text-destructive hover:text-destructive"><Trash2 className="size-4" />Remove my keys</Button>}
           </div>
         </div>

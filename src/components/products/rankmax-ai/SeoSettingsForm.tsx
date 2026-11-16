@@ -112,12 +112,12 @@ export default function SeoSettingsForm({ initial, siteUrl, env }: { initial: Se
         </div>
       </Section>
 
-      <Section id="integrations" title="Integrations" description="Google APIs use one shared service account that is managed by the platform team. Nothing secret is shown here.">
+      <Section id="integrations" title="Integrations" description="The Google and PageSpeed connections are managed once in CommandOS, Integrations, and used by every product. Nothing secret is shown here.">
         <div className="rounded-xl bg-muted/50 p-3 text-xs">
           {env.serviceAccount ? (
             <>Service account: <code className="font-mono">{env.serviceAccount}</code> — add it as a <strong>user</strong> on the Search Console property and as a <strong>Viewer</strong> on the GA4 property.</>
           ) : (
-            <span className="text-amber-700 dark:text-amber-300">No Google service-account credentials are configured on the server, so Search Console and Analytics can&apos;t connect yet.</span>
+            <span className="text-amber-700 dark:text-amber-300">No Google service-account credentials are connected, so Search Console and Analytics can&apos;t connect yet. Connect them in CommandOS, Integrations.</span>
           )}
         </div>
         <div className="grid gap-4 lg:grid-cols-3">
@@ -139,7 +139,7 @@ export default function SeoSettingsForm({ initial, siteUrl, env }: { initial: Se
             <p className="text-sm font-semibold">PageSpeed Insights</p>
             {chk("psiEnabled", "Enabled")}
             <div className="space-y-1.5"><Label className="text-xs">Strategy</Label><OptionSelect value={String(v.psiStrategy)} onChange={(x) => setV((s) => ({ ...s, psiStrategy: x }))} options={[{ value: "mobile", label: "Mobile" }, { value: "desktop", label: "Desktop" }]} aria-label="Strategy" /></div>
-            <p className="text-[11px] text-muted-foreground">{env.pagespeedKey ? "API key configured (PAGESPEED_API_KEY)." : "No API key — works at low volume; set PAGESPEED_API_KEY for regular use."}</p>
+            <p className="text-[11px] text-muted-foreground">{env.pagespeedKey ? "An API key is connected." : "No API key — works at low volume; add one in CommandOS, Integrations, for regular use."}</p>
           </div>
         </div>
       </Section>

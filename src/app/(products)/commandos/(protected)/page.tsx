@@ -9,6 +9,9 @@ import { getWorkspaceNav } from "@/lib/products/commandos/access";
 import { loadExecutiveOverview } from "@/lib/products/commandos/executive-overview";
 import { getPanelHeadlineStats, isPanelKey } from "@/lib/products/commandos/panel-analytics";
 import { PanelPerformanceMatrix } from "@/components/products/commandos/CommandCenterSections";
+import SetupSummaryCard from "@/components/setup/SetupSummaryCard";
+import { isDirector } from "@/lib/access/director";
+import { getSetupProgress } from "@/lib/platform/setup-progress";
 import { whiteLabelProductName } from "@/lib/platform/panels/types";
 
 function nameFromEmail(email: string): string {
@@ -20,6 +23,9 @@ export default async function HubDashboardPage() {
   const user = await getCurrentHubUser();
   if (!user) redirect("/commandos/login");
   if (user.mustChangePassword) redirect("/commandos/change-password");
+
+  // The setup card (a Director only): the one percentage; a quiet chip at 100%. A failure here never breaks the dashboard.
+  const setupProgress = isDirector(user) ? await getSetupProgress().catch(() => null) : null;
 
   // The matrix numbers come from the executive loader (null for anyone without the Command Center permission).
   const executive = await loadExecutiveOverview({ roles: user.roles, permissionOverrides: user.permissionOverrides ?? null });
@@ -71,6 +77,8 @@ export default async function HubDashboardPage() {
           </div>
         }
       />
+
+      {setupProgress && <SetupSummaryCard progress={setupProgress} />}
 
       {/* Product performance matrix */}
       <section id="dashboard-overview" data-section="overview" className="space-y-6 rounded-3xl border border-border/60 border-t-2 border-t-primary/60 bg-muted/70 dark:bg-[color-mix(in_oklch,var(--background)_82%,black)] p-5 shadow-sm sm:p-6">

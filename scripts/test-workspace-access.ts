@@ -176,8 +176,8 @@ async function main() {
     for (const k of ["product.hrms", "product.pms", "product.fms", "product.lms", "product.messenger", "analytics.fms", "analytics.portal", "analytics.workspace"]) assert.ok(a.has(k), k);
     assert.ok(!a.has("platform.panel"), "tenant never sees the Platform link");
     const nav = await navOf(acme, admin);
-    assert.deepEqual(nav.sections.map((s) => s.key), ["dashboard", "panels", "analytics", "manage", "company", "engagement", "ai", "insight", "account"]);
-    assert.deepEqual(nav.sections.filter((s) => s.sidebar).map((s) => s.key), ["dashboard", "company", "engagement", "ai", "insight"], "Insight is last in the sidebar");
+    assert.deepEqual(nav.sections.map((s) => s.key), ["dashboard", "panels", "analytics", "manage", "company", "insight", "account"]);
+    assert.deepEqual(nav.sections.filter((s) => s.sidebar).map((s) => s.key), ["dashboard", "company", "insight"], "Engagement & Insights is last in the sidebar");
     assert.ok(a.has("manage.push"), "website push notifications are available to the workspace admin");
     // Growth has no Training: switched off for the company, so absent from the navigation altogether.
     assert.ok(!a.has("product.tms") && !nav.lockedKeys.includes("product.tms"), "a product switched off for the company is hidden, not locked");
@@ -404,23 +404,29 @@ async function main() {
   await check("every moved page calls requireWorkspaceAccess with the key of its own path", () => {
     let pages = 0;
     for (const d of MOVED) {
-      for (const file of walk(path.join(ROOT, "workspace/(protected)", d)).filter((f) => f.endsWith("page.tsx"))) {
-        const key = keyOf(path.relative(path.join(ROOT, "workspace/(protected)"), file));
-        assert.ok(NAV_KEYS.includes(key), `${file}: ${key} is not a nav key`);
-        assert.ok(fs.readFileSync(file, "utf8").includes(`requireWorkspaceAccess("${key}")`), `${file} must guard with ${key}`);
+      for (const file of walk(path.join(ROOT, "(products)/commandos/(protected)", d)).filter((f) => f.endsWith("page.tsx"))) {
+        const key = keyOf(path.relative(path.join(ROOT, "(products)/commandos/(protected)"), file));
+        const src = fs.readFileSync(file, "utf8");
+        if (d === "chatbot") {
+          // the AI Chatbot panel guards through its own helper, which checks manage.chatbot.conversations
+          assert.ok(src.includes("requireChatbotViewAccess()") || src.includes("movedTarget("), `${file} must guard with requireChatbotViewAccess or redirect to the moved panel`);
+        } else {
+          assert.ok(NAV_KEYS.includes(key), `${file}: ${key} is not a nav key`);
+          assert.ok(src.includes(`requireWorkspaceAccess("${key}")`), `${file} must guard with ${key}`);
+        }
         pages++;
       }
     }
-    assert.equal(pages, 32);
+    assert.equal(pages, 41);
   });
   await check("every server action of a moved page calls requireWorkspaceAction with that key", () => {
     let actions = 0;
     for (const d of MOVED) {
-      for (const file of walk(path.join(ROOT, "workspace/(protected)", d)).filter((f) => f.endsWith("actions.ts"))) {
-        const key = keyOf(path.relative(path.join(ROOT, "workspace/(protected)"), file));
+      for (const file of walk(path.join(ROOT, "(products)/commandos/(protected)", d)).filter((f) => f.endsWith("actions.ts"))) {
+        const key = keyOf(path.relative(path.join(ROOT, "(products)/commandos/(protected)"), file));
         const src = fs.readFileSync(file, "utf8");
         const exported = (src.match(/^export async function /gm) ?? []).length;
-        const guarded = src.split(`requireWorkspaceAction("${key}")`).length - 1;
+        const guarded = d === "chatbot" ? src.split("requireChatbotManageAction()").length - 1 : src.split(`requireWorkspaceAction("${key}")`).length - 1;
         assert.ok(exported > 0 && guarded === exported, `${file}: ${exported} actions, ${guarded} guards`);
         actions += exported;
       }
@@ -428,20 +434,25 @@ async function main() {
     assert.ok(actions >= 80, `${actions} actions`);
   });
   await check("every /api/commandos route authorizes with the key of its page; no /api/admin left", () => {
-    const routes = walk(path.join(ROOT, "api/commandos")).filter((f) => f.endsWith("route.ts"));
+    const routes = walk(path.join(ROOT, "(products)/api/commandos")).filter((f) => f.endsWith("route.ts"));
     assert.equal(routes.length, 35);
     for (const file of routes) {
-      const key = keyOf(path.relative(path.join(ROOT, "api/commandos"), file));
-      assert.ok(NAV_KEYS.includes(key), `${file}: ${key}`);
+      const key = keyOf(path.relative(path.join(ROOT, "(products)/api/commandos"), file));
       const src = fs.readFileSync(file, "utf8");
+      if (key.startsWith("manage.chatbot.")) {
+        assert.ok(src.includes("authorizeChatbotApi("), `${file} must authorize with authorizeChatbotApi`);
+        continue;
+      }
+      assert.ok(NAV_KEYS.includes(key), `${file}: ${key}`);
       assert.ok(src.includes(`authorizeWorkspaceApi("${key}")`) && src.includes("if (!auth.ok) return auth.response;"), `${file} must authorize with ${key}`);
     }
-    assert.ok(!fs.existsSync(path.join(ROOT, "admin")) && !fs.existsSync(path.join(ROOT, "api/admin")), "the admin routes are gone");
+    assert.ok(!fs.existsSync(path.join(ROOT, "admin")) && !fs.existsSync(path.join(ROOT, "(products)/api/admin")), "the admin routes are gone");
   });
   await check("each moved page key per role: super admin yes, every other role no, single grants only their own", async () => {
     for (const key of GROWTH_MANAGE_KEYS.concat("company.users")) {
       assert.equal(await runAsCompany(acme, () => checkWorkspaceAccess(admin.user, key)), true, key);
-      for (const u of [hr, dev, finance, sales, noRoles]) assert.equal(await runAsCompany(acme, () => checkWorkspaceAccess(u.user, key)), false, key);
+      // the AI Chatbot items also open for the CRM & Leads (lms) roles, which is how the chatbot was always reachable
+      for (const u of key.startsWith("manage.chatbot") ? [hr, dev, finance, noRoles] : [hr, dev, finance, sales, noRoles]) assert.equal(await runAsCompany(acme, () => checkWorkspaceAccess(u.user, key)), false, key);
       assert.equal(await runAsCompany(acme, () => checkWorkspaceAccess(tuned.user, key)), key.startsWith("manage.pms."), key);
       assert.equal(await runAsCompany(beta, () => checkWorkspaceAccess(hr.user, key)), false, "roles of another company's user change nothing here");
     }
@@ -471,8 +482,8 @@ async function main() {
     await runAsCompany(acme, async () => {
       const delegate = { roles: preset("hr") };
       assert.equal(await delegatedManagerBlock(admin.user, { targetId: admin.user.id, roles: ["super_admin"], overrides: true }), null, "Super Admins are not limited");
-      assert.match((await delegatedManagerBlock(delegate, { roles: ["employee", "super_admin"] })) ?? "", /grant the Super Admin role/);
-      assert.match((await delegatedManagerBlock(delegate, { targetId: admin.user.id })) ?? "", /Super Admin's account/);
+      assert.match((await delegatedManagerBlock(delegate, { roles: ["employee", "super_admin"] })) ?? "", /Only a Director can make someone a Director/);
+      assert.match((await delegatedManagerBlock(delegate, { targetId: admin.user.id })) ?? "", /change a Director's account/);
       assert.match((await delegatedManagerBlock(delegate, { targetId: dev.user.id, overrides: true })) ?? "", /permission overrides/);
       assert.equal(await delegatedManagerBlock(delegate, { targetId: dev.user.id, roles: ["pms_employee"] }), null);
     });
@@ -532,17 +543,24 @@ async function main() {
     for (const k of ["company.billing", "company.users", "company.audit", "account.documents"]) assert.equal(await runAsCompany(acme, () => checkWorkspaceAccess(fresh!, k)), false, k);
     await runAsCompany(acme, async () => (await getDb()).collection("admin_users").deleteOne({ _id: temp._id }));
   });
-  await check("every product's /login is a redirect to the Workspace sign-in; no product keeps its own form", () => {
-    for (const [name] of PANELS) {
-      const dir = path.join(ROOT, name, "login");
+  await check("every staff product's /login is a redirect to the Workspace sign-in; no product keeps its own form", () => {
+    const base = path.join(ROOT, "(products)");
+    // ClientOS is the customers' own portal (different people, own sign-in); CommandOS is the Workspace sign-in itself.
+    const own = new Set(["commandos", "clientos"]);
+    let n = 0;
+    for (const name of fs.readdirSync(base)) {
+      const dir = path.join(base, name, "login");
+      if (own.has(name) || !fs.existsSync(dir)) continue;
       assert.deepEqual(fs.readdirSync(dir), ["page.tsx"], name);
       assert.ok(fs.readFileSync(path.join(dir, "page.tsx"), "utf8").includes(`redirect(workspaceLoginUrl("/${name}"))`), name);
+      n++;
     }
+    assert.ok(n >= 14, `${n} product logins checked`);
   });
   await check("return path after sign-in: same-origin paths only", () => {
     for (const ok of ["/talentos", "/sprintos/projects?tab=1", "/commandos/users"]) assert.equal(safeNextPath(ok), ok);
     for (const bad of ["//evil.example", "https://evil.example", "/\\evil.example", "hrms", "", "/commandos/login", "/commandos/login?next=/x", "/a\nb", "/x?u=http://evil.example", ["/talentos"], null, undefined, "/" + "a".repeat(600)]) assert.equal(safeNextPath(bad), null, String(bad));
-    assert.equal(workspaceLoginUrl("/talentos"), "/commandos/login?next=%2Fhrms");
+    assert.equal(workspaceLoginUrl("/talentos"), "/commandos/login?next=%2Ftalentos");
     assert.equal(workspaceLoginUrl("//evil.example"), "/commandos/login");
   });
 
@@ -664,7 +682,7 @@ async function main() {
     const nav = await navOf(acme, admin);
     const items = nav.sections.flatMap((s) => s.items.map((i) => ({ ...i, section: s.key })));
     assert.equal(items.filter((i) => i.section === "dashboard").length, 1);
-    assert.deepEqual(items.filter((i) => /dashboard/i.test(i.label)).map((i) => i.href), ["/commandos"]);
+    assert.deepEqual(items.filter((i) => /dashboard/i.test(i.label) && !i.href.startsWith("/commandos/chatbot")).map((i) => i.href), ["/commandos"]);
     assert.ok(!items.some((i) => /command center/i.test(i.label) || i.href.includes("command-center")), "no Command Center item");
     assert.ok(!NAV_KEYS.some((k) => k === "manage.command-center" || k === "manage.activity-log" || k === "manage.documents"), "old manage keys are gone");
     assert.ok(!items.filter((i) => i.section === "manage").some((i) => /audit|activity|documents/i.test(i.label)), "Management has no audit/activity/documents item");
@@ -680,27 +698,27 @@ async function main() {
   });
   await check("every Workspace nav href (except products and the Platform link) lives under /commandos and has a page", async () => {
     const nav = await navOf(owner, ownerAdmin);
-    const PROTECTED = path.join(ROOT, "workspace/(protected)");
+    const PROTECTED = path.join(ROOT, "(products)/commandos/(protected)");
     for (const i of nav.sections.flatMap((s) => s.items)) {
-      if (i.external || i.href === "/console" || i.key.startsWith("panel.")) continue;
+      if (i.external || i.href === "/console" || /^(product|panel)\./.test(i.key)) continue;
       assert.ok(i.href === "/commandos" || i.href.startsWith("/commandos/"), `${i.key}: ${i.href}`);
       assert.ok(!/^\/(settings|onboarding|upgrade)/.test(i.href), i.href);
-      const rel = i.href.replace(/^\/workspace\/?/, "");
-      const candidates = [path.join(PROTECTED, rel, "page.tsx"), path.join(ROOT, "workspace", rel, "page.tsx"), path.join(PROTECTED, rel.replace(/\/[^/]+$/, ""), "[panel]", "page.tsx"), path.join(PROTECTED, rel.replace(/\/[^/]+$/, ""), "[kind]", "page.tsx")];
+      const rel = i.href.replace(/^\/commandos\/?/, "");
+      const candidates = [path.join(PROTECTED, rel, "page.tsx"), path.join(ROOT, "(products)/commandos", rel, "page.tsx"), path.join(PROTECTED, rel.replace(/\/[^/]+$/, ""), "[panel]", "page.tsx"), path.join(PROTECTED, rel.replace(/\/[^/]+$/, ""), "[kind]", "page.tsx")];
       assert.ok(candidates.some((f) => fs.existsSync(f)), `${i.key}: no page for ${i.href}`);
     }
     for (const old of ["command-center", "activity-log", "documents"]) assert.ok(!fs.existsSync(path.join(PROTECTED, old)), `old page /commandos/${old} is gone`);
     for (const old of [["(platform)", "settings"], ["(platform)", "onboarding"], ["(platform)", "upgrade"]]) assert.ok(!fs.existsSync(path.join(ROOT, ...old)), `${old.join("/")} moved`);
   });
   await check("the company pages keep a server-side guard: their nav key, or the company Super Admin rule they always used", () => {
-    const PROTECTED = path.join(ROOT, "workspace/(protected)");
+    const PROTECTED = path.join(ROOT, "(products)/commandos/(protected)");
     const nameOf = (href: string) => href.replace("/commandos/", "");
     const guards = (file: string, key: string) => {
       const src = fs.readFileSync(file, "utf8");
-      return src.includes(`requireWorkspaceAccess("${key}")`) || (src.includes('roles.includes("super_admin")') && src.includes("getCurrentHubUser"));
+      return src.includes(`requireWorkspaceAccess("${key}")`) || ((src.includes('roles.includes("super_admin")') || src.includes("isDirector(")) && src.includes("getCurrentHubUser"));
     };
     const pages: [string, string][] = [
-      ["company.setup", "onboarding"], ["company.profile", "settings/profile"], ["company.billing", "settings/billing"], ["company.invoices", "settings/billing/invoices"],
+      ["company.setup", "onboarding"], ["company.setup", "settings/profile"], ["company.billing", "settings/billing"], ["company.invoices", "settings/billing/invoices"],
       ["company.usage", "settings/usage"], ["company.domains", "settings/domains"], ["company.branding", "settings/branding"], ["company.payments", "settings/payments"],
       ["company.integrations", "settings/integrations"], ["company.automations", "settings/automations"], ["company.import", "settings/import"], ["company.security", "settings/security"],
     ];
@@ -710,21 +728,21 @@ async function main() {
     }
     assert.ok(nameOf("/commandos/settings/audit-log") === "settings/audit-log");
     assert.ok(fs.readFileSync(path.join(PROTECTED, "settings/audit-log/page.tsx"), "utf8").includes('requireWorkspaceAccess("company.audit")'));
-    for (const f of ["import/run/route.ts", "import/sample/route.ts"]) assert.ok(fs.readFileSync(path.join(PROTECTED, "settings", f), "utf8").includes('"super_admin"'), f);
+    for (const f of ["import/run/route.ts", "import/sample/route.ts"]) assert.ok(fs.readFileSync(path.join(PROTECTED, "settings", f), "utf8").includes("isDirector("), f);
   });
   await check("Audit log: product activity needs the Audit log permission, workspace events the company Super Admin; the source can only narrow", async () => {
     const asCtx = (u: { user: WorkspaceUser }) => ({ roles: u.user.roles, permissionOverrides: u.user.permissionOverrides ?? null });
     const access = (u: { user: WorkspaceUser }) => ({ panels: canViewAuditLog(asCtx(u)), workspace: canViewWorkspaceEvents(asCtx(u)) });
     assert.deepEqual(access(admin), { panels: true, workspace: true });
-    assert.deepEqual(allowedAuditSources(access(admin)), ["all", "workspace", "panels"]);
+    assert.deepEqual(allowedAuditSources(access(admin)), ["all", "workspace", "products"]);
     assert.equal(resolveAuditSource(undefined, access(admin)), "all");
     assert.equal(resolveAuditSource("workspace", access(admin)), "workspace");
     for (const u of [hr, dev, finance, sales, noRoles]) assert.deepEqual(access(u), { panels: false, workspace: false });
     const auditor = await account(acme, "auditor@acme.test", preset("developer"), { permissionOverrides: { "workspace.viewAuditLog": true } });
     assert.deepEqual(access(auditor), { panels: true, workspace: false }, "the permission alone never opens workspace events");
-    assert.deepEqual(allowedAuditSources(access(auditor)), ["panels"]);
-    assert.equal(resolveAuditSource("workspace", access(auditor)), "panels", "asking for a source they may not read gives their own");
-    assert.equal(resolveAuditSource("all", access(auditor)), "panels");
+    assert.deepEqual(allowedAuditSources(access(auditor)), ["products"]);
+    assert.equal(resolveAuditSource("workspace", access(auditor)), "products", "asking for a source they may not read gives their own");
+    assert.equal(resolveAuditSource("all", access(auditor)), "products");
     assert.equal(resolveAuditSource("workspace", { panels: false, workspace: false }), null);
     assert.equal(await runAsCompany(acme, () => checkWorkspaceAccess(auditor.user, "company.audit")), true);
     assert.equal(await runAsCompany(acme, () => checkWorkspaceAccess(auditor.user, "company.billing")), false);

@@ -4,6 +4,7 @@ import { companyCache } from "@/lib/platform/tenancy/cache";
 import { getDb } from "@/lib/mongodb";
 import { COLLECTIONS, CMS_SITE_TAG, expireSiteCache, updateStamp } from "@/lib/products/sitecraft-ai/db";
 import { unstable_rethrow } from "next/navigation";
+import { getCompanyIdentity } from "@/lib/platform/company-identity";
 
 /**
  * Global CMS settings. Brand, contact details and social links live on the
@@ -40,7 +41,8 @@ export async function getSettings(): Promise<CmsSettings> {
   return {
     maintenanceMode: { ...DEFAULT_SETTINGS.maintenanceMode, ...doc?.maintenanceMode },
     defaultOgImage: doc?.defaultOgImage ?? DEFAULT_SETTINGS.defaultOgImage,
-    companyLegalName: doc?.companyLegalName ?? DEFAULT_SETTINGS.companyLegalName,
+    // The legal name is the company's one identity (Company setup); the value saved here is only a fallback until that is filled in.
+    companyLegalName: (await getCompanyIdentity()).legalName || doc?.companyLegalName || DEFAULT_SETTINGS.companyLegalName,
   };
 }
 

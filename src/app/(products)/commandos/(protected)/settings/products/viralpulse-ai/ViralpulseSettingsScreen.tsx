@@ -17,6 +17,7 @@ import { getBrandSnapshot, serviceCatalogue, listLiveOffers } from "@/lib/produc
 import { listIntegrationViews } from "@/lib/products/viralpulse-ai/integrations";
 import { isEncryptionConfigured } from "@/lib/products/viralpulse-ai/crypto";
 import { isOpenAIConfigured } from "@/lib/openai";
+import ConnectionSummary from "@/components/products/commandos/ConnectionSummary";
 import { SMMS_PERMISSIONS, SMMS_PERMISSION_META, SMMS_ROLE_META, SMMS_ROLE_PERMISSIONS } from "@/lib/smms-roles";
 import { formatDate, formatDateTime } from "@/lib/utils";
 
@@ -101,12 +102,12 @@ export default async function ViralpulseSettingsScreen({
         </TabsContent>
 
         <TabsContent value="ai" className="mt-4 space-y-4">
-          <SectionCard title="OpenAI" description="OpenAI is the only AI provider in this product. The key stays on the server.">
+          <SectionCard title="OpenAI" description="The AI accounts are managed once in CommandOS and used by every product. Only the model choices below are specific to ViralPulse.">
+            <div className="mb-4 space-y-2">
+              <ConnectionSummary provider="openai">{!openaiReady && <p className="text-xs text-rose-600">Generation is unavailable until an AI account is available.</p>}</ConnectionSummary>
+              <ConnectionSummary provider="gemini" />
+            </div>
             <ul className="mb-4 space-y-1.5 text-sm">
-              <li className="flex items-center gap-2">
-                {openaiReady ? <Check className="size-4 text-emerald-600" /> : <Minus className="size-4 text-rose-600" />}
-                {`OPENAI_API_KEY ${openaiReady ? "is set" : "is NOT set — generation is unavailable"}`}
-              </li>
               <li className="flex items-center gap-2"><Check className="size-4 text-emerald-600" />Text: Responses API with strict JSON-schema output; images: Images API</li>
               <li className="flex items-center gap-2"><Check className="size-4 text-emerald-600" />Every generation is stored as a version; nothing is published automatically</li>
             </ul>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import IdentitySummary from "@/components/products/commandos/IdentitySummary";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import MultiPicker from "@/components/products/playbook-ai/MultiPicker";
@@ -29,9 +30,8 @@ export default function SettingsForm({ initial, users }: { initial: SettingsValu
   return (
     <div className="space-y-5">
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="space-y-1.5">
-          <Label htmlFor="s-org">Organization (printed on certificates)</Label>
-          <Input id="s-org" value={v.organizationName} onChange={(e) => set("organizationName", e.target.value)} />
+        <div className="md:col-span-2">
+          <IdentitySummary title="Organization (printed on certificates)" note="Set once for the whole company." rows={[{ label: "Name", value: v.organizationName }]} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="s-fmt">Certificate number format</Label>

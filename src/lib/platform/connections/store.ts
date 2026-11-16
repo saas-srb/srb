@@ -3,6 +3,7 @@ import { getDb } from "@/lib/mongodb";
 import { currentCompanyId } from "@/lib/platform/tenancy/context";
 import { encryptPlatformSecret, decryptPlatformSecret, isPlatformEncryptionConfigured, last4, type EncryptedValue } from "@/lib/platform/crypto";
 import { providerByKey, type ConnectionProvider } from "@/lib/platform/connections/catalog";
+import { onConfigChange, publishConfigChange } from "@/lib/platform/config-events";
 
 /**
  * A workspace's saved third-party connections (`workspace_connections`, one doc per provider, scoped to the company).
@@ -37,7 +38,9 @@ async function col() {
 const TTL_MS = 20_000;
 const g = globalThis as unknown as { __wsConnCache?: Map<string, { at: number; values: Record<string, string> | null }> };
 const cache = (g.__wsConnCache ??= new Map());
-const bust = (companyId: string, provider: string) => cache.delete(`${companyId}:${provider}`);
+const bust = (companyId: string, provider: string) => { cache.delete(`${companyId}:${provider}`); void publishConfigChange(`connection:${provider}`).catch(() => {}); };
+// A change made on another server instance reaches this one through the shared change counter; in this process the listener clears at once.
+onConfigChange((c) => { if (c.scope.startsWith("connection:")) cache.delete(`${c.companyId}:${c.scope.slice("connection:".length)}`); });
 
 /** The company's own saved values for a provider (decrypted), or null when it hasn't connected one. Server-only. */
 export async function getSavedConnection(provider: string): Promise<Record<string, string> | null> {

@@ -1,4 +1,5 @@
 import "server-only";
+import { getCompanyIdentity } from "@/lib/platform/company-identity";
 import { getDb } from "@/lib/mongodb";
 import { updateStamp } from "@/lib/products/talentos/db";
 
@@ -126,10 +127,11 @@ export async function getPayrollConfig(): Promise<PayrollConfig> {
   const db = await getDb();
   const collection = db.collection<PayrollConfig>(PAYROLL_CONFIG_COLLECTION);
   const existing = await collection.findOne({ _id: PAYROLL_CONFIG_ID });
-  if (existing) return { ...PAYROLL_DEFAULTS, ...existing };
+  // The financial year start is the company's one setting (Company setup).
+  if (existing) return { ...PAYROLL_DEFAULTS, ...existing, financialYearStartMonth: (await getCompanyIdentity()).fiscalYearStartMonth };
   const doc: PayrollConfig = { _id: PAYROLL_CONFIG_ID, ...PAYROLL_DEFAULTS, updatedAt: new Date(), updatedBy: null };
   await collection.updateOne({ _id: PAYROLL_CONFIG_ID }, { $setOnInsert: doc }, { upsert: true });
-  return doc;
+  return { ...doc, financialYearStartMonth: (await getCompanyIdentity()).fiscalYearStartMonth };
 }
 
 export async function updatePayrollConfig(data: PayrollConfigInput, actorId: string): Promise<PayrollConfig> {

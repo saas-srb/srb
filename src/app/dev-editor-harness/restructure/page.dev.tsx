@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import RestructureHarness, { type HarnessData } from "./RestructureHarness";
 import { resolveNav, type NavContext } from "@/lib/products/commandos/nav";
 import { cardStatus, categoryOf, type IntegrationCard } from "@/lib/platform/connections/cards";
+import { noteFor } from "@/lib/platform/connections/summary-note";
 import type { SenderView } from "@/lib/platform/email/sender";
 import type { ProductStatus } from "@/lib/products/commandos/product-status";
 
@@ -13,12 +14,13 @@ export const dynamic = "force-dynamic";
 
 const card = (key: string, name: string, description: string, c: Partial<Parameters<typeof cardStatus>[0]>, usedBy: string[], extra: Partial<IntegrationCard> = {}): IntegrationCard => {
   const status = cardStatus({ canSrb: true, srbReady: true, mode: "srb", hasOwnKeys: false, lastTestOk: null, ...c });
-  return { key, name, description, category: categoryOf(key), status, note: status === "using_srb" ? "SelfRun's account is used. Nothing to set up." : status === "using_own" ? "Your own account is used." : status === "needs_attention" ? "Last test failed: the key was rejected." : "Connect your account to use it.", usedBy, kind: "panel", canSrb: true, ...extra };
+  return { key, name, description, category: categoryOf(key), status, note: noteFor(status, true, "the key was rejected"), usedBy, kind: "panel", canSrb: true, testable: ["smtp", "resend", "twilio", "openai", "elevenlabs", "razorpay", "webhooks", "meta"].includes(key), appliesToAll: true, ...extra };
 };
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
+export default async function Page({ searchParams }: { searchParams: Promise<{ view?: string; q?: string; status?: string }> }) {
   if (process.env.NODE_ENV === "production") notFound();
-  const view = (await searchParams).view ?? "integrations";
+  const sp = await searchParams;
+  const view = sp.view ?? "integrations";
   const roles = view === "sidebar-partial" ? ["pms_manager"] : ["super_admin"];
   const ctx: NavContext = { user: { roles, permissionOverrides: null }, platformAccess: false, unavailablePanels: new Set(), panels: {} };
   const cards: IntegrationCard[] = [
@@ -26,6 +28,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
     card("resend", "Resend", "Send workspace email through Resend's API.", { mode: "own", hasOwnKeys: true, lastTestOk: true }, ["Every product"]),
     card("twilio", "Twilio", "Phone calls and SMS for lead follow-up and voice agents.", { mode: "own", hasOwnKeys: true, lastTestOk: false }, ["DealFlow AI", "AgentOS"]),
     card("razorpay", "Razorpay", "Collect invoice payments and pay salaries from your own Razorpay account.", { canSrb: false, managedConnected: false }, ["CashFlow AI", "SpendIQ"], { kind: "page", href: "/commandos/settings/payments", canSrb: false }),
+    card("dealflow-sync", "Lead sources", "Where your leads and job applications come from.", { canSrb: false, managedConnected: true }, ["DealFlow AI"], { status: "ready", category: "leads", canSrb: false }),
     card("openai", "OpenAI", "The AI behind assistants, content generation and your website chatbot.", {}, ["AgentOS", "SiteCraft AI", "ViralPulse AI"]),
     card("ai-chatbot", "AI Chatbot", "The assistant on your website: how it answers, what it knows and the conversations it has had.", {}, ["SiteCraft AI"]),
     card("elevenlabs", "Voice (ElevenLabs)", "Natural voices for phone calls and your website voice assistant.", { srbReady: false }, ["AgentOS", "SiteCraft AI"]),
@@ -44,6 +47,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
       { type: "TXT", name: "_dmarc.northwind.example", value: "v=DMARC1; p=none;", status: "failed", kind: "DMARC" },
     ] as never,
   } as SenderView;
-  const data: HarnessData = { view, nav: resolveNav(ctx).sections, cards, statuses, locked, sender };
+  const data: HarnessData = { view, q: sp.q, status: sp.status, nav: resolveNav(ctx).sections, cards, statuses, locked, sender };
   return <RestructureHarness d={data} />;
 }

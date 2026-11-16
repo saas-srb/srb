@@ -94,6 +94,7 @@ function NavLink({
   collapsed = false,
   external = false,
   locked = false,
+  badge = null,
   onNavigate,
 }: {
   href: string;
@@ -104,6 +105,8 @@ function NavLink({
   external?: boolean;
   /** No access: same place, greyed with a lock; opens the page that explains it. */
   locked?: boolean;
+  /** A small badge at the right (the setup percentage). */
+  badge?: string | null;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
@@ -120,6 +123,7 @@ function NavLink({
       )}
       <Icon className="relative size-4 shrink-0 transition-transform duration-200 group-hover:scale-110" />
       {!collapsed && <span className="relative truncate flex-1">{label}</span>}
+      {!collapsed && badge && <span data-nav-badge className="relative rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">{badge}</span>}
       {!collapsed && external && <ExternalLink className="relative size-3 text-muted-foreground/60 opacity-0 group-hover:opacity-100 transition-opacity" />}
     </>
   );
@@ -217,6 +221,7 @@ export default function HubSidebar({
                   exact={item.href === "/commandos" || item.href === "/commandos/settings/billing"}
                   external={item.external}
                   locked={item.locked}
+                  badge={item.badge}
                   collapsed={collapsed}
                   onNavigate={onNavigate}
                 />

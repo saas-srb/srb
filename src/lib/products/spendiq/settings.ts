@@ -3,6 +3,7 @@ import { getDb } from "@/lib/mongodb";
 import { updateStamp } from "@/lib/products/spendiq/db";
 import { DEFAULT_CURRENCY, SUPPORTED_CURRENCIES } from "@/lib/products/spendiq/constants";
 import { getCompanyBrand } from "@/lib/platform/branding";
+import { getCompanyIdentity } from "@/lib/platform/company-identity";
 
 /**
  * PRMS-wide configuration (single document). Company identity used on Purchase
@@ -61,6 +62,16 @@ const DEFAULT_COMPANY: CompanyIdentity = {
  * Defaults for a company that hasn't saved its company identity yet: the
  * its own name with blank details.
  */
+/** The company's name, address, GSTIN, PAN and contact come from the one company identity (Company setup); this block keeps only the signatory. */
+async function withIdentity(c: CompanyIdentity): Promise<CompanyIdentity> {
+  const i = await getCompanyIdentity();
+  return {
+    ...c,
+    name: i.brandName || c.name, addressLine: [i.addressLine1, i.addressLine2].filter(Boolean).join(", ") || c.addressLine, city: i.city || c.city,
+    gstin: i.gstin || c.gstin, pan: i.pan || c.pan, email: i.email || c.email, phone: i.phone || c.phone, website: i.website || c.website,
+  };
+}
+
 async function defaultCompanyIdentity(): Promise<CompanyIdentity> {
   return { ...DEFAULT_COMPANY, name: (await getCompanyBrand()).name, website: null };
 }
@@ -78,11 +89,11 @@ export async function getPrmsSettings(): Promise<PrmsSettings> {
   const collection = db.collection<PrmsSettings>(PRMS_SETTINGS_COLLECTION);
   const existing = await collection.findOne({ _id: PRMS_SETTINGS_ID });
   const base = await defaultCompanyIdentity();
-  if (existing) return { ...DEFAULTS, ...existing, company: { ...base, ...existing.company, name: existing.company?.name || base.name } };
+  if (existing) return { ...DEFAULTS, ...existing, company: await withIdentity({ ...base, ...existing.company, name: existing.company?.name || base.name }) };
 
   const doc: PrmsSettings = { _id: PRMS_SETTINGS_ID, ...DEFAULTS, company: base, updatedAt: new Date(), updatedBy: null };
   await collection.updateOne({ _id: PRMS_SETTINGS_ID }, { $setOnInsert: doc }, { upsert: true });
-  return doc;
+  return { ...doc, company: await withIdentity(doc.company) };
 }
 
 export interface PrmsSettingsInput {

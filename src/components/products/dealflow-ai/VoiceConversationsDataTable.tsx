@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatDateTime } from "@/lib/utils";
 import VoiceExportButton from "@/components/products/dealflow-ai/VoiceExportButton";
-import { bulkDeleteVoiceConversationsAction } from "@/app/(products)/sitecraft-ai/(protected)/chatbot/actions";
+import { bulkDeleteVoiceConversationsAction } from "@/app/(products)/commandos/(protected)/chatbot/voice-conversations/actions";
 import type { VoiceConversationRow } from "@/lib/voice-conversations";
 
 const DEVICE_OPTIONS = ["mobile", "tablet", "desktop", "bot", "unknown"];

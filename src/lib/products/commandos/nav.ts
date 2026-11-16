@@ -32,7 +32,7 @@ import { canViewLmsAnalytics, hasLmsAccess, lmsCan } from "@/lib/lms-roles";
 import { canViewWorkspaceAnalytics } from "@/lib/workspace-roles";
 import { resolvePermission, type RoleContext } from "@/lib/permission-overrides";
 
-export type NavSectionKey = "dashboard" | "panels" | "analytics" | "manage" | "engagement" | "ai" | "company" | "insight" | "account" | "platform";
+export type NavSectionKey = "dashboard" | "panels" | "analytics" | "manage" | "company" | "insight" | "account" | "platform";
 
 export type NavIcon =
   | "smartphone"
@@ -246,8 +246,9 @@ const GROUP_PANEL: Record<string, string> = { CRM: "lms", Projects: "pms", Procu
 const AI_GROUPS = new Set(["AI Chatbot", "Conversation AI"]);
 const MANAGE: NavItemDef[] = MANAGE_PAGES.map(([group, path, label, icon, permission, module]) => ({
   key: `manage.${path.replace(/\//g, ".")}`,
-  section: AI_GROUPS.has(group) ? "ai" : group === "Engagement" ? "engagement" : "manage",
-  group,
+  // Push notifications, the AI Chatbot Dashboard and Analytics are ONE sidebar section ("Engagement & Insights"), without sub-headings.
+  section: AI_GROUPS.has(group) || group === "Engagement" ? "insight" : "manage",
+  group: AI_GROUPS.has(group) || group === "Engagement" ? undefined : group,
   label,
   href: `/commandos/${path}`,
   icon,
@@ -260,7 +261,7 @@ const MANAGE: NavItemDef[] = MANAGE_PAGES.map(([group, path, label, icon, permis
 
 // ── Company: the company managing itself ────────────────────────────────────
 const COMPANY_GROUPS: Record<string, string> = {
-  setup: "Organization Setup", integrations: "Organization Setup", products: "Organization Setup",
+  progress: "Organization Setup", setup: "Organization Setup", integrations: "Organization Setup", products: "Organization Setup",
   departments: "Users & Access", teams: "Users & Access", designations: "Users & Access", users: "Users & Access",
   billing: "Billing & plan", invoices: "Billing & plan", usage: "Billing & plan",
   app: "Branding & domains", addresses: "Branding & domains", domains: "Branding & domains",
@@ -269,6 +270,7 @@ const COMPANY_GROUPS: Record<string, string> = {
 };
 const company = (key: string, href: string, icon: NavIcon, label: string, description: string, title?: string): NavItemDef => ({ key: `company.${key}`, section: "company", group: COMPANY_GROUPS[key], label, title, description, href, icon, allow: superAdmin });
 const COMPANY: NavItemDef[] = [
+  company("progress", "/commandos/setup", "gauge", "Setup progress", "How much of your company's setup is done, what is left and the next best step. Complete when every step that applies to you is done.", "Setup progress"),
   company("setup", "/commandos/onboarding", "building", "Company setup", "Profile, departments, invitations and which products your team uses."),
   company("integrations", "/commandos/settings/integrations", "plug", "Integrations", "What your workspace is connected to: payment gateway, webhooks and your own domain."),
   company("products", "/commandos/settings/products", "grid", "Product settings", "Configure every product your company uses — HR, Projects, Finance, SEO, Social Media, Training and more — from one place.", "All product settings"),
@@ -276,12 +278,12 @@ const COMPANY: NavItemDef[] = [
   company("teams", "/commandos/settings/organization/teams", "users", "Teams", "Groups of people within departments working on the same area."),
   company("designations", "/commandos/settings/organization/designations", "users", "Designations", "Job titles and seniority levels for your company's positions."),
   { ...company("users", "/commandos/users", "users", "People & access", "Everyone who can sign in: where they work, their status (active, on leave, left the company …), which products and features they can use, and seats used.", "People & access"), allow: may(P.users) },
-  company("billing", "/commandos/settings/billing", "card", "Plan & billing", "Your plan, payments, coupon codes and GST billing details."),
-  company("invoices", "/commandos/settings/billing/invoices", "receipt", "Invoices & payments", "Tax invoices, credit notes and every payment made for your subscription."),
-  company("usage", "/commandos/settings/usage", "gauge", "Usage & limits", "What your workspace uses against its plan (seats, AI tokens, storage, emails, voice, domains), and where to add more capacity.", "Usage & limits"),
   company("app", "/commandos/settings/apps", "smartphone", "Apps & downloads", "Your company's own apps for phones and Windows, macOS and Linux computers: settings, and a Generate button and download link for each app.", "Apps"),
   company("addresses", "/commandos/addresses", "website", "Default domain", "The default addresses we give your company: your public website and the app where your team signs in to the Workspace and every product, ready to copy and share.", "Default domain"),
   company("domains", "/commandos/settings/domains", "globe", "Custom domains", "Your workspace address and your own custom domains, with automatic SSL.", "Domains"),
+  company("billing", "/commandos/settings/billing", "card", "Plan & billing", "Your plan, payments, coupon codes and GST billing details."),
+  company("invoices", "/commandos/settings/billing/invoices", "receipt", "Invoices & payments", "Tax invoices, credit notes and every payment made for your subscription."),
+  company("usage", "/commandos/settings/usage", "gauge", "Usage & limits", "What your workspace uses against its plan (seats, AI tokens, storage, emails, voice, domains), and where to add more capacity.", "Usage & limits"),
   company("notifications", "/commandos/settings/notifications", "bell", "Notification center", "Every email, in-app and push notification your workspace sends: turn each on or off, change its wording, send your own announcements, and see what was delivered."),
   company("prompts", "/commandos/settings/prompts", "bot", "AI prompts", "How your AI assistants are told to write and behave: change the wording for your own workspace, with every version kept so you can go back to any of them. Fixed security rules always apply.", "AI prompts"),
   company("schedules", "/commandos/settings/schedules", "history", "Scheduled jobs", "What runs on its own and when: backups, reminders, notifications, billing checks and more. When each runs, when it last ran and what it does for your workspace.", "Scheduled jobs"),
@@ -337,9 +339,7 @@ export const NAV_SECTIONS: { key: NavSectionKey; label: string; href?: string; /
   { key: "analytics", label: "Analytics", sidebar: false },
   { key: "manage", label: "Management", sidebar: false },
   { key: "company", label: "Company", href: "/commandos/settings" },
-  { key: "engagement", label: "Engagement" },
-  { key: "ai", label: "AI Chatbot" },
-  { key: "insight", label: "Insight" },
+  { key: "insight", label: "Engagement & Insights" },
   { key: "account", label: "Account", sidebar: false },
   { key: "platform", label: "Platform" },
 ];
@@ -389,6 +389,8 @@ export interface NavItem {
   locked: boolean;
   /** Listed in the sidebar and on the settings cards (false: reached from another page, still guarded). */
   inSidebar: boolean;
+  /** A small badge in the sidebar, set by the server (the setup percentage). */
+  badge?: string | null;
 }
 
 export interface NavSection {

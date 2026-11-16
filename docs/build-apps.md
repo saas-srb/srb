@@ -542,3 +542,5 @@ Run `npm run cron:sync` after pulling this change so `vercel.json` has the daily
 
 ## Vercel build runs out of memory
 The 825-page build needs more than 7.5 GB. Use `npm run deploy:prebuilt` (or `.github/workflows/deploy.yml`) from a machine with 12+ GB and turn off Vercel Git auto-build. Details: `docs/build-memory.md`. Measure with `scripts/measure-build.sh`.
+
+- **Company identity and shared configuration (P7):** no new package or environment variable. New tenant collections `company_identity` and `config_versions` (both registered as keyed in `src/lib/platform/tenancy/collections.ts`, created on first use). Optional one-off migrations (throwaway database only, dry-run by default): `scripts/migrate-company-identity.ts` and `scripts/migrate-dealflow-access.ts`. New test commands: `npm run test:connections`, `npm run test:shared-config`, `npm run test:leftovers`.

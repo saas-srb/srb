@@ -83,8 +83,8 @@ Source: the owner's brief (pasted in chat on 2026-11-15). Every sentence of the 
 | P3 (DONE in code; screens checked in a headless browser on sample data only, see PROGRESS) | People & Access: 3-step create, edit person, bulk, matrix, preview | R5-R8 | click-through test, seats, audit events |
 | P4 (DONE in code, see PROGRESS) | Unified shell: Director sidebar/UX for all, locked items | R9, R10 | screenshots for 3 sample people |
 | P5 (DONE in code, see PROGRESS) | Navigation regroup (Organization, Billing & Plan, Branding & Domains, System Default, Engagement, Connections & Automation) | R1, R12-R28 | nav test: every item resolves, groups as brief |
-| P6 | Connections hub with SRB default / my own per connection | R30, R42, R43 | every provider listed once, test connection, keys-first resolution tests |
-| P7 | Product settings + shared config store, remove per-product config copies, AI Chatbot and Conversation AI moved in | R28, R29, R31-R41 | no duplicated field (static check), shared value change shows in every product |
+| P6 (DONE in code, see PROGRESS) | Connections hub with SRB default / my own per connection | R30, R42, R43 | every provider listed once, test connection, keys-first resolution tests |
+| P7 (DONE in code, see PROGRESS) | Product settings + shared config store, remove per-product config copies, AI Chatbot and Conversation AI moved in | R28, R29, R31-R41 | no duplicated field (static check), shared value change shows in every product |
 | P8 | Hardening: security review, permission parity sweep across all 16 products, docs, migration runbook, regression tests | R11, all | no product page reachable without its permission |
 
 ## 5. Decisions (owner approved all audit proposals, 2026-11-15)
@@ -115,7 +115,7 @@ Source: the owner's brief (pasted in chat on 2026-11-15). Every sentence of the 
 | R5-R8 | Done in code (P3): `/commandos/users` list, `/commandos/users/new` and `/commandos/users/[id]/edit` with exactly 3 steps, matrix of all products and features, Preview |
 | R9, R10 | Done in code (P4): everyone gets the Director's Workspace shell, sidebars and dashboards, items locked by access; self-service always open. Not checked with real sign-ins |
 | R11 | Model and helpers done (P2); enforcement in each product is P8 |
-| R12-R43 | Not started (P5-P7) |
+| R12-R43 | Done in code (P5-P7); see section 9 for each requirement |
 
 ## 8. Status after P5 (navigation regroup) and the P6 core
 
@@ -129,3 +129,45 @@ Source: the owner's brief (pasted in chat on 2026-11-15). Every sentence of the 
 
 Sections left out of the sidebar by design (decision, documented in `nav.ts`): Products (open from the dashboard cards, the Staff Hub tiles and each product's own sidebar), Management (registers reached from their products), per-product Analytics entries (listed by the Analytics page) and Account (profile menu).
 
+
+## 9. Status after P6 and P7 (every R28-R43 requirement)
+
+Done in code and tested on fakes and throwaway databases. Nothing was checked in a browser with a real sign-in, and no real keys were used (see "Not verified" in `docs/PROGRESS.md`).
+
+| Req | Status | Where / how it is proved |
+| --- | --- | --- |
+| R28 Sender Email, Integrations, Product Settings, Engagement, Push, AI Chatbot (Dashboard, Conversations, Knowledge Base, AI Config), Conversation AI (Voice Dashboard, Voice Conversations, ElevenLabs Config) | DONE | Sidebar per the owner's target (P5); SiteCraft's second chatbot copy removed, its addresses redirect (D8); `test:restructure`, `test:shared-config` |
+| R29 Restructure: production ready, simple, organized | DONE | One Integrations page, one Product settings page, one Company setup; plain wording; `test:restructure` |
+| R30 All third-party connections in one place | DONE | Integrations cards (one per provider/service, grouped); every card has a real Test through one tester interface (`connections/testers.ts`); `test:connections` (37) |
+| R31 All product configuration in one place | DONE | Product settings (card per product, panel); every in-product settings address redirects to it (D9); `test:shared-config` |
+| R32 No configuration duplicated | DONE (with listed fallbacks) | Company identity once (`company_identity`); provider keys once (`workspace_connections`); schema check `settings-schema.ts`; the old identity copies remain only as read-only fallbacks until the owner confirms (listed in `settings-schema.ts`, `LEGACY_IDENTITY_FALLBACKS`) |
+| R33 Same information never collected twice | DONE | Company setup is the only identity form; product forms show a read-only summary with "Manage in CommandOS"; provider screens show `ConnectionSummary` |
+| R34 User friendly | DONE in code | Plain words, status badges, "Used by ... Changes apply to all of them"; screenshots of the dev harness read |
+| R35 Everything managed through CommandOS works across all products | DONE | One change shows in TalentOS, PDFs, SpendIQ, Cohort AI, EvalIQ, SiteCraft and payroll (test), and a connection change shows in RankMax and ViralPulse (test) |
+| R36 No product has its own separate configuration | DONE for identity and provider keys; product settings keep only product choices | Static checks in `test:shared-config` |
+| R37 Configuration exclusively through CommandOS | DONE | Old in-product settings pages are redirects; actions of the old forms save only product fields (TalentOS statutory fields, product choices) |
+| R38 A configuration created in CommandOS is automatically available to every relevant product | DONE | Single accessor + the "configuration changed" event (`config-events.ts`): same-process listeners at once, other instances within 2 seconds (`versionedCache`) |
+| R39 No duplicate configuration across products | DONE | Guard test: no product code reads a provider environment variable or platform key; no secret form in a product; no duplicate field key across products unless a declared override |
+| R40 One consistent structure | DONE | Cards, panels, read-only summaries and the schema file are the one shape |
+| R41 Extremely simple and clear for every industry | DONE in code | Wording reviewed; not tested with real users |
+| R42 SRB by default for every third-party connection | DONE | "Using SRB" only when the platform really has the service; otherwise "Not available from SRB, add your own" (`platform-services.ts`, same source as the staff Missing-settings checklist) |
+| R43 A business can use its own connection (company keys first, SRB fallback) | DONE | `test:connections`: for every provider own wins, SRB is the fallback, switching keeps saved keys |
+
+### Migrations (P7)
+
+All: dry-run by default, `--apply`, `--revert`, `--id`, refuse a database that is not a throwaway one.
+
+| Script | What it does | Mapping table |
+| --- | --- | --- |
+| `scripts/migrate-company-identity.ts` | Copies the company identity into the one `company_identity` document, filling only empty fields, most trusted old store first; reports conflicts and invalid values | in `src/lib/platform/company-identity/migration.ts` (TalentOS company details, company registry, SpendIQ company block, Cohort AI institute block, SiteCraft legal name, billing details) |
+| `scripts/migrate-dealflow-access.ts` | Gives everyone who could open DealFlow before the lowest DealFlow role (the "anyone" rule is gone) | in `src/lib/products/commandos/dealflow-access-migration.ts` |
+| provider keys | No migration was needed: no product settings document held a provider key on this branch (all products already read `workspace_connections` through the resolver); the guard test keeps it that way | `test:shared-config` |
+| SiteCraft chatbot | No data to move: both screens used the same chatbot library and collections; the copy of the screens and actions was removed | `test:shared-config` (D8) |
+
+### Left as a decision for the owner or for P8
+
+- The old identity fields stay as fallbacks until the owner confirms they can be removed (then delete the fallbacks and the schema entries).
+- The company logo is stored in Branding (one store); the identity accessor exposes it. It is edited under Branding, not under Company setup.
+- Billing details (the GST invoice-to record of the subscription) still hold their own legal name and GSTIN; they are read as a fallback by the migration but not yet prefilled from the identity.
+- The AgentOS ElevenLabs post-call webhook secret stays with the AgentOS call routing (a per-address signing secret, not an account key).
+- `defaultCurrency` in SprintOS, Cohort AI and SpendIQ stays a declared product override of the company currency.

@@ -11,6 +11,7 @@ import { getCurrentHubUser } from "@/lib/hub-auth";
 import { getSettings, integrationEnv } from "@/lib/products/rankmax-ai/settings";
 import { SEO_PERMISSIONS, SEO_PERMISSION_META, SEO_ROLE_META, SEO_ROLE_PERMISSIONS } from "@/lib/seo-roles";
 import { formatDateTime } from "@/lib/utils";
+import ConnectionSummary from "@/components/products/commandos/ConnectionSummary";
 import { companySiteUrl } from "@/lib/platform/tenancy/site-url";
 
 export const maxDuration = 300;
@@ -58,6 +59,10 @@ export default async function RankmaxSettingsScreen() {
           </>
         }
       />
+      <div className="grid gap-2 md:grid-cols-2">
+        <ConnectionSummary provider="google-service-account" />
+        <ConnectionSummary provider="pagespeed" />
+      </div>
       <SeoSettingsForm
         siteUrl={siteUrl}
         env={{

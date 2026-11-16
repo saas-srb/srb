@@ -27,6 +27,9 @@ import {
   type OnboardingStep,
 } from "@/lib/platform/onboarding/catalog";
 import type { ProfileInput } from "@/lib/platform/onboarding/state";
+import { LANGUAGES } from "@/lib/platform/company-identity/shared";
+
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 import type { StoredBranding } from "@/lib/platform/branding/types";
 import BrandingThemeForm from "@/components/platform/BrandingThemeForm";
 import type { PickerTheme } from "@/components/platform/ThemePicker";
@@ -298,6 +301,25 @@ export function ProfileStep({ initial, timezones, onIndustry, onDone, saveLabel 
         </Field>
         <Field label="Phone (optional)" htmlFor="ob-phone">
           <Input id="ob-phone" type="tel" value={v.phone} onChange={set("phone")} />
+        </Field>
+        <p className="sm:col-span-2 border-t border-border/60 pt-3 text-sm font-semibold">Address and registrations <span className="font-normal text-muted-foreground">(optional; printed on invoices, payslips and letters)</span></p>
+        <Field label="Address line 1" htmlFor="ob-a1"><Input id="ob-a1" value={v.addressLine1 ?? ""} onChange={set("addressLine1")} autoComplete="address-line1" /></Field>
+        <Field label="Address line 2" htmlFor="ob-a2"><Input id="ob-a2" value={v.addressLine2 ?? ""} onChange={set("addressLine2")} autoComplete="address-line2" /></Field>
+        <Field label="City" htmlFor="ob-city"><Input id="ob-city" value={v.city ?? ""} onChange={set("city")} autoComplete="address-level2" /></Field>
+        <Field label="State" htmlFor="ob-state"><Input id="ob-state" value={v.state ?? ""} onChange={set("state")} autoComplete="address-level1" /></Field>
+        <Field label="PIN code" htmlFor="ob-pin"><Input id="ob-pin" value={v.postalCode ?? ""} onChange={set("postalCode")} autoComplete="postal-code" /></Field>
+        <Field label="GSTIN" htmlFor="ob-gstin" error={errors.gstin}><Input id="ob-gstin" value={v.gstin ?? ""} onChange={set("gstin")} placeholder="22AAAAA0000A1Z5" /></Field>
+        <Field label="PAN" htmlFor="ob-pan" error={errors.pan}><Input id="ob-pan" value={v.pan ?? ""} onChange={set("pan")} placeholder="AAAAA0000A" /></Field>
+        <Field label="CIN" htmlFor="ob-cin" error={errors.cin}><Input id="ob-cin" value={v.cin ?? ""} onChange={set("cin")} placeholder="U12345MH2020PTC123456" /></Field>
+        <Field label="Financial year starts in" htmlFor="ob-fy" error={errors.fiscalYearStartMonth}>
+          <select id="ob-fy" className={selectClass} value={v.fiscalYearStartMonth ?? 4} onChange={(e) => setV((p) => ({ ...p, fiscalYearStartMonth: Number(e.target.value) }))}>
+            {MONTHS.map((m, i) => (<option key={m} value={i + 1}>{m}</option>))}
+          </select>
+        </Field>
+        <Field label="Language" htmlFor="ob-lang" error={errors.language}>
+          <select id="ob-lang" className={selectClass} value={v.language ?? "en"} onChange={set("language")}>
+            {LANGUAGES.map((l) => (<option key={l.value} value={l.value}>{l.label}</option>))}
+          </select>
         </Field>
         <div className="sm:col-span-2 flex justify-end">
           <Button type="submit" disabled={pending}>

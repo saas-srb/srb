@@ -32,6 +32,11 @@ export interface PanelRecord {
   core: boolean;
   /** Global switch: off = hidden and inaccessible for EVERY company. */
   active: boolean;
+  /**
+   * The connections this product uses (Integrations card ids: `email`, `push`, `openai`, `razorpay` …). The Integrations and Product settings
+   * pages compute "Used by" from this, so a product that starts using a service is listed on that card by declaring it here, nowhere else.
+   */
+  connections: string[];
 }
 
 /** What the browser needs for one product (no admin fields). */
@@ -81,6 +86,32 @@ const ALIASES: Record<string, string[]> = {
   support: ["Help & Support", "SRB Desk"],
   website: ["Public Website", "SRB Sites"],
 };
+/** The connections each built-in product uses (what the old hand-written "Used by" map said, now held by the registry). */
+const CONNECTIONS: Record<string, string[]> = {
+  workspace: ["email", "push", "webhooks", "storage", "domains"],
+  hrms: ["email", "push", "razorpay", "elevenlabs", "storage"],
+  pms: ["email", "storage"],
+  lms: ["email", "push", "twilio", "whatsapp-cloud", "livekit", "elevenlabs", "ai-chatbot", "storage"],
+  fms: ["email", "razorpay", "storage"],
+  prms: ["email", "razorpay", "storage"],
+  tms: ["email", "razorpay", "storage"],
+  messenger: ["email", "push", "livekit", "turn", "storage"],
+  sop: ["email", "openai", "storage"],
+  lpms: ["email", "openai", "twilio", "storage"],
+  dlms: ["email", "storage"],
+  ots: ["email", "storage"],
+  aibots: ["email", "openai", "twilio", "elevenlabs", "storage"],
+  intelligence: ["email", "openai"],
+  smms: ["email", "openai", "gemini", "meta", "google", "linkedin", "x", "social-accounts", "storage"],
+  seo: ["email", "openai", "google-service-account", "pagespeed"],
+  cms: ["email", "push", "openai", "ai-chatbot", "elevenlabs", "google-service-account", "website-tracking", "domains", "storage"],
+  portal: ["email", "push", "storage"],
+  support: ["email", "openai"],
+  website: ["domains", "website-tracking"],
+};
+/** The built-in connections for a product key (used for registry rows saved before connections existed). */
+export const defaultConnections = (key: string): string[] => CONNECTIONS[key] ?? ["email"];
+
 /** The built-in aliases for a product key (used for registry rows saved before aliases existed). */
 export const defaultAliases = (key: string): string[] => ALIASES[key] ?? [];
 
@@ -97,6 +128,7 @@ const P = (key: string, name: string, shortName: string, description: string, ic
   order,
   core,
   active: true,
+  connections: CONNECTIONS[key] ?? ["email"],
 });
 
 /** The starter registry written on first start (and used as a fallback until it has run). */

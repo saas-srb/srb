@@ -5,7 +5,7 @@ import { getPlatformDb } from "../src/lib/platform/tenancy/platform-db";
 import { runAsCompany } from "../src/lib/platform/tenancy/context";
 import { NAV_ITEMS, NAV_KEYS, NAV_SECTIONS, resolveNav, type NavContext } from "../src/lib/products/commandos/nav";
 import { MOVED_URLS, movedTarget } from "../src/lib/products/commandos/moved-urls";
-import { CARD_CATEGORIES, USED_BY, cardStatus, categoryOf } from "../src/lib/platform/connections/cards";
+import { CARD_CATEGORIES, cardStatus, categoryOf } from "../src/lib/platform/connections/cards";
 import { CONNECTION_PROVIDERS, canUseSrb, providerByKey } from "../src/lib/platform/connections/catalog";
 import { PRODUCT_STATUS_LABEL, SETTINGS_SCREENS, SLUG_TO_PANEL, productStatus } from "../src/lib/products/commandos/product-status";
 import { mergeSeries } from "../src/components/products/commandos/AiVoiceInsight";
@@ -52,13 +52,11 @@ function routeFile(href: string): string | null {
     { heading: "", items: ["Dashboard"] },
     { heading: "Organization Setup", items: ["Company setup", "Integrations", "Product settings"] },
     { heading: "Users & Access", items: ["Departments", "Teams", "Designations", "People & access"] },
-    { heading: "Billing & plan", items: ["Plan & billing", "Invoices & payments", "Usage & limits"] },
     { heading: "Branding & domains", items: ["Apps & downloads", "Default domain", "Custom domains"] },
+    { heading: "Billing & plan", items: ["Plan & billing", "Invoices & payments", "Usage & limits"] },
     { heading: "System default", items: ["Notification center", "AI prompts", "Scheduled jobs", "Documents & PDFs"] },
     { heading: "Security & Logs", items: ["Backups & data", "Import data", "Audit log", "Security"] },
-    { heading: "Engagement", items: ["Push notifications"] },
-    { heading: "AI Chatbot", items: ["Dashboard"] },
-    { heading: "Insight", items: ["Analytics"] },
+    { heading: "Engagement & Insights", items: ["Push notifications", "Dashboard", "Analytics"] },
   ];
   await T("the Director's sidebar is exactly the target: headings, items and order", () => {
     assert.deepEqual(sidebarOf(ctx(["super_admin"])), EXPECTED);
@@ -91,7 +89,7 @@ function routeFile(href: string): string | null {
     assert.ok(NAV_KEYS.includes("manage.chatbot"));
   });
   await T("the section order, and the products, management and analytics sections stay out of the sidebar by design", () => {
-    assert.deepEqual(NAV_SECTIONS.filter((s) => s.sidebar !== false).map((s) => s.key), ["dashboard", "company", "engagement", "ai", "insight", "platform"]);
+    assert.deepEqual(NAV_SECTIONS.filter((s) => s.sidebar !== false).map((s) => s.key), ["dashboard", "company", "insight", "platform"]);
     assert.deepEqual(NAV_SECTIONS.filter((s) => s.sidebar === false).map((s) => s.key), ["panels", "analytics", "manage", "account"]);
   });
   await T("every key a page or action checks exists in the navigation (a missing key would lock Directors out)", () => {
@@ -138,12 +136,13 @@ function routeFile(href: string): string | null {
     const cats = new Set(CARD_CATEGORIES.map((c) => c.key));
     for (const p of CONNECTION_PROVIDERS) assert.ok(cats.has(categoryOf(p.key)), p.key);
     assert.ok(cats.has(categoryOf("ai-chatbot")));
-    for (const [k, v] of Object.entries(USED_BY)) for (const panel of v) assert.ok(panel === "*" || Object.values(SLUG_TO_PANEL).includes(panel) || ["lms", "aibots"].includes(panel), `${k}: ${panel}`);
+    // "Used by" comes from the Product Registry now (see test-connections): every connection id a built-in product declares is a real card.
+    void SLUG_TO_PANEL;
   });
   await T("card status: SRB by default, own when saved, attention when the last test failed, not set up otherwise", () => {
     const base = { canSrb: true, srbReady: true, mode: "srb" as const, hasOwnKeys: false, lastTestOk: null };
     assert.equal(cardStatus(base), "using_srb");
-    assert.equal(cardStatus({ ...base, srbReady: false }), "not_set_up");
+    assert.equal(cardStatus({ ...base, srbReady: false }), "srb_unavailable", "SRB could provide it but has not set it up");
     assert.equal(cardStatus({ ...base, canSrb: false }), "not_set_up");
     assert.equal(cardStatus({ ...base, mode: "own", hasOwnKeys: true }), "using_own");
     assert.equal(cardStatus({ ...base, mode: "own", hasOwnKeys: true, lastTestOk: false }), "needs_attention");
@@ -205,7 +204,7 @@ function routeFile(href: string): string | null {
     const s = read("src/components/products/commandos/SidePanel.tsx");
     assert.match(s, /<Sheet open/);
     assert.match(s, /router\.push\(closeHref/);
-    assert.match(s, /sm:max-w-4xl/);
+    assert.match(s, /DRAWER_SHELL_CLASS/);
     assert.match(s, /aria-label=\{title\}/);
   });
 

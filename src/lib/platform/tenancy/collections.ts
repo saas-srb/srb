@@ -128,6 +128,10 @@ export const KEYED_COLLECTIONS = new Set<string>([
   "billing_usage", // _id = <metric>:<yyyy-mm>
   "platform_payment_accounts", // _id = provider ("razorpay")
   "workspace_connections", // _id = provider key (Workspace → Settings → Integrations)
+  "company_identity", // _id = "identity": the one company identity (Company setup)
+  "setup_progress", // _id = "marks" | "reminders": setup progress marks and reminder state
+  "setup_progress_snapshots", // _id = yyyy-mm-dd: one percentage per day
+  "config_versions", // _id = scope: the "configuration changed" counter shared configuration publishes
   "website_generation", // _id = "ai-website" (the AI website's state and plan)
   "lead_categories", // _id = "config" (the company's enquiry categories)
 ]);

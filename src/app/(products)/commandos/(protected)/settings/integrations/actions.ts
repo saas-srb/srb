@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireWorkspaceAction } from "@/lib/products/commandos/access";
 import { HIDDEN_FROM_COMPANIES, providerByKey, canUseSrb } from "@/lib/platform/connections/catalog";
 import { disconnectConnection, saveConnection, setConnectionMode, type ConnectionMode, type SaveResult } from "@/lib/platform/connections/store";
-import { testConnection, type TestOutcome } from "@/lib/platform/connections/test";
+import { sendTestEmailToMe, testConnection, type TestOutcome } from "@/lib/platform/connections/test";
 
 const NAV_KEY = "company.integrations";
 
@@ -23,9 +23,16 @@ export async function saveConnectionAction(provider: string, values: Record<stri
   return res;
 }
 
+/** Providers with a card: the ones with fields, and the ones managed on their own page that still have a safe check (payments, storage, webhooks). */
+function knownForTest(provider: unknown): string | null {
+  const key = typeof provider === "string" ? provider : "";
+  const p = providerByKey.get(key);
+  return p && p.testable && !HIDDEN_FROM_COMPANIES.includes(key) || key === "webhooks" ? key : null;
+}
+
 export async function testConnectionAction(provider: string): Promise<TestOutcome> {
   await requireWorkspaceAction(NAV_KEY);
-  const key = known(provider);
+  const key = knownForTest(provider);
   if (!key) return { ok: false, message: "Unknown connection." };
   const out = await testConnection(key);
   revalidatePath("/commandos/settings/integrations");
@@ -52,4 +59,10 @@ export async function setConnectionModeAction(provider: string, mode: Connection
   if (!r.ok) return { ok: false, error: "Save your own keys first." };
   revalidatePath("/commandos/settings/integrations");
   return { ok: true };
+}
+
+/** Sends one test email, through the sending account in use, to the signed-in person only (the address is never taken from the page). */
+export async function sendTestEmailAction(): Promise<TestOutcome> {
+  const user = await requireWorkspaceAction(NAV_KEY);
+  return sendTestEmailToMe({ email: user.email });
 }

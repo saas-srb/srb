@@ -1,6 +1,8 @@
 import "server-only";
 import { getConfig } from "@/lib/platform/config/store";
-import { resolveEmailConfig } from "@/lib/platform/integrations/resolve";
+import { platformServiceReady } from "@/lib/platform/connections/platform-services";
+import { runTester, defaultDeps } from "@/lib/platform/connections/testers";
+import { fromEnv } from "@/lib/platform/connections/resolve";
 import { getRazorpayCredentials } from "@/lib/platform/billing/razorpay-config";
 
 /**
@@ -16,22 +18,23 @@ export interface MissingItem {
   href: string;
   hint: string;
   testable: boolean;
+  /** The company-facing connection this stands behind (same key as the Integrations card), when it has one. */
+  provider?: string;
 }
 
 const has = async (...keys: string[]) => (await Promise.all(keys.map((k) => getConfig(k).catch(() => null)))).every(Boolean);
 
 export async function missingSettings(): Promise<MissingItem[]> {
-  const email = await resolveEmailConfig().then((e) => e.provider === "resend" && Boolean(e.resendApiKey)).catch(() => false);
   const razorpay = await getRazorpayCredentials().then((c) => c !== null).catch(() => false);
   return [
     { id: "blob", title: "File storage (Vercel Blob token)", configured: await has("BLOB_READ_WRITE_TOKEN"), href: "/console/integrations#cfg-BLOB_READ_WRITE_TOKEN", hint: "Old files are copied into the database once this token is saved. Vercel → Storage → your Blob store → copy the read-write token (the old store keeps working until Vercel removes it).", testable: true },
-    { id: "email", title: "Email provider (Resend)", configured: email, href: "/console/integrations", hint: "resend.com → API Keys → create a key; save it under Integrations → Email with a sender on your verified domain.", testable: true },
-    { id: "openai", title: "AI (OpenAI)", configured: await has("OPENAI_API_KEY"), href: "/console/integrations#cfg-OPENAI_API_KEY", hint: "platform.openai.com → API keys.", testable: true },
-    { id: "elevenlabs", title: "Voice (ElevenLabs)", configured: await has("ELEVENLABS_API_KEY"), href: "/console/integrations#cfg-ELEVENLABS_API_KEY", hint: "elevenlabs.io → Profile → API key.", testable: true },
-    { id: "twilio", title: "Messaging and calls (Twilio)", configured: await has("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN"), href: "/console/integrations#cfg-TWILIO_ACCOUNT_SID", hint: "twilio.com/console → Account info (SID and auth token).", testable: true },
+    { id: "email", title: "Email provider (Resend)", configured: await platformServiceReady("resend"), provider: "resend", href: "/console/integrations", hint: "resend.com → API Keys → create a key; save it under Integrations → Email with a sender on your verified domain.", testable: true },
+    { id: "openai", title: "AI (OpenAI)", configured: await platformServiceReady("openai"), provider: "openai", href: "/console/integrations#cfg-OPENAI_API_KEY", hint: "platform.openai.com → API keys.", testable: true },
+    { id: "elevenlabs", title: "Voice (ElevenLabs)", configured: await platformServiceReady("elevenlabs"), provider: "elevenlabs", href: "/console/integrations#cfg-ELEVENLABS_API_KEY", hint: "elevenlabs.io → Profile → API key.", testable: true },
+    { id: "twilio", title: "Messaging and calls (Twilio)", configured: await platformServiceReady("twilio"), provider: "twilio", href: "/console/integrations#cfg-TWILIO_ACCOUNT_SID", hint: "twilio.com/console → Account info (SID and auth token).", testable: true },
     { id: "razorpay", title: "Payments (Razorpay)", configured: razorpay, href: "/console/payments", hint: "Razorpay dashboard → Settings → API keys (test and live). Saved on the Payments page, which has its own test.", testable: false },
     { id: "github", title: "App builds (GitHub)", configured: await has("GITHUB_DISPATCH_TOKEN", "GITHUB_REPOSITORY", "DESKTOP_BUILD_SECRET"), href: "/console/integrations#cfg-GITHUB_DISPATCH_TOKEN", hint: "GitHub → Settings → Developer settings → fine-grained token (Actions read/write) for the build repository; the callback secret is any long random value.", testable: true },
-    { id: "push", title: "Push notifications (VAPID)", configured: await has("VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY"), href: "/console/integrations#cfg-VAPID_PUBLIC_KEY", hint: "Generate a key pair with `npx web-push generate-vapid-keys` and save both halves.", testable: false },
+    { id: "push", title: "Push notifications (VAPID)", configured: await platformServiceReady("vapid"), provider: "vapid", href: "/console/integrations#cfg-VAPID_PUBLIC_KEY", hint: "Generate a key pair with `npx web-push generate-vapid-keys` and save both halves.", testable: false },
   ];
 }
 
@@ -64,17 +67,14 @@ export async function testSetting(id: string, fetchFn: typeof fetch = fetch, ext
       const { sendIntegrationsTestEmail } = await import("@/lib/platform/integrations");
       return sendIntegrationsTestEmail(extra.emailTo, "system:missing-settings");
     }
-    case "openai": {
-      const k = await getConfig("OPENAI_API_KEY");
-      return k ? get("https://api.openai.com/v1/models", { Authorization: `Bearer ${k}` }, "OpenAI") : { ok: false, error: "No key saved." };
-    }
-    case "elevenlabs": {
-      const k = await getConfig("ELEVENLABS_API_KEY");
-      return k ? get("https://api.elevenlabs.io/v1/user", { "xi-api-key": k }, "ElevenLabs") : { ok: false, error: "No key saved." };
-    }
+    case "openai":
+    case "elevenlabs":
     case "twilio": {
-      const [sid, tok] = await Promise.all([getConfig("TWILIO_ACCOUNT_SID"), getConfig("TWILIO_AUTH_TOKEN")]);
-      return sid && tok ? get(`https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(sid)}.json`, { Authorization: `Basic ${Buffer.from(`${sid}:${tok}`).toString("base64")}` }, "Twilio") : { ok: false, error: "No credentials saved." };
+      // The same checks the company's Integrations cards run (one tester interface), here with the platform's own keys.
+      const v = await fromEnv(id);
+      if (!v) return { ok: false, error: id === "twilio" ? "No credentials saved." : "No key saved." };
+      const out = await runTester(id, v, { ...defaultDeps(), fetch: (url, init) => fetchFn(url, { ...init, signal: AbortSignal.timeout(10_000) }) });
+      return out.ok ? { ok: true, message: out.message } : { ok: false, error: out.message };
     }
     case "github": {
       const [tok, repo] = await Promise.all([getConfig("GITHUB_DISPATCH_TOKEN"), getConfig("GITHUB_REPOSITORY")]);

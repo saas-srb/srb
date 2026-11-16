@@ -33,12 +33,15 @@ import { isStripDismissedServer } from "@/lib/platform/strip-dismiss-server";
 export default async function WorkspaceShell({ user, nav, children }: { user: CurrentHubUser; nav: ResolvedNav; children: React.ReactNode }) {
   const [unread, setup, ownCompany, verifyDismissed, setupDismissed, upgradeDismissed] = await Promise.all([
     workspaceUnreadCount(user).catch(() => 0),
-    setupStripNeeded(user.roles).catch(() => ({ show: false, done: 0, total: 0 })),
+    setupStripNeeded(user.roles).catch(() => ({ show: false, done: 0, total: 0, percent: 0 })),
     isPlatformOwnerContext().catch(() => false),
     isStripDismissedServer("verify-email"),
     isStripDismissedServer("setup"),
     isStripDismissedServer("upgrade"),
   ]);
+  // The "Setup progress" item shows the one percentage (computed once per company and cached; a Director only).
+  const progress = isDirector(user) ? await import("@/lib/platform/setup-progress").then((m) => m.getSetupProgress()).catch(() => null) : null;
+  const sections = progress ? nav.sections.map((s) => ({ ...s, items: s.items.map((i) => (i.key === "company.progress" ? { ...i, badge: `${progress.summary.percent}%` } : i)) })) : nav.sections;
   const verifyStrip = showVerifyStrip({ emailVerified: user.emailVerified !== false, isPlatformOwnerCompany: ownCompany });
   // Directors are offered the next plan up; nobody else can buy one.
   const upgrade = isDirector(user) ? await getUpgradeOffer() : null;
@@ -54,16 +57,16 @@ export default async function WorkspaceShell({ user, nav, children }: { user: Cu
             <div className="absolute inset-0 bg-grid-slate-900/[0.015] dark:bg-grid-slate-400/[0.02] [mask-image:linear-gradient(to_bottom,black,transparent_80%)]" />
           </div>
 
-          <HubSidebarShell email={user.email} nav={nav.sections} lastLoginAt={user.lastLoginAt ? user.lastLoginAt.toISOString() : null} />
+          <HubSidebarShell email={user.email} nav={sections} lastLoginAt={user.lastLoginAt ? user.lastLoginAt.toISOString() : null} />
 
           <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-3">
             <div className="lms-surface relative z-30 shrink-0 rounded-3xl border border-border/40 bg-background/95 shadow-none backdrop-blur-md dark:bg-card/85">
-              <HubTopbar email={user.email} nav={nav.sections} unread={unread} />
+              <HubTopbar email={user.email} nav={sections} unread={unread} />
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2 empty:hidden">
               <BillingNotice />
               {verifyStrip && <VerifyEmailBanner email={user.email} daysLeft={verifyDaysLeft} initiallyDismissed={verifyDismissed} />}
-              {setup.show && <SetupBanner done={setup.done} total={setup.total} initiallyDismissed={setupDismissed} />}
+              {setup.show && <SetupBanner percent={setup.percent} done={setup.done} total={setup.total} initiallyDismissed={setupDismissed} />}
               {upgrade && <UpgradeBanner offer={upgrade} initiallyDismissed={upgradeDismissed} />}
             </div>
             <main id="workspace-content" className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto rounded-2xl">

@@ -62,38 +62,41 @@ const nextConfig: NextConfig = {
       { source: "/lms/:section(offers|wallet|chatbot)/:path*", destination: "/cms/:section/:path*", permanent: true },
 
       // Every panel's own audit log moved into the one central Audit log of the Workspace.
-      { source: "/lpms/audit-logs", destination: "/workspace/settings/audit-log?source=products&module=lpms", permanent: true },
-      { source: "/sop/audit-logs", destination: "/workspace/settings/audit-log?source=products&module=sop", permanent: true },
-      { source: "/fms/audit-logs", destination: "/workspace/settings/audit-log?source=products&module=fms", permanent: true },
-      { source: "/aibots/audit-logs", destination: "/workspace/settings/audit-log?source=products&module=aibots", permanent: true },
-      { source: "/cms/audit-logs", destination: "/workspace/settings/audit-log?source=products&module=cms", permanent: true },
-      { source: "/dlms/audit-logs", destination: "/workspace/settings/audit-log?source=products&module=dlms", permanent: true },
-      { source: "/seo/audit-logs", destination: "/workspace/settings/audit-log?source=products&module=seo", permanent: true },
-      { source: "/hrms/audit", destination: "/workspace/settings/audit-log?source=products&module=hrms", permanent: true },
-      { source: "/prms/activity", destination: "/workspace/settings/audit-log?source=products&module=prms", permanent: true },
-      { source: "/tms/activity", destination: "/workspace/settings/audit-log?source=products&module=tms", permanent: true },
-      { source: "/pms/activity", destination: "/workspace/settings/audit-log?source=products&module=pms", permanent: true },
-      { source: "/ots/activity", destination: "/workspace/settings/audit-log?source=products&module=ots", permanent: true },
-      { source: "/smms/activity", destination: "/workspace/settings/audit-log?source=products&module=smms", permanent: true },
+      { source: "/lpms/audit-logs", destination: "/commandos/settings/audit-log?source=products&module=lpms", permanent: true },
+      { source: "/sop/audit-logs", destination: "/commandos/settings/audit-log?source=products&module=sop", permanent: true },
+      { source: "/fms/audit-logs", destination: "/commandos/settings/audit-log?source=products&module=fms", permanent: true },
+      { source: "/aibots/audit-logs", destination: "/commandos/settings/audit-log?source=products&module=aibots", permanent: true },
+      { source: "/cms/audit-logs", destination: "/commandos/settings/audit-log?source=products&module=cms", permanent: true },
+      { source: "/dlms/audit-logs", destination: "/commandos/settings/audit-log?source=products&module=dlms", permanent: true },
+      { source: "/seo/audit-logs", destination: "/commandos/settings/audit-log?source=products&module=seo", permanent: true },
+      { source: "/hrms/audit", destination: "/commandos/settings/audit-log?source=products&module=hrms", permanent: true },
+      { source: "/prms/activity", destination: "/commandos/settings/audit-log?source=products&module=prms", permanent: true },
+      { source: "/tms/activity", destination: "/commandos/settings/audit-log?source=products&module=tms", permanent: true },
+      { source: "/pms/activity", destination: "/commandos/settings/audit-log?source=products&module=pms", permanent: true },
+      { source: "/ots/activity", destination: "/commandos/settings/audit-log?source=products&module=ots", permanent: true },
+      { source: "/smms/activity", destination: "/commandos/settings/audit-log?source=products&module=smms", permanent: true },
 
-      { source: "/admin", destination: "/workspace", permanent: true },
-      { source: "/admin/login", destination: "/workspace/login", permanent: true },
-      { source: "/admin/change-password", destination: "/workspace/change-password", permanent: true },
+      { source: "/admin", destination: "/commandos", permanent: true },
+      { source: "/admin/login", destination: "/commandos/login", permanent: true },
+      { source: "/admin/change-password", destination: "/commandos/change-password", permanent: true },
       // Everything else kept its path: /admin/users → /workspace/users, /admin/analytics/fms → /workspace/analytics/fms, …
-      { source: "/admin/:path*", destination: "/workspace/:path*", permanent: true },
+      { source: "/admin/:path*", destination: "/commandos/:path*", permanent: true },
 
       // Everything workspace-specific lives under /workspace. Old links, bookmarks, e-mails and URLs stored in the
       // database keep working; the request's query string is carried over by Next. These patterns are anchored at the
       // start and name exact prefixes, so they never touch /api/*, /platform/*, a business panel's own /<panel>/settings
       // or the public site.
-      { source: "/settings/activity", destination: "/workspace/settings/audit-log?source=workspace", permanent: true }, // company activity log → the merged Audit log
-      { source: "/settings/:path*", destination: "/workspace/settings/:path*", permanent: true }, // also matches /settings itself
-      { source: "/onboarding", destination: "/workspace/onboarding", permanent: true },
-      { source: "/upgrade", destination: "/workspace/upgrade", permanent: true },
+      { source: "/settings/activity", destination: "/commandos/settings/audit-log?source=workspace", permanent: true }, // company activity log → the merged Audit log
+      { source: "/settings/:path*", destination: "/commandos/settings/:path*", permanent: true }, // also matches /settings itself
+      { source: "/onboarding", destination: "/commandos/onboarding", permanent: true },
+      { source: "/upgrade", destination: "/commandos/upgrade", permanent: true },
       // One dashboard (the Command Center became its executive sections), one Audit log, Documents under Account.
-      { source: "/workspace/command-center", destination: "/workspace", permanent: true },
-      { source: "/workspace/activity-log", destination: "/workspace/settings/audit-log?source=products", permanent: true }, // management activity log → Audit log, panel activity
-      { source: "/workspace/documents", destination: "/workspace/account/documents", permanent: true },
+      { source: "/commandos/command-center", destination: "/commandos", permanent: true },
+      { source: "/commandos/activity-log", destination: "/commandos/settings/audit-log?source=products", permanent: true }, // management activity log → Audit log, panel activity
+      { source: "/commandos/documents", destination: "/commandos/account/documents", permanent: true },
+      // The Workspace used to live under /workspace: old links keep working.
+      { source: "/workspace", destination: "/commandos", permanent: true },
+      { source: "/workspace/:path*", destination: "/commandos/:path*", permanent: true },
     ];
   },
   // Baseline security headers on every response. (No site-wide Content-Security-Policy: companies add their own

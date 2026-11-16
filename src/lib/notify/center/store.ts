@@ -65,6 +65,8 @@ interface LogDoc {
 const SYSTEM_EMAILS: { key: string; name: string; description: string; product: string; locked: boolean; channels?: ChannelKey[] }[] = [
   { key: "announcement", name: "Announcements", description: "Messages you send from the Announcements tab. Turn a channel off here to stop it for every announcement.", product: "workspace", locked: false, channels: ["inApp", "push", "email"] },
   { key: "automation_notification", name: "Automation notifications", description: "Notifications and emails your own automations send (Settings → Automations).", product: "workspace", locked: false, channels: ["inApp", "push", "email"] },
+  { key: "setup_reminder", name: "Setup reminder", description: "A gentle reminder to Directors when setup has not moved for three days.", product: "workspace", locked: false, channels: ["inApp", "push"] },
+  { key: "setup_digest", name: "Weekly setup summary", description: "One email a week to Directors, until setup is complete, with the next steps.", product: "workspace", locked: false, channels: ["email"] },
   { key: "auth_verify_email", name: "Verify your email", description: "Sent to a new account to confirm its email address.", product: "account", locked: true },
   { key: "auth_password_reset", name: "Password reset", description: "The link sent when someone asks to reset a forgotten password.", product: "account", locked: true },
   { key: "auth_email_otp", name: "Sign-in code by email", description: "The one-time code for two-step sign-in by email.", product: "account", locked: true },

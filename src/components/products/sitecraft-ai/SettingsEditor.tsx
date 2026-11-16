@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import IdentitySummary from "@/components/products/commandos/IdentitySummary";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import type { CmsSettings } from "@/lib/products/sitecraft-ai/settings";
 import { saveSettingsAction } from "@/app/(products)/sitecraft-ai/(protected)/settings/actions";
@@ -47,10 +48,7 @@ export default function SettingsEditor({ initial }: { initial: CmsSettings }) {
           <Label htmlFor="settings-og-image">Default social share image</Label>
           <Input id="settings-og-image" type="url" value={settings.defaultOgImage} onChange={(e) => setSettings((s) => ({ ...s, defaultOgImage: e.target.value }))} placeholder="https://…" />
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="settings-legal-name">Company legal name</Label>
-          <Input id="settings-legal-name" value={settings.companyLegalName} onChange={(e) => setSettings((s) => ({ ...s, companyLegalName: e.target.value }))} />
-        </div>
+        <IdentitySummary title="Company legal name" note="Set once for the whole company and used on your website and documents." rows={[{ label: "Legal name", value: settings.companyLegalName }]} />
       </GlassCard>
       <Button onClick={save} disabled={pending}>
         {pending ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save

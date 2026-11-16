@@ -2,10 +2,10 @@ import "server-only";
 import { getPlatformDb } from "@/lib/platform/tenancy/platform-db";
 import { currentCompanyId } from "@/lib/platform/tenancy/context";
 import { COMPANIES_COLLECTION, forgetCompanyRouting, type Company } from "@/lib/platform/tenancy/companies";
-import { getCompanyDetails, updateCompanyDetails } from "@/lib/products/talentos/company";
+import { saveCompanyIdentity, validateIdentity, type IdentityField } from "@/lib/platform/company-identity";
 import { syncSiteContact } from "@/lib/platform/website/starter";
 import { createDepartment, createDesignation, listDepartments, listDesignations } from "@/lib/platform/organization";
-import { isOnboardingOwner, postLoginTarget, showSetupStrip } from "@/lib/platform/onboarding/gate";
+import { isOnboardingOwner, postLoginTarget } from "@/lib/platform/onboarding/gate";
 import { unavailablePanelKeys } from "@/lib/platform/panels/store";
 import { getPlatformAccessForUser } from "@/lib/platform/console/roles";
 import { COMPANY_SIZES, CURRENCIES, INDUSTRIES, MODULES, ONBOARDING_STEPS, type DepartmentTemplate, type Industry, type ModuleKey, type OnboardingStep } from "@/lib/platform/onboarding/catalog";
@@ -79,6 +79,17 @@ export interface ProfileInput {
   website: string;
   email: string;
   phone: string;
+  /** The rest of the company identity (Company setup keeps them with the profile). */
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  gstin?: string;
+  pan?: string;
+  cin?: string;
+  fiscalYearStartMonth?: number;
+  language?: string;
 }
 
 export type StepResult = { ok: true } | { ok: false; errors: Record<string, string> };
@@ -95,45 +106,33 @@ export async function saveProfile(input: ProfileInput, actorId: string): Promise
   const website = input.website.trim();
   if (website && !/^https?:\/\/[^\s]+\.[^\s]+$/i.test(website)) errors.website = "Enter a full URL, e.g. https://example.com";
   if (input.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email.trim())) errors.email = "Enter a valid email.";
+  const identityInput = identityFromProfile(input, name, website);
+  const checked = validateIdentity(identityInput);
+  if (!checked.ok) Object.assign(errors, checked.errors);
   if (Object.keys(errors).length) return { ok: false, errors };
 
   const profile: CompanyProfile = { industry: input.industry as Industry, size: input.size, country: input.country.trim(), currency: input.currency, timezone: input.timezone };
   await (await companies()).updateOne({ _id: await currentCompanyId() }, { $set: { name, profile, updatedAt: new Date() } });
   forgetCompanyRouting();
 
-  // The same identity HRMS prints on payslips and letters.
-  const c = await getCompanyDetails();
-  await updateCompanyDetails(
-    {
-      name,
-      legalName: input.legalName.trim() || name,
-      addressLine1: c.addressLine1,
-      addressLine2: c.addressLine2,
-      city: c.city,
-      state: c.state,
-      postalCode: c.postalCode,
-      country: input.country.trim(),
-      email: input.email.trim(),
-      phone: input.phone.trim(),
-      website,
-      pan: c.pan,
-      gstin: c.gstin,
-      cin: c.cin,
-      pfEstablishmentCode: c.pfEstablishmentCode,
-      esiEstablishmentCode: c.esiEstablishmentCode,
-      lin: c.lin,
-      tan: c.tan,
-      ptRegistration: c.ptRegistration,
-      signatoryName: c.signatoryName,
-      signatoryDesignation: c.signatoryDesignation,
-      payslipNote: c.payslipNote,
-    },
-    actorId,
-  );
+  // The company's identity is stored ONCE (company_identity) and read by every product: payslips, letters, invoices, the website.
+  const identity = await saveCompanyIdentity(identityInput, actorId);
+  if (!identity.ok) return { ok: false, errors: identity.errors as Record<string, string> };
   // The public website's contact block starts blank; fill it from the profile (CMS edits win).
   await syncSiteContact({ email: input.email, phone: input.phone });
   await markOnboardingStep("profile");
   return { ok: true };
+}
+
+/** The company-identity fields a profile form carries (only the ones it actually has). */
+function identityFromProfile(input: ProfileInput, name: string, website: string): Partial<Record<IdentityField, unknown>> {
+  return {
+    brandName: name, legalName: input.legalName.trim() || name, country: input.country.trim(), currency: input.currency, timeZone: input.timezone,
+    email: input.email.trim(), phone: input.phone.trim(), website,
+    ...(input.addressLine1 !== undefined ? { addressLine1: input.addressLine1, addressLine2: input.addressLine2 ?? "", city: input.city ?? "", state: input.state ?? "", postalCode: input.postalCode ?? "" } : {}),
+    ...(input.gstin !== undefined ? { gstin: input.gstin } : {}), ...(input.pan !== undefined ? { pan: input.pan } : {}), ...(input.cin !== undefined ? { cin: input.cin } : {}),
+    ...(input.fiscalYearStartMonth !== undefined ? { fiscalYearStartMonth: input.fiscalYearStartMonth } : {}), ...(input.language !== undefined ? { language: input.language } : {}),
+  };
 }
 
 function isValidTimezone(tz: string): boolean {
@@ -221,10 +220,10 @@ export async function loginLanding(roles: readonly string[], requestedNext: stri
   }
 }
 
-/** True while an owner's setup is not completed (skipped or not): drives the Workspace strip. */
-export async function setupStripNeeded(roles: readonly string[]): Promise<{ show: boolean; done: number; total: number }> {
-  const total = ONBOARDING_STEPS.length;
-  if (!isOnboardingOwner(roles)) return { show: false, done: 0, total };
-  const { company, state } = await getOnboarding();
-  return { show: showSetupStrip({ isOwner: true, isPlatformOwnerCompany: company.isPlatformOwner === true, state }), done: state.completedSteps.length, total };
+/** The Workspace strip: shown to a Director until the ONE setup percentage reaches 100 (see `setup-progress`). */
+export async function setupStripNeeded(roles: readonly string[]): Promise<{ show: boolean; done: number; total: number; percent: number }> {
+  if (!isOnboardingOwner(roles)) return { show: false, done: 0, total: 0, percent: 0 };
+  const { company } = await getOnboarding();
+  const { setupStrip } = await import("@/lib/platform/setup-progress");
+  return setupStrip(roles, company.isPlatformOwner === true);
 }

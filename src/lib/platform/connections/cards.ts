@@ -5,11 +5,13 @@ import { canUseSrb, providerByKey, type ConnectionProvider } from "@/lib/platfor
  * One card per provider or service even when several products use it.
  */
 
-export type CardStatus = "using_srb" | "using_own" | "not_set_up" | "needs_attention";
+export type CardStatus = "ready" | "using_srb" | "using_own" | "srb_unavailable" | "not_set_up" | "needs_attention";
 
 export const STATUS_LABEL: Record<CardStatus, string> = {
+  ready: "Ready",
   using_srb: "Using SRB",
   using_own: "Using your own",
+  srb_unavailable: "Not available from SRB, add your own",
   not_set_up: "Not set up",
   needs_attention: "Needs attention",
 };
@@ -25,6 +27,8 @@ export const CARD_CATEGORIES: CardCategory[] = [
   { key: "website", title: "Website and SEO", description: "Google search data, speed checks and website tracking." },
   { key: "social", title: "Social media", description: "Publish to Facebook, Instagram, LinkedIn, YouTube and X." },
   { key: "webhooks", title: "Webhooks and automations", description: "Send a webhook, email or notice when something happens." },
+  { key: "leads", title: "Leads and applications", description: "Where your leads and job applications come from." },
+  { key: "storage", title: "File storage", description: "Where uploaded files, documents and backups are kept." },
   { key: "domains", title: "Domains", description: "Your own web address and the address your emails come from." },
 ];
 
@@ -40,21 +44,40 @@ export function categoryOf(key: string): string {
   if (p?.group === "social") return "social";
   if (key === "webhooks") return "webhooks";
   if (key === "domains") return "domains";
+  if (key === "storage") return "storage";
+  if (key === "dealflow-sync") return "leads";
   if (key === "social-accounts") return "social";
   return "ai";
 }
 
-/** Product Registry keys that use a service (names come from the registry on the page). `"*"` = every product. */
-export const USED_BY: Record<string, string[]> = {
-  smtp: ["*"], resend: ["*"], sendgrid: ["*"], vapid: ["*"],
-  twilio: ["lms", "aibots", "lpms"], "whatsapp-cloud": ["lms"],
-  openai: ["aibots", "cms", "smms", "sop", "lpms", "intelligence", "seo"], gemini: ["smms"], "ai-chatbot": ["cms", "lms"],
-  elevenlabs: ["aibots", "cms", "hrms", "lms"], livekit: ["messenger"], turn: ["messenger"],
-  razorpay: ["fms", "prms", "tms", "hrms"],
-  "google-service-account": ["seo", "cms"], pagespeed: ["seo"], "website-tracking": ["cms"],
-  meta: ["smms"], google: ["smms"], linkedin: ["smms"], x: ["smms"], "social-accounts": ["smms"],
-  webhooks: ["*"], domains: ["cms"],
-};
+/** The id a product's registry row uses for a connection: every email provider is "email", push is "push", the rest use their own key. */
+export function connectionIdOf(providerKey: string): string {
+  const p = providerByKey.get(providerKey);
+  if (p?.group === "email") return "email";
+  if (providerKey === "vapid") return "push";
+  return providerKey;
+}
+
+/** The plain name of a connection id used in a product's registry row. */
+export function connectionLabel(id: string): string {
+  if (id === "email") return "Email";
+  if (id === "push") return "Push notifications";
+  if (id === "ai-chatbot") return "AI Chatbot";
+  const p = providerByKey.get(id);
+  return id === "elevenlabs" ? "Voice (ElevenLabs)" : (p?.name ?? id);
+}
+
+/** The fields of a registry row this needs (so the pure function is tested without the database). */
+export interface RegistryProduct { key: string; name: string; connections: string[] }
+
+/**
+ * "Used by", computed from the live Product Registry: the products that declare the connection, minus the ones switched off for this company.
+ * Replaces the old hand-written map, so a product that starts (or stops) using a service shows up here by changing its registry row only.
+ */
+export function usedByProducts(providerKey: string, registry: RegistryProduct[], unavailable: ReadonlySet<string> = new Set()): string[] {
+  const id = connectionIdOf(providerKey);
+  return registry.filter((p) => p.connections.includes(id) && !unavailable.has(p.key)).map((p) => p.name);
+}
 
 export interface StatusInput {
   /** SelfRun can run this service on its own account (see `canUseSrb`). */
@@ -82,7 +105,8 @@ export function cardStatus(i: StatusInput): CardStatus {
   if (i.mode === "own" && i.hasOwnKeys) return i.lastTestOk === false ? "needs_attention" : "using_own";
   // SelfRun's account (the default): fine when SelfRun provides the service and it is set up, otherwise the company needs to connect its own.
   if (i.canSrb && i.srbReady) return "using_srb";
-  if (i.mode === "own" && !i.hasOwnKeys) return "not_set_up";
+  // SelfRun could provide it but has not set it up on this deployment: say so plainly instead of pretending it works.
+  if (i.canSrb) return "srb_unavailable";
   return "not_set_up";
 }
 
@@ -99,17 +123,10 @@ export interface IntegrationCard {
   kind: "panel" | "page";
   href?: string;
   canSrb: boolean;
+  /** Has a real "Test connection" check. */
+  testable: boolean;
+  /** Changing it here changes it for every product listed in "Used by". */
+  appliesToAll: true;
 }
 
 export const providerCanSrb = (p: Pick<ConnectionProvider, "key">): boolean => canUseSrb(p.key);
-
-/**
- * DUPLICATE CONFIGURATION noticed while building the Integrations cards (to be removed in P7; none was changed in P5):
- *  - OpenAI key/model: the OpenAI card here, and "OpenAI key" and model fields in ViralPulse settings and AgentOS settings.
- *  - Google Search Console / Analytics: the Google card here, and the Google fields in RankMax settings and in SiteCraft's tracking settings.
- *  - Razorpay: the Razorpay card links to Payments settings, and CashFlow, SpendIQ and CohortAI each have a payments page of their own.
- *  - Push (VAPID): the Web Push card here, the Push notifications pages in CommandOS, ClientOS and SiteCraft.
- *  - Company identity (name, address, GSTIN, logo): company setup, billing details, TalentOS settings, SpendIQ settings, CashFlow tax settings, Playbook brand.
- *  - Chatbot and voice screens: SiteCraft keeps a second copy of the chatbot pages (to be redirected to this panel in P7, decision D8).
- */
-export const KNOWN_DUPLICATES_FOR_P7 = true;

@@ -1,7 +1,7 @@
 import "server-only";
 import { getPlatformDb } from "@/lib/platform/tenancy/platform-db";
 import { COMPANIES_COLLECTION } from "@/lib/platform/tenancy/companies";
-import { DEFAULT_PANELS, PANEL_KEY_RE, PLATFORM_ONLY_KEYS, defaultAliases, whiteLabelProductName, type PanelMeta, type PanelRecord } from "@/lib/platform/panels/types";
+import { DEFAULT_PANELS, PANEL_KEY_RE, PLATFORM_ONLY_KEYS, defaultAliases, defaultConnections, whiteLabelProductName, type PanelMeta, type PanelRecord } from "@/lib/platform/panels/types";
 import type { NavIcon } from "@/lib/products/commandos/nav";
 import { productSlugFor } from "@/lib/platform/saas/product-routes";
 
@@ -54,7 +54,7 @@ export async function listPanels(): Promise<PanelRecord[]> {
       await Promise.all(updates);
     }
   }
-  const rows = (docs.length ? docs.filter((d) => !(d as { deleted?: boolean }).deleted).map(({ _id, ...r }) => { const key = r.key ?? _id; return { ...r, key, route: r.route === `/${key}` ? `/${productSlugFor(key)}` : r.route, aliases: r.aliases ?? defaultAliases(key) }; }) : DEFAULT_PANELS)
+  const rows = (docs.length ? docs.filter((d) => !(d as { deleted?: boolean }).deleted).map(({ _id, ...r }) => { const key = r.key ?? _id; return { ...r, key, route: r.route === `/${key}` ? `/${productSlugFor(key)}` : r.route, aliases: r.aliases ?? defaultAliases(key), connections: r.connections ?? defaultConnections(key) }; }) : DEFAULT_PANELS)
     .filter((p) => !PLATFORM_ONLY_KEYS.includes(p.key))
     .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
   cache = { at: Date.now(), rows };
@@ -148,6 +148,7 @@ export async function savePanel(input: PanelInput, mode: "create" | "update"): P
     order: Number.isFinite(Number(input.order)) ? Math.max(0, Math.min(10_000, Math.round(Number(input.order)))) : (prev?.order ?? 999),
     core,
     aliases: [...new Set((Array.isArray(input.aliases) ? input.aliases : []).map((a) => clean(a, 60)).filter((a) => a.length >= 2))].slice(0, 20),
+    connections: Array.isArray(input.connections) ? [...new Set(input.connections.map((c) => clean(c, 40)).filter(Boolean))].slice(0, 60) : (prev?.connections ?? defaultConnections(key)),
     active: core ? true : input.active !== false,
   };
   await (await col()).updateOne({ _id: key }, { $set: panel, $unset: { deleted: "" } } as never, { upsert: true });

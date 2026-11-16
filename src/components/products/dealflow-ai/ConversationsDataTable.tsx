@@ -47,7 +47,7 @@ import {
 import { formatDateTime } from "@/lib/utils";
 import ConversationSheet from "@/components/products/dealflow-ai/ConversationSheet";
 import ChatbotExportButton from "@/components/products/dealflow-ai/ChatbotExportButton";
-import { bulkDeleteConversationsAction } from "@/app/(products)/sitecraft-ai/(protected)/chatbot/actions";
+import { bulkDeleteConversationsAction } from "@/app/(products)/commandos/(protected)/chatbot/conversations/actions";
 import type { ConversationRow } from "@/lib/chat-conversations";
 
 const DEVICE_OPTIONS = ["mobile", "tablet", "desktop", "bot", "unknown"];

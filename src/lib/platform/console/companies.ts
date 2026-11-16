@@ -42,6 +42,8 @@ export interface CompanyRow {
   userCount: number;
   domains: string[];
   onboarding: OnboardingProgress;
+  /** The last computed setup percentage (null until the daily job or a Director has computed it) and whether it has been under half for a week. */
+  setup: { percent: number | null; stuck: boolean };
   createdAt: Date;
   /** A suspended company's people asked to be reactivated and nobody has decided yet. */
   reactivationPending: boolean;
@@ -57,6 +59,7 @@ export interface CompanyDetail extends CompanyRow {
   statusChangedAt: Date | null;
 }
 
+import { getPlatformSetupRows, isStuck, stuckCompanyIds, type PlatformSetupRow } from "@/lib/platform/setup-progress/platform";
 import { pendingReactivationIds } from "@/lib/platform/reactivation-pending";
 
 async function db() {
@@ -93,7 +96,7 @@ async function companyFacts(ids: string[]) {
   };
 }
 
-function toRow(c: CompanyDoc, facts: Awaited<ReturnType<typeof companyFacts>>): CompanyRow {
+function toRow(c: CompanyDoc, facts: Awaited<ReturnType<typeof companyFacts>>, setup: Map<string, PlatformSetupRow> = new Map()): CompanyRow {
   return {
     id: c._id,
     slug: c.slug,
@@ -105,6 +108,7 @@ function toRow(c: CompanyDoc, facts: Awaited<ReturnType<typeof companyFacts>>): 
     userCount: facts.count.get(c._id)?.users ?? 0,
     domains: (facts.domains.get(c._id) ?? []).map((d) => d._id),
     onboarding: progress(c.onboarding),
+    setup: { percent: setup.get(c._id)?.percent ?? null, stuck: isStuck(setup.get(c._id)) },
     createdAt: c.createdAt,
     reactivationPending: false,
   };
@@ -114,7 +118,7 @@ export interface ListCompaniesInput {
   /** Matches company name, slug, or any of its Directors' email. */
   q?: string;
   /** "reactivation" = companies with a reactivation request waiting. */
-  status?: CompanyStatus | "reactivation" | "all";
+  status?: CompanyStatus | "reactivation" | "stuck" | "all";
   page?: number;
   pageSize?: number;
 }
@@ -126,6 +130,7 @@ export async function listCompanies(input: ListCompaniesInput = {}): Promise<{ r
   if (input.status === "active" || input.status === "suspended") filter.status = input.status;
   const waiting = await pendingReactivationIds().catch(() => [] as string[]);
   if (input.status === "reactivation") filter._id = { $in: waiting };
+  if (input.status === "stuck") filter._id = { $in: await stuckCompanyIds().catch(() => []) };
 
   const q = input.q?.trim().slice(0, 100);
   if (q) {
@@ -144,8 +149,9 @@ export async function listCompanies(input: ListCompaniesInput = {}): Promise<{ r
     .limit(pageSize)
     .toArray();
   const facts = await companyFacts(docs.map((d) => d._id));
+  const setup = await getPlatformSetupRows(docs.map((d) => d._id)).catch(() => new Map<string, PlatformSetupRow>());
   const flagged = new Set(waiting);
-  return { rows: docs.map((d) => ({ ...toRow(d, facts), reactivationPending: flagged.has(d._id) })), total, page, totalPages, waiting: waiting.length };
+  return { rows: docs.map((d) => ({ ...toRow(d, facts, setup), reactivationPending: flagged.has(d._id) })), total, page, totalPages, waiting: waiting.length };
 }
 
 export async function getCompanyDetail(id: string): Promise<CompanyDetail | null> {
