@@ -17,8 +17,8 @@ async function editable(botId: string) {
   if (!viewer) return { error: json("Your session has expired — please sign in again.", 401) } as const;
   const bot = await getBot(botId);
   if (!bot) return { error: json("That agent no longer exists.", 404) } as const;
-  const owner = can(viewer, "CREATE_BOT") && bot.createdBy === viewer.userId;
-  if (!can(viewer, "EDIT_BOT") && !owner) return { error: json("You don't have permission to change this agent.", 403) } as const;
+  const owner = can(viewer, "agents.create") && bot.createdBy === viewer.userId;
+  if (!can(viewer, "agents.edit") && !owner) return { error: json("You don't have permission to change this agent.", 403) } as const;
   const blocked = await writeBlockReason();
   if (blocked) return { error: json(blocked, 403) } as const;
   return { viewer, bot } as const;

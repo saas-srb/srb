@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/agentos/gate";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { notFound, redirect } from "next/navigation";
 import ChatWorkspace from "@/components/products/agentos/ChatWorkspace";
@@ -18,6 +19,8 @@ import VoiceAgentPage from "@/components/products/agentos/voice/VoiceAgentPage";
 export default async function BotWorkspacePage({ params }: { params: Promise<{ botId: string; chat?: string[] }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/agentos/login");
+  const locked = lockedUnless(viewer, "agents.use", "Chat with agents");
+  if (locked) return locked;
   const { botId, chat: segments = [] } = await params;
   if (segments.length > 1) notFound();
   const bot = await getChatBot(viewer, botId);
@@ -47,7 +50,7 @@ export default async function BotWorkspacePage({ params }: { params: Promise<{ b
       chatTitle={chat?.title ?? null}
       initialMessages={transcript.messages}
       ownerEmail={viewer.email}
-      manageHref={bot._id === GENERAL_BOT_ID ? (can(viewer, "MANAGE_SETTINGS") ? "/agentos/settings" : null) : can(viewer, "EDIT_BOT") ? `/agentos/bots/${bot._id}` : null}
+      manageHref={bot._id === GENERAL_BOT_ID ? (can(viewer, "settings.manage") ? "/agentos/settings" : null) : can(viewer, "agents.edit") ? `/agentos/bots/${bot._id}` : null}
       openAIReady={(await isOpenAIConfigured())}
       historyError={transcript.error}
       knowledgeFiles={knowledgeFiles}

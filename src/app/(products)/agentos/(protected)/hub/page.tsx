@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/agentos/gate";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/products/agentos/AibotsUi";
 import AgentHubGallery from "@/components/products/agentos/AgentHubGallery";
@@ -9,8 +10,10 @@ import { listHubAgents } from "@/lib/products/agentos/hub";
 export default async function AgentHubPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/agentos/login");
+  const locked = lockedUnless(viewer, "agents.view", "Agent Hub");
+  if (locked) return locked;
   const agents = await listHubAgents(viewer);
-  const canCreate = can(viewer, "CREATE_BOT");
+  const canCreate = can(viewer, "agents.create");
   return (
     <div className="space-y-4">
       <PageHeader

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { PageHeader, Notice } from "@/components/products/agentos/AibotsUi";
 import BotForm from "@/components/products/agentos/BotForm";
+import { lockedUnless } from "@/lib/products/agentos/gate";
 import { getViewer, can } from "@/lib/products/agentos/viewer";
 import { botFormOptions, formValuesFor } from "@/lib/products/agentos/form-options";
 import { isOpenAIConfigured } from "@/lib/openai";
@@ -9,7 +10,8 @@ export default async function CreateBotPage({ searchParams }: { searchParams: Pr
   const { kind } = await searchParams;
   const viewer = await getViewer();
   if (!viewer) redirect("/agentos/login");
-  if (!can(viewer, "CREATE_BOT")) redirect("/agentos");
+  const locked = lockedUnless(viewer, "agents.create", "Create agents");
+  if (locked) return locked;
   const o = await botFormOptions();
   return (
     <div className="space-y-4">
@@ -21,7 +23,7 @@ export default async function CreateBotPage({ searchParams }: { searchParams: Pr
         models={o.models}
         roleOptions={o.roleOptions}
         userOptions={o.userOptions}
-        canUpload={can(viewer, "UPLOAD_FILES")}
+        canUpload={can(viewer, "knowledge.upload")}
         openAIReady={(await isOpenAIConfigured())}
       />
     </div>

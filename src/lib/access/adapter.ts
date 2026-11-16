@@ -2,6 +2,8 @@ import { CATALOGUE, FILE_ROLES } from "./catalogue";
 import { completeWith, granted } from "./complete";
 import { legacyAnswer, legacyAnswers, type LegacyUser } from "./legacy";
 import type { AccessMap } from "./types";
+import { baselineMicros, legacyNeededBy, withMicros } from "./micro/derive";
+import { FINISHED_PRODUCTS, microOf } from "./micro";
 
 /**
  * COMPATIBILITY ADAPTER between the access map (the new model) and the legacy role files.
@@ -38,7 +40,7 @@ export function legacyToAccess(user: LegacyUser): { isDirector: boolean; access:
   const access: AccessMap = {};
   const answers = legacyAnswers(user);
   for (const e of CATALOGUE) if (answers[e.key]) (access[e.product] ??= {})[e.key] = e.level;
-  return { isDirector: false, access };
+  return { isDirector: false, access: withMicros(access) };
 }
 
 export { granted };
@@ -164,6 +166,8 @@ function solve(want: Set<string>): { roles: string[]; overrides: Record<string, 
 export function accessToLegacy(access: AccessMap, opts: { isDirector?: boolean } = {}): DerivedLegacy {
   if (opts.isDirector) return { roles: [DIRECTOR], permissionOverrides: {}, conflicts: [], widened: [], withheld: [] };
   const want = new Set(CATALOGUE.filter((e) => granted(access, e)).map((e) => e.key));
+  // Finished products: the micro features the person holds need these legacy capabilities (the old role files stay derivable).
+  for (const k of legacyNeededBy(access)) want.add(k);
   const { roles, overrides } = solve(want);
   const actual = legacyAnswers({ roles, permissionOverrides: overrides });
   const conflicts: DerivedLegacy["conflicts"] = [];
@@ -205,7 +209,8 @@ export function baselineFeatures(product: string): string[] {
  * Completes a hand-made map: a product with at least one real feature can be opened and gets its baseline, and everybody gets the
  * Workspace baseline. Identity tiers (admin, manager tier, employee-only) found in the input are carried while the product is used.
  */
-export function completeAccess(access: AccessMap): AccessMap {
+export function completeAccess(input: AccessMap): AccessMap {
+  const access = withMicros(input);
   const real: AccessMap = {};
   const carried: AccessMap = {};
   for (const e of CATALOGUE) {
@@ -214,5 +219,19 @@ export function completeAccess(access: AccessMap): AccessMap {
     if (e.kind === "tier" && !/^has\w*Access$/.test(e.fn)) (carried[e.product] ??= {})[e.key] = held;
     else if (e.kind !== "tier") (real[e.product] ??= {})[e.key] = held;
   }
-  return completeWith(real, carried, baselineFeatures);
+  // Finished products: the micro features picked need their legacy capabilities, which are then part of the product's picks.
+  for (const product of FINISHED_PRODUCTS) {
+    for (const m of microOf(product)) {
+      if (!access[product]?.[m.key]) continue;
+      for (const k of m.legacy) { const e = CATALOGUE.find((x) => x.key === k); if (e && e.kind !== "tier") (real[e.product] ??= {})[e.key] = e.level; }
+    }
+  }
+  const out = completeWith(real, carried, baselineFeatures);
+  // The micro features themselves: the ones picked (any legacy requirement is now present), plus the product baseline once the product is opened.
+  for (const product of FINISHED_PRODUCTS) {
+    const opened = Object.keys(out[product] ?? {}).length > 0;
+    for (const m of microOf(product)) { const held = access[product]?.[m.key]; if (held) (out[product] ??= {})[m.key] = m.level === "read" ? "read" : held; }
+    if (opened) for (const m of baselineMicros(product)) (out[product] ??= {})[m.key] ??= m.level;
+  }
+  return out;
 }

@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,8 @@ import type { SeoLink } from "@/lib/products/rankmax-ai/types";
 export default async function InternalLinksPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "internallinks.view", "Internal Links");
+  if (locked) return locked;
   const sp = await searchParams;
   const [pages, list, broken, brokenExt, redirecting, opportunities, lowLinked, totalLinks] = await Promise.all([
     allPages(),

@@ -13,8 +13,10 @@ export type SaveBillingDetails = (input: Partial<BillingDetails>) => Promise<{ o
 const EMPTY = { legalName: "", gstin: "", address: "", state: "", email: "" };
 
 /** Legal name, GSTIN, address, state and invoice email — validated here for feedback and again on the server. */
-export default function BillingDetailsForm({ initial, save, onSaved }: { initial: BillingDetails | null; save: SaveBillingDetails; onSaved: (details: BillingDetails) => void }) {
-  const [form, setForm] = useState(initial ? { ...initial, gstin: initial.gstin ?? "" } : EMPTY);
+export default function BillingDetailsForm({ initial, save, onSaved, companyDetails = null }: { initial: BillingDetails | null; save: SaveBillingDetails; onSaved: (details: BillingDetails) => void; /** From Company setup: offered as the starting values and behind "Use company details". */ companyDetails?: BillingDetails | null }) {
+  // Nothing saved yet: start from the company details (not stored until saved). Saved values are the explicit override and are never replaced silently.
+  const start = initial ?? companyDetails;
+  const [form, setForm] = useState(start ? { ...start, gstin: start.gstin ?? "" } : EMPTY);
   const [errors, setErrors] = useState<BillingDetailsErrors>({});
   const [notice, setNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [saving, startSave] = useTransition();
@@ -66,6 +68,12 @@ export default function BillingDetailsForm({ initial, save, onSaved }: { initial
         });
       }}
     >
+      {companyDetails && (companyDetails.legalName || companyDetails.address) && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-xs" data-company-details-offer>
+          <span className="min-w-0 flex-1 text-muted-foreground">{initial ? "These are saved for invoices only. Your company details are kept in Company setup." : "Filled in from your company details (Company setup). Change anything here for invoices only."}</span>
+          <Button type="button" variant="outline" size="sm" onClick={() => { setForm({ ...companyDetails, gstin: companyDetails.gstin ?? "" }); setErrors({}); setNotice(null); }}>Use company details</Button>
+        </div>
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="billing-legalName">Legal company name</Label>

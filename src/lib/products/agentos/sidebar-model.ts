@@ -3,6 +3,12 @@ import { GENERAL_BOT_ID, GENERAL_BOT_NAME } from "@/lib/products/agentos/constan
 /** Pure sidebar structure + active-state rules (client-safe, unit-tested). The component only renders what this returns. */
 
 export interface NavFlags {
+  /** Which pages the person may open (micro features): the menu hides the rest. */
+  dashboard: boolean;
+  hub: boolean;
+  /** May chat with agents: the recent-agents section and the general assistant. */
+  use: boolean;
+  calls: boolean;
   createBot: boolean;
   manageBots: boolean;
   allChats: boolean;
@@ -30,12 +36,12 @@ export interface NavGroup {
 
 /** Dashboard first, then Agents, (recent agents are rendered between), then Manage. Permission flags hide items, never reorder them. */
 export function buildNavGroups(flags: NavFlags): { top: NavGroup; agents: NavGroup; recentLead: NavItem; manage: NavGroup } {
-  const top: NavGroup = { id: "top", label: null, items: [{ key: "dashboard", href: "/agentos", label: "Dashboard", icon: "dashboard", match: "exact" }] };
+  const top: NavGroup = { id: "top", label: null, items: flags.dashboard ? [{ key: "dashboard", href: "/agentos", label: "Dashboard", icon: "dashboard", match: "exact" }] : [] };
   const agents: NavGroup = {
     id: "agents",
     label: "Agents",
     items: [
-      { key: "hub", href: "/agentos/hub", label: "Agent Hub", icon: "hub", match: "prefix" },
+      ...(flags.hub ? [{ key: "hub", href: "/agentos/hub", label: "Agent Hub", icon: "hub" as const, match: "prefix" as const }] : []),
       ...(flags.createBot ? [{ key: "create", href: "/agentos/bots/new", label: "Create Agent", icon: "create" as const, match: "prefix" as const }] : []),
     ],
   };
@@ -46,7 +52,7 @@ export function buildNavGroups(flags: NavFlags): { top: NavGroup; agents: NavGro
       ...(flags.manageBots ? [{ key: "bots", href: "/agentos/bots", label: "Manage Agents", icon: "manage" as const, match: "manage-bots" as const }] : []),
       ...(flags.allChats ? [{ key: "chats", href: "/agentos/chats", label: "Chat History", icon: "chats" as const, match: "prefix" as const }] : []),
       // Everyone sees their own calls; people with All Chats oversight see everyone's (the page decides).
-      { key: "calls", href: "/agentos/calls", label: "Call History", icon: "calls", match: "prefix" },
+      ...(flags.calls ? [{ key: "calls", href: "/agentos/calls", label: "Call History", icon: "calls" as const, match: "prefix" as const }] : []),
       // { key: "notifications", href: "/agentos/notifications", label: "Notifications", icon: "notifications", match: "prefix" },
     ],
   };

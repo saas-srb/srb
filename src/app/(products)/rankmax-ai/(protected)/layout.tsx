@@ -30,8 +30,9 @@ export default async function ProtectedSeoLayout({ children }: { children: React
 
   const [bell, issues, tasks] = await Promise.all([listSeoNotifications(viewer.userId), issueStats(), taskStats(viewer.userId)]);
   const flags: SeoNavFlags = {
-    settings: can(viewer, "MANAGE_INTEGRATIONS"),
-    audit: can(viewer, "VIEW_AUDIT"),
+    settings: can(viewer, "settings.manage"),
+    audit: can(viewer, "audit.log"),
+    see: Object.fromEntries(["dashboard", "overview", "audit", "technical", "onpage", "content", "pages", "keywords", "rankings", "competitors", "internallinks", "backlinks", "sitemap", "robots", "schema", "issues", "tasks", "reports"].map((m) => [m, can(viewer, `${m}.view`)])),
     critical: issues.bySeverity.critical,
     myTasks: tasks.mine,
   };

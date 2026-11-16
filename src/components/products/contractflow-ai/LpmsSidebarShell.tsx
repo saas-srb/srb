@@ -61,7 +61,6 @@ export default function LpmsSidebarShell({
       <SidebarProfileSlot>
       <UnifiedProfileMenu
         email={email}
-        roleLabel={roles[0] ?? "User"}
         roles={roles}
         createdAt={createdAt}
         lastLoginAt={lastLoginAt}

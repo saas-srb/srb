@@ -27,13 +27,8 @@ export interface CronJob {
 
 export const CRON_JOBS: CronJob[] = [
   {
-    key: "setup-reminders", name: "Setup progress and reminders", product: "workspace", scope: "each company", path: "/api/setup/cron", schedule: "30 3 * * *", maxDurationSec: 300,
-    description: "Works out each company's setup percentage, keeps the daily trend and the Platform Console list, and sends a gentle in-app reminder when setup has not moved for three days, then a weekly summary email until it is complete.",
-    configure: { label: "Setup progress", href: "/commandos/setup" },
-  },
-  {
     key: "backups", name: "Backups & data lifecycle", product: "workspace", scope: "each company", path: "/api/backup/cron", schedule: "30 1 * * *", maxDurationSec: 300,
-    description: "Makes the weekly backup for each company that is due, removes old backups, and deletes the companies whose 30-day deletion period has ended.",
+    description: "Makes the weekly backup for each company that is due, removes old backups, and deletes the companies whose 30-day deletion period has ended. In the same daily run it works out each company's setup progress and sends the gentle setup reminders.",
     configure: { label: "Backups & data", href: "/commandos/settings/backups" },
   },
   {

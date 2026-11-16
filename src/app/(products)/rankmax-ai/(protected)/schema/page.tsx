@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -19,6 +20,8 @@ const STATUS_CLASS = { published: "bg-emerald-500/15 text-emerald-700", draft: "
 export default async function SchemaPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "schema.view", "Schema / Structured Data");
+  if (locked) return locked;
   const [schemas, pages] = await Promise.all([(await schemasCol()).find({}).sort({ updatedAt: -1 }).toArray(), allPages()]);
   const crawled = pages.filter((p) => p.crawl && p.crawl.status === 200);
   const detected = new Map<string, { pages: number; invalid: number }>();
@@ -37,7 +40,7 @@ export default async function SchemaPage() {
         title="Schema / Structured Data"
         crumbs={[{ label: "Schema" }]}
         description="Create, validate and publish JSON-LD (Organization, LocalBusiness, Website, WebPage, Article, BlogPosting, Breadcrumb, FAQ, Product, Service, Event, JobPosting, Course, Review) and see what the site already emits."
-        actions={can(viewer, "MANAGE_SCHEMA") && <Link href="/rankmax-ai/schema/new" className={buttonVariants({ size: "sm" })}><Plus className="size-3.5" data-icon="inline-start" />New schema</Link>}
+        actions={can(viewer, "schema.manage") && <Link href="/rankmax-ai/schema/new" className={buttonVariants({ size: "sm" })}><Plus className="size-3.5" data-icon="inline-start" />New schema</Link>}
       />
       <PanelListFilters>
 <SectionCard title={`Managed schema (${schemas.length})`} description="JSON-LD maintained in this product. Published items are live on their target page(s).">
@@ -53,7 +56,7 @@ export default async function SchemaPage() {
                   <TableCell><Badge className={STATUS_CLASS[s.status]}>{s.status}</Badge></TableCell>
                   <TableCell className="text-xs">{s.validation.errors.length ? <span className="text-rose-600">{s.validation.errors.length} error(s)</span> : <span className="text-emerald-600">Valid</span>}{s.validation.warnings.length > 0 && <span className="text-amber-600"> · {s.validation.warnings.length} warning(s)</span>}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">{formatDateTime(s.updatedAt)}</TableCell>
-                  <TableCell>{can(viewer, "DELETE") && <ConfirmDelete label="Delete schema" what={`schema “${s.name}”${s.status === "published" ? " (removes it from the live site)" : ""}`} action={async () => { "use server"; return deleteSchemaAction(s._id); }} />}</TableCell>
+                  <TableCell>{can(viewer, "schema.delete") && <ConfirmDelete label="Delete schema" what={`schema “${s.name}”${s.status === "published" ? " (removes it from the live site)" : ""}`} action={async () => { "use server"; return deleteSchemaAction(s._id); }} />}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

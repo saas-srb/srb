@@ -45,7 +45,7 @@ export interface PhoneNumberView {
 const toView = (d: PhoneNumberDoc): PhoneNumberView => ({ id: d._id, number: d.number, masked: maskPhone(d.number), label: d.label, provider: d.provider, supportsOutbound: d.supportsOutbound, supportsInbound: d.supportsInbound, assignedAgentId: d.assignedAgentId, createdAt: d.createdAt.toISOString() });
 
 const need = (viewer: AibotsViewer) => {
-  if (!can(viewer, "VOICE_CALL_MANAGE")) throw new ForbiddenError("VOICE_CALL_MANAGE");
+  if (!can(viewer, "calls.manage")) throw new ForbiddenError("calls.manage");
 };
 const elevenError = (e: unknown, fallback: string) => new AibotsInputError(e instanceof ElevenLabsAgentError ? e.message : fallback);
 

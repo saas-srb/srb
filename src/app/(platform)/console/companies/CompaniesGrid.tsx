@@ -80,6 +80,8 @@ export default function CompaniesGrid({
   canImpersonate?: boolean;
 }) {
   return (
+    // min-w-0 + max-w-full: the table scrolls inside its own card on a phone instead of widening the page.
+    <div className="min-w-0 max-w-full">
     <AdminDataGrid
       columns={buildColumns(canImpersonate)}
       rows={rows}
@@ -99,5 +101,6 @@ export default function CompaniesGrid({
         </Link>
       )}
     />
+    </div>
   );
 }

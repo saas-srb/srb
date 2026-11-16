@@ -103,8 +103,8 @@ export interface CallView {
   dialedPhoneMasked: string | null;
 }
 
-const manages = (v: AibotsViewer) => can(v, "VOICE_CALL_MANAGE");
-const oversees = (v: AibotsViewer) => manages(v) || can(v, "VIEW_CHATS");
+const manages = (v: AibotsViewer) => can(v, "calls.manage");
+const oversees = (v: AibotsViewer) => manages(v) || can(v, "chats.all");
 
 export function toView(c: CallDoc, viewer: AibotsViewer, withTranscript = false): CallView {
   const mine = c.initiatedBy?.userId === viewer.userId;
@@ -169,7 +169,7 @@ async function companyName(): Promise<string> {
 }
 
 export async function requestCall(viewer: AibotsViewer, input: RequestCallInput, deps: EngineDeps = {}): Promise<RequestResult> {
-  if (!can(viewer, "VOICE_CALL")) throw new ForbiddenError("VOICE_CALL");
+  if (!can(viewer, "calls.place")) throw new ForbiddenError("calls.place");
   if (typeof input.idempotencyKey !== "string" || !KEY.test(input.idempotencyKey)) throw new AibotsInputError("The request couldn't be identified. Reload and try again.");
   const calls = await callsCollection();
   const prior = await calls.findOne({ idempotencyKey: input.idempotencyKey });
@@ -360,7 +360,7 @@ async function loadFor(viewer: AibotsViewer, callId: string, oversight = false):
 
 /** Cancels a call that hasn't been dialed. Its own caller or a calls manager. A call already ringing is ended with endCall instead. */
 export async function cancelCall(viewer: AibotsViewer, callId: string): Promise<{ ok: true } | { ok: false; failure: CallFailure }> {
-  if (!can(viewer, "VOICE_CALL")) throw new ForbiddenError("VOICE_CALL");
+  if (!can(viewer, "calls.place")) throw new ForbiddenError("calls.place");
   const c = await loadFor(viewer, callId);
   const now = new Date();
   const r = await (await callsCollection()).updateOne({ _id: c._id, status: "scheduled" }, { $set: { status: "cancelled", cancelledBy: viewer.userId, endedAt: now, updatedAt: now, failure: { code: "cancelled", message: "Cancelled before it was dialed." } } });
@@ -371,7 +371,7 @@ export async function cancelCall(viewer: AibotsViewer, callId: string): Promise<
 
 /** A person decides to try a failed / unanswered call again. Never automatic. Runs every guard like a new call. */
 export async function retryCall(viewer: AibotsViewer, callId: string, idempotencyKey: string, deps: EngineDeps = {}): Promise<RequestResult> {
-  if (!can(viewer, "VOICE_CALL")) throw new ForbiddenError("VOICE_CALL");
+  if (!can(viewer, "calls.place")) throw new ForbiddenError("calls.place");
   const c = await loadFor(viewer, callId);
   if (c.dialUnknown && (c.dialUnknown.resolved === null || c.dialUnknown.resolved === "unconfirmed")) {
     return { ok: false, failure: { code: "dial_unconfirmed", message: "The earlier attempt may have reached the phone and hasn't been checked with the provider yet, so it can't be tried again." } };

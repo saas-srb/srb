@@ -38,7 +38,7 @@ async function col() {
 const TTL_MS = 20_000;
 const g = globalThis as unknown as { __wsConnCache?: Map<string, { at: number; values: Record<string, string> | null }> };
 const cache = (g.__wsConnCache ??= new Map());
-const bust = (companyId: string, provider: string) => { cache.delete(`${companyId}:${provider}`); void publishConfigChange(`connection:${provider}`).catch(() => {}); };
+const bust = (companyId: string, provider: string) => { cache.delete(`${companyId}:${provider}`); return publishConfigChange(`connection:${provider}`).catch(() => 0); };
 // A change made on another server instance reaches this one through the shared change counter; in this process the listener clears at once.
 onConfigChange((c) => { if (c.scope.startsWith("connection:")) cache.delete(`${c.companyId}:${c.scope.slice("connection:".length)}`); });
 
@@ -142,14 +142,14 @@ export async function saveConnection(providerKey: string, input: Record<string, 
     { $set: { values, secrets, lastTest: null, mode: "own" as ConnectionMode, updatedAt: now, updatedBy: actorId }, $setOnInsert: { connectedAt: now } },
     { upsert: true }
   );
-  bust(companyId, providerKey);
+  await bust(companyId, providerKey);
   return { ok: true };
 }
 
 export async function disconnectConnection(providerKey: string): Promise<void> {
   const companyId = await currentCompanyId();
   await (await col()).deleteOne({ _id: providerKey });
-  bust(companyId, providerKey);
+  await bust(companyId, providerKey);
 }
 
 export async function recordTestResult(providerKey: string, ok: boolean, message: string): Promise<void> {
@@ -166,6 +166,6 @@ export async function setConnectionMode(providerKey: string, mode: ConnectionMod
   const doc = await collection.findOne({ _id: providerKey });
   if (!doc) return { ok: mode === "srb" }; // nothing saved: SelfRun's account is already what is used
   await collection.updateOne({ _id: providerKey }, { $set: { mode, updatedAt: new Date(), updatedBy: actorId } });
-  bust(companyId, providerKey);
+  await bust(companyId, providerKey);
   return { ok: true };
 }

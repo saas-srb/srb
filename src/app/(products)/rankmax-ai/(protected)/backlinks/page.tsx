@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import PanelTabs from "@/components/platform/panel/PanelTabs";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -33,11 +34,13 @@ const REL_OPTS = [{ value: "follow", label: "follow" }, { value: "nofollow", lab
 export default async function BacklinksPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "backlinks.view", "Backlinks");
+  if (locked) return locked;
   const sp = await searchParams;
   const tab = sp.tab === "domains" || sp.tab === "anchors" ? sp.tab : "links";
   const [o, list, siteHost] = await Promise.all([backlinkOverview(), listBacklinks({ ...sp, page: Math.max(Number(sp.page) || 1, 1), pageSize: 30 }), companySiteHost()]);
-  const canManage = can(viewer, "MANAGE_BACKLINKS");
-  const canDelete = can(viewer, "DELETE");
+  const canManage = can(viewer, "backlinks.manage");
+  const canDelete = can(viewer, "backlinks.delete");
   const addFields: FieldDef[] = [
     { key: "sourceUrl", label: "Source page URL (the page that links to us)", type: "text", placeholder: "https://example.com/article" },
     { key: "targetUrl", label: "Target on our site", type: "text", placeholder: "/services/web-development" },
@@ -146,7 +149,7 @@ export default async function BacklinksPage({ searchParams }: { searchParams: Pr
           page={list.page}
           totalPages={list.totalPages}
           total={list.total}
-          exportBase={can(viewer, "EXPORT_REPORTS") ? "/api/rankmax-ai/export/backlinks" : undefined}
+          exportBase={can(viewer, "reports.export") ? "/api/rankmax-ai/export/backlinks" : undefined}
         />
       )}
       {tab === "domains" && (

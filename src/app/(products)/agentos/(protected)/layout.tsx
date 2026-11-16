@@ -28,14 +28,18 @@ export default async function ProtectedAibotsLayout({ children }: { children: Re
   if (!viewer) redirect("/agentos/login");
 
   // The sidebar lists only the agents this viewer has actually chatted or talked with, newest first.
-  const [bell, recent] = await Promise.all([listAibotsNotifications(viewer.userId), listRecentAgents(viewer)]);
+  const [bell, recent] = await Promise.all([listAibotsNotifications(viewer.userId), can(viewer, "agents.use") ? listRecentAgents(viewer) : Promise.resolve({ agents: [], total: 0 })]);
   const sidebarBots = recent.agents;
   const flags: AibotsNavFlags = {
-    createBot: can(viewer, "CREATE_BOT"),
-    manageBots: can(viewer, "EDIT_BOT") || can(viewer, "DELETE_BOT") || can(viewer, "MANAGE_KB"),
-    allChats: can(viewer, "VIEW_CHATS"),
-    audit: can(viewer, "VIEW_AUDIT"),
-    settings: can(viewer, "MANAGE_SETTINGS"),
+    dashboard: can(viewer, "dashboard.view"),
+    hub: can(viewer, "agents.view"),
+    use: can(viewer, "agents.use"),
+    calls: can(viewer, "calls.view"),
+    createBot: can(viewer, "agents.create"),
+    manageBots: can(viewer, "agents.edit") || can(viewer, "agents.delete") || can(viewer, "knowledge.manage"),
+    allChats: can(viewer, "chats.all"),
+    audit: can(viewer, "activity.view"),
+    settings: can(viewer, "settings.manage"),
   };
 
   return (

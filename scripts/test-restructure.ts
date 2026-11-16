@@ -50,7 +50,7 @@ function routeFile(href: string): string | null {
   console.log("sidebar: the owner's exact target");
   const EXPECTED: { heading: string; items: string[] }[] = [
     { heading: "", items: ["Dashboard"] },
-    { heading: "Organization Setup", items: ["Company setup", "Integrations", "Product settings"] },
+    { heading: "Organization Setup", items: ["Setup progress", "Company setup", "Integrations", "Product settings"] },
     { heading: "Users & Access", items: ["Departments", "Teams", "Designations", "People & access"] },
     { heading: "Branding & domains", items: ["Apps & downloads", "Default domain", "Custom domains"] },
     { heading: "Billing & plan", items: ["Plan & billing", "Invoices & payments", "Usage & limits"] },
@@ -61,9 +61,20 @@ function routeFile(href: string): string | null {
   await T("the Director's sidebar is exactly the target: headings, items and order", () => {
     assert.deepEqual(sidebarOf(ctx(["super_admin"])), EXPECTED);
   });
-  await T("a person with partial access and one with none see the same sidebar, with the same headings and items", () => {
-    assert.deepEqual(sidebarOf(ctx(["pms_manager"])), EXPECTED);
-    assert.deepEqual(sidebarOf(ctx([])), EXPECTED);
+  await T("a person with partial access sees only their own part of that sidebar (same headings, same order), and a person with none sees only the Dashboard; nothing is greyed", () => {
+    const partial = sidebarOf(ctx(["pms_manager"]));
+    const flatPartial = partial.flatMap((g) => g.items);
+    let at = -1;
+    for (const g of partial) {
+      const idx = EXPECTED.findIndex((e) => e.heading === g.heading);
+      assert.ok(idx > at, `heading ${g.heading || "(none)"} is in the Director's order`);
+      at = idx;
+      const full = EXPECTED[idx].items;
+      let pos = -1;
+      for (const i of g.items) { const n = full.indexOf(i, pos + 1); assert.ok(n > pos, `${i} follows the Director's order under ${g.heading}`); pos = n; }
+    }
+    assert.ok(!flatPartial.includes("Integrations") && !flatPartial.includes("Plan & billing"), "company settings are the Director's");
+    assert.deepEqual(sidebarOf(ctx([])), [{ heading: "", items: ["Dashboard"] }]);
   });
   await T("no duplicate heading anywhere, and no 'Connections & automation', 'Conversation AI', 'Sender email' or 'Add a person' in the sidebar", () => {
     const sb = sidebarOf(ctx(["super_admin"]));

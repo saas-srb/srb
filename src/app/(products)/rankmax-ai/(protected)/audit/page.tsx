@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -22,6 +23,8 @@ const RANK: Record<Severity, number> = { critical: 0, high: 1, medium: 2, low: 3
 export default async function AuditPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "audit.view", "Website Audit");
+  if (locked) return locked;
   const [runs, settings, byCheck] = await Promise.all([
     listRuns(30),
     getSettings(),
@@ -39,7 +42,7 @@ export default async function AuditPage() {
         title="Website Audit"
         crumbs={[{ label: "Website Audit" }]}
         description={<>Crawls {settings.siteOrigin} (up to {settings.crawl.maxPages} pages) and checks {Object.keys(CHECKS).length} technical, on-page, content, link, mobile, performance and structured-data rules. Scheduled: {settings.schedule.auditFrequency}.</>}
-        actions={can(viewer, "RUN_AUDIT") && <JobButton endpoint="/api/rankmax-ai/audit" label="Run audit now" busyLabel="Auditing… (up to a few minutes)" icon={<ScanSearch className="size-3.5" data-icon="inline-start" />} variant="default" disabled={!!running} successMessage="Audit complete" />}
+        actions={can(viewer, "audit.run") && <JobButton endpoint="/api/rankmax-ai/audit" label="Run audit now" busyLabel="Auditing… (up to a few minutes)" icon={<ScanSearch className="size-3.5" data-icon="inline-start" />} variant="default" disabled={!!running} successMessage="Audit complete" />}
       />
       <PanelListFilters>
 {running && <Badge className="bg-sky-500/15 text-sky-700">An audit started {formatDateTime(running.startedAt)} is running…</Badge>}

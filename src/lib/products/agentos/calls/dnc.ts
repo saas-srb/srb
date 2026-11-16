@@ -63,7 +63,7 @@ export interface DncEntryView {
 }
 
 export async function addDoNotCall(viewer: AibotsViewer, phone: string, reason: string): Promise<void> {
-  if (!can(viewer, "VOICE_CALL_MANAGE")) throw new ForbiddenError("VOICE_CALL_MANAGE");
+  if (!can(viewer, "calls.manage")) throw new ForbiddenError("calls.manage");
   const e164 = normalizeE164(phone);
   if (!e164) throw new AibotsInputError("Enter the number with its country code, for example +91 98765 43210.");
   const why = typeof reason === "string" ? reason.trim().slice(0, 300) : "";
@@ -78,13 +78,13 @@ export async function addDoNotCall(viewer: AibotsViewer, phone: string, reason: 
 }
 
 export async function removeDoNotCall(viewer: AibotsViewer, entryId: string): Promise<void> {
-  if (!can(viewer, "VOICE_CALL_MANAGE")) throw new ForbiddenError("VOICE_CALL_MANAGE");
+  if (!can(viewer, "calls.manage")) throw new ForbiddenError("calls.manage");
   const r = await (await dncCollection()).findOneAndDelete({ _id: String(entryId).slice(0, 64) });
   if (r) await recordAudit({ actorId: viewer.userId, actorEmail: viewer.email, action: "delete", entity: "dnc", entityId: "list", entityLabel: `…${r.last4}`, summary: "Removed a number from the do-not-call list" });
 }
 
 export async function listDoNotCall(viewer: AibotsViewer): Promise<DncEntryView[]> {
-  if (!can(viewer, "VOICE_CALL_MANAGE")) throw new ForbiddenError("VOICE_CALL_MANAGE");
+  if (!can(viewer, "calls.manage")) throw new ForbiddenError("calls.manage");
   const rows = await (await dncCollection()).find({}).sort({ addedAt: -1 }).limit(500).toArray();
   return rows.map((r) => ({ id: r._id, last4: r.last4, reason: r.reason, addedBy: r.addedBy, addedAt: r.addedAt.toISOString() }));
 }

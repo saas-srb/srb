@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import { notFound, redirect } from "next/navigation";
 import { PageHeader } from "@/components/products/rankmax-ai/SeoUi";
 import AuditRunSummary from "@/components/products/rankmax-ai/AuditRunSummary";
@@ -8,6 +9,8 @@ import { formatDateTime } from "@/lib/utils";
 export default async function AuditRunPage({ params }: { params: Promise<{ id: string }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "audit.view", "Website Audit");
+  if (locked) return locked;
   const { id } = await params;
   const run = await getRun(id);
   if (!run) notFound();

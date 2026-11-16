@@ -15,7 +15,6 @@ export default function SidebarProfileMenu({
   return (
     <UnifiedProfileMenu
       email={userEmail}
-      roleLabel="Administrator"
       roles={["Administrator"]}
       createdAt={createdAt}
       lastLoginAt={lastLoginAt}

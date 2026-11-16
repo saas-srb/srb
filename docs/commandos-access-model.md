@@ -52,3 +52,11 @@ For every role of every role file and every capability: legacy answer equals the
 - Save (`people.ts`): `checkAccess` completes the map, `accessToLegacy` derives the older roles and overrides; a map that would widen older access is refused with a plain explanation; features the older screens cannot honour are saved and shown as "not available in every part yet". Custom roles are cleared on save (their effect is inside the derived roles). A Director's details can be edited, never their access. Delegated managers cannot save a map that needs individual overrides, and nobody edits their own access.
 - Editing a person with no saved map derives it from their older roles (`prefillFromLegacy`), so nothing has to be migrated first.
 
+
+## P8-C: AgentOS "Read only" is truly read only (2026-11-17)
+AgentOS is finished on micro features (`src/lib/access/micro/agentos.ts`). Intentional differences from the old role model:
+- "Read only" in Step 2 now grants only read-level features: open the dashboard, see agents in the Agent Hub, see calls, read the activity log. It no longer includes chatting or voice calls (`agents.use`, `calls.place` are Read & Write features, because they create conversations and calls). Step 2 shows plain "Read only", without the "next level up" wording.
+- A person who can only see agents opens the hub but a typed chat address shows the polite locked page; the chat API, voice start and chat rename are refused server-side.
+- "Read everyone's chats" (`chats.all`) is a scope feature and is never part of the quick Read only button. Old people keep exactly what they had (the old role bundles map to the same micro features, 0 unintended differences in `test:agentos-access`).
+- Dashboard numbers span everyone for a person who holds `chats.all` or `agents.edit` (the old manager-tier rule, unchanged).
+- EvalIQ still uses the older wording until it is finished the same way.

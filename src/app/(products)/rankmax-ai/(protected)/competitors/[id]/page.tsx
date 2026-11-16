@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import { notFound, redirect } from "next/navigation";
 import { Pencil, Plus, Map as MapIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,11 +21,13 @@ export const maxDuration = 300;
 export default async function CompetitorDetail({ params }: { params: Promise<{ id: string }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "competitors.view", "Competitors");
+  if (locked) return locked;
   const { id } = await params;
   const [x, ourVis] = await Promise.all([compareCompetitor(id), ourVisibility()]);
   if (!x) notFound();
   const c = x.competitor;
-  const canManage = can(viewer, "MANAGE_COMPETITORS");
+  const canManage = can(viewer, "competitors.manage");
 
   return (
     <div className="space-y-4">
@@ -39,7 +42,7 @@ export default async function CompetitorDetail({ params }: { params: Promise<{ i
               <CsvImportDialog title="Import competitor positions" description="Their keyword positions from an SEO tool (organic research / ranking export)." columns="keyword, position, url, volume, date" onImport={async (csv, source) => { "use server"; return importCompetitorRankingsAction(c._id, csv, source); }} />
               <EditDialog trigger={<Button size="sm" variant="outline"><Plus className="size-3.5" data-icon="inline-start" />Position</Button>} title="Record a competitor position" fields={[{ key: "keyword", label: "Keyword", type: "text" }, { key: "position", label: "Position (empty = not ranking)", type: "number", min: 1, max: 100 }, { key: "url", label: "Their ranking URL", type: "text" }, { key: "date", label: "Date", type: "date" }]} initial={{ keyword: "", position: "", url: "", date: todayIso() }} onSubmit={async (v) => { "use server"; return recordCompetitorPositionAction(c._id, v); }} />
               <EditDialog trigger={<Button size="sm" variant="outline"><Pencil className="size-3.5" data-icon="inline-start" />Edit</Button>} title="Edit competitor" columns={2} fields={COMPETITOR_FIELDS} initial={competitorInitial(c)} onSubmit={async (v) => { "use server"; return saveCompetitorAction(c._id, v); }} />
-              {can(viewer, "DELETE") && <ActionButton action={async () => { "use server"; return deleteCompetitorAction(c._id); }} variant="ghost" redirectTo="/rankmax-ai/competitors" success="Competitor removed" confirm={{ title: `Remove ${c.name}?`, description: "Their recorded positions are deleted too." }}>Delete</ActionButton>}
+              {can(viewer, "competitors.delete") && <ActionButton action={async () => { "use server"; return deleteCompetitorAction(c._id); }} variant="ghost" redirectTo="/rankmax-ai/competitors" success="Competitor removed" confirm={{ title: `Remove ${c.name}?`, description: "Their recorded positions are deleted too." }}>Delete</ActionButton>}
             </>
           )
         }

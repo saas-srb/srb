@@ -75,17 +75,17 @@ export default async function OwnerVault({ viewer, owner, basePath, info, sp }: 
         {label}
       </Button>
     );
-    if (tab === "credentials" && ui.create) actions = <CredentialDialog ui={ui} locked={owner} trigger={add("Add credential", <Plus className="size-3.5" data-icon="inline-start" />)} />;
-    if (tab === "urls" && ui.create) actions = <LinkDialog ui={ui} locked={owner} credentials={await credentialOptions(viewer)} trigger={add("Add URL / account", <Plus className="size-3.5" data-icon="inline-start" />)} />;
-    if (tab === "documents" && ui.manageDocs) actions = <DocumentDialog ui={ui} locked={owner} trigger={add("Upload document", <Upload className="size-3.5" data-icon="inline-start" />)} />;
-    if (tab === "notes" && ui.create) actions = <NoteDialog ui={ui} locked={owner} trigger={add("Add note", <Plus className="size-3.5" data-icon="inline-start" />)} />;
+    if (tab === "credentials" && ui.types.credential.create) actions = <CredentialDialog ui={ui} locked={owner} trigger={add("Add credential", <Plus className="size-3.5" data-icon="inline-start" />)} />;
+    if (tab === "urls" && ui.types.link.create) actions = <LinkDialog ui={ui} locked={owner} credentials={await credentialOptions(viewer)} trigger={add("Add URL / account", <Plus className="size-3.5" data-icon="inline-start" />)} />;
+    if (tab === "documents" && ui.types.document.create) actions = <DocumentDialog ui={ui} locked={owner} trigger={add("Upload document", <Upload className="size-3.5" data-icon="inline-start" />)} />;
+    if (tab === "notes" && ui.types.note.create) actions = <NoteDialog ui={ui} locked={owner} trigger={add("Add note", <Plus className="size-3.5" data-icon="inline-start" />)} />;
   }
 
   let body: React.ReactNode;
   if (tab === "overview") {
     const settings = await getSettings();
     const expiring = (await Promise.all((["credential", "document", "link"] as const).map((t) => feedItems(viewer, t, { ...ownerQuery, expiry: "set", sort: "expiry", limit: 50 })))).flat().filter((i) => i.expiry === "expired" || i.expiry === "expiring").sort((a, b) => (a.expiryDate ?? "").localeCompare(b.expiryDate ?? ""));
-    const activity = can(viewer, "VIEW_AUDIT") ? await recentActivity({ limit: 6, scope: owner.scope, clientId: owner.clientId ?? undefined }) : [];
+    const activity = can(viewer, "dashboard.activity") ? await recentActivity({ limit: 6, scope: owner.scope, clientId: owner.clientId ?? undefined }) : [];
     body = (
       <div className="grid gap-4 lg:grid-cols-3">
         <SectionCard title="About" className="lg:col-span-1" description={info.notice}>
@@ -127,7 +127,7 @@ export default async function OwnerVault({ viewer, owner, basePath, info, sp }: 
           <SectionCard title="Expiry" description={`Expired, or within ${settings.warnDays} days`}>
             <FeedList items={expiring} show="expiry" empty="Nothing is expired or expiring soon." />
           </SectionCard>
-          {can(viewer, "VIEW_AUDIT") && (
+          {can(viewer, "dashboard.activity") && (
             <SectionCard title="Recent activity">
               {activity.length === 0 ? (
                 <p className="py-4 text-center text-sm text-muted-foreground">No activity yet.</p>

@@ -251,7 +251,7 @@ async function readSteps(): Promise<SetupStep[]> {
 export async function getConferenceSetup(viewer: AibotsViewer): Promise<ConferenceSetup> {
   const steps = await readSteps();
   const ready = steps.every((s) => s.done);
-  const manager = can(viewer, "VOICE_CALL_MANAGE");
+  const manager = can(viewer, "calls.manage");
   const settings = await getCallSettings();
   const effectiveMode = settings.callMode === "direct" ? "direct" : ready ? "conference" : "direct";
   let voiceUrl: string | null = null;
@@ -274,7 +274,7 @@ export async function resolveCallMode(): Promise<"conference" | "direct"> {
 
 /** A manager confirms a step that can't be checked from here. */
 export async function confirmSetupStep(viewer: AibotsViewer, step: "voiceUrl" | "agentAudio", done: boolean): Promise<void> {
-  if (!can(viewer, "VOICE_CALL_MANAGE")) throw new ForbiddenError("VOICE_CALL_MANAGE");
+  if (!can(viewer, "calls.manage")) throw new ForbiddenError("calls.manage");
   if (step !== "voiceUrl" && step !== "agentAudio") throw new AibotsInputError("Unknown step.");
   await ensureSetupDoc();
   await (await setupCol()).updateOne({ kind: "twilio" }, { $set: { [`confirmed.${step}`]: Boolean(done), updatedAt: new Date() } });

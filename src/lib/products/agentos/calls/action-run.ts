@@ -20,7 +20,7 @@ export const NO_PERMISSION_MESSAGE = "You don't have permission to place calls. 
 export const SESSION_MESSAGE = "Your AgentOS session has expired. Sign in again to continue.";
 
 export interface RunOptions {
-  permission?: AibotsPermission | null;
+  permission?: string | null;
   /** Writes are refused while the plan is read-only. */
   write?: boolean;
   /** What to say when the person has no AgentOS session (other products explain it differently from AgentOS itself). */

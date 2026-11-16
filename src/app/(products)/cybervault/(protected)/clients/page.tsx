@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/cybervault/gate";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Users, ChevronRight } from "lucide-react";
@@ -5,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { PageHeader, SectionCard, EmptyState, Notice } from "@/components/products/cybervault/DlmsUi";
 import DlmsFilterBar from "@/components/products/cybervault/DlmsFilterBar";
-import { getViewer } from "@/lib/products/cybervault/viewer";
+import { getViewer, can, type DlmsViewer } from "@/lib/products/cybervault/viewer";
 import { searchClients } from "@/lib/products/cybervault/access";
 import { getDb } from "@/lib/mongodb";
 import { COLLECTIONS, addDaysIso, todayIso } from "@/lib/products/cybervault/db";
@@ -13,7 +14,7 @@ import { getSettings } from "@/lib/products/cybervault/settings";
 import { getClientStatusMeta } from "@/lib/products/sprintos/constants";
 import type { SearchParams } from "@/lib/products/cybervault/page";
 
-async function countsByClient(ids: string[]) {
+async function countsByClient(ids: string[], viewer: DlmsViewer) {
   const db = await getDb();
   const settings = await getSettings();
   const today = todayIso();
@@ -21,12 +22,13 @@ async function countsByClient(ids: string[]) {
   const out = new Map<string, { credentials: number; documents: number; links: number; notes: number; expiring: number }>();
   for (const id of ids) out.set(id, { credentials: 0, documents: 0, links: 0, notes: 0, expiring: 0 });
   if (ids.length === 0) return out;
-  const spec = [
-    ["credentials", COLLECTIONS.credentials],
-    ["documents", COLLECTIONS.documents],
-    ["links", COLLECTIONS.links],
-    ["notes", COLLECTIONS.notes],
-  ] as const;
+  // Only the record types the person may see are counted (a count of something they cannot open would still tell them it exists).
+  const spec = ([
+    ["credentials", COLLECTIONS.credentials, "credentials.view"],
+    ["documents", COLLECTIONS.documents, "documents.view"],
+    ["links", COLLECTIONS.links, "urls.view"],
+    ["notes", COLLECTIONS.notes, "notes.view"],
+  ] as const).filter(([, , feature]) => can(viewer, feature));
   await Promise.all(
     spec.map(async ([key, col]) => {
       const rows = await db
@@ -51,11 +53,13 @@ async function countsByClient(ids: string[]) {
 export default async function ClientsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/cybervault/login");
+  const locked = lockedUnless(viewer, "clients.view", "Clients Vault");
+  if (locked) return locked;
   const sp = await searchParams;
   // The client list is the PMS client master, narrowed to what this viewer may see. DLMS creates no clients of its own.
   const { items } = await searchClients({ search: sp.q?.trim() || undefined, pageSize: 100, sortBy: "companyName", sortDir: "asc" });
   const visible = viewer.seesAll ? items : items.filter((c) => viewer.clientIds.includes(c._id));
-  const counts = await countsByClient(visible.map((c) => c._id));
+  const counts = await countsByClient(visible.map((c) => c._id), viewer);
 
   return (
     <div className="space-y-4">

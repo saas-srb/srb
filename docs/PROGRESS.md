@@ -126,3 +126,15 @@ Counting: 2 of about 40 features done = about 5%.
 
 ## Settings cards: one design (2026-11-16)
 - `SettingsCard`, `SettingsGrid` (filters, headings with counts, skeleton), `model.ts` (statuses, filter rules) and `adapters.ts` in `src/components/settings/`; Integrations and Product settings render only these. `IntegrationsView` and `ProductCardsView` deleted. DealFlow sync became the "Lead sources" card (panel). Copy in `connections/card-copy.ts` and `product-groups.tsx`. Test: `npm run test:settings-cards`.
+
+## Setup progress (2026-11-16)
+- One setup percentage: `src/lib/platform/setup-progress/` (registry of 60+ steps from real data, weighted scoring, per-product and per-area progress, "Not applicable" for optional steps and "Reviewed" for steps that cannot be derived, both audited). Replaces the old five-step strip count. Shown in the sidebar (first item, with a % badge), a dashboard card, a slim strip, `/commandos/setup`, and a Setup % column plus "Setup stuck" filter in the Platform Console.
+- Reminders: daily job `setup-reminders`, in-app after 3 stuck days then a weekly email, both switchable in the Notification center.
+- Tests: `npm run test:setup-progress` (26 pure + 14 on a throwaway DB). Docs: `docs/setup-progress.md`.
+- Also fixed: a connection change is now announced before the save returns, so the cache never serves a stale value after a save.
+- Not verified: real sign-in, real companies, real email delivery.
+
+- 2026-11-17: People & access v2 (A: one `displayTitle`; hide-not-lock in nav; scope helper; bulk access/copy/templates; delegation rule), P8 small items, guard sweep, security review. Remaining: micro-level catalogue, removal of Me sections, P8-B/C/D. See docs/people-access-v2-ledger.md.
+- 2026-11-17: micro-level framework plus CyberVault complete (28 features, server-side enforcement, coverage test). Next: TalentOS. See docs/people-access-v2-ledger.md.
+- 2026-11-17: RankMax complete (42 micro features, test:rankmax-access). TalentOS needs its own run (staff tier + reporting-line scope + Me tree).
+- 2026-11-17: AgentOS complete (17 micro features, Read only truly read only, test:agentos-access). SiteCraft needs its own run (shared LMS gates).

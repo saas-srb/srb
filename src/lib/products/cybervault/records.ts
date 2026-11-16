@@ -24,6 +24,8 @@ import {
   DlmsInputError,
   ForbiddenError,
   can,
+  canType,
+  needType,
   canReadScope,
   canWriteScope,
   scopeFilter,
@@ -245,7 +247,7 @@ const SEARCH_FIELDS: Record<RecordType, string[]> = {
 };
 
 export async function buildFilter(viewer: DlmsViewer, type: RecordType, q: RecordQuery): Promise<Record<string, unknown>> {
-  const and: Record<string, unknown>[] = [{ deletedAt: null }, scopeFilter(viewer)];
+  const and: Record<string, unknown>[] = [{ deletedAt: null }, scopeFilter(viewer, type)];
   if (q.scope === "company") and.push({ scope: "company" });
   else if (q.scope === "client") and.push({ scope: "client" });
   if (q.clientId) and.push({ scope: "client", clientId: q.clientId });
@@ -341,7 +343,7 @@ export async function listLinks(viewer: DlmsViewer, q: RecordQuery = {}): Promis
   if (credIds.length > 0) {
     const col = await getCollection<CredentialDoc>("credential");
     // The linked credential's NAME is only shown if the viewer may see that credential too.
-    const visible = await col.find({ $and: [{ _id: { $in: credIds } }, { deletedAt: null }, scopeFilter(viewer)] } as never, { projection: { name: 1 } }).toArray();
+    const visible = await col.find({ $and: [{ _id: { $in: credIds } }, { deletedAt: null }, scopeFilter(viewer, "credential")] } as never, { projection: { name: 1 } }).toArray();
     for (const c of visible) credNames.set(c._id, c.name);
   }
   return docs.map((d) => ({ ...baseRow(d, n), url: d.url, account: d.account, credentialId: d.credentialId, credentialName: d.credentialId ? credNames.get(d.credentialId) ?? null : null }));
@@ -383,14 +385,14 @@ export async function feedItems(viewer: DlmsViewer, type: RecordType, q: RecordQ
 /** Lightweight picker list of credentials the viewer can see (for linking a URL/account to a credential). */
 export async function credentialOptions(viewer: DlmsViewer): Promise<{ id: string; name: string; scope: Scope; clientId: string | null }[]> {
   const col = await getCollection<CredentialDoc>("credential");
-  const docs = await col.find({ $and: [{ deletedAt: null }, { status: "active" }, scopeFilter(viewer)] } as never, { projection: { name: 1, scope: 1, clientId: 1 } }).sort({ name: 1 }).limit(500).toArray();
+  const docs = await col.find({ $and: [{ deletedAt: null }, { status: "active" }, scopeFilter(viewer, "credential")] } as never, { projection: { name: 1, scope: 1, clientId: 1 } }).sort({ name: 1 }).limit(500).toArray();
   return docs.map((d) => ({ id: d._id, name: d.name, scope: d.scope, clientId: d.clientId }));
 }
 
 async function loadScoped<T extends Base>(viewer: DlmsViewer, type: RecordType, id: string): Promise<T | null> {
   const col = await getCollection<T & { _id: string }>(type);
   const doc = (await col.findOne({ _id: id, deletedAt: null } as never)) as T | null;
-  if (!doc || !can(viewer, "VIEW") || !canReadScope(viewer, doc.scope, doc.clientId)) return null;
+  if (!doc || !canType(viewer, type, "view") || !canReadScope(viewer, doc.scope, doc.clientId)) return null;
   return doc;
 }
 
@@ -411,7 +413,7 @@ async function resolveTarget(viewer: DlmsViewer, input: Input, existing?: Base):
     const known = (await listClientRefs()).some((c) => c._id === clientId);
     if (!known) throw new DlmsInputError("That client does not exist in the client master.");
   }
-  if (!canWriteScope(viewer, scope, clientId)) throw new ForbiddenError(scope === "company" ? "MANAGE_COMPANY" : "MANAGE_CLIENTS");
+  if (!canWriteScope(viewer, scope, clientId)) throw new ForbiddenError(scope === "company" ? "company.manage" : "clients.manage");
   if (existing && !canWriteScope(viewer, existing.scope, existing.clientId)) throw new ForbiddenError();
   return { scope, clientId };
 }
@@ -450,6 +452,7 @@ const label = (d: Base) => `${d.name}`;
 const CRED_DIFF = ["name", "category", "status", "scope", "clientId", "username", "loginUrl", "expiryDate"];
 
 export async function createCredential(viewer: DlmsViewer, input: Input): Promise<string> {
+  needType(viewer, "credential", "create");
   const target = await resolveTarget(viewer, input);
   const base = parseBase("credential", input);
   const password = typeof input.password === "string" ? input.password.slice(0, LIMITS.secret) : "";
@@ -472,6 +475,7 @@ export async function createCredential(viewer: DlmsViewer, input: Input): Promis
 }
 
 export async function updateCredential(viewer: DlmsViewer, id: string, input: Input): Promise<void> {
+  needType(viewer, "credential", "edit");
   const existing = await loadScoped<CredentialDoc>(viewer, "credential", id);
   if (!existing) throw new DlmsInputError("That credential no longer exists.");
   const target = await resolveTarget(viewer, input, existing);
@@ -514,7 +518,7 @@ export async function updateCredential(viewer: DlmsViewer, id: string, input: In
  * plaintext to the caller only.
  */
 export async function revealCredential(viewer: DlmsViewer, id: string, purpose: "reveal" | "copy"): Promise<string> {
-  if (!can(viewer, "REVEAL")) throw new ForbiddenError("REVEAL");
+  if (!can(viewer, "credentials.reveal")) throw new ForbiddenError("credentials.reveal");
   const doc = await loadScoped<CredentialDoc>(viewer, "credential", id);
   if (!doc) throw new DlmsInputError("That credential no longer exists.");
   if (!doc.passwordEnc) throw new DlmsInputError("No password is stored for this credential.");
@@ -545,6 +549,7 @@ function toVersion(stored: Awaited<ReturnType<typeof saveDlmsFile>> & { ok: true
 }
 
 export async function createDocument(viewer: DlmsViewer, input: Input, file: File | null): Promise<string> {
+  needType(viewer, "document", "create");
   if (!file || file.size === 0) throw new DlmsInputError("Choose a file to upload.");
   const target = await resolveTarget(viewer, input);
   const base = parseBase("document", input);
@@ -567,6 +572,7 @@ export async function createDocument(viewer: DlmsViewer, input: Input, file: Fil
 }
 
 export async function updateDocument(viewer: DlmsViewer, id: string, input: Input): Promise<void> {
+  needType(viewer, "document", "edit");
   const existing = await loadScoped<DocumentDoc>(viewer, "document", id);
   if (!existing) throw new DlmsInputError("That document no longer exists.");
   const target = await resolveTarget(viewer, input, existing);
@@ -588,6 +594,7 @@ export async function updateDocument(viewer: DlmsViewer, id: string, input: Inpu
 
 /** Adds a new version (the previous ones stay downloadable). */
 export async function addDocumentVersion(viewer: DlmsViewer, id: string, file: File | null, note: string): Promise<number> {
+  needType(viewer, "document", "edit");
   if (!file || file.size === 0) throw new DlmsInputError("Choose the new file.");
   const existing = await loadScoped<DocumentDoc>(viewer, "document", id);
   if (!existing) throw new DlmsInputError("That document no longer exists.");
@@ -619,6 +626,7 @@ async function parseLink(viewer: DlmsViewer, input: Input, target: { scope: Scop
 }
 
 export async function createLink(viewer: DlmsViewer, input: Input): Promise<string> {
+  needType(viewer, "link", "create");
   const target = await resolveTarget(viewer, input);
   const base = parseBase("link", input);
   const extra = await parseLink(viewer, input, target);
@@ -630,6 +638,7 @@ export async function createLink(viewer: DlmsViewer, input: Input): Promise<stri
 }
 
 export async function updateLink(viewer: DlmsViewer, id: string, input: Input): Promise<void> {
+  needType(viewer, "link", "edit");
   const existing = await loadScoped<LinkDoc>(viewer, "link", id);
   if (!existing) throw new DlmsInputError("That record no longer exists.");
   const target = await resolveTarget(viewer, input, existing);
@@ -643,6 +652,7 @@ export async function updateLink(viewer: DlmsViewer, id: string, input: Input): 
 // ── Notes ─────────────────────────────────────────────────────────────────
 
 export async function createNote(viewer: DlmsViewer, input: Input): Promise<string> {
+  needType(viewer, "note", "create");
   const target = await resolveTarget(viewer, input);
   const base = parseBase("note", { ...input, status: input.status, expiryDate: "" });
   const body = str(input.body, LIMITS.note);
@@ -655,6 +665,7 @@ export async function createNote(viewer: DlmsViewer, input: Input): Promise<stri
 }
 
 export async function updateNote(viewer: DlmsViewer, id: string, input: Input): Promise<void> {
+  needType(viewer, "note", "edit");
   const existing = await loadScoped<NoteDoc>(viewer, "note", id);
   if (!existing) throw new DlmsInputError("That note no longer exists.");
   const target = await resolveTarget(viewer, input, existing);
@@ -668,6 +679,7 @@ export async function updateNote(viewer: DlmsViewer, id: string, input: Input): 
 // ── Shared: archive / restore / delete ────────────────────────────────────
 
 export async function setRecordStatus(viewer: DlmsViewer, type: RecordType, id: string, status: RecordStatus): Promise<void> {
+  needType(viewer, type, "edit");
   const existing = await loadScoped<Base>(viewer, type, id);
   if (!existing) throw new DlmsInputError("That record no longer exists.");
   if (!canWriteScope(viewer, existing.scope, existing.clientId)) throw new ForbiddenError();
@@ -678,6 +690,7 @@ export async function setRecordStatus(viewer: DlmsViewer, type: RecordType, id: 
 
 /** Soft delete: the row (and any stored file) is kept but disappears everywhere, and the deletion is logged. */
 export async function deleteRecord(viewer: DlmsViewer, type: RecordType, id: string): Promise<void> {
+  needType(viewer, type, "delete");
   const existing = await loadScoped<Base>(viewer, type, id);
   if (!existing) throw new DlmsInputError("That record no longer exists.");
   if (!canWriteScope(viewer, existing.scope, existing.clientId)) throw new ForbiddenError();

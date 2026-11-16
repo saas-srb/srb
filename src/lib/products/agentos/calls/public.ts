@@ -542,7 +542,7 @@ export interface PublicOverview {
 
 /** Numbers for the website-calls panel in settings. Needs VOICE_CALL_MANAGE; returns null otherwise. */
 export async function getPublicOverview(viewer: AibotsViewer, deps: PublicDeps = {}): Promise<PublicOverview | null> {
-  if (!can(viewer, "VOICE_CALL_MANAGE")) return null;
+  if (!can(viewer, "calls.manage")) return null;
   const now = nowOf(deps);
   const [ps, c, bots] = await Promise.all([getPublicCallSettings(), cols(), (await botsCollection()).find({ kind: "voice", "voice.isPublic": true, ...notDeleted }).limit(100).toArray()]);
   const usage = await c.usage.findOne({ _id: `${await currentCompanyId()}:${dayKey(now)}` });

@@ -32,6 +32,8 @@ export interface BillingView {
   chargedPerCycle: { total: number; currency: string; couponCode: string | null } | null;
   pendingChange: { planId: string; planName: string; interval: BillingInterval; effectiveAt: string | null } | null;
   billingDetails: BillingDetails | null;
+  /** The company details (Company setup) offered for the invoice-to record; never saved without a click. */
+  companyDetails?: BillingDetails | null;
   /** The company can only move up: plans below its own are not selectable. */
   blockDowngrade?: boolean;
   /** A Razorpay subscription exists (autopay approved), even if its first charge is still to come. */
@@ -461,6 +463,7 @@ export default function BillingManager({ view, plans, actions, plansSlot, usageS
           </aside>
           <div className="bl-form"><BillingDetailsForm
               initial={details}
+              companyDetails={view.companyDetails ?? null}
               save={actions.saveDetails}
               onSaved={(d) => {
                 setDetails(d);
@@ -734,6 +737,7 @@ export default function BillingManager({ view, plans, actions, plansSlot, usageS
           </DialogHeader>
           <BillingDetailsForm
             initial={details}
+            companyDetails={view.companyDetails ?? null}
             save={actions.saveDetails}
             onSaved={(d) => {
               setDetails(d);

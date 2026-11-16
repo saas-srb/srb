@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -20,8 +21,10 @@ export const maxDuration = 300;
 export default async function SitemapPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "sitemap.view", "Sitemap");
+  if (locked) return locked;
   const [records, pages, settings, siteUrl] = await Promise.all([listSitemapRecords(), allPages(), getSettings(), companySiteUrl()]);
-  const canManage = can(viewer, "MANAGE_SITEMAP");
+  const canManage = can(viewer, "sitemap.manage");
   const gscReady = settings.integrations.gsc.enabled && !!(await integrationEnv()).google;
   const inSitemap = pages.filter((p) => p.inSitemap);
   const nonIndexableListed = inSitemap.filter((p) => p.crawl && !p.crawl.indexable);

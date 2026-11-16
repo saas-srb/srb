@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import { redirect } from "next/navigation";
 import { Download, FileBarChart } from "lucide-react";
@@ -14,7 +15,9 @@ import { competitorsCol } from "@/lib/products/rankmax-ai/competitors";
 export default async function ReportsPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
-  const canExport = can(viewer, "EXPORT_REPORTS");
+  const locked = lockedUnless(viewer, "reports.view", "Reports");
+  if (locked) return locked;
+  const canExport = can(viewer, "reports.export");
   const [d, sitemaps, competitors] = await Promise.all([getDashboard(viewer.userId), listSitemapRecords(), (await competitorsCol()).countDocuments({})]);
   const summary: Record<keyof typeof REPORTS, string> = {
     technical: d.scores ? `Technical score ${d.scores.technical} · ${d.run?.pagesCrawled ?? 0} pages` : "No audit yet",

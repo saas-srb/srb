@@ -18,7 +18,7 @@ export const maxDuration = 300;
 async function handlePOST(req: NextRequest, { params }: { params: Promise<{ botId: string }> }) {
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ ok: false, error: "Your session has expired — please sign in again." }, { status: 401 });
-  if (!can(viewer, "UPLOAD_FILES")) return NextResponse.json({ ok: false, error: "You don't have permission to upload knowledge files." }, { status: 403 });
+  if (!can(viewer, "knowledge.upload")) return NextResponse.json({ ok: false, error: "You don't have permission to upload knowledge files." }, { status: 403 });
   if (!(await isOpenAIConfigured())) return NextResponse.json({ ok: false, error: "OpenAI isn't connected for this workspace yet (Settings → Integrations)." }, { status: 503 });
 
   const { botId } = await params;

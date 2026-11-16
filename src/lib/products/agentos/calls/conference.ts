@@ -267,7 +267,7 @@ export async function handleTwilioVoice(req: TwilioRequest, deps?: ConferenceDep
     const call = await cols.calls.findOne({ _id: jt.callId });
     if (!conf || !callLive(call, conf)) return xml(refuseTwiml("This call has ended."));
     const person = await (deps?.viewerFor ?? viewerForUserId)(jt.userId);
-    if (!person || person.userId !== jt.userId || !(call.initiatedBy?.userId === person.userId || can(person, "VOICE_CALL_TAKEOVER"))) return xml(refuseTwiml("You are not allowed to join this call."));
+    if (!person || person.userId !== jt.userId || !(call.initiatedBy?.userId === person.userId || can(person, "calls.takeover"))) return xml(refuseTwiml("You are not allowed to join this call."));
     // Someone else is in control of the call: nobody else may take the leg.
     if (call.control.mode === "human" && call.control.handler && call.control.handler !== jt.userId) return xml(refuseTwiml("Another team member is already on this call."));
     const previous = conf.humanSid && conf.humanSid !== callSid && conf.humanUserId === jt.userId ? conf.humanSid : null;
@@ -509,10 +509,10 @@ async function loadFor(viewer: AibotsViewer, callId: string): Promise<{ call: Ca
   const call = await (await callsCollection()).findOne({ _id: callId });
   if (!call) throw new NotFoundError();
   const mine = call.initiatedBy?.userId === viewer.userId;
-  if (!mine && !can(viewer, "VOICE_CALL_MANAGE") && !can(viewer, "VOICE_CALL_TAKEOVER")) throw new NotFoundError();
+  if (!mine && !can(viewer, "calls.manage") && !can(viewer, "calls.takeover")) throw new NotFoundError();
   return { call, mine };
 }
-const mayHandle = (viewer: AibotsViewer, mine: boolean) => mine || can(viewer, "VOICE_CALL_TAKEOVER");
+const mayHandle = (viewer: AibotsViewer, mine: boolean) => mine || can(viewer, "calls.takeover");
 
 const lockFree = (now: Date) => ({ "control.lockUntil": { $not: { $gt: now } } });
 const LOCK_MS = 20_000;
@@ -530,7 +530,7 @@ export interface JoinCredentials {
 /** LISTEN: what the browser needs to join the conference muted. Only the person who placed the call or someone with VOICE_CALL_TAKEOVER. */
 export async function listenToCall(viewer: AibotsViewer, callId: string, deps?: ConferenceDeps): Promise<({ ok: true } & JoinCredentials) | Failed> {
   const { call, mine } = await loadFor(viewer, callId);
-  if (!mayHandle(viewer, mine)) throw new ForbiddenError("VOICE_CALL_TAKEOVER");
+  if (!mayHandle(viewer, mine)) throw new ForbiddenError("calls.takeover");
   const conf = await getConference(call._id);
   if (!conf) return fail("conference_unavailable", "This call was placed directly by ElevenLabs, so it can't be listened to. Only its transcript is available.");
   if (!callLive(call, conf)) return fail("not_live", "This call isn't live any more.");
@@ -546,7 +546,7 @@ export async function listenToCall(viewer: AibotsViewer, callId: string, deps?: 
 /** TAKE OVER: the AI is put on hold and the listening team member is unmuted. One person at a time; pressing it twice changes nothing. */
 export async function takeOverConference(viewer: AibotsViewer, callId: string, deps?: ConferenceDeps): Promise<{ ok: true; unchanged?: boolean } | Failed> {
   const { call, mine } = await loadFor(viewer, callId);
-  if (!mayHandle(viewer, mine)) throw new ForbiddenError("VOICE_CALL_TAKEOVER");
+  if (!mayHandle(viewer, mine)) throw new ForbiddenError("calls.takeover");
   const conf = await getConference(call._id);
   if (!conf) return fail("takeover_unsupported", "This call was placed directly by ElevenLabs. It can't be taken over from here.");
   if (call.control.mode === "human") {
@@ -607,7 +607,7 @@ export async function handBackConference(viewer: AibotsViewer, callId: string, d
   const conf = await getConference(call._id);
   if (!conf) return fail("handback_unsupported", "This call was placed directly by ElevenLabs.");
   if (call.control.mode !== "human") return { ok: true, unchanged: true };
-  if (call.control.handler !== viewer.userId && !can(viewer, "VOICE_CALL_MANAGE") && !can(viewer, "VOICE_CALL_TAKEOVER")) throw new ForbiddenError("VOICE_CALL_MANAGE");
+  if (call.control.handler !== viewer.userId && !can(viewer, "calls.manage") && !can(viewer, "calls.takeover")) throw new ForbiddenError("calls.manage");
   void mine;
   if (!callLive(call, conf)) return fail("not_live", "This call isn't live any more.");
   if (!call.control.canHandBack || conf.aiState === "left" || conf.aiState === "failed") return fail("handback_unsupported", "The AI is no longer on this call (it left while you were in control), so it can't take over again.");
@@ -626,7 +626,7 @@ export async function handBackConference(viewer: AibotsViewer, callId: string, d
 /** END: closes the conference (everybody drops) and hangs up the lead. Safe to press twice. */
 export async function endConferenceCall(viewer: AibotsViewer, callId: string, deps?: ConferenceDeps): Promise<{ ok: true; unchanged?: boolean } | Failed> {
   const { call, mine } = await loadFor(viewer, callId);
-  if (!mine && !can(viewer, "VOICE_CALL_TAKEOVER") && !can(viewer, "VOICE_CALL_MANAGE")) throw new NotFoundError();
+  if (!mine && !can(viewer, "calls.takeover") && !can(viewer, "calls.manage")) throw new NotFoundError();
   const conf = await getConference(call._id);
   if (!conf) return fail("conference_unavailable", "This call was placed directly by ElevenLabs.");
   if (!callLive(call, conf)) return { ok: true, unchanged: true };
@@ -650,7 +650,7 @@ const NOTE_MAX = 500;
  */
 export async function addConferenceNote(viewer: AibotsViewer, callId: string, text: string, deps?: ConferenceDeps): Promise<{ ok: true } | Failed> {
   const { call, mine } = await loadFor(viewer, callId);
-  if (!mayHandle(viewer, mine)) throw new ForbiddenError("VOICE_CALL_TAKEOVER");
+  if (!mayHandle(viewer, mine)) throw new ForbiddenError("calls.takeover");
   const clean = cleanContextValue(text, NOTE_MAX);
   if (!clean) return fail("monitor_unavailable", "Write the note first.");
   if (call.control.mode !== "ai") return fail("not_live", "A person is in control; the AI is on hold and can't receive notes.");

@@ -1,3 +1,4 @@
+import { legacyToAccess } from "../src/lib/access/adapter";
 import assert from "node:assert/strict";
 import { getDb, getPlatformDb } from "../src/lib/mongodb";
 import { runAsCompany } from "../src/lib/platform/tenancy/context";
@@ -12,7 +13,7 @@ import { getVoiceCall, reconcileVoiceCalls, finishVoiceCall, listVoiceCalls, sta
 
 // Runs only against a throwaway database (MONGODB_URI=…/zz_throwaway_*). ElevenLabs is never called: every client gets a mock fetch.
 const t = async (name: string, fn: () => Promise<void>) => { await fn(); console.log("  ✓", name); };
-const viewer = (userId: string, roles: string[]): AibotsViewer => ({ userId, email: `${userId}@x.test`, roles, ctx: { roles, permissionOverrides: undefined } as AibotsViewer["ctx"], seesAll: false });
+const viewer = (userId: string, roles: string[]): AibotsViewer => ({ userId, email: `${userId}@x.test`, roles, ctx: { roles, permissionOverrides: undefined } as AibotsViewer["ctx"], subject: legacyToAccess({ roles, permissionOverrides: null }), seesAll: false });
 const alice = viewer("alice", ["aibots_user"]);
 const bob = viewer("bob", ["aibots_user"]);
 

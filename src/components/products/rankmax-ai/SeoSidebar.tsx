@@ -1,5 +1,6 @@
 "use client";
 
+import NavGroup from "@/components/products/common/NavGroup";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -31,6 +32,8 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 export interface SeoNavFlags {
   settings: boolean;
   audit: boolean;
+  /** Which pages the person may open (module view features); the menu hides the rest. */
+  see: Record<string, boolean>;
   /** Open critical issues (badge). */
   critical: number;
   /** Open tasks assigned to the viewer (badge). */
@@ -99,40 +102,40 @@ function SectionLabel({ children, collapsed }: { children: React.ReactNode; coll
 }
 
 export default function SeoSidebar({ flags, onNavigate, collapsed = false }: { flags: SeoNavFlags; onNavigate?: () => void; collapsed?: boolean }) {
-  const nav = (props: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean; badge?: string | number }) => (
-    <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />
-  );
+  const nav = (props: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean; badge?: string | number; feature: string }) =>
+    flags.see[props.feature] ? <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} /> : null;
 
   return (
     <nav className="flex h-full flex-col gap-1 p-3">
-      {nav({ href: "/rankmax-ai", label: "Dashboard", icon: LayoutDashboard, exact: true })}
-      {nav({ href: "/rankmax-ai/overview", label: "SEO Overview", icon: Gauge })}
+      {nav({ feature: "dashboard", href: "/rankmax-ai", label: "Dashboard", icon: LayoutDashboard, exact: true })}
+      {nav({ feature: "overview", href: "/rankmax-ai/overview", label: "SEO Overview", icon: Gauge })}
 
-      <SectionLabel collapsed={collapsed}>Audit</SectionLabel>
-      {nav({ href: "/rankmax-ai/audit", label: "Website Audit", icon: ScanSearch })}
-      {nav({ href: "/rankmax-ai/technical", label: "Technical SEO", icon: Wrench })}
-      {nav({ href: "/rankmax-ai/on-page", label: "On-Page SEO", icon: FileCode2 })}
-      {nav({ href: "/rankmax-ai/content", label: "Content SEO", icon: FileText })}
-      {nav({ href: "/rankmax-ai/pages", label: "Pages", icon: Files })}
-
-      <SectionLabel collapsed={collapsed}>Search</SectionLabel>
-      {nav({ href: "/rankmax-ai/keywords", label: "Keywords", icon: KeyRound })}
-      {nav({ href: "/rankmax-ai/rankings", label: "Rankings", icon: TrendingUp })}
-      {nav({ href: "/rankmax-ai/competitors", label: "Competitors", icon: Swords })}
-
-      <SectionLabel collapsed={collapsed}>Links</SectionLabel>
-      {nav({ href: "/rankmax-ai/internal-links", label: "Internal Links", icon: Network })}
-      {nav({ href: "/rankmax-ai/backlinks", label: "Backlinks", icon: Link2 })}
-
-      <SectionLabel collapsed={collapsed}>Crawl & Index</SectionLabel>
-      {nav({ href: "/rankmax-ai/sitemap", label: "Sitemap", icon: Map })}
-      {nav({ href: "/rankmax-ai/robots", label: "Robots.txt", icon: Bot })}
-      {nav({ href: "/rankmax-ai/schema", label: "Schema / Structured Data", icon: Braces })}
-
-      <SectionLabel collapsed={collapsed}>Work</SectionLabel>
-      {nav({ href: "/rankmax-ai/issues", label: "SEO Issues", icon: TriangleAlert, badge: flags.critical })}
-      {nav({ href: "/rankmax-ai/tasks", label: "SEO Tasks", icon: ListChecks, badge: flags.myTasks })}
-      {nav({ href: "/rankmax-ai/reports", label: "Reports", icon: BarChart3 })}
+      <NavGroup collapsed={collapsed} label="Audit">
+        {nav({ feature: "audit", href: "/rankmax-ai/audit", label: "Website Audit", icon: ScanSearch })}
+        {nav({ feature: "technical", href: "/rankmax-ai/technical", label: "Technical SEO", icon: Wrench })}
+        {nav({ feature: "onpage", href: "/rankmax-ai/on-page", label: "On-Page SEO", icon: FileCode2 })}
+        {nav({ feature: "content", href: "/rankmax-ai/content", label: "Content SEO", icon: FileText })}
+        {nav({ feature: "pages", href: "/rankmax-ai/pages", label: "Pages", icon: Files })}
+      </NavGroup>
+      <NavGroup collapsed={collapsed} label="Search">
+        {nav({ feature: "keywords", href: "/rankmax-ai/keywords", label: "Keywords", icon: KeyRound })}
+        {nav({ feature: "rankings", href: "/rankmax-ai/rankings", label: "Rankings", icon: TrendingUp })}
+        {nav({ feature: "competitors", href: "/rankmax-ai/competitors", label: "Competitors", icon: Swords })}
+      </NavGroup>
+      <NavGroup collapsed={collapsed} label="Links">
+        {nav({ feature: "internallinks", href: "/rankmax-ai/internal-links", label: "Internal Links", icon: Network })}
+        {nav({ feature: "backlinks", href: "/rankmax-ai/backlinks", label: "Backlinks", icon: Link2 })}
+      </NavGroup>
+      <NavGroup collapsed={collapsed} label="Crawl & Index">
+        {nav({ feature: "sitemap", href: "/rankmax-ai/sitemap", label: "Sitemap", icon: Map })}
+        {nav({ feature: "robots", href: "/rankmax-ai/robots", label: "Robots.txt", icon: Bot })}
+        {nav({ feature: "schema", href: "/rankmax-ai/schema", label: "Schema / Structured Data", icon: Braces })}
+      </NavGroup>
+      <NavGroup collapsed={collapsed} label="Work">
+        {nav({ feature: "issues", href: "/rankmax-ai/issues", label: "SEO Issues", icon: TriangleAlert, badge: flags.critical })}
+        {nav({ feature: "tasks", href: "/rankmax-ai/tasks", label: "SEO Tasks", icon: ListChecks, badge: flags.myTasks })}
+        {nav({ feature: "reports", href: "/rankmax-ai/reports", label: "Reports", icon: BarChart3 })}
+      </NavGroup>
     </nav>
   );
 }

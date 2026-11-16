@@ -14,7 +14,7 @@ import { addDocumentVersion, createDocument } from "@/lib/products/cybervault/re
 async function handlePOST(req: NextRequest) {
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ ok: false, error: "Your session has expired — please sign in again." }, { status: 401 });
-  if (!can(viewer, "MANAGE_DOCUMENTS")) return NextResponse.json({ ok: false, error: "You don't have permission to manage documents." }, { status: 403 });
+  if (!can(viewer, "documents.upload")) return NextResponse.json({ ok: false, error: "You don't have permission to manage documents." }, { status: 403 });
 
   let form: FormData;
   try {

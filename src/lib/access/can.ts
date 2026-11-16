@@ -1,4 +1,5 @@
 import { featureByKey, isSelfService, satisfies } from "./catalogue";
+import { microByKey } from "./micro";
 import type { AccessMap, Level } from "./types";
 
 /** The part of a user the access model needs. Director = holds `super_admin` (the owner of the workspace). */
@@ -37,7 +38,7 @@ export function normalizeAccess(input: unknown): AccessMap {
   for (const [product, features] of Object.entries(input as Record<string, unknown>)) {
     if (!features || typeof features !== "object") continue;
     for (const [key, level] of Object.entries(features as Record<string, unknown>)) {
-      const e = featureByKey(key);
+      const e = featureByKey(key) ?? microByKey(key);
       if (!e || e.product !== product) continue;
       if (level !== "read" && level !== "write") continue;
       (out[product] ??= {})[key] = e.level === "read" ? "read" : (level as Level);

@@ -1,8 +1,12 @@
+import { titlesOfPeople } from "@/lib/platform/organization/title-server";
 import "server-only";
 import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/mongodb";
 import { COLLECTIONS, updateStamp } from "@/lib/products/cybervault/db";
-import { normalizeDlmsRoles, isDlmsManagerTier, primaryDlmsRoleLabel } from "@/lib/dlms-roles";
+import { normalizeDlmsRoles } from "@/lib/dlms-roles";
+import { subjectFromRow } from "@/lib/access/server";
+import { can as accessCan } from "@/lib/access/can";
+import type { AccessMap } from "@/lib/access/types";
 import { userNames } from "@/lib/products/playbook-ai/people";
 import { searchClients, listClientOptions } from "@/lib/products/sprintos/clients";
 
@@ -52,8 +56,8 @@ export interface DlmsUserRow {
 export async function listDlmsUsers(): Promise<DlmsUserRow[]> {
   const db = await getDb();
   const users = await db
-    .collection<{ _id: ObjectId; email: string; roles?: string[]; permissionOverrides?: Record<string, boolean> }>("admin_users")
-    .find({}, { projection: { email: 1, roles: 1, permissionOverrides: 1 } })
+    .collection<{ _id: ObjectId; email: string; roles?: string[]; permissionOverrides?: Record<string, boolean>; access?: AccessMap | null }>("admin_users")
+    .find({}, { projection: { email: 1, roles: 1, permissionOverrides: 1, access: 1 } })
     .sort({ email: 1 })
     .toArray();
   const dlmsUsers = users.filter((u) => normalizeDlmsRoles(u.roles).length > 0);
@@ -63,17 +67,18 @@ export async function listDlmsUsers(): Promise<DlmsUserRow[]> {
     db.collection<AccessGrant>(COLLECTIONS.access).find({ _id: { $in: ids } }).toArray(),
   ]);
   const byId = new Map(grants.map((g) => [g._id, g]));
+  const titles = await titlesOfPeople(ids);
   return dlmsUsers.map((u) => {
     const id = u._id.toString();
     const roles = u.roles ?? [];
-    const all = isDlmsManagerTier({ roles });
+    const all = accessCan(subjectFromRow(u), "cybervault", "cybervault.scope.all");
     const g = byId.get(id);
     return {
       id,
       label: names.get(id) ?? u.email,
       email: u.email,
       roles,
-      roleLabel: primaryDlmsRoleLabel(roles),
+      roleLabel: titles.get(id)?.title ?? "Team member", // the person's designation, never a product role
       seesAll: all,
       companyAccess: all || Boolean(g?.companyAccess),
       clientIds: g?.clientIds ?? [],

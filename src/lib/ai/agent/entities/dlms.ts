@@ -1,7 +1,8 @@
 import "server-only";
 import * as A from "@/app/(products)/cybervault/(protected)/actions";
 import { dlmsCan, type DlmsPermission } from "@/lib/dlms-roles";
-import { requireViewer, scopeFilter } from "@/lib/products/cybervault/viewer";
+import { requireViewer, scopeFilter, can as viewerCan } from "@/lib/products/cybervault/viewer";
+import type { RecordType } from "@/lib/products/cybervault/constants";
 import { CREDENTIAL_TYPES, DOCUMENT_CATEGORIES, LINK_TYPES, NOTE_TYPES, RECORD_TYPES, SCOPES } from "@/lib/products/cybervault/constants";
 import { viaAction, f, str, values } from "@/lib/ai/agent/entities/helpers";
 import type { ActionDef, AgentUser, EntityDef, FieldDef, Json } from "@/lib/ai/agent/types";
@@ -14,23 +15,32 @@ import type { ActionDef, AgentUser, EntityDef, FieldDef, Json } from "@/lib/ai/a
 
 const ctx = (u: AgentUser) => ({ roles: u.roles, permissionOverrides: u.permissionOverrides });
 const can = (p: DlmsPermission) => (u: AgentUser) => dlmsCan(ctx(u), p);
-const vaultScope = async (): Promise<Json | null> => {
+/** What the person may read from a vault collection: the record type's view feature, then company/client scope, decided by the server (not the offer list). */
+const vaultScope = (type: RecordType) => async (): Promise<Json | null> => {
   try {
-    return scopeFilter(await requireViewer()) as Json;
+    return scopeFilter(await requireViewer(), type) as Json;
+  } catch {
+    return null;
+  }
+};
+/** Reading an admin-only collection: only a person who holds the micro feature gets any rows. */
+const featureScope = (key: string) => async (): Promise<Json | null> => {
+  try {
+    return viewerCan(await requireViewer(), key) ? {} : { _id: "__none__" };
   } catch {
     return null;
   }
 };
 const soft = { deletedAt: null };
-const base = (key: string, label: string, description: string, collection: string, extra: Partial<EntityDef> = {}): EntityDef => ({ key, panel: "dlms", label, description, collection, idType: "string", baseFilter: soft, titleField: "name", search: ["name", "category", "notes"], read: "any", allowRead: can("VIEW"), scope: vaultScope, ...extra });
+const base = (key: string, label: string, description: string, collection: string, type: RecordType, extra: Partial<EntityDef> = {}): EntityDef => ({ key, panel: "dlms", label, description, collection, idType: "string", baseFilter: soft, titleField: "name", search: ["name", "category", "notes"], read: "any", allowRead: can("VIEW"), scope: vaultScope(type), ...extra });
 
 export const DLMS_ENTITIES: EntityDef[] = [
-  base("dlms.credential", "Credential record", "Saved logins (type, name, username, login URL, expiry). Passwords are never shown.", "dlms_credentials", { hide: ["passwordEnc", "passwordUpdatedAt"] }),
-  base("dlms.document", "Document", "Documents in the vault: name, category, expiry date, versions (file contents are not shown).", "dlms_documents", { hide: ["versions", "storageKey"] }),
-  base("dlms.link", "URL / account", "Important links and accounts (type, URL, notes).", "dlms_links"),
-  base("dlms.note", "Note", "Notes and instructions kept with the vault.", "dlms_notes"),
-  { key: "dlms.access", panel: "dlms", label: "Vault access", description: "Who can open the company vault and which client vaults.", collection: "dlms_access", read: "staff", allowRead: can("MANAGE_ACCESS") },
-  { key: "dlms.activity", panel: "dlms", label: "Audit log", description: "Who opened, revealed or changed what in the vault.", collection: "dlms_activity_logs", idType: "string", search: ["entityLabel", "summary", "actorEmail"], read: "admin", allowRead: can("VIEW_AUDIT") },
+  base("dlms.credential", "Credential record", "Saved logins (type, name, username, login URL, expiry). Passwords are never shown.", "dlms_credentials", "credential", { hide: ["passwordEnc", "passwordUpdatedAt"] }),
+  base("dlms.document", "Document", "Documents in the vault: name, category, expiry date, versions (file contents are not shown).", "dlms_documents", "document", { hide: ["versions", "storageKey"] }),
+  base("dlms.link", "URL / account", "Important links and accounts (type, URL, notes).", "dlms_links", "link"),
+  base("dlms.note", "Note", "Notes and instructions kept with the vault.", "dlms_notes", "note"),
+  { key: "dlms.access", panel: "dlms", label: "Vault access", description: "Who can open the company vault and which client vaults.", collection: "dlms_access", read: "staff", allowRead: can("MANAGE_ACCESS"), scope: featureScope("settings.assign") },
+  { key: "dlms.activity", panel: "dlms", label: "Audit log", description: "Who opened, revealed or changed what in the vault.", collection: "dlms_activity_logs", idType: "string", search: ["entityLabel", "summary", "actorEmail"], read: "admin", allowRead: can("VIEW_AUDIT"), scope: featureScope("activity.view") },
 ];
 
 const SCOPE = [...SCOPES] as string[];

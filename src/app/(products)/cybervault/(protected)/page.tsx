@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/cybervault/gate";
 import Link from "next/link";
 import PanelDashboardHeader from "@/components/platform/panel/PanelDashboardHeader";
 import { redirect } from "next/navigation";
@@ -18,6 +19,8 @@ import { formatDateTime } from "@/lib/utils";
 export default async function DlmsDashboardPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/cybervault/login");
+  const locked = lockedUnless(viewer, "dashboard.view", "Dashboard");
+  if (locked) return locked;
   const sp = await searchParams;
   const type = (RECORD_TYPES as readonly string[]).includes(sp.type ?? "") ? (sp.type as RecordType) : undefined;
   const filters: OverviewFilters = {
@@ -56,7 +59,7 @@ export default async function DlmsDashboardPage({ searchParams }: { searchParams
         </Notice>
       )}
 
-      {d.expiredCount > 0 && (
+      {can(viewer, "expiry.view") && d.expiredCount > 0 && (
         <Link href={withQ("/cybervault/expiry")} className="flex items-center gap-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm transition-colors hover:bg-rose-500/15">
           <TriangleAlert className="size-5 shrink-0 text-rose-600" />
           <span className="text-rose-900 dark:text-rose-200">
@@ -67,19 +70,19 @@ export default async function DlmsDashboardPage({ searchParams }: { searchParams
       )}
 
       <KpiGrid>
-        <KpiLink href="/cybervault/company" label="Company Records" value={t.company} accent icon={<Building2 className="size-4" />} />
-        <KpiLink href="/cybervault/clients" label="Client Records" value={t.client} icon={<Users className="size-4" />} />
-        <KpiLink href={withQ("/cybervault/credentials")} label="Credentials" value={t.credentials} icon={<KeyRound className="size-4" />} />
-        <KpiLink href={withQ("/cybervault/documents")} label="Documents" value={t.documents} icon={<FileText className="size-4" />} />
-        <KpiLink href={withQ("/cybervault/urls")} label="URLs / Accounts" value={t.links} icon={<Link2 className="size-4" />} />
-        <KpiLink href={withQ("/cybervault/expiry")} label="Expired / Expiring" value={`${d.expiredCount} / ${d.expiringCount}`} icon={<CalendarClock className="size-4" />} tone={d.expiredCount > 0 ? "down" : undefined} />
+        {can(viewer, "company.view") && <KpiLink href="/cybervault/company" label="Company Records" value={t.company} accent icon={<Building2 className="size-4" />} />}
+        {can(viewer, "clients.view") && <KpiLink href="/cybervault/clients" label="Client Records" value={t.client} icon={<Users className="size-4" />} />}
+        {can(viewer, "credentials.view") && <KpiLink href={withQ("/cybervault/credentials")} label="Credentials" value={t.credentials} icon={<KeyRound className="size-4" />} />}
+        {can(viewer, "documents.view") && <KpiLink href={withQ("/cybervault/documents")} label="Documents" value={t.documents} icon={<FileText className="size-4" />} />}
+        {can(viewer, "urls.view") && <KpiLink href={withQ("/cybervault/urls")} label="URLs / Accounts" value={t.links} icon={<Link2 className="size-4" />} />}
+        {can(viewer, "expiry.view") && <KpiLink href={withQ("/cybervault/expiry")} label="Expired / Expiring" value={`${d.expiredCount} / ${d.expiringCount}`} icon={<CalendarClock className="size-4" />} tone={d.expiredCount > 0 ? "down" : undefined} />}
       </KpiGrid>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <SectionCard title="Expiring credentials & documents" description={`Expired, or within ${settings.warnDays} days`} action={<Link href={withQ("/cybervault/expiry")} className="text-xs text-primary hover:underline">View all</Link>}>
+        {can(viewer, "expiry.view") && <SectionCard title="Expiring credentials & documents" description={`Expired, or within ${settings.warnDays} days`} action={<Link href={withQ("/cybervault/expiry")} className="text-xs text-primary hover:underline">View all</Link>}>
           <FeedList items={d.expiring} show="expiry" empty="Nothing is expired or expiring soon." />
-        </SectionCard>
-        <SectionCard title="Recent activity" description={d.activityIsOwn ? "Your own actions" : "Latest actions across the vault"} action={can(viewer, "VIEW_AUDIT") ? <Link href="/commandos/settings/audit-log?source=products&module=dlms" className="text-xs text-primary hover:underline">View log</Link> : undefined}>
+        </SectionCard>}
+        <SectionCard title="Recent activity" description={d.activityIsOwn ? "Your own actions" : "Latest actions across the vault"} action={can(viewer, "activity.view") ? <Link href="/commandos/settings/audit-log?source=products&module=dlms" className="text-xs text-primary hover:underline">View log</Link> : undefined}>
           {d.activity.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">No activity yet.</p>
           ) : (

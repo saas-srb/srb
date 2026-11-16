@@ -140,7 +140,7 @@ export function callerLabel(c: Pick<CallDoc, "phone" | "target">, maskNumbers: b
 
 /** Which company numbers answer with an agent, and the last inbound calls on each. Needs VOICE_CALL_MANAGE; empty otherwise. */
 export async function listInboundNumbers(viewer: AibotsViewer, perNumber = 5): Promise<InboundNumberView[]> {
-  if (!can(viewer, "VOICE_CALL_MANAGE")) return [];
+  if (!can(viewer, "calls.manage")) return [];
   const [numbers, settings] = await Promise.all([(await numbersCollection()).find({ supportsInbound: true, assignedAgentId: { $ne: null } }).sort({ createdAt: 1 }).limit(50).toArray(), getPublicCallSettings()]);
   if (!numbers.length) return [];
   const bots = new Map((await (await botsCollection()).find({ _id: { $in: numbers.map((n) => n.assignedAgentId!) } }).toArray()).map((b) => [b._id, b.voice?.displayName || b.name]));
@@ -176,7 +176,7 @@ export interface ExternalCallRow {
  * calls (VIEW_CHATS) see them. Newest first; numbers masked per the company's setting.
  */
 export async function listExternalCalls(viewer: AibotsViewer, o: { page?: number; pageSize?: number; agentId?: string; direction?: "inbound" | "web_public" } = {}): Promise<{ items: ExternalCallRow[]; total: number; page: number }> {
-  if (!can(viewer, "VIEW_CHATS")) return { items: [], total: 0, page: 1 };
+  if (!can(viewer, "chats.all")) return { items: [], total: 0, page: 1 };
   const page = Math.max(1, Math.floor(o.page ?? 1));
   const size = Math.min(Math.max(Math.floor(o.pageSize ?? 25), 1), 100);
   const filter: Record<string, unknown> = { direction: o.direction ?? { $in: ["inbound", "web_public"] } };

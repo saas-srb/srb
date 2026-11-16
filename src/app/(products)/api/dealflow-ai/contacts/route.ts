@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
+import { requireLms } from "@/lib/lms-auth";
 import { loadPipelineContactsFromDb } from "@/lib/dealflow-ai/db-contacts";
 import type { PipelineTab } from "@/lib/dealflow-ai/types";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  // P8-A: this route had no check at all, so anyone who reached the company's address could read its pipeline. It needs the view-leads feature.
+  if (!(await requireLms("VIEW_LEADS"))) return NextResponse.json({ error: "Not allowed" }, { status: 403 });
   try {
     const { searchParams } = new URL(request.url);
     const pipeline = (searchParams.get("pipeline") as PipelineTab) || undefined;

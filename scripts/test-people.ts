@@ -1,3 +1,4 @@
+import { microByKey } from "../src/lib/access/micro";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { ObjectId } from "mongodb";
@@ -62,7 +63,7 @@ const ui = buildAccessUi();
       const pre = ui.presets[p.key];
       for (const [mode, keys] of [["read", pre.read], ["write", pre.write]] as const) {
         const picked: AccessMap = { [p.key]: {} };
-        for (const k of keys) picked[p.key][k] = CATALOGUE.find((e) => e.key === k)!.level;
+        for (const k of keys) picked[p.key][k] = (CATALOGUE.find((e) => e.key === k) ?? microByKey(k))!.level;
         for (const k of mode === "read" ? pre.readCarried : []) picked[p.key][k] = "read";
         const c = checkAccess(picked);
         assert.deepEqual(c.widened, [], `${p.key} ${mode}: widened ${c.widened.join(",")}`);
@@ -79,7 +80,10 @@ const ui = buildAccessUi();
     assert.deepEqual(withheld, [], "nothing is withheld for a preset");
   });
   await T("AgentOS and EvalIQ 'Read only' start from the next level up, and say what that includes", () => {
-    for (const k of ["agentos", "evaliq"]) {
+    // AgentOS is finished on micro features: its Read only is truly read only (no chatting, no creating), so it no longer needs the next-level-up wording.
+    assert.equal(ui.presets["agentos"].readLabel, "Read only");
+    assert.deepEqual(ui.presets["agentos"].readExtras, []);
+    for (const k of ["evaliq"]) {
       assert.equal(ui.presets[k].readLabel, "Read only (view and reports)");
       assert.ok(ui.presets[k].readExtras.length > 0);
     }

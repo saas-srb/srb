@@ -1,3 +1,4 @@
+import { isFinished } from "../src/lib/access/micro";
 import assert from "node:assert/strict";
 import { discover } from "./gen-access-catalogue";
 import { CATALOGUE, FILE_ROLES, featuresOf, PRODUCTS, SELF_SERVICE } from "../src/lib/access/catalogue";
@@ -149,7 +150,7 @@ await t("self-service features are on for everyone and never stored", () => {
 
 console.log("two levels");
 await t("write implies read; read does not imply write; absence is no access", () => {
-  const w = CATALOGUE.find((e) => e.level === "write")!;
+  const w = CATALOGUE.find((e) => e.level === "write" && !isFinished(e.product))!; // finished products list micro features (their own tests)
   assert.ok(can({ access: { [w.product]: { [w.key]: "write" } } }, w.product, w.key, "read"));
   assert.ok(can({ access: { [w.product]: { [w.key]: "write" } } }, w.product, w.key, "write"));
   assert.equal(can({ access: { [w.product]: { [w.key]: "read" } } }, w.product, w.key, "write"), false);
@@ -165,7 +166,7 @@ await t("normalizeAccess drops unknown features, wrong products and bad levels; 
   assert.equal(n[r.product][r.key], "read");
 });
 await t("requireAccess throws AccessDeniedError and passes when allowed", () => {
-  const w = CATALOGUE.find((e) => e.level === "write")!;
+  const w = CATALOGUE.find((e) => e.level === "write" && !isFinished(e.product))!; // finished products list micro features (their own tests)
   assert.throws(() => requireAccess({ access: {} }, w.product, w.key, "read"), AccessDeniedError);
   requireAccess({ access: { [w.product]: { [w.key]: "write" } } }, w.product, w.key, "write");
 });
@@ -217,7 +218,7 @@ await t("150 random maps: never a silent difference; widened and withheld are al
 
 console.log("read model");
 await t("describeAccess gives per-product counts, effective levels and the locked state", () => {
-  const w = CATALOGUE.find((e) => e.level === "write")!;
+  const w = CATALOGUE.find((e) => e.level === "write" && !isFinished(e.product))!; // finished products list micro features (their own tests)
   const v = describeAccess({ [w.product]: { [w.key]: "write" } }, false);
   const pv = v.products.find((p) => p.product === w.product)!;
   assert.equal(pv.summary.write, 1);

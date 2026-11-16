@@ -1,5 +1,5 @@
 import "server-only";
-import { botsCollection, canUseBot, kindOf, normalizeBot, toSummary, usableAgentsFilter } from "@/lib/products/agentos/bots";
+import { botsCollection, canUseBot, kindOf, normalizeBot, toSummary, usableAgentsFilter, viewableAgentsFilter } from "@/lib/products/agentos/bots";
 import { avatarUrlFor } from "@/lib/products/agentos/avatar-shared";
 import { chatsCollection, type ChatDoc } from "@/lib/products/agentos/chats";
 import { GENERAL_BOT_ID } from "@/lib/products/agentos/constants";
@@ -28,9 +28,9 @@ async function lastUsedByAgent(viewer: AibotsViewer): Promise<Map<string, Date>>
 
 export async function listHubAgents(viewer: AibotsViewer): Promise<HubAgent[]> {
   const col = await botsCollection();
-  const filter = can(viewer, "EDIT_BOT") ? notDeleted : usableAgentsFilter(viewer);
+  const filter = can(viewer, "agents.edit") ? notDeleted : viewableAgentsFilter(viewer);
   const [rows, used] = await Promise.all([col.find(filter).sort({ name: 1 }).limit(500).toArray(), lastUsedByAgent(viewer)]);
-  const editor = can(viewer, "EDIT_BOT");
+  const editor = can(viewer, "agents.edit");
   return rows.map(normalizeBot).map((b) => ({
     ...toSummary(b),
     voiceName: b.voice?.voiceName ?? null,
@@ -65,7 +65,7 @@ export async function listRecentAgents(viewer: AibotsViewer, limit = 8): Promise
   const byId = new Map(bots.map((b) => [b._id, b]));
   const usable = recent
     .map((r) => byId.get(r._id))
-    .filter((b): b is NonNullable<typeof b> => Boolean(b) && canUseBot(viewer, b!) && (b!.status === "active" || can(viewer, "EDIT_BOT")));
+    .filter((b): b is NonNullable<typeof b> => Boolean(b) && canUseBot(viewer, b!) && (b!.status === "active" || can(viewer, "agents.edit")));
   return {
     total: usable.length,
     agents: usable.slice(0, limit).map((b) => ({ _id: b._id, name: b.name, icon: b.icon, color: b.color, avatarUrl: avatarUrlFor(b._id, b.avatarKey), kind: kindOf(b) })),

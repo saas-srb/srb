@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import FmsDataTable from "@/components/products/cashflow-ai/FmsDataTable";
@@ -9,6 +10,8 @@ import { allPages } from "@/lib/products/rankmax-ai/pages";
 export default async function ContentSeoPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "content.view", "Content SEO");
+  if (locked) return locked;
   const sp = await searchParams;
   const [analyses, pages] = await Promise.all([contentOverview(), allPages()]);
   const idByPath = new Map(pages.map((p) => [p.path, p._id]));

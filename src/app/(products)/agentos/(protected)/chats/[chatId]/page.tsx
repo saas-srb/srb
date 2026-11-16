@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/agentos/gate";
 import { notFound, redirect } from "next/navigation";
 import ChatWorkspace from "@/components/products/agentos/ChatWorkspace";
 import { PageHeader } from "@/components/products/agentos/AibotsUi";
@@ -14,9 +15,10 @@ export default async function OversightChatPage({ params }: { params: Promise<{ 
   if (!viewer) redirect("/agentos/login");
   const { chatId } = await params;
   // A link to a chat (calls placed from a chat point here): people without oversight rights land in their own workspace for it.
-  const own = can(viewer, "VIEW_CHATS") ? null : await getChat(viewer, chatId).catch(() => null);
+  const own = can(viewer, "chats.all") ? null : await getChat(viewer, chatId).catch(() => null);
   if (own && !own.voiceCall) redirect(`/agentos/b/${encodeURIComponent(own.botId)}/${encodeURIComponent(own._id)}`);
-  if (!can(viewer, "VIEW_CHATS")) redirect("/agentos");
+  const locked = lockedUnless(viewer, "chats.all", "All chats");
+  if (locked) return locked;
   const chat = await getChat(viewer, chatId, { allowOversight: true }).catch(() => null);
   if (!chat) notFound();
   // A voice call has no text transcript here: its recording and transcript live on the call page.

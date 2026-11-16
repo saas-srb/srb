@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import QRCode from "qrcode";
+import { getCurrentHubUser } from "@/lib/hub-auth";
 import { getVCardById, getVCard } from "@/lib/products/viralpulse-ai/vcard/store";
 import { renderVCardPdfToBuffer } from "@/lib/products/viralpulse-ai/vcard/VCardPdfDocument";
 import type { VCardDetail } from "@/lib/products/viralpulse-ai/vcard/types";
@@ -22,7 +23,9 @@ export async function GET(req: NextRequest, { params }: RouteProps) {
     doc = await getVCard(id).catch(() => null);
   }
 
-  if (!doc) {
+  // P8-A: the public card page shows only PUBLISHED cards; this download used to serve a draft to anyone who knew its id.
+  // Staff (anyone signed in to this company) may download their own draft from the studio.
+  if (!doc || (doc.status !== "published" && !(await getCurrentHubUser().catch(() => null)))) {
     return NextResponse.json({ error: "Visiting card not found." }, { status: 404 });
   }
 

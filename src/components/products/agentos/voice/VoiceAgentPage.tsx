@@ -12,7 +12,7 @@ import { ELEVENLABS_SETTINGS_HREF, NOT_CONFIGURED_MESSAGE } from "@/lib/products
 
 /** The talk surface of a voice agent (server part): works out whether a call can start, and loads the viewer's call history. */
 export default async function VoiceAgentPage({ viewer, bot }: { viewer: AibotsViewer; bot: BotDoc }) {
-  const editor = can(viewer, "EDIT_BOT");
+  const editor = can(viewer, "agents.edit");
   // Calls the browser never finished (tab closed mid-call) are completed and metered here before the history is read.
   await reconcileVoiceCalls(viewer, bot._id);
   const [configured, calls] = await Promise.all([isElevenLabsConfigured(), listVoiceCalls(viewer, bot._id)]);
@@ -20,7 +20,7 @@ export default async function VoiceAgentPage({ viewer, bot }: { viewer: AibotsVi
 
   let blocked: { message: string; settingsHref: string | null } | null = null;
   if (!configured) {
-    blocked = { message: NOT_CONFIGURED_MESSAGE, settingsHref: can(viewer, "MANAGE_SETTINGS") ? ELEVENLABS_SETTINGS_HREF : null };
+    blocked = { message: NOT_CONFIGURED_MESSAGE, settingsHref: can(viewer, "settings.manage") ? ELEVENLABS_SETTINGS_HREF : null };
   } else if (bot.status !== "active") {
     blocked = { message: "This agent is switched off.", settingsHref: editor ? `/agentos/bots/${bot._id}` : null };
   } else if (!voice?.elevenAgentId) {

@@ -112,7 +112,7 @@ export async function ownCall(viewer: AibotsViewer, chatId: string, opts: { over
   if (typeof chatId !== "string" || chatId.length > 64) throw new NotFoundError();
   const chat = await (await chatsCollection()).findOne({ _id: chatId, ...notDeleted });
   if (!chat?.voiceCall) throw new NotFoundError();
-  if (chat.userId !== viewer.userId && !(opts.oversight && can(viewer, "VIEW_CHATS"))) throw new NotFoundError();
+  if (chat.userId !== viewer.userId && !(opts.oversight && can(viewer, "chats.all"))) throw new NotFoundError();
   return chat;
 }
 

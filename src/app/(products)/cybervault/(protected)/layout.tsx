@@ -1,15 +1,13 @@
 import { twoStepGate } from "@/lib/security/two-step-gate";
 import { redirect } from "next/navigation";
-import { ShieldAlert } from "lucide-react";
 import { getCurrentDlmsUser } from "@/lib/dlms-auth";
 import { hasDlmsAccess } from "@/lib/dlms-roles";
-import { getViewer, can } from "@/lib/products/cybervault/viewer";
+import { getViewer, can, canType } from "@/lib/products/cybervault/viewer";
 import { listDlmsNotifications } from "@/lib/products/cybervault/notifications";
 import { countRecords } from "@/lib/products/cybervault/records";
 import DlmsSidebarShell from "@/components/products/cybervault/DlmsSidebarShell";
 import DlmsTopbar from "@/components/products/cybervault/DlmsTopbar";
 import type { DlmsNavFlags } from "@/components/products/cybervault/DlmsSidebar";
-import { EmptyState } from "@/components/products/cybervault/DlmsUi";
 import { SidebarCollapseProvider } from "@/components/products/dealflow-ai/SidebarCollapseContext";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -29,15 +27,22 @@ export default async function ProtectedDlmsLayout({ children }: { children: Reac
   const viewer = await getViewer();
   if (!viewer) redirect("/cybervault/login");
 
-  const canView = can(viewer, "VIEW");
+  const typesViewable = (["credential", "document", "link"] as const).filter((t) => canType(viewer, t, "view"));
   const [bell, expired] = await Promise.all([
     listDlmsNotifications(viewer.userId),
-    canView ? Promise.all((["credential", "document", "link"] as const).map((t) => countRecords(viewer, t, { expiry: "expired" }))).then((c) => c.reduce((a, b) => a + b, 0)) : Promise.resolve(0),
+    can(viewer, "expiry.view") && typesViewable.length > 0 ? Promise.all(typesViewable.map((t) => countRecords(viewer, t, { expiry: "expired" }))).then((c) => c.reduce((a, b) => a + b, 0)) : Promise.resolve(0),
   ]);
   const flags: DlmsNavFlags = {
-    company: viewer.companyAccess && canView,
-    audit: can(viewer, "VIEW_AUDIT"),
-    settings: can(viewer, "MANAGE_SETTINGS") || can(viewer, "MANAGE_ACCESS"),
+    dashboard: can(viewer, "dashboard.view"),
+    company: viewer.companyAccess && can(viewer, "company.view"),
+    clients: can(viewer, "clients.view"),
+    credentials: can(viewer, "credentials.view"),
+    documents: can(viewer, "documents.view"),
+    urls: can(viewer, "urls.view"),
+    notes: can(viewer, "notes.view"),
+    expiry: can(viewer, "expiry.view"),
+    audit: can(viewer, "activity.view"),
+    settings: can(viewer, "settings.alerts") || can(viewer, "settings.assign"),
     expired,
   };
 
@@ -64,13 +69,7 @@ export default async function ProtectedDlmsLayout({ children }: { children: Reac
             </div>
             <PanelBackBar />
             <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto rounded-2xl">
-              {canView ? (
-                children
-              ) : (
-                <EmptyState icon={<ShieldAlert className="size-5" />} title="You don't have permission to view the vault">
-                  Ask a Director to grant the “View” capability for Digi Locker.
-                </EmptyState>
-              )}
+              {children}
             </main>
           </div>
         </div>

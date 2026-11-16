@@ -1,5 +1,6 @@
 "use server";
 
+import { limitAction } from "@/lib/security/action-limit";
 import { revalidatePath } from "next/cache";
 import { requireWorkspaceAction } from "@/lib/products/commandos/access";
 import { HIDDEN_FROM_COMPANIES, providerByKey, canUseSrb } from "@/lib/platform/connections/catalog";
@@ -19,6 +20,7 @@ export async function saveConnectionAction(provider: string, values: Record<stri
   const key = known(provider);
   if (!key) return { ok: false, error: "Unknown connection." };
   const res = await saveConnection(key, values && typeof values === "object" ? values : {}, user.id);
+  if (res.ok) await auditConnection("connection.saved", key, user.id, { fields: Object.keys(values ?? {}).filter((k) => !!(values ?? {})[k]).length }); // never the values
   if (res.ok) revalidatePath("/commandos/settings/integrations");
   return res;
 }
@@ -31,7 +33,10 @@ function knownForTest(provider: unknown): string | null {
 }
 
 export async function testConnectionAction(provider: string): Promise<TestOutcome> {
-  await requireWorkspaceAction(NAV_KEY);
+  const who = await requireWorkspaceAction(NAV_KEY);
+  // A test calls an outside service: a person can run 20 in ten minutes.
+  const slow = await limitAction(who.id, "connection-test", 20, 600);
+  if (slow) return { ok: false, message: slow };
   const key = knownForTest(provider);
   if (!key) return { ok: false, message: "Unknown connection." };
   const out = await testConnection(key);
@@ -40,10 +45,11 @@ export async function testConnectionAction(provider: string): Promise<TestOutcom
 }
 
 export async function disconnectConnectionAction(provider: string): Promise<{ ok: boolean }> {
-  await requireWorkspaceAction(NAV_KEY);
+  const who = await requireWorkspaceAction(NAV_KEY);
   const key = known(provider);
   if (!key) return { ok: false };
   await disconnectConnection(key);
+  await auditConnection("connection.removed", key, who.id, {});
   revalidatePath("/commandos/settings/integrations");
   return { ok: true };
 }
@@ -57,6 +63,7 @@ export async function setConnectionModeAction(provider: string, mode: Connection
   if (mode === "srb" && !canUseSrb(key.key)) return { ok: false, error: "SelfRun does not provide this service. Connect your own account." };
   const r = await setConnectionMode(key.key, mode, user.id);
   if (!r.ok) return { ok: false, error: "Save your own keys first." };
+  await auditConnection("connection.mode_changed", key.key, user.id, { mode });
   revalidatePath("/commandos/settings/integrations");
   return { ok: true };
 }
@@ -64,5 +71,14 @@ export async function setConnectionModeAction(provider: string, mode: Connection
 /** Sends one test email, through the sending account in use, to the signed-in person only (the address is never taken from the page). */
 export async function sendTestEmailAction(): Promise<TestOutcome> {
   const user = await requireWorkspaceAction(NAV_KEY);
+  const slow = await limitAction(user.id, "test-email", 5, 600);
+  if (slow) return { ok: false, message: slow };
   return sendTestEmailToMe({ email: user.email });
+}
+
+/** Every change of a connection is recorded for the platform audit log with the company and the person, and never with a key or a secret. */
+async function auditConnection(action: string, provider: string, actorId: string, details: Record<string, string | number>): Promise<void> {
+  const { recordPlatformAudit } = await import("@/lib/platform/audit");
+  const { currentCompanyId } = await import("@/lib/platform/tenancy/context");
+  await recordPlatformAudit({ actorId, action, target: { type: "connection", id: provider }, companyId: await currentCompanyId(), details });
 }

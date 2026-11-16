@@ -46,10 +46,10 @@ export default async function HubDashboardPage() {
     support: "panel.support",
     website: "panel.website",
   }[key] ?? `product.${key}`);
-  // Every product is on the dashboard for everyone (the Director's layout); the ones the person has no access to are locked cards.
-  const matrixPanels = dashboardPanels.map((p) => p.key);
-  const openPanels = matrixPanels.filter((k) => allowed.has(productNavKey(k)));
-  const lockedPanels = matrixPanels.filter((k) => !allowed.has(productNavKey(k)));
+  // Same dashboard as the Director's, with only what the person may use: the products they have no access to are HIDDEN (owner rule 2026-11-17).
+  const matrixPanels = dashboardPanels.map((p) => p.key).filter((k) => allowed.has(productNavKey(k)));
+  const openPanels = matrixPanels;
+  const lockedPanels: string[] = [];
   const analyticsPanels = dashboardPanels.map((p) => p.key).filter((k) => allowed.has(`analytics.${k}`));
 
   const headline = Object.fromEntries(

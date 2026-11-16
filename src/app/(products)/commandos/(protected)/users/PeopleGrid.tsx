@@ -14,6 +14,7 @@ import { canSignIn, statusMeta, type StatusTone } from "@/lib/security/account-s
 import type { PersonRow } from "@/lib/products/commandos/people-list";
 import { resetAdminUserPasswordAction } from "./actions";
 import StatusDialog, { type StatusTarget } from "./StatusDialog";
+import BulkAccessDialog, { type BulkTarget } from "./BulkAccessDialog";
 import TempPasswordDialog from "./TempPasswordDialog";
 import PersonDrawer from "./PersonDrawer";
 
@@ -54,6 +55,7 @@ export default function PeopleGrid({
   const router = useRouter();
   const [detail, setDetail] = useState<PersonRow | null>(null);
   const [statusFor, setStatusFor] = useState<StatusTarget[] | null>(null);
+  const [bulkFor, setBulkFor] = useState<BulkTarget[] | null>(null);
   const [temp, setTemp] = useState<{ email: string; tempPassword: string } | null>(null);
   const toTarget = (r: PersonRow): StatusTarget => ({ id: r._id, email: r.email, name: r.name, status: r.status });
 
@@ -107,11 +109,13 @@ export default function PeopleGrid({
         renderBulkActions={(ctx: BulkActionsContext) => (
           <>
             <a href={`/api/commandos/users/export?ids=${encodeURIComponent(ctx.selectedIds.join(","))}`} className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-xs font-medium hover:bg-muted">Export</a>
+            <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setBulkFor(rows.filter((r) => ctx.selectedIds.includes(r._id)).map((r) => ({ id: r._id, name: r.name || r.email })))}><Users className="size-3.5" />Give access to selected</Button>
             {isDirector && <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setStatusFor(rows.filter((r) => ctx.selectedIds.includes(r._id) && r._id !== currentAdminId).map(toTarget))}><UserCog className="size-3.5" />Change status of selected</Button>}
           </>
         )}
       />
       <PersonDrawer person={detail} open={detail !== null} onOpenChange={(o) => !o && setDetail(null)} isDirector={isDirector} currentAdminId={currentAdminId} onChangeStatus={(p) => { setDetail(null); setStatusFor([toTarget(p)]); }} />
+      <BulkAccessDialog targets={bulkFor} people={rows.map((r) => ({ id: r._id, name: r.name || r.email, isDirector: r.roles.includes("super_admin") }))} onClose={() => setBulkFor(null)} onDone={() => router.refresh()} />
       <StatusDialog targets={statusFor} onClose={() => setStatusFor(null)} onDone={() => router.refresh()} />
       <TempPasswordDialog info={temp} onClose={() => setTemp(null)} />
     </>

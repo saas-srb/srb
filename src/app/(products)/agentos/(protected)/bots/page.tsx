@@ -8,6 +8,7 @@ import BotAvatar from "@/components/products/agentos/BotAvatar";
 import ActionButton from "@/components/products/agentos/ActionButton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import ProductLocked from "@/components/products/common/ProductLocked";
 import { getViewer, can } from "@/lib/products/agentos/viewer";
 import { listAllBots } from "@/lib/products/agentos/bots";
 import { countFilesByBot } from "@/lib/products/agentos/knowledge";
@@ -19,9 +20,9 @@ import { formatDate } from "@/lib/utils";
 export default async function ManageBotsPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/agentos/login");
-  const mayEdit = can(viewer, "EDIT_BOT");
-  const mayKb = can(viewer, "MANAGE_KB") || can(viewer, "UPLOAD_FILES") || can(viewer, "DELETE_FILES");
-  if (!mayEdit && !mayKb && !can(viewer, "DELETE_BOT")) redirect("/agentos");
+  const mayEdit = can(viewer, "agents.edit");
+  const mayKb = can(viewer, "knowledge.manage") || can(viewer, "knowledge.upload") || can(viewer, "knowledge.delete");
+  if (!mayEdit && !mayKb && !can(viewer, "agents.delete")) return <ProductLocked product="agentos" feature="Manage agents" />;
 
   const [bots, fileCounts, chatCounts] = await Promise.all([
     listAllBots(),
@@ -37,7 +38,7 @@ export default async function ManageBotsPage() {
         crumbs={[{ label: "Manage Bots" }]}
         description={`${bots.length} bot${bots.length === 1 ? "" : "s"} · ${bots.filter((b) => b.status === "active").length} active. Every bot runs on the same workspace — configuration only.`}
         actions={
-          can(viewer, "CREATE_BOT") && (
+          can(viewer, "agents.create") && (
             <Button nativeButton={false} render={<Link href="/agentos/bots/new" />}>
               <Plus className="size-4" /> Create Bot
             </Button>
@@ -112,7 +113,7 @@ export default async function ManageBotsPage() {
                         <Button size="icon-xs" variant="ghost" nativeButton={false} render={<Link href={`/agentos/bots/${b._id}${mayEdit ? "" : "?tab=knowledge"}`} />} aria-label={`Edit ${b.name}`}>
                           <Pencil className="size-3.5" />
                         </Button>
-                        {can(viewer, "DELETE_BOT") && (
+                        {can(viewer, "agents.delete") && (
                           <ActionButton
                             variant="ghost"
                             size="icon-xs"

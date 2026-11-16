@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,8 @@ import { formatDateTime } from "@/lib/utils";
 export default async function PagesPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "pages.view", "Pages");
+  if (locked) return locked;
   const sp = await searchParams;
   const list = await listPages({ ...sp, page: Math.max(Number(sp.page) || 1, 1), pageSize: 40 });
 
@@ -23,7 +26,7 @@ export default async function PagesPage({ searchParams }: { searchParams: Promis
         crumbs={[{ label: "Pages" }]}
         description="Every URL the audit found (or that you registered), with status, scores, content size, links and search performance."
         actions={
-          can(viewer, "CREATE") && (
+          can(viewer, "pages.create") && (
             <EditDialog
               trigger={<Button size="sm"><Plus className="size-3.5" data-icon="inline-start" />Add page</Button>}
               title="Add a page"
@@ -87,7 +90,7 @@ export default async function PagesPage({ searchParams }: { searchParams: Promis
         page={list.page}
         totalPages={list.totalPages}
         total={list.total}
-        exportBase={can(viewer, "EXPORT_REPORTS") ? "/api/rankmax-ai/export/pages" : undefined}
+        exportBase={can(viewer, "reports.export") ? "/api/rankmax-ai/export/pages" : undefined}
       />
     </div>
   );

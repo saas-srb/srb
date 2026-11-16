@@ -100,7 +100,7 @@ export async function getChat(viewer: AibotsViewer, chatId: string, opts: { allo
   const chat = await col.findOne({ _id: chatId, ...notDeleted });
   if (!chat) throw new NotFoundError();
   if (chat.userId === viewer.userId) return chat;
-  if (opts.allowOversight && can(viewer, "VIEW_CHATS")) return chat;
+  if (opts.allowOversight && can(viewer, "chats.all")) return chat;
   throw new NotFoundError();
 }
 
@@ -166,7 +166,7 @@ export async function renameChat(viewer: AibotsViewer, chatId: string, title: un
 export async function deleteChat(viewer: AibotsViewer, chatId: string): Promise<ChatDoc> {
   const col = await chatsCollection();
   const chat = await col.findOne({ _id: chatId, ...notDeleted });
-  if (!chat || (chat.userId !== viewer.userId && !can(viewer, "DELETE_CHATS"))) throw new NotFoundError();
+  if (!chat || (chat.userId !== viewer.userId && !can(viewer, "chats.delete"))) throw new NotFoundError();
   await col.updateOne({ _id: chat._id }, { $set: { deletedAt: new Date() } });
   if (chat.conversationId) await (await getOpenAI()).conversations.delete(chat.conversationId).catch(() => {});
   return chat;

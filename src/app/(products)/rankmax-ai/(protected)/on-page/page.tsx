@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +32,8 @@ function Len({ n, min, max }: { n: number; min: number; max: number }) {
 export default async function OnPagePage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "onpage.view", "On-Page SEO");
+  if (locked) return locked;
   const sp = await searchParams;
   const page = Math.max(Number(sp.page) || 1, 1);
   const [settings, list, issues] = await Promise.all([
@@ -39,7 +42,7 @@ export default async function OnPagePage({ searchParams }: { searchParams: Promi
     (await seoCollection<SeoIssue>(COLLECTIONS.issues)).find({ status: { $in: ["open", "in_progress"] }, category: "on_page" }, { projection: { checkId: 1 } }).toArray(),
   ]);
   const t = settings.thresholds;
-  const canEdit = can(viewer, "MANAGE_ON_PAGE_SEO");
+  const canEdit = can(viewer, "onpage.manage");
 
   return (
     <div className="space-y-4">
@@ -111,7 +114,7 @@ export default async function OnPagePage({ searchParams }: { searchParams: Promi
         page={list.page}
         totalPages={list.totalPages}
         total={list.total}
-        exportBase={can(viewer, "EXPORT_REPORTS") ? "/api/rankmax-ai/export/on_page" : undefined}
+        exportBase={can(viewer, "reports.export") ? "/api/rankmax-ai/export/on_page" : undefined}
       />
     </div>
   );

@@ -2,7 +2,7 @@
 
 import UnifiedProfileMenu from "@/components/platform/panel/UnifiedProfileMenu";
 import { pmsLogoutAction } from "@/app/(products)/sprintos/(protected)/actions";
-import { primaryPmsRoleLabel, type PmsRole } from "@/lib/pms-roles"
+import { type PmsRole } from "@/lib/pms-roles"
 
 export default function PmsProfileMenu({
   email,
@@ -17,13 +17,11 @@ export default function PmsProfileMenu({
   createdAt: string;
   lastLoginAt: string | null;
 }) {
-  const roleLabel = primaryPmsRoleLabel(roles);
 
 
   return (
     <UnifiedProfileMenu
       email={email}
-      roleLabel={roleLabel}
       roles={roles as string[]}
       createdAt={createdAt}
       lastLoginAt={lastLoginAt}

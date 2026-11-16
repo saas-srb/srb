@@ -9,6 +9,7 @@ import KnowledgeBase from "@/components/products/agentos/KnowledgeBase";
 import BotAvatar from "@/components/products/agentos/BotAvatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import ProductLocked from "@/components/products/common/ProductLocked";
 import { getViewer, can } from "@/lib/products/agentos/viewer";
 import { getBot } from "@/lib/products/agentos/bots";
 import { listBotFiles, refreshProcessing, toView } from "@/lib/products/agentos/knowledge";
@@ -18,9 +19,9 @@ import { isOpenAIConfigured } from "@/lib/openai";
 export default async function EditBotPage({ params, searchParams }: { params: Promise<{ botId: string }>; searchParams: Promise<{ tab?: string }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/agentos/login");
-  const mayEdit = can(viewer, "EDIT_BOT");
-  const mayKb = can(viewer, "MANAGE_KB") || can(viewer, "UPLOAD_FILES") || can(viewer, "DELETE_FILES");
-  if (!mayEdit && !mayKb) redirect("/agentos");
+  const mayEdit = can(viewer, "agents.edit");
+  const mayKb = can(viewer, "knowledge.manage") || can(viewer, "knowledge.upload") || can(viewer, "knowledge.delete");
+  if (!mayEdit && !mayKb) return <ProductLocked product="agentos" feature="Manage agents" />;
   const [{ botId }, sp] = await Promise.all([params, searchParams]);
   const bot = await getBot(botId);
   if (!bot) notFound();
@@ -63,7 +64,7 @@ export default async function EditBotPage({ params, searchParams }: { params: Pr
           assignedFiles={files.filter((f) => f.enabled && (f.status === "ready" || f.status === "processing")).length}
         />
       ) : (
-        <KnowledgeBase botId={bot._id} files={files.map(toView)} openAIReady={openAIReady} can={{ upload: can(viewer, "UPLOAD_FILES"), manage: can(viewer, "MANAGE_KB"), del: can(viewer, "DELETE_FILES") }} />
+        <KnowledgeBase botId={bot._id} files={files.map(toView)} openAIReady={openAIReady} can={{ upload: can(viewer, "knowledge.upload"), manage: can(viewer, "knowledge.manage"), del: can(viewer, "knowledge.delete") }} />
       )}
     </div>
   );

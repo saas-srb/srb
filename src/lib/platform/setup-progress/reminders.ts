@@ -53,7 +53,7 @@ export async function runSetupReminders(now: Date = new Date()): Promise<{ perce
       paragraphs: [`${progress.summary.done} of ${progress.summary.applicable} steps are done${progress.summary.minutesLeft > 0 ? `, about ${progress.summary.minutesLeft} minutes left` : ""}.`, ...(progress.next.length ? ["Next steps:", ...progress.next.map((n) => `- ${n.title}: ${n.description}`)] : [])],
       action: { label: "Open Setup progress", url: `${base}/commandos/setup` }, footnote: "You get this once a week until setup is complete. You can turn it off in Notification center.",
     });
-    for (const u of owned) { const r = await sendEmail({ to: u.email, subject: `${brand}: your setup is ${percent}% done`, html, text, event: "setup_digest" }).catch(() => null); if (r && r.ok) digest++; }
+    for (const u of owned) { const r = await sendEmail({ to: u.email, subject: `${brand}: your setup is ${percent}% done`, html, text, event: "setup_digest" }).catch(() => null); if (r && r.ok && r.id !== null) digest++; }
   }
   return { percent, inApp, digest };
 }

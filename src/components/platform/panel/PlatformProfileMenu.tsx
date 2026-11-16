@@ -8,6 +8,7 @@ export default function PlatformProfileMenu({ email, createdAt, lastLoginAt }: {
   return (
     <UnifiedProfileMenu
       email={email}
+      fixedTitle
       roleLabel="Platform admin"
       roles={["Platform admin"]}
       createdAt={createdAt}

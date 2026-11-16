@@ -150,9 +150,9 @@ async function mirroredChatIds(): Promise<string[]> {
 
 /** What the viewer sees on the Calls page, newest first (soonest first on Upcoming). */
 export async function listMergedCalls(viewer: AibotsViewer, filters: MergedFilters): Promise<MergedCallList> {
-  const manages = can(viewer, "VOICE_CALL_MANAGE");
-  const canCall = can(viewer, "VOICE_CALL");
-  const oversight = manages || can(viewer, "VIEW_CHATS");
+  const manages = can(viewer, "calls.manage");
+  const canCall = can(viewer, "calls.place");
+  const oversight = manages || can(viewer, "chats.all");
   const scopeUser = oversight && filters.scope === "all" ? null : viewer.userId;
   const page = Math.min(Math.max(1, filters.page), MAX_PAGE);
   const window = page * MERGED_PAGE_SIZE;

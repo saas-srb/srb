@@ -53,7 +53,7 @@ export async function reconcileMyPendingCalls(viewer: AibotsViewer, deps: CallDe
 }
 
 export async function listCalls(viewer: AibotsViewer, filters: CallFilters): Promise<CallList> {
-  const oversight = can(viewer, "VIEW_CHATS");
+  const oversight = can(viewer, "chats.all");
   const scopeUser = oversight && filters.scope === "all" ? null : viewer.userId;
   const col = await chatsCollection();
   const query = buildCallQuery(filters, scopeUser);

@@ -19,7 +19,7 @@ export async function rescheduleCall(
   input: { scheduleAt: Date | string; overrideReason?: string },
   deps: EngineDeps = {},
 ): Promise<{ ok: true; scheduledFor: string } | { ok: false; failure: CallFailure }> {
-  if (!can(viewer, "VOICE_CALL")) throw new ForbiddenError("VOICE_CALL");
+  if (!can(viewer, "calls.place")) throw new ForbiddenError("calls.place");
   const c = await loadCallForViewer(viewer, callId);
   if (c.status !== "scheduled" || !c.phone) return { ok: false, failure: { code: "not_live", message: "Only a call that is still scheduled can be moved." } };
   const now = (deps.now ?? (() => new Date()))();
@@ -29,7 +29,7 @@ export async function rescheduleCall(
   if (at.getTime() - now.getTime() > MAX_AHEAD_MS) throw new AibotsInputError("Calls can be scheduled up to 90 days ahead.");
   const reason = typeof input.overrideReason === "string" ? input.overrideReason.trim().slice(0, 300) : "";
   if (reason && reason.length < 10) throw new AibotsInputError("Explain why this call must happen outside the calling hours (at least 10 characters).");
-  const isManager = can(viewer, "VOICE_CALL_MANAGE");
+  const isManager = can(viewer, "calls.manage");
   const check = await checkCallAllowed({
     viewer, agentId: c.agentId, purpose: c.purpose, rawPhone: c.phone, target: c.target, at, now, excludeCallId: c._id,
     initiatorId: c.initiatedBy?.userId ?? viewer.userId, windowOverride: isManager && reason.length >= 10, overrideRefused: Boolean(reason) && !isManager,

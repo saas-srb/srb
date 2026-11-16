@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/agentos/gate";
 import PanelFilterBar from "@/components/platform/panel/PanelFilterBar";
 import Link from "next/link";
 import PanelDashboardHeader from "@/components/platform/panel/PanelDashboardHeader";
@@ -21,6 +22,8 @@ export default async function AibotsDashboardPage({ searchParams }: { searchPara
   const sp = await searchParams;
   const viewer = await getViewer();
   if (!viewer) redirect("/agentos/login");
+  const locked = lockedUnless(viewer, "dashboard.view", "Dashboard");
+  if (locked) return locked;
   const d = await getDashboard(viewer, { from: sp.from, to: sp.to });
   const mine = d.scope === "mine";
   const tokens = d.inputTokens30 + d.outputTokens30;

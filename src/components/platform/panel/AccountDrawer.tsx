@@ -125,10 +125,6 @@ function ProfileView(p: AccountDrawerProps) {
           </div>
         </div>
         <dl className="space-y-2 text-xs">
-          <div className="flex justify-between gap-3 border-b border-border/40 pb-2">
-            <dt className="text-muted-foreground">Assigned roles</dt>
-            <dd className="text-right font-semibold text-foreground">{p.roles.join(", ") || "—"}</dd>
-          </div>
           {p.createdAt && (
             <div className="flex justify-between gap-3 border-b border-border/40 pb-2">
               <dt className="text-muted-foreground">Member since</dt>

@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,8 @@ import { formatDateTime } from "@/lib/utils";
 export default async function IssuesPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "issues.view", "SEO Issues");
+  if (locked) return locked;
   const sp = await searchParams;
   const status = sp.status ?? "active";
   const [list, stats, users] = await Promise.all([listIssues({ ...sp, status, page: Math.max(Number(sp.page) || 1, 1), pageSize: 40 }), issueStats(), listSeoUsers()]);
@@ -28,7 +31,7 @@ export default async function IssuesPage({ searchParams }: { searchParams: Promi
         crumbs={[{ label: "SEO Issues" }]}
         description={<>{stats.active} open · {stats.bySeverity.critical} critical · {stats.byStatus.resolved} resolved · {stats.byStatus.ignored} ignored. Audit issues auto-resolve when a later audit verifies the fix, and re-open if the problem returns.{sp.checkId && isCheckId(sp.checkId) && <> Showing “{CHECKS[sp.checkId].title}”.</>}{sp.path && <> Showing {sp.path}.</>}</>}
         actions={
-          can(viewer, "CREATE") && (
+          can(viewer, "issues.create") && (
             <EditDialog
               trigger={<Button size="sm"><Plus className="size-3.5" data-icon="inline-start" />Log issue</Button>}
               title="Log an SEO issue"
@@ -90,10 +93,10 @@ export default async function IssuesPage({ searchParams }: { searchParams: Promi
         page={list.page}
         totalPages={list.totalPages}
         total={list.total}
-        exportBase={can(viewer, "EXPORT_REPORTS") ? "/api/rankmax-ai/export/issues" : undefined}
+        exportBase={can(viewer, "reports.export") ? "/api/rankmax-ai/export/issues" : undefined}
         emptyLabel="No issues match — nice."
       />
-      {can(viewer, "EDIT") && <BulkIssueBar ids={list.items.map((i) => i._id)} />}
+      {can(viewer, "issues.edit") && <BulkIssueBar ids={list.items.map((i) => i._id)} />}
     </div>
   );
 }

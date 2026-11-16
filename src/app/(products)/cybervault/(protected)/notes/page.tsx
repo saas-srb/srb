@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/cybervault/gate";
 import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,8 @@ import { SCOPE_OPTIONS, STATUS_OPTIONS, queryFrom, visibleClientOptions, type Se
 export default async function NotesPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/cybervault/login");
+  const locked = lockedUnless(viewer, "notes.view", "Notes");
+  if (locked) return locked;
   const sp = await searchParams;
   const [rows, ui, clients] = await Promise.all([listNotes(viewer, queryFrom(sp)), buildVaultUi(viewer), visibleClientOptions(viewer)]);
   const fields: FilterField[] = [
@@ -23,7 +26,7 @@ export default async function NotesPage({ searchParams }: { searchParams: Promis
     { key: "category", label: "Type", type: "select", options: NOTE_TYPES, allLabel: "All types" },
     { key: "status", label: "Status", type: "select", options: STATUS_OPTIONS, allLabel: "Active" },
   ];
-  const canAdd = ui.create && (ui.writeCompany || ui.clients.length > 0);
+  const canAdd = ui.types.note.create && (ui.writeCompany || ui.clients.length > 0);
   return (
     <div className="space-y-4">
       <PageHeader

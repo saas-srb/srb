@@ -120,29 +120,29 @@ export default function AibotsSidebar({ flags, bots: serverBots, onNavigate, col
     <nav className="flex h-full flex-col gap-1 p-3" aria-label="AgentOS">
       {groups.top.items.map(renderItem)}
 
-      <SectionLabel collapsed={collapsed}>{groups.agents.label}</SectionLabel>
+      {groups.agents.items.length > 0 && <SectionLabel collapsed={collapsed}>{groups.agents.label}</SectionLabel>}
       {groups.agents.items.map(renderItem)}
 
-      <SectionLabel collapsed={collapsed}>Your recent agents</SectionLabel>
-      {renderItem(groups.recentLead)}
-      {!collapsed && bots.length > 8 && (
+      {flags.use && <SectionLabel collapsed={collapsed}>Your recent agents</SectionLabel>}
+      {flags.use && renderItem(groups.recentLead)}
+      {flags.use && !collapsed && bots.length > 8 && (
         <label className="mb-1 flex items-center gap-2 rounded-lg border border-border/50 bg-background/60 px-2.5 py-1.5 text-xs text-muted-foreground focus-within:border-primary/40">
           <Search className="size-3.5 shrink-0" />
           <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Find an agent" aria-label="Find an agent" className="w-full bg-transparent text-foreground outline-none placeholder:text-muted-foreground" />
         </label>
       )}
-      {shown.slice(0, filter ? 50 : 8).map((b) => (
+      {flags.use && shown.slice(0, filter ? 50 : 8).map((b) => (
         <NavLink key={b._id} {...common} href={`/agentos/b/${b._id}`} label={b.name} icon={<BotAvatar icon={b.icon} color={b.color} imageUrl={b.avatarUrl} size="sm" />} />
       ))}
-      {!collapsed && bots.length > 0 && (
+      {flags.use && !collapsed && bots.length > 0 && (
         <Link href="/agentos/hub" onClick={onNavigate} className="px-3 py-1.5 text-xs font-medium text-primary hover:underline">
           See all in Agent Hub
         </Link>
       )}
-      {bots.length === 0 && !collapsed && <p className="px-3 py-2 text-xs text-muted-foreground">Other agents you chat or talk with show up here. Browse them in the Agent Hub.</p>}
+      {flags.use && bots.length === 0 && !collapsed && <p className="px-3 py-2 text-xs text-muted-foreground">Other agents you chat or talk with show up here. Browse them in the Agent Hub.</p>}
       {filter && shown.length === 0 && !collapsed && <p className="px-3 py-2 text-xs text-muted-foreground">No agent matches “{filter}”.</p>}
 
-      <SectionLabel collapsed={collapsed}>{groups.manage.label}</SectionLabel>
+      {groups.manage.items.length > 0 && <SectionLabel collapsed={collapsed}>{groups.manage.label}</SectionLabel>}
       {groups.manage.items.map(renderItem)}
     </nav>
   );

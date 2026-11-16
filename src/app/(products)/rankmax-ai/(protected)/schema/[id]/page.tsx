@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import { notFound, redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/products/rankmax-ai/SeoUi";
@@ -13,9 +14,11 @@ import { formatDateTime } from "@/lib/utils";
 export default async function SchemaEditPage({ params }: { params: Promise<{ id: string }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "schema.view", "Schema / Structured Data");
+  if (locked) return locked;
   const { id } = await params;
   const isNew = id === "new";
-  if (isNew && !can(viewer, "MANAGE_SCHEMA")) redirect("/rankmax-ai/schema");
+  if (isNew && !can(viewer, "schema.manage")) redirect("/rankmax-ai/schema");
   const schema = isNew ? null : await (await schemasCol()).findOne({ _id: id });
   if (!isNew && !schema) notFound();
   const [pages, siteUrl, brand] = await Promise.all([allPages(), companySiteUrl(), getCompanyBrand()]);
@@ -40,7 +43,7 @@ export default async function SchemaEditPage({ params }: { params: Promise<{ id:
       <SchemaEditor
         id={schema?._id ?? null}
         status={schema?.status ?? "draft"}
-        canEdit={can(viewer, "MANAGE_SCHEMA")}
+        canEdit={can(viewer, "schema.manage")}
         org={org}
         pathOptions={pages.filter((p) => p.crawl?.indexable).map((p) => p.path)}
         initial={{ name: schema?.name ?? "", type: schema?.type ?? "WebPage", path: schema?.path ?? "", source: schema?.source ?? "" }}

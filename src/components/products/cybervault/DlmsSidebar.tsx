@@ -1,6 +1,6 @@
 "use client";
 
-import LockedNavItem from "@/components/products/common/LockedNavItem";
+import NavGroup from "@/components/products/common/NavGroup";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -10,8 +10,15 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 
 /** Which optional sections this viewer may see — computed on the server from the real permission model. */
 export interface DlmsNavFlags {
-  /** Company vault visible (manager tier, or an employee granted company access). */
+  dashboard: boolean;
+  /** Company vault visible (the person holds the feature and has access to it). */
   company: boolean;
+  clients: boolean;
+  credentials: boolean;
+  documents: boolean;
+  urls: boolean;
+  notes: boolean;
+  expiry: boolean;
   audit: boolean;
   settings: boolean;
   /** Expired items in the viewer's scope (badge). */
@@ -74,32 +81,31 @@ function NavLink({
   );
 }
 
-function SectionLabel({ children, collapsed }: { children: React.ReactNode; collapsed?: boolean }) {
-  if (collapsed) return <div className="mt-4 mb-1 border-t border-border/50" />;
-  return <div className="mt-4 mb-1 px-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{children}</div>;
-}
-
 export default function DlmsSidebar({ flags, onNavigate, collapsed = false }: { flags: DlmsNavFlags; onNavigate?: () => void; collapsed?: boolean }) {
   const nav = (props: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean; badge?: string | number ; locked?: boolean }) => (
-    (props.locked ? <LockedNavItem label={props.label} icon={props.icon} collapsed={collapsed} product="cybervault" onNavigate={onNavigate} /> : <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />)
+    (props.locked ? null : <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />)
   );
 
   return (
     <nav className="flex h-full flex-col gap-1 p-3">
-      {nav({ href: "/cybervault", label: "Dashboard", icon: LayoutDashboard, exact: true })}
+      {nav({ href: "/cybervault", label: "Dashboard", icon: LayoutDashboard, exact: true, locked: !flags.dashboard })}
 
-      <SectionLabel collapsed={collapsed}>Owners</SectionLabel>
-      {nav({ href: "/cybervault/company", label: "Company Vault", icon: Building2 , locked: !(flags.company) })}
-      {nav({ href: "/cybervault/clients", label: "Clients Vault", icon: Users })}
+      <NavGroup collapsed={collapsed} label="Owners">
+        {nav({ href: "/cybervault/company", label: "Company Vault", icon: Building2 , locked: !(flags.company) })}
+        {nav({ href: "/cybervault/clients", label: "Clients Vault", icon: Users, locked: !flags.clients })}
 
-      <SectionLabel collapsed={collapsed}>Vault</SectionLabel>
-      {nav({ href: "/cybervault/credentials", label: "Credential Vault", icon: KeyRound })}
-      {nav({ href: "/cybervault/documents", label: "Document Vault", icon: Files })}
-      {nav({ href: "/cybervault/urls", label: "URLs & Accounts", icon: Link2 })}
-      {nav({ href: "/cybervault/notes", label: "Notes", icon: StickyNote })}
+      </NavGroup>
+      <NavGroup collapsed={collapsed} label="Vault">
+        {nav({ href: "/cybervault/credentials", label: "Credential Vault", icon: KeyRound, locked: !flags.credentials })}
+        {nav({ href: "/cybervault/documents", label: "Document Vault", icon: Files, locked: !flags.documents })}
+        {nav({ href: "/cybervault/urls", label: "URLs & Accounts", icon: Link2, locked: !flags.urls })}
+        {nav({ href: "/cybervault/notes", label: "Notes", icon: StickyNote, locked: !flags.notes })}
 
-      <SectionLabel collapsed={collapsed}>Governance</SectionLabel>
-      {nav({ href: "/cybervault/expiry", label: "Expiry & Alerts", icon: CalendarClock, badge: flags.expired })}
+      </NavGroup>
+      <NavGroup collapsed={collapsed} label="Governance">
+        {nav({ href: "/cybervault/expiry", label: "Expiry & Alerts", icon: CalendarClock, badge: flags.expired, locked: !flags.expiry })}
+    
+      </NavGroup>
     </nav>
   );
 }

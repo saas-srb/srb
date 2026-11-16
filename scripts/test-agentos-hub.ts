@@ -1,3 +1,4 @@
+import { legacyToAccess } from "../src/lib/access/adapter";
 import assert from "node:assert/strict";
 import { getPlatformDb } from "../src/lib/platform/tenancy/platform-db";
 import { runAsCompany } from "../src/lib/platform/tenancy/context";
@@ -15,7 +16,7 @@ const t = async (name: string, fn: () => Promise<void>) => { await fn(); console
 
 const viewer = (userId: string, roles: string[]): AibotsViewer => {
   const ctx = { roles, permissionOverrides: undefined } as AibotsViewer["ctx"];
-  return { userId, email: `${userId}@x.test`, roles, ctx, seesAll: false };
+  return { userId, email: `${userId}@x.test`, roles, ctx, subject: legacyToAccess({ roles, permissionOverrides: null }), seesAll: false };
 };
 const editor = viewer("ed", ["aibots_manager"]);
 const alice = viewer("alice", ["aibots_user"]);

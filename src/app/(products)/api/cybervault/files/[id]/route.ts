@@ -17,7 +17,7 @@ type Context = { params: Promise<{ id: string }> };
 async function handleGET(req: NextRequest, { params }: Context) {
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!can(viewer, "DOWNLOAD")) return NextResponse.json({ error: "You don't have permission to open documents." }, { status: 403 });
+  if (!can(viewer, "documents.download")) return NextResponse.json({ error: "You don't have permission to open documents." }, { status: 403 });
 
   const { id } = await params;
   const doc = await getDocumentDoc(viewer, id);

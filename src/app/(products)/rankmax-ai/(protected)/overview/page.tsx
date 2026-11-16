@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -19,6 +20,8 @@ const SEV_COLOR = { critical: "#ef4444", high: "#f97316", medium: "#f59e0b", low
 export default async function OverviewPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "overview.view", "SEO Overview");
+  if (locked) return locked;
   const [d, priorities, keywords] = await Promise.all([getDashboard(viewer.userId), listIssues({ status: "active", pageSize: 12 }), allActiveKeywords()]);
   const env = await integrationEnv();
   const striking = keywords.filter((k) => k.currentPosition !== null && k.currentPosition > 3 && k.currentPosition <= 20).sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0)).slice(0, 10);

@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/cybervault/gate";
 import { notFound, redirect } from "next/navigation";
 import OwnerVault, { type OwnerInfo } from "@/components/products/cybervault/OwnerVault";
 import { getViewer, canReadScope } from "@/lib/products/cybervault/viewer";
@@ -10,6 +11,8 @@ export default async function ClientVaultPage({ params, searchParams }: { params
   if (!viewer) redirect("/cybervault/login");
   const { id } = await params;
   const sp = await searchParams;
+  const locked = lockedUnless(viewer, "clients.view", "Clients Vault");
+  if (locked) return locked;
   // Same 404 whether the client doesn't exist or the viewer isn't assigned to it.
   if (!canReadScope(viewer, "client", id)) notFound();
   const c = await getClient(id);

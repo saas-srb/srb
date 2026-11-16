@@ -1,6 +1,6 @@
 "use client";
 
-import LockedNavItem from "@/components/products/common/LockedNavItem";
+import NavGroup from "@/components/products/common/NavGroup";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -100,38 +100,38 @@ function NavLink({
   );
 }
 
-function SectionLabel({ children, collapsed }: { children: React.ReactNode; collapsed?: boolean }) {
-  if (collapsed) return <div className="mt-4 mb-1 border-t border-border/50" />;
-  return <div className="mt-4 mb-1 px-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{children}</div>;
-}
-
 export default function OtsSidebar({ flags, onNavigate, collapsed = false }: { flags: OtsNavFlags; onNavigate?: () => void; collapsed?: boolean }) {
   const nav = (props: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean; badge?: string | number ; locked?: boolean }) => (
-    (props.locked ? <LockedNavItem label={props.label} icon={props.icon} collapsed={collapsed} product="evaliq" onNavigate={onNavigate} /> : <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />)
+    (props.locked ? null : <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />)
   );
 
   return (
     <nav className="flex h-full flex-col gap-1 p-3">
       {nav({ href: "/evaliq", label: "Dashboard", icon: LayoutDashboard, exact: true , locked: !(flags.dashboard) })}
 
-      <SectionLabel collapsed={collapsed}>Assessments</SectionLabel>
-      {nav({ href: "/evaliq/tests", label: "Tests", icon: FileCheck2 , locked: !(flags.tests) })}
-      {nav({ href: "/evaliq/questions", label: "Question Bank", icon: Library , locked: !(flags.questions) })}
-      {nav({ href: "/evaliq/assignments", label: "Test Assignments", icon: Send , locked: !(flags.assignments) })}
-      {nav({ href: "/evaliq/results", label: "Results", icon: ListChecks, badge: flags.toEvaluate , locked: !(flags.results) })}
+      <NavGroup collapsed={collapsed} label="Assessments">
+        {nav({ href: "/evaliq/tests", label: "Tests", icon: FileCheck2 , locked: !(flags.tests) })}
+        {nav({ href: "/evaliq/questions", label: "Question Bank", icon: Library , locked: !(flags.questions) })}
+        {nav({ href: "/evaliq/assignments", label: "Test Assignments", icon: Send , locked: !(flags.assignments) })}
+        {nav({ href: "/evaliq/results", label: "Results", icon: ListChecks, badge: flags.toEvaluate , locked: !(flags.results) })}
 
-      <SectionLabel collapsed={collapsed}>My Tests</SectionLabel>
-      {nav({ href: "/evaliq/my-tests", label: "My Tests", icon: ClipboardList, badge: flags.myOpen , locked: !(flags.takeTests) })}
-      {nav({ href: "/evaliq/my-results", label: "My Results", icon: Trophy , locked: !(flags.myResults) })}
-      {nav({ href: "/evaliq/certificates", label: "Certificates", icon: Award , locked: !(flags.certificates) })}
+      </NavGroup>
+      <NavGroup collapsed={collapsed} label="My Tests">
+        {nav({ href: "/evaliq/my-tests", label: "My Tests", icon: ClipboardList, badge: flags.myOpen , locked: !(flags.takeTests) })}
+        {nav({ href: "/evaliq/my-results", label: "My Results", icon: Trophy , locked: !(flags.myResults) })}
+        {nav({ href: "/evaliq/certificates", label: "Certificates", icon: Award , locked: !(flags.certificates) })}
 
-      <SectionLabel collapsed={collapsed}>Insights</SectionLabel>
-      {nav({ href: "/evaliq/reports", label: "Test Reports", icon: BarChart3 , locked: !(flags.reports) })}
-      {nav({ href: "/evaliq/analytics", label: "Analytics", icon: PieChart , locked: !(flags.analytics) })}
+      </NavGroup>
+      <NavGroup collapsed={collapsed} label="Insights">
+        {nav({ href: "/evaliq/reports", label: "Test Reports", icon: BarChart3 , locked: !(flags.reports) })}
+        {nav({ href: "/evaliq/analytics", label: "Analytics", icon: PieChart , locked: !(flags.analytics) })}
 
-      <SectionLabel collapsed={collapsed}>Setup</SectionLabel>
-      {nav({ href: "/evaliq/categories/questions", label: "Question Categories", icon: FolderTree , locked: !(flags.categories) })}
-      {nav({ href: "/evaliq/categories/tests", label: "Test Categories", icon: Tags , locked: !(flags.categories) })}
+      </NavGroup>
+      <NavGroup collapsed={collapsed} label="Setup">
+        {nav({ href: "/evaliq/categories/questions", label: "Question Categories", icon: FolderTree , locked: !(flags.categories) })}
+        {nav({ href: "/evaliq/categories/tests", label: "Test Categories", icon: Tags , locked: !(flags.categories) })}
+    
+      </NavGroup>
     </nav>
   );
 }

@@ -27,12 +27,13 @@ const fmtSize = (n: number) => (n < 1024 ? `${n} B` : n < 1024 * 1024 ? `${Math.
 /** Archive/restore + delete for any record type. Edit is passed in (it is a type-specific dialog). */
 function RowActions({ type, row, ui, edit, extra }: { type: RecordType; row: RowBase; ui: VaultUi; edit?: ReactNode; extra?: ReactNode }) {
   const writable = canWriteRow(ui, row.scope, row.clientId);
+  const may = ui.types[type];
   const noun = { credential: "credential", document: "document", link: "URL / account", note: "note" }[type];
   return (
     <div className="flex items-center justify-end gap-1">
       {extra}
-      {writable && ui.edit && edit}
-      {writable && ui.edit && (
+      {writable && may.edit && edit}
+      {writable && may.edit && (
         <ActionButton
           variant="ghost"
           size="icon-xs"
@@ -43,7 +44,7 @@ function RowActions({ type, row, ui, edit, extra }: { type: RecordType; row: Row
           {row.status === "archived" ? <ArchiveRestore className="size-3.5" /> : <Archive className="size-3.5" />}
         </ActionButton>
       )}
-      {writable && ui.del && (
+      {writable && may.del && (
         <ActionButton
           variant="ghost"
           size="icon-xs"
@@ -336,7 +337,7 @@ export function DocumentsTable({ rows, ui, locked }: CommonProps & { rows: Docum
                     <RowActions
                       type="document"
                       row={r}
-                      ui={{ ...ui, edit: ui.edit && ui.manageDocs, del: ui.del }}
+                      ui={ui}
                       extra={
                         <>
                           {ui.download && previewable && (
@@ -349,7 +350,7 @@ export function DocumentsTable({ rows, ui, locked }: CommonProps & { rows: Docum
                               <Download className="size-3.5" />
                             </a>
                           )}
-                          {writable && ui.manageDocs && (
+                          {writable && ui.types.document.edit && (
                             <ReplaceDocumentDialog doc={r} trigger={<Button type="button" variant="ghost" size="icon-xs" aria-label="Upload a new version"><Upload className="size-3.5" /></Button>} />
                           )}
                         </>

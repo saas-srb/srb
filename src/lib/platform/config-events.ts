@@ -33,11 +33,10 @@ async function versions() {
 /** Records that `scope` changed for the current company and tells every listener. */
 export async function publishConfigChange(scope: string): Promise<number> {
   const companyId = await currentCompanyId();
+  const tell = (version: number) => { for (const l of [...listeners]) { try { l({ companyId, scope, version }); } catch { /* a faulty listener never blocks a save */ } } };
   const doc = await (await versions()).findOneAndUpdate({ _id: scope }, { $inc: { v: 1 }, $set: { at: new Date() } }, { upsert: true, returnDocument: "after" });
   const version = doc?.v ?? 1;
-  for (const l of [...listeners]) {
-    try { l({ companyId, scope, version }); } catch { /* a faulty listener never blocks a save */ }
-  }
+  tell(version);
   return version;
 }
 

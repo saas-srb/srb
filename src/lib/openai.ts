@@ -15,7 +15,15 @@ const globalForOpenAI = globalThis as unknown as { _openAIClients?: Map<string, 
 
 export const OPENAI_NOT_CONNECTED = "AI isn't available right now. Please contact support.";
 
+/** Tests install a fake provider here so nothing ever needs a real key (never honoured in production). */
+export function setOpenAIForTests(client: OpenAI | null): void {
+  if (process.env.NODE_ENV === "production") return;
+  (globalForOpenAI as { _testClient?: OpenAI | null })._testClient = client;
+}
+
 export async function getOpenAI(opts: { timeoutMs?: number; maxRetries?: number } = {}): Promise<OpenAI> {
+  const fake = process.env.NODE_ENV === "production" ? null : (globalForOpenAI as { _testClient?: OpenAI | null })._testClient;
+  if (fake) return fake;
   const resolved = await resolveConnection("openai");
   const creds = resolved?.values;
   if (!creds?.apiKey) throw new Error(OPENAI_NOT_CONNECTED);

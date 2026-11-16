@@ -1,7 +1,7 @@
 import "server-only";
 import * as A from "@/app/(products)/rankmax-ai/(protected)/actions";
 import { seoCan, type SeoPermission } from "@/lib/seo-roles";
-import { getViewer as seoViewer } from "@/lib/products/rankmax-ai/viewer";
+import { getViewer as seoViewer, can as viewerCan } from "@/lib/products/rankmax-ai/viewer";
 import { runCrawl, CrawlBusyError } from "@/lib/products/rankmax-ai/crawler";
 import { notifySeoUsers } from "@/lib/products/rankmax-ai/notifications";
 import { getDashboard } from "@/lib/products/rankmax-ai/analytics";
@@ -20,25 +20,28 @@ import type { ActionDef, AgentUser, EntityDef, FieldDef, Json, ReportDef } from 
 
 const ctx = (u: AgentUser) => ({ roles: u.roles, permissionOverrides: u.permissionOverrides });
 const can = (p: SeoPermission) => (u: AgentUser) => seoCan(ctx(u), p);
+/** The offer list above is only a hint: what the agent can read or run is decided here by the person's micro features, on the server. */
+const mayDo = async (key: string) => { const v = await seoViewer().catch(() => null); return Boolean(v && viewerCan(v, key)); };
+const featureScope = (key: string) => async (): Promise<Json | null> => ((await mayDo(key)) ? {} : { _id: "__none__" });
 const soft = { deletedAt: null };
 const TT = Object.keys(TASK_TYPES); const TS = Object.keys(TASK_STATUSES); const TP = Object.keys(TASK_PRIORITIES);
 const ro = (key: string, label: string, description: string, collection: string, extra: Partial<EntityDef> = {}): EntityDef => ({ key, panel: "seo", label, description, collection, idType: "string", read: "any", allowRead: can("VIEW"), ...extra });
 
 export const SEO_ENTITIES: EntityDef[] = [
-  ro("seo.page", "Page", "The page inventory: path, last audit result (status, indexability, response time), metadata override and focus keyword.", "seo_pages", { titleField: "path", search: ["path", "focusKeyword"] }),
-  ro("seo.issue", "SEO issue", "Problems found by audits or added by hand: title, severity, category, page, status (open / in progress / fixed …), assignee.", "seo_issues", { titleField: "title", search: ["title", "path", "description"] }),
-  ro("seo.task", "SEO task", "Work items: code, title, type, priority, status, assignee, due date.", "seo_tasks", { titleField: "title", search: ["title", "code", "url"] }),
-  ro("seo.keyword", "Keyword", "Tracked keywords: volume, difficulty, target URL, current position, group.", "seo_keywords", { titleField: "keyword", search: ["keyword", "targetUrl", "cluster"] }),
-  ro("seo.keyword_group", "Keyword group", "Groups of keywords.", "seo_keyword_groups", { titleField: "name" }),
-  ro("seo.rank_history", "Ranking history", "Position of a keyword over time.", "seo_rank_history", {}),
-  ro("seo.backlink", "Backlink", "Links from other sites: source, target, anchor, rel, domain rating.", "seo_backlinks", { titleField: "sourceUrl", search: ["sourceUrl", "targetUrl", "anchor"] }),
-  ro("seo.competitor", "Competitor", "Competitor sites and their metrics.", "seo_competitors", { titleField: "name", search: ["name", "domain"] }),
-  ro("seo.schema", "Structured data", "Schema.org markup (type, page, status draft/published, validation errors).", "seo_schemas", { titleField: "name", search: ["name", "path"], hide: ["source"] }),
-  ro("seo.crawl_run", "Audit run", "Website audits: when, pages crawled, scores, new and fixed issues.", "seo_crawl_runs", {}),
-  ro("seo.search_daily", "Search Console daily", "Daily clicks, impressions, CTR and position from Google Search Console.", "seo_search_daily", {}),
-  ro("seo.traffic_daily", "Analytics daily", "Daily sessions and users from Google Analytics.", "seo_traffic_daily", {}),
-  ro("seo.sitemap", "Sitemap", "Sitemap files and their status.", "seo_sitemaps", {}),
-  ro("seo.activity", "Audit log", "Who changed what in SEO.", "seo_activity_logs", { search: ["entityLabel", "summary", "actorEmail"], read: "admin", allowRead: can("VIEW_AUDIT") }),
+  ro("seo.page", "Page", "The page inventory: path, last audit result (status, indexability, response time), metadata override and focus keyword.", "seo_pages", { scope: featureScope("pages.view"), titleField: "path", search: ["path", "focusKeyword"] }),
+  ro("seo.issue", "SEO issue", "Problems found by audits or added by hand: title, severity, category, page, status (open / in progress / fixed …), assignee.", "seo_issues", { scope: featureScope("issues.view"), titleField: "title", search: ["title", "path", "description"] }),
+  ro("seo.task", "SEO task", "Work items: code, title, type, priority, status, assignee, due date.", "seo_tasks", { scope: featureScope("tasks.view"), titleField: "title", search: ["title", "code", "url"] }),
+  ro("seo.keyword", "Keyword", "Tracked keywords: volume, difficulty, target URL, current position, group.", "seo_keywords", { scope: featureScope("keywords.view"), titleField: "keyword", search: ["keyword", "targetUrl", "cluster"] }),
+  ro("seo.keyword_group", "Keyword group", "Groups of keywords.", "seo_keyword_groups", { scope: featureScope("keywords.view"), titleField: "name" }),
+  ro("seo.rank_history", "Ranking history", "Position of a keyword over time.", "seo_rank_history", { scope: featureScope("rankings.view"),}),
+  ro("seo.backlink", "Backlink", "Links from other sites: source, target, anchor, rel, domain rating.", "seo_backlinks", { scope: featureScope("backlinks.view"), titleField: "sourceUrl", search: ["sourceUrl", "targetUrl", "anchor"] }),
+  ro("seo.competitor", "Competitor", "Competitor sites and their metrics.", "seo_competitors", { scope: featureScope("competitors.view"), titleField: "name", search: ["name", "domain"] }),
+  ro("seo.schema", "Structured data", "Schema.org markup (type, page, status draft/published, validation errors).", "seo_schemas", { scope: featureScope("schema.view"), titleField: "name", search: ["name", "path"], hide: ["source"] }),
+  ro("seo.crawl_run", "Audit run", "Website audits: when, pages crawled, scores, new and fixed issues.", "seo_crawl_runs", { scope: featureScope("audit.view"),}),
+  ro("seo.search_daily", "Search Console daily", "Daily clicks, impressions, CTR and position from Google Search Console.", "seo_search_daily", { scope: featureScope("overview.view"),}),
+  ro("seo.traffic_daily", "Analytics daily", "Daily sessions and users from Google Analytics.", "seo_traffic_daily", { scope: featureScope("overview.view"),}),
+  ro("seo.sitemap", "Sitemap", "Sitemap files and their status.", "seo_sitemaps", { scope: featureScope("sitemap.view"),}),
+  ro("seo.activity", "Audit log", "Who changed what in SEO.", "seo_activity_logs", { search: ["entityLabel", "summary", "actorEmail"], read: "admin", allowRead: can("VIEW_AUDIT"), scope: featureScope("audit.log") }),
 ];
 void soft;
 
@@ -60,6 +63,7 @@ export const SEO_ACTIONS: ActionDef[] = [
   {
     key: "seo.run_audit", panel: "seo", label: "Run a website audit", description: "Crawl the website and update scores and issues. Takes up to a few minutes.", params: [], level: "any", allow: can("RUN_AUDIT"),
     run: async (_v, u) => {
+      if (!(await mayDo("audit.run"))) return fail("You don't have permission to run audits.");
       try {
         const run = await runCrawl({ trigger: "manual", actorId: u.id, actorEmail: u.email });
         if (run.status === "completed") await notifySeoUsers([u.id], { type: "seo_audit_completed", title: `Website audit finished — score ${run.scores?.overall ?? "—"}`, body: `${run.pagesCrawled} pages`, link: "/rankmax-ai/audit" } as never);
@@ -126,9 +130,9 @@ export const SEO_ACTIONS: ActionDef[] = [
 ];
 
 export const SEO_REPORTS: ReportDef[] = [
-  { key: "seo.dashboard", panel: "seo", label: "SEO dashboard numbers", description: "Scores, issues, keyword positions, traffic and tasks at a glance.", level: "any", allow: can("VIEW"), params: [], run: async (_v, u) => (await getDashboard(u.id)) as unknown as Json },
-  { key: "seo.issue_stats", panel: "seo", label: "Issue statistics", description: "Open issues by severity, category and status.", level: "any", allow: can("VIEW"), params: [], run: async () => (await issueStats()) as unknown as Json },
-  { key: "seo.task_stats", panel: "seo", label: "Task statistics", description: "SEO tasks by status and priority (add mine=true for just yours).", level: "any", allow: can("VIEW"), params: [f.bool("mine", "Only my tasks")], run: async (v, u) => (await taskStats(v.mine === true ? u.id : undefined)) as unknown as Json },
-  { key: "seo.cannibalization", panel: "seo", label: "Keyword cannibalisation", description: "Keywords where several of your pages compete for the same term.", level: "any", allow: can("VIEW"), params: [], run: async () => ({ cases: await detectCannibalization() }) as unknown as Json },
+  { key: "seo.dashboard", panel: "seo", label: "SEO dashboard numbers", description: "Scores, issues, keyword positions, traffic and tasks at a glance.", level: "any", allow: can("VIEW"), params: [], run: async (_v, u) => !(await mayDo("dashboard.view")) ? fail("Not allowed.") : (await getDashboard(u.id)) as unknown as Json },
+  { key: "seo.issue_stats", panel: "seo", label: "Issue statistics", description: "Open issues by severity, category and status.", level: "any", allow: can("VIEW"), params: [], run: async () => !(await mayDo("issues.view")) ? fail("Not allowed.") : (await issueStats()) as unknown as Json },
+  { key: "seo.task_stats", panel: "seo", label: "Task statistics", description: "SEO tasks by status and priority (add mine=true for just yours).", level: "any", allow: can("VIEW"), params: [f.bool("mine", "Only my tasks")], run: async (v, u) => !(await mayDo("tasks.view")) ? fail("Not allowed.") : (await taskStats(v.mine === true ? u.id : undefined)) as unknown as Json },
+  { key: "seo.cannibalization", panel: "seo", label: "Keyword cannibalisation", description: "Keywords where several of your pages compete for the same term.", level: "any", allow: can("VIEW"), params: [], run: async () => !(await mayDo("keywords.view")) ? fail("Not allowed.") : ({ cases: await detectCannibalization() }) as unknown as Json },
 ];
 void seoViewer; void TT;

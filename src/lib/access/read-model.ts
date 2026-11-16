@@ -1,5 +1,7 @@
 import { CATALOGUE, SELF_SERVICE, featuresOf, productName, PRODUCTS, satisfies } from "./catalogue";
 import type { AccessMap, Level } from "./types";
+import { isFinished, microOf } from "./micro";
+import { withMicros } from "./micro/derive";
 
 /**
  * The read model for "what can this person do": one object the Preview step and the locked-item UI both use.
@@ -11,9 +13,10 @@ export interface FeatureView { key: string; label: string; description: string; 
 export interface ProductView { product: string; name: string; features: FeatureView[]; summary: { write: number; read: number; none: number }; reachable: boolean }
 export interface AccessView { isDirector: boolean; products: ProductView[]; selfService: { key: string; label: string; description: string }[] }
 
-export function describeAccess(access: AccessMap | null | undefined, isDirector = false): AccessView {
+export function describeAccess(input: AccessMap | null | undefined, isDirector = false): AccessView {
+  const access = input ? withMicros(input) : input;
   const products: ProductView[] = PRODUCTS.map((product) => {
-    const features: FeatureView[] = featuresOf(product).map((e) => {
+    const features: FeatureView[] = (isFinished(product) ? microOf(product) : featuresOf(product)).map((e) => {
       const held = access?.[product]?.[e.key];
       // A feature the person holds at "write" but whose capability only needs "read" is effectively read.
       const level: Effective = isDirector ? (e.level === "read" ? "read" : "write") : satisfies(held, e.level) ? (e.level === "read" ? "read" : (held as Level)) : "none";

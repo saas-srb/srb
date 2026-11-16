@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/cybervault/gate";
 import { redirect } from "next/navigation";
 import OwnerVault, { type OwnerInfo } from "@/components/products/cybervault/OwnerVault";
 import { EmptyState } from "@/components/products/cybervault/DlmsUi";
@@ -8,6 +9,8 @@ import type { SearchParams } from "@/lib/products/cybervault/page";
 export default async function CompanyVaultPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/cybervault/login");
+  const locked = lockedUnless(viewer, "company.view", "Company Vault");
+  if (locked) return locked;
   if (!canReadScope(viewer, "company", null)) {
     return <EmptyState title="No access to the company vault">Ask a CyberVault manager to grant you access to the Company Vault.</EmptyState>;
   }

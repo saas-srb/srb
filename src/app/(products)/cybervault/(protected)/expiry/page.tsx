@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/cybervault/gate";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CalendarClock } from "lucide-react";
@@ -15,6 +16,8 @@ import { SCOPE_OPTIONS, visibleClientOptions, type SearchParams } from "@/lib/pr
 export default async function ExpiryPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/cybervault/login");
+  const locked = lockedUnless(viewer, "expiry.view", "Expiry & Alerts");
+  if (locked) return locked;
   const sp = await searchParams;
   const type = (RECORD_TYPES as readonly string[]).includes(sp.type ?? "") && sp.type !== "note" ? sp.type : undefined;
   const [board, clients, settings] = await Promise.all([

@@ -5,6 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { PageHeader, SectionCard } from "@/components/products/agentos/AibotsUi";
 import AibotsFilterBar from "@/components/products/agentos/AibotsFilterBar";
 import ActionButton from "@/components/products/agentos/ActionButton";
+import { lockedUnless } from "@/lib/products/agentos/gate";
 import { getViewer, can } from "@/lib/products/agentos/viewer";
 import { listAllBots, GENERAL_BOT_ID, GENERAL_BOT_NAME } from "@/lib/products/agentos/bots";
 import { listAllChats } from "@/lib/products/agentos/chats";
@@ -15,7 +16,8 @@ import { formatDateTime } from "@/lib/utils";
 export default async function AllChatsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/agentos/login");
-  if (!can(viewer, "VIEW_CHATS")) redirect("/agentos");
+  const locked = lockedUnless(viewer, "chats.all", "All chats");
+  if (locked) return locked;
   const sp = await searchParams;
   const page = Math.max(Number(sp.page) || 1, 1);
   const [bots, result] = await Promise.all([listAllBots(), listAllChats({ botId: sp.bot || undefined, q: sp.q || undefined, page })]);
@@ -49,7 +51,7 @@ export default async function AllChatsPage({ searchParams }: { searchParams: Pro
                     {botName.get(c.botId) ?? "Deleted bot"} · {c.userEmail} · {c.turns} message{c.turns === 1 ? "" : "s"} · {formatDateTime(c.lastMessageAt)}
                   </p>
                 </Link>
-                {can(viewer, "DELETE_CHATS") && (
+                {can(viewer, "chats.delete") && (
                   <ActionButton variant="ghost" size="icon-xs" aria-label={`Delete ${c.title}`} action={deleteChatAction.bind(null, c._id)} success="Chat deleted" confirm={{ title: "Delete this chat?", description: `“${c.title}” by ${c.userEmail} and its OpenAI conversation will be permanently deleted.`, confirmLabel: "Delete" }}>
                     <Trash2 className="size-3.5" />
                   </ActionButton>

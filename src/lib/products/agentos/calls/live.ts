@@ -133,7 +133,7 @@ export async function loadWatchable(viewer: AibotsViewer, callId: string): Promi
   const c = await (await callsCollection()).findOne({ _id: callId });
   if (!c) throw new NotFoundError();
   const mine = c.initiatedBy?.userId === viewer.userId;
-  if (!mine && !can(viewer, "VOICE_CALL_MANAGE") && !can(viewer, "VOICE_CALL_TAKEOVER")) throw new NotFoundError();
+  if (!mine && !can(viewer, "calls.manage") && !can(viewer, "calls.takeover")) throw new NotFoundError();
   return c;
 }
 const fail = (code: CallFailure["code"], message: string): { ok: false; failure: CallFailure } => ({ ok: false, failure: { code, message } });
@@ -246,11 +246,11 @@ export async function sendCommand(call: CallDoc, command: Record<string, unknown
   });
 }
 
-async function liveCall(viewer: AibotsViewer, callId: string, perm: "VOICE_CALL_TAKEOVER" | "any"): Promise<CallDoc> {
-  if (perm === "VOICE_CALL_TAKEOVER" && !can(viewer, "VOICE_CALL_TAKEOVER")) throw new ForbiddenError("VOICE_CALL_TAKEOVER");
+async function liveCall(viewer: AibotsViewer, callId: string, perm: "calls.takeover" | "any"): Promise<CallDoc> {
+  if (perm === "calls.takeover" && !can(viewer, "calls.takeover")) throw new ForbiddenError("calls.takeover");
   const c = await loadWatchable(viewer, callId);
   const mine = c.initiatedBy?.userId === viewer.userId;
-  if (perm === "any" && !mine && !can(viewer, "VOICE_CALL_TAKEOVER") && !can(viewer, "VOICE_CALL_MANAGE")) throw new NotFoundError();
+  if (perm === "any" && !mine && !can(viewer, "calls.takeover") && !can(viewer, "calls.manage")) throw new NotFoundError();
   return c;
 }
 
@@ -261,7 +261,7 @@ const history = (from: "ai" | "human", to: "ai" | "human", by: string) => ({ at:
  * attempt gets `control_busy`. The AI leaves the call, so `canHandBack` becomes false. Web calls can't be taken over.
  */
 export async function takeOver(viewer: AibotsViewer, callId: string, input: { transferTo: string; overrideReason?: string }, deps: LiveDeps = {}): Promise<{ ok: true } | { ok: false; failure: CallFailure }> {
-  const c = await liveCall(viewer, callId, "VOICE_CALL_TAKEOVER");
+  const c = await liveCall(viewer, callId, "calls.takeover");
   const caps = liveCapabilities(c);
   if (c.control.mode === "human") return fail("control_busy", "Someone has already taken over this call.");
   if (c.direction === "web" || c.direction === "web_public") return fail("takeover_unsupported", "Web calls can't be taken over: the visitor is connected to the AI directly. You can watch the transcript, add a note for the AI or end the call.");
@@ -272,7 +272,7 @@ export async function takeOver(viewer: AibotsViewer, callId: string, input: { tr
   // do-not-call list and the record's flag, the calling hours with a manager's reason, the hourly caps and the duplicate window).
   const now = (deps.now ?? (() => new Date()))();
   const reason = typeof input.overrideReason === "string" ? input.overrideReason.trim().slice(0, 300) : "";
-  const isManager = can(viewer, "VOICE_CALL_MANAGE");
+  const isManager = can(viewer, "calls.manage");
   const check = await checkCallAllowed({
     agentId: c.agentId, purpose: c.purpose, rawPhone: asked, target: c.target, at: now, now, excludeCallId: c._id, initiatorId: viewer.userId,
     windowOverride: isManager && reason.length >= 10, overrideRefused: Boolean(reason) && !isManager, fromNumberId: c.fromNumberId, deps,
@@ -304,7 +304,7 @@ export async function takeOver(viewer: AibotsViewer, callId: string, input: { tr
 export async function handBack(viewer: AibotsViewer, callId: string, deps: LiveDeps = {}): Promise<{ ok: true } | { ok: false; failure: CallFailure }> {
   const c = await liveCall(viewer, callId, "any");
   if (c.control.mode !== "human") return fail("not_live", "The AI already has this call.");
-  if (c.control.handler !== viewer.userId && !can(viewer, "VOICE_CALL_MANAGE")) throw new ForbiddenError("VOICE_CALL_MANAGE");
+  if (c.control.handler !== viewer.userId && !can(viewer, "calls.manage")) throw new ForbiddenError("calls.manage");
   if (!c.control.canHandBack) return fail("handback_unsupported", "The AI left this call when it was moved to a person and can't rejoin. Place a new AI call if you need one.");
   const calls = await callsCollection();
   const claimed = await calls.findOneAndUpdate(

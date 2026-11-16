@@ -44,7 +44,7 @@ export async function chatCallStatusAction(callId: string): Promise<ActionResult
 
 /** Ends a live call, or cancels one that is still scheduled. */
 export async function endChatCallAction(callId: string): Promise<ActionResult<{ ended: true }>> {
-  return runCallAction({ permission: "VOICE_CALL", write: true, noSession: NO_ACCOUNT_MESSAGE, noPermission: NO_PERMISSION_MESSAGE }, async (v) => {
+  return runCallAction({ permission: "calls.place", write: true, noSession: NO_ACCOUNT_MESSAGE, noPermission: NO_PERMISSION_MESSAGE }, async (v) => {
     const id = str(callId, 64);
     const c = await loadCallForViewer(v, id, false);
     const res = c.status === "scheduled" ? await cancelCall(v, id) : await endCall(v, id);

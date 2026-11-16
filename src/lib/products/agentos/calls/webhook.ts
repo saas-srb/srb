@@ -125,7 +125,7 @@ const MANUAL_STEPS = (url: string) => [
  * use `resetWebhookUrl` to get a new one).
  */
 export async function getWebhookSetup(viewer: AibotsViewer, fresh: { url?: string } = {}): Promise<WebhookSetupView & { urlAvailable: boolean }> {
-  if (!can(viewer, "VOICE_CALL_MANAGE")) throw new ForbiddenError("VOICE_CALL_MANAGE");
+  if (!can(viewer, "calls.manage")) throw new ForbiddenError("calls.manage");
   const created = await ensureToken();
   const cfg = (await (await webhookCol()).findOne({ kind: "main" }))!;
   const token = created.token;
@@ -139,7 +139,7 @@ async function urlFor(token: string): Promise<string> {
 
 /** Issues a new webhook address (the old one stops working) and returns it once. */
 export async function resetWebhookUrl(viewer: AibotsViewer): Promise<string> {
-  if (!can(viewer, "VOICE_CALL_MANAGE")) throw new ForbiddenError("VOICE_CALL_MANAGE");
+  if (!can(viewer, "calls.manage")) throw new ForbiddenError("calls.manage");
   await ensureToken();
   const url = await urlFor(await rotateToken());
   await (await webhookCol()).updateOne({ kind: "main" }, { $set: { registeredAt: null, elevenWebhookId: null } });
@@ -149,7 +149,7 @@ export async function resetWebhookUrl(viewer: AibotsViewer): Promise<string> {
 
 /** Manual path: the secret ElevenLabs showed, pasted by a manager. */
 export async function saveWebhookSecret(viewer: AibotsViewer, secret: string): Promise<void> {
-  if (!can(viewer, "VOICE_CALL_MANAGE")) throw new ForbiddenError("VOICE_CALL_MANAGE");
+  if (!can(viewer, "calls.manage")) throw new ForbiddenError("calls.manage");
   const s = typeof secret === "string" ? secret.trim() : "";
   if (s.length < 8 || s.length > 300) throw new AibotsInputError("Paste the webhook secret from ElevenLabs.");
   if (!isPlatformEncryptionConfigured()) throw new AibotsInputError("Secure storage isn't set up on this server yet. Ask your platform administrator.");
@@ -166,7 +166,7 @@ export type RegisterResult = { ok: true } | { ok: false; reason: string; manualS
  * arrive through the reconcile poll instead.
  */
 export async function registerWebhookWithElevenLabs(viewer: AibotsViewer, deps: { client?: () => Promise<AgentClient | null>; ownAccount?: () => Promise<boolean> } = {}): Promise<RegisterResult> {
-  if (!can(viewer, "VOICE_CALL_MANAGE")) throw new ForbiddenError("VOICE_CALL_MANAGE");
+  if (!can(viewer, "calls.manage")) throw new ForbiddenError("calls.manage");
   const url = await resetWebhookUrl(viewer);
   const manual = MANUAL_STEPS(url);
   const own = await (deps.ownAccount ?? (async () => (await resolveConnection("elevenlabs"))?.source === "workspace"))();

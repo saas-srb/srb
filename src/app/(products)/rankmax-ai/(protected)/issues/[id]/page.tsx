@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ListPlus } from "lucide-react";
@@ -17,6 +18,8 @@ import { formatDateTime } from "@/lib/utils";
 export default async function IssueDetail({ params }: { params: Promise<{ id: string }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "issues.view", "SEO Issues");
+  if (locked) return locked;
   const { id } = await params;
   const issue = await getIssue(id);
   if (!issue) notFound();
@@ -31,7 +34,7 @@ export default async function IssueDetail({ params }: { params: Promise<{ id: st
         crumbs={[{ label: "SEO Issues", href: "/rankmax-ai/issues" }, { label: issue.title }]}
         description={<span className="flex flex-wrap items-center gap-2"><SeverityBadge severity={issue.severity} /><CategoryBadge category={issue.category} /><IssueStatusBadge status={issue.status} />{page ? <Link href={`/rankmax-ai/pages/${page._id}`} className="text-primary hover:underline">{issue.path}</Link> : issue.path}</span>}
         actions={
-          can(viewer, "MANAGE_TASKS") && (
+          can(viewer, "tasks.manage") && (
             <EditDialog
               trigger={<Button size="sm"><ListPlus className="size-3.5" data-icon="inline-start" />Create task</Button>}
               title="Create a task for this issue"
@@ -74,7 +77,7 @@ export default async function IssueDetail({ params }: { params: Promise<{ id: st
         </div>
         <div className="space-y-4">
           <SectionCard title="Manage">
-            <IssueEditor id={issue._id} status={issue.status} assigneeId={issue.assigneeId ?? ""} notes={issue.notes} users={userOpts} canEdit={can(viewer, "EDIT")} />
+            <IssueEditor id={issue._id} status={issue.status} assigneeId={issue.assigneeId ?? ""} notes={issue.notes} users={userOpts} canEdit={can(viewer, "issues.edit")} />
           </SectionCard>
           <SectionCard title="Timeline">
             <dl className="grid grid-cols-2 gap-y-1.5 text-sm">

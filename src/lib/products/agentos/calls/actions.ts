@@ -56,7 +56,7 @@ export async function loadCallOptionsAction(): Promise<ActionResult<{ options: C
 }
 
 export async function requestCallAction(input: RequestCallPayload): Promise<ActionResult<{ call: PlacedCall }>> {
-  return runCallAction({ permission: "VOICE_CALL", write: true, noSession: NO_ACCOUNT_MESSAGE, noPermission: NO_PERMISSION_MESSAGE }, async (v) => {
+  return runCallAction({ permission: "calls.place", write: true, noSession: NO_ACCOUNT_MESSAGE, noPermission: NO_PERMISSION_MESSAGE }, async (v) => {
     const t = (input?.target ?? {}) as Partial<RequestCallPayload["target"]>;
     const context: Record<string, string> = {};
     if (input?.context && typeof input.context === "object") for (const [k, val] of Object.entries(input.context).slice(0, 30)) context[str(k, 60)] = str(val, 600);
@@ -93,7 +93,7 @@ export interface BriefingPreview {
  * the agent gets the newer data.
  */
 export async function previewBriefingAction(input: { target: RequestCallPayload["target"]; purpose: string; selection?: string[] | null }): Promise<ActionResult<{ preview: BriefingPreview }>> {
-  return runCallAction({ permission: "VOICE_CALL", noSession: NO_ACCOUNT_MESSAGE, noPermission: NO_PERMISSION_MESSAGE }, async (v) => {
+  return runCallAction({ permission: "calls.place", noSession: NO_ACCOUNT_MESSAGE, noPermission: NO_PERMISSION_MESSAGE }, async (v) => {
     const t = (input?.target ?? {}) as Partial<RequestCallPayload["target"]>;
     const purpose = str(input?.purpose, 40);
     const empty: BriefingPreview = { available: false, sections: [], warnings: [], chars: 0, budget: 0, notice: BRIEFING_NOTICE };
@@ -108,7 +108,7 @@ function failure(f: CallFailure): { ok: false; error: string; failure: CallFailu
 }
 
 export async function cancelCallAction(callId: string): Promise<ActionResult<{ cancelled: true }>> {
-  return runCallAction({ permission: "VOICE_CALL", write: true, noSession: NO_ACCOUNT_MESSAGE, noPermission: NO_PERMISSION_MESSAGE }, async (v) => {
+  return runCallAction({ permission: "calls.place", write: true, noSession: NO_ACCOUNT_MESSAGE, noPermission: NO_PERMISSION_MESSAGE }, async (v) => {
     const res = await cancelCall(v, str(callId, 64));
     if (!res.ok) return failure(res.failure);
     revalidatePath("/agentos/calls");
@@ -117,7 +117,7 @@ export async function cancelCallAction(callId: string): Promise<ActionResult<{ c
 }
 
 export async function rescheduleCallAction(callId: string, input: { scheduleAt: string; overrideReason?: string }): Promise<ActionResult<{ scheduledFor: string }>> {
-  return runCallAction({ permission: "VOICE_CALL", write: true, noSession: NO_ACCOUNT_MESSAGE, noPermission: NO_PERMISSION_MESSAGE }, async (v) => {
+  return runCallAction({ permission: "calls.place", write: true, noSession: NO_ACCOUNT_MESSAGE, noPermission: NO_PERMISSION_MESSAGE }, async (v) => {
     const res = await rescheduleCall(v, str(callId, 64), { scheduleAt: str(input?.scheduleAt, 40), overrideReason: typeof input?.overrideReason === "string" ? input.overrideReason : undefined });
     if (!res.ok) return failure(res.failure);
     revalidatePath("/agentos/calls");
@@ -127,7 +127,7 @@ export async function rescheduleCallAction(callId: string, input: { scheduleAt: 
 
 /** A person decides to try a failed or unanswered call again. Only ever reachable from a signed-in session: nothing retries on its own. */
 export async function retryCallAction(callId: string, idempotencyKey: string): Promise<ActionResult<{ call: PlacedCall }>> {
-  return runCallAction({ permission: "VOICE_CALL", write: true, noSession: NO_ACCOUNT_MESSAGE, noPermission: NO_PERMISSION_MESSAGE }, async (v) => {
+  return runCallAction({ permission: "calls.place", write: true, noSession: NO_ACCOUNT_MESSAGE, noPermission: NO_PERMISSION_MESSAGE }, async (v) => {
     const res = await retryCall(v, str(callId, 64), str(idempotencyKey, 120));
     if (!res.ok) return failure(res.failure);
     revalidatePath("/agentos/calls");

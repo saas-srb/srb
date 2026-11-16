@@ -6,8 +6,16 @@ import { forEachCompany } from "@/lib/platform/tenancy/context";
  * Platform Console's "Run now" and the in-app scheduler all come here, so a job behaves the same however it is started.
  */
 export const JOB_RUNNERS: Record<string, () => Promise<unknown>> = {
-  "setup-reminders": async () => forEachCompany(async (companyId) => { const m = await import("@/lib/platform/setup-progress/reminders"); const { getCompany } = await import("@/lib/platform/tenancy/companies"); if ((await getCompany(companyId))?.isPlatformOwner) return null; return m.runSetupReminders(); }),
-  backups: async () => (await import("@/lib/products/commandos/data-lifecycle")).runLifecycleJobs(),
+  backups: async () => {
+    const lifecycle = await (await import("@/lib/products/commandos/data-lifecycle")).runLifecycleJobs();
+    // Setup progress, its daily snapshot and the setup reminders ride on this daily tick: no extra route and no extra serverless function.
+    const setup = await forEachCompany(async (companyId) => {
+      const { getCompany } = await import("@/lib/platform/tenancy/companies");
+      if ((await getCompany(companyId))?.isPlatformOwner) return null;
+      return (await import("@/lib/platform/setup-progress/reminders")).runSetupReminders();
+    }).catch(() => []);
+    return { lifecycle, setup: { companies: setup.length, failed: setup.filter((r) => !r.ok).length } };
+  },
   "wallet-expiry": async () => forEachCompany(async () => (await import("@/lib/wallet/expiry")).runExpirySweep()),
   playbook: async () => forEachCompany(async () => (await import("@/lib/products/playbook-ai/reminders")).runSopReminders()),
   rankmax: async () => forEachCompany(async () => (await import("@/lib/products/rankmax-ai/housekeeping")).runSeoHousekeeping()),

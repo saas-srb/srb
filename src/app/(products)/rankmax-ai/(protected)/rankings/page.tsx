@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { RefreshCw, Download } from "lucide-react";
@@ -22,6 +23,8 @@ export const maxDuration = 300;
 export default async function RankingsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "rankings.view", "Rankings");
+  if (locked) return locked;
   const sp = await searchParams;
   const granularity = sp.granularity === "day" || sp.granularity === "month" ? sp.granularity : "week";
   const period = [7, 30, 90].includes(Number(sp.period)) ? Number(sp.period) : 30;
@@ -41,7 +44,7 @@ export default async function RankingsPage({ searchParams }: { searchParams: Pro
   const byId = new Map(filtered.map((k) => [k._id, k]));
   const engines = Array.from(new Set(keywords.map((k) => k.engine)));
   const countries = Array.from(new Set(keywords.map((k) => k.country)));
-  const canManage = can(viewer, "MANAGE_RANKINGS");
+  const canManage = can(viewer, "rankings.manage");
   const gscReady = settings.integrations.gsc.enabled && !!(await integrationEnv()).google;
 
   return (
@@ -152,7 +155,7 @@ export default async function RankingsPage({ searchParams }: { searchParams: Pro
       <SectionCard
         title={`Position history (${history.length})`}
         description={`${from} → ${to}`}
-        action={can(viewer, "EXPORT_REPORTS") && (
+        action={can(viewer, "reports.export") && (
           <a href={`/api/rankmax-ai/export/rankings?format=csv&from=${from}&to=${to}${sp.source ? `&source=${sp.source}` : ""}${sp.keyword ? `&search=${encodeURIComponent(sp.keyword)}` : ""}`} className={buttonVariants({ variant: "outline", size: "xs" })}>
             <Download className="size-3" data-icon="inline-start" />CSV
           </a>

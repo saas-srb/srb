@@ -6,9 +6,11 @@ import { accessToLegacy, baselineFeatures, completeAccess } from "./adapter";
 import { legacyAnswers } from "./legacy";
 import { FILE_ROLES } from "./catalogue";
 import type { Level } from "./types";
+import { isFinished, microOf } from "./micro";
+import { baselineMicros } from "./micro/derive";
 
 /** What the People & Access screen needs about the catalogue, as plain JSON (the legacy role files stay on the server). */
-export interface UiFeature { key: string; label: string; description: string; needs: Level; area: string }
+export interface UiFeature { key: string; label: string; description: string; needs: Level; area: string; /** micro level: what kind of thing it guards, and the scope variant (all = everyone's) */ kind?: string; scope?: "all" }
 export interface UiProduct { key: string; name: string; features: UiFeature[]; baseline: string[] }
 /** What the quick buttons of a product pick. `read` is every view feature; for a product whose lowest role carries more, it is the next level up (`extras`). */
 export interface UiPreset { read: string[]; readLabel: string; readExtras: string[]; readCarried: string[]; write: string[] }
@@ -30,6 +32,10 @@ const exact = (product: string, picks: string[], carried: string[]) => {
 };
 
 function presetFor(product: string): UiPreset {
+  if (isFinished(product)) {
+    const m = microOf(product);
+    return { read: m.filter((x) => x.level === "read" && x.scope !== "all").map((x) => x.key), readLabel: "Read only", readExtras: [], readCarried: [], write: m.map((x) => x.key) };
+  }
   const entries = CATALOGUE.filter((e) => e.product === product && e.kind !== "tier");
   const write = entries.map((e) => e.key);
   const read = entries.filter((e) => e.level === "read").map((e) => e.key);
@@ -54,6 +60,12 @@ export function buildAccessUi(): AccessUiModel {
   if (cached) return cached;
   const baselineByProduct: Record<string, string[]> = {};
   const products: UiProduct[] = PRODUCTS.filter((p) => p !== "commandos").concat(["commandos"]).map((key) => {
+    if (isFinished(key)) {
+      const micro = microOf(key);
+      baselineByProduct[key] = baselineMicros(key).map((m) => m.key);
+      const mf = micro.map((m) => ({ key: m.key, label: m.label, description: m.description, needs: m.level, area: m.module, kind: m.kind, ...(m.scope ? { scope: m.scope } : {}) }));
+      return { key, name: productName(key), features: mf, baseline: baselineByProduct[key] };
+    }
     baselineByProduct[key] = baselineFeatures(key);
     const features = CATALOGUE.filter((e) => e.product === key && e.kind !== "tier").map((e) => {
       const t = e.overrideKey ? text.get(e.overrideKey) : undefined;

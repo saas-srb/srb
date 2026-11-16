@@ -35,7 +35,7 @@ function fail(error: string, status: number) {
 async function handlePOST(req: NextRequest) {
   const viewer = await getViewer();
   if (!viewer) return fail("Your session has expired — please sign in again.", 401);
-  if (!can(viewer, "USE_BOT") && !can(viewer, "EDIT_BOT")) return fail("You don't have permission to use AI bots.", 403);
+  if (!can(viewer, "agents.use") && !can(viewer, "agents.edit")) return fail("You don't have permission to use AI bots.", 403);
   if (!(await isOpenAIConfigured())) return fail("OpenAI isn't connected for this workspace yet (Settings → Integrations). Connect OpenAI in Workspace → Settings → Integrations.", 503);
 
   let form: FormData;

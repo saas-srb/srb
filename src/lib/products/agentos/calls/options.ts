@@ -61,8 +61,8 @@ export interface OptionDeps extends GuardDeps {
 }
 
 export async function loadCallOptions(viewer: AibotsViewer, deps: OptionDeps = {}): Promise<CallOptions> {
-  const isManager = can(viewer, "VOICE_CALL_MANAGE");
-  const canCall = can(viewer, "VOICE_CALL");
+  const isManager = can(viewer, "calls.manage");
+  const canCall = can(viewer, "calls.place");
   const [settings, timeZone, hasNumber, rows, connected] = await Promise.all([
     getCallSettings(),
     (deps.timeZone ?? companyTimeZone)(),

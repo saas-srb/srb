@@ -1,6 +1,6 @@
 "use client";
 
-import LockedNavItem from "@/components/products/common/LockedNavItem";
+import NavGroup from "@/components/products/common/NavGroup";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -76,15 +76,6 @@ function NavLink({
   );
 }
 
-function SectionLabel({ children, collapsed }: { children: React.ReactNode; collapsed?: boolean }) {
-  if (collapsed) return <div className="mt-4 mb-1 border-t border-border/50" />;
-  return (
-    <div className="mt-4 mb-1 px-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-      {children}
-    </div>
-  );
-}
-
 export default function PrmsSidebar({
   roles,
   permissionOverrides,
@@ -102,7 +93,7 @@ export default function PrmsSidebar({
     label: string;
     icon: React.ComponentType<{ className?: string }>;
     exact?: boolean;
-  }) => (props.locked ? <LockedNavItem label={props.label} icon={props.icon} collapsed={collapsed} product="spendiq" onNavigate={onNavigate} /> : <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />);
+  }) => (props.locked ? null : <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />);
 
   const isStaff = hasPrmsStaffRole(roles);
   const roleCtx = { roles, permissionOverrides };
@@ -114,24 +105,29 @@ export default function PrmsSidebar({
       {nav({ href: "/spendiq", label: "Dashboard", icon: LayoutDashboard, exact: true, locked: !isStaff })}
 
       {/* ── Procurement ── */}
-      <SectionLabel collapsed={collapsed}>Procurement</SectionLabel>
-      {nav({ href: "/spendiq/requisitions", label: "Purchase Requests", icon: ClipboardList, locked: !isStaff })}
-      {nav({ href: "/spendiq/purchase-orders", label: "Purchase Orders", icon: FileText, locked: !isStaff })}
-      {nav({ href: "/spendiq/expenses", label: "Expenses", icon: Receipt, locked: !isStaff })}
-      {nav({ href: "/spendiq/vendors", label: "Vendors", icon: Building2, locked: !isStaff })}
+      <NavGroup collapsed={collapsed} label="Procurement">
+        {nav({ href: "/spendiq/requisitions", label: "Purchase Requests", icon: ClipboardList, locked: !isStaff })}
+        {nav({ href: "/spendiq/purchase-orders", label: "Purchase Orders", icon: FileText, locked: !isStaff })}
+        {nav({ href: "/spendiq/expenses", label: "Expenses", icon: Receipt, locked: !isStaff })}
+        {nav({ href: "/spendiq/vendors", label: "Vendors", icon: Building2, locked: !isStaff })}
 
       {/* ── Company Assets ── */}
-      <SectionLabel collapsed={collapsed}>Company Assets</SectionLabel>
-      {nav({ href: "/spendiq/assets", label: "Hardware & Assets", icon: Boxes, locked: !isStaff })}
-      {nav({ href: "/spendiq/subscriptions", label: "Subscriptions", icon: Cloud, locked: !isStaff })}
+      </NavGroup>
+      <NavGroup collapsed={collapsed} label="Company Assets">
+        {nav({ href: "/spendiq/assets", label: "Hardware & Assets", icon: Boxes, locked: !isStaff })}
+        {nav({ href: "/spendiq/subscriptions", label: "Subscriptions", icon: Cloud, locked: !isStaff })}
 
-      <SectionLabel collapsed={collapsed}>Governance</SectionLabel>
-      {nav({ href: "/spendiq/analytics", label: "Analytics", icon: BarChart3, locked: !isStaff })}
+      </NavGroup>
+      <NavGroup collapsed={collapsed} label="Governance">
+        {nav({ href: "/spendiq/analytics", label: "Analytics", icon: BarChart3, locked: !isStaff })}
 
-      <SectionLabel collapsed={collapsed}>Me</SectionLabel>
-      {nav({ href: "/spendiq/me", label: "My Dashboard", icon: LayoutDashboard, exact: true })}
-      {nav({ href: "/spendiq/me/requisitions", label: "My Requests", icon: ClipboardList })}
-      {nav({ href: "/spendiq/me/expenses", label: "My Expenses", icon: Receipt })}
+      </NavGroup>
+      <NavGroup collapsed={collapsed} label="Me">
+        {nav({ href: "/spendiq/me", label: "My Dashboard", icon: LayoutDashboard, exact: true })}
+        {nav({ href: "/spendiq/me/requisitions", label: "My Requests", icon: ClipboardList })}
+        {nav({ href: "/spendiq/me/expenses", label: "My Expenses", icon: Receipt })}
+    
+      </NavGroup>
     </nav>
   );
 }

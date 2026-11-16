@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import { notFound, redirect } from "next/navigation";
 import { Pencil, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,8 @@ import { saveKeywordAction, deleteKeywordAction, recordPositionAction } from "@/
 export default async function KeywordDetail({ params }: { params: Promise<{ id: string }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "keywords.view", "Keywords");
+  if (locked) return locked;
   const { id } = await params;
   const k = await getKeyword(id);
   if (!k) notFound();
@@ -51,7 +54,7 @@ export default async function KeywordDetail({ params }: { params: Promise<{ id: 
         description={<>{k.country} · {k.language} · {k.device} · {k.engine} · {k.type}{isLongTail(k.keyword) ? " · long-tail" : ""} · <span className="capitalize">{k.status}</span></>}
         actions={
           <>
-            {can(viewer, "MANAGE_RANKINGS") && (
+            {can(viewer, "rankings.manage") && (
               <EditDialog
                 trigger={<Button size="sm" variant="outline"><Plus className="size-3.5" data-icon="inline-start" />Record position</Button>}
                 title="Record a position"
@@ -68,7 +71,7 @@ export default async function KeywordDetail({ params }: { params: Promise<{ id: 
                 }}
               />
             )}
-            {can(viewer, "MANAGE_KEYWORDS") && (
+            {can(viewer, "keywords.manage") && (
               <EditDialog
                 trigger={<Button size="sm" variant="outline"><Pencil className="size-3.5" data-icon="inline-start" />Edit</Button>}
                 title="Edit keyword"
@@ -81,7 +84,7 @@ export default async function KeywordDetail({ params }: { params: Promise<{ id: 
                 }}
               />
             )}
-            {can(viewer, "DELETE") && (
+            {can(viewer, "keywords.delete") && (
               <ActionButton
                 action={async () => {
                   "use server";

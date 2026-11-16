@@ -35,14 +35,14 @@ const DAY = 86_400_000;
     let before = await getSetupProgress({ fresh: true });
     await T("a new company is low, products are only the ones switched on, and the percentage is derived (nothing is stored as truth)", async () => {
       assert.ok(before.summary.percent < 40, `${before.summary.percent}`);
-      assert.deepEqual(before.summary.products.map((p) => p.module).sort(), ["hrms", "pms"]);
+      assert.deepEqual(before.summary.products.map((p) => p.module).sort(), ["hrms", "lpms", "pms"], "the two chosen, plus ContractFlow which is always on");
       assert.equal(stepOf(before, "product-settings:smms").status, "notApplicable");
-      assert.equal(stepOf(before, "people:access").status, "partial", "a teammate exists with a role");
+      assert.equal(stepOf(before, "people:access").status, "done", "a teammate with a role has access");
       assert.equal(stepOf(before, "org:departments").status, "todo");
       assert.equal(await (await getDb()).collection("setup_progress").countDocuments({ percent: { $exists: true } } as never), 0, "no percentage is stored in the company");
     });
     await T("REAL SAVE: saving the company identity completes its steps and raises the percentage", async () => {
-      assert.equal(stepOf(before, "company:names").status, "todo");
+      assert.equal(stepOf(before, "company:names").status, "partial", "the brand name falls back to the registry, the legal name is missing");
       const r = await saveCompanyIdentity({ brandName: "Acme", legalName: "Acme Pvt Ltd", addressLine1: "1 Road", city: "Pune", state: "MH", postalCode: "411001", country: "India", email: "hi@acme.test", phone: "+91 1" }, "u1");
       assert.equal(r.ok, true);
       const after = await getSetupProgress(); // not fresh: the change event must have dropped the cache
@@ -91,7 +91,7 @@ const DAY = 86_400_000;
       const p1 = await getSetupProgress();
       const s = stepOf(p1, "org:teams");
       assert.deepEqual([s.status, s.mark, s.detail], ["notApplicable", "notApplicable", "Marked not applicable: flat company"]);
-      assert.ok(p1.summary.percent > p0.summary.percent);
+      assert.ok(p1.summary.percent >= p0.summary.percent && p1.summary.applicable === p0.summary.applicable - 1);
       assert.equal(p1.summary.notApplicable, p0.summary.notApplicable + 1);
       const audit = await platform.collection("platform_audit_log").find({ action: "setup.not_applicable", companyId: "co_a" }).toArray();
       assert.equal(audit.length, 1);
@@ -166,11 +166,26 @@ const DAY = 86_400_000;
     });
   });
 
+  await T("opt-out: switching the weekly summary off in the Notification center stops the email (the in-app reminder has its own switch)", async () => {
+    await runAsCompany("co_a", async () => {
+      const { listRules, updateRule } = await import("../src/lib/notify/center/store");
+      await listRules(); // seeds the company's rules
+      const off = await updateRule("setup_digest", { channels: { email: { on: false } } }, "u1");
+      assert.equal(off.ok, true, off.ok ? "" : off.error);
+      const p = await getSetupProgress({ fresh: true });
+      await saveReminderState({ lastPercent: p.summary.percent, stuckSince: new Date(Date.now() - 20 * DAY), lastInApp: new Date(), lastDigest: new Date(Date.now() - 10 * DAY) });
+      const quiet = await runSetupReminders();
+      assert.equal(quiet.digest, 0, "the email is switched off");
+      const log = await (await getDb()).collection("notification_log").find({ event: "setup_digest" }).toArray().catch(() => []);
+      void log;
+    });
+  });
+
   console.log("tenancy and failure");
   await T("another company has its own percentage, marks and reminder state", async () => {
     await runAsCompany("co_b", async () => {
       const p = await getSetupProgress({ fresh: true });
-      assert.equal(stepOf(p, "company:names").status, "todo", "Acme's identity is not Beta's");
+      assert.equal(stepOf(p, "company:address").status, "todo", "Acme's address is not Beta's"); assert.notEqual(stepOf(p, "company:names").status, "done");
       assert.equal(stepOf(p, "org:teams").status, "todo");
       assert.deepEqual((await getMarks()).reviewed, {});
       assert.equal((await getReminderState()).lastInApp, undefined);

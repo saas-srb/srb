@@ -1,3 +1,5 @@
+import { featuresBeyond } from "@/lib/products/commandos/delegation";
+import type { AccessMap } from "@/lib/access/types";
 import "server-only";
 import { randomBytes } from "node:crypto";
 import { ObjectId } from "mongodb";
@@ -262,8 +264,8 @@ export async function getAdminUserRow(id: string): Promise<AdminUserRow | null> 
  * or null when the action is allowed. Directors are never limited.
  */
 export async function delegatedManagerBlock(
-  actor: { id?: string; roles: readonly string[] },
-  action: { targetId?: string; roles?: readonly string[]; overrides?: boolean }
+  actor: { id?: string; roles: readonly string[]; permissionOverrides?: Record<string, boolean> | null },
+  action: { targetId?: string; roles?: readonly string[]; overrides?: boolean; /** The access being given: a delegated manager can only give what they hold themselves. */ access?: AccessMap }
 ): Promise<string | null> {
   if (actor.roles.includes(DIRECTOR_ROLE)) return null;
   // Nobody raises their own access: a delegated manager can't change their own account's roles or permissions.
@@ -273,6 +275,10 @@ export async function delegatedManagerBlock(
   const escalating = (action.roles ?? []).filter((r) => /_admin$/.test(r) && !actor.roles.includes(r));
   if (escalating.length > 0) return "You can only grant an admin role that you hold yourself.";
   if (action.overrides) return "Only a Director can change permission overrides.";
+  if (action.access) {
+    const beyond = featuresBeyond(actor, action.access);
+    if (beyond.length > 0) return `You can only give access you hold yourself. ${beyond.length} of these features go beyond yours.`;
+  }
   if (action.targetId) {
     const target = ObjectId.isValid(action.targetId) ? await (await collection()).findOne({ _id: new ObjectId(action.targetId) }, { projection: { roles: 1, savedRoles: 1 } }) : null;
     if (target?.roles?.includes("super_admin") || target?.savedRoles?.includes("super_admin")) return "Only a Director can change a Director's account.";

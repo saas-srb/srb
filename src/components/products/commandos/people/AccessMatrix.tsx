@@ -45,6 +45,7 @@ export default function AccessMatrix({
   defaultOpen?: string[];
 }) {
   const [query, setQuery] = useState("");
+  const [onlyGranted, setOnlyGranted] = useState(false);
   const [open, setOpen] = useState<Set<string>>(new Set(defaultOpen ?? []));
   const q = query.trim().toLowerCase();
 
@@ -73,6 +74,17 @@ export default function AccessMatrix({
     onChange(next);
   };
 
+  /** Sets one area (module) of a product at once: every feature in it to none, read (where it has a view level) or write. */
+  const setArea = (p: UiProduct, area: string, mode: State) => {
+    const next: AccessMap = { ...picked, [p.key]: { ...(picked[p.key] ?? {}) } };
+    for (const f of p.features.filter((x) => x.area === area)) {
+      if (mode === "none") delete next[p.key][f.key];
+      else next[p.key][f.key] = mode === "write" && f.needs !== "read" ? "write" : "read";
+    }
+    if (Object.keys(next[p.key]).length === 0) delete next[p.key];
+    onChange(next);
+  };
+
   const toggle = (key: string) => setOpen((s) => { const n = new Set(s); if (n.has(key)) n.delete(key); else n.add(key); return n; });
   const expandAll = () => setOpen(new Set(model.products.map((p) => p.key)));
   const collapseAll = () => setOpen(new Set());
@@ -86,7 +98,8 @@ export default function AccessMatrix({
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search products and features" aria-label="Search products and features" className="h-10 rounded-xl pl-9" />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex cursor-pointer items-center gap-1.5 text-xs font-medium"><input type="checkbox" checked={onlyGranted} onChange={(e) => setOnlyGranted(e.target.checked)} className="accent-primary" />Show only granted</label>
           <Button type="button" variant="outline" size="sm" onClick={expandAll}>Expand all</Button>
           <Button type="button" variant="outline" size="sm" onClick={collapseAll}>Collapse all</Button>
         </div>
@@ -100,9 +113,12 @@ export default function AccessMatrix({
 
       <div className="space-y-2">
         {model.products.filter((p) => p.key !== model.workspaceProduct).map((p) => {
-          const shown = p.features.filter(matches);
-          if (q && shown.length === 0) return null;
-          const isOpen = open.has(p.key) || Boolean(q);
+          const granted = (f: UiFeature) => isDirector || Boolean(effective[p.key]?.[f.key]);
+          // A search that names the product shows all of its features; otherwise only the features that match.
+          const productHit = Boolean(q) && p.name.toLowerCase().includes(q);
+          const shown = p.features.filter((f) => (productHit || matches(f)) && (!onlyGranted || granted(f)));
+          if ((q || onlyGranted) && shown.length === 0) return null;
+          const isOpen = open.has(p.key) || Boolean(q) || onlyGranted;
           const baseline = new Set(model.baselineByProduct[p.key] ?? []);
           const counts = { read: 0, write: 0 };
           for (const f of p.features) {
@@ -138,7 +154,14 @@ export default function AccessMatrix({
                   )}
                   {areas.map((area) => (
                     <div key={area}>
-                      <h4 className="mb-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{area}</h4>
+                      <div className="mb-1 flex flex-wrap items-center gap-2">
+                        <h4 className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{area} <span className="font-normal normal-case">({shown.filter((f) => f.area === area).filter(granted).length} of {p.features.filter((f) => f.area === area).length})</span></h4>
+                        {!isDirector && (
+                          <span className="flex gap-1" role="group" aria-label={`Quick choice for ${area}`}>
+                            {([["none", "None"], ["read", "All read"], ["write", "All write"]] as const).map(([m, l]) => <button key={m} type="button" onClick={() => setArea(p, area, m)} className="rounded-md border border-border/60 px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-muted">{l}</button>)}
+                          </span>
+                        )}
+                      </div>
                       <ul className="divide-y divide-border/40 rounded-xl border border-border/40">
                         {shown.filter((f) => f.area === area).map((f) => {
                           const forced = baseline.has(f.key) && Boolean(effective[p.key]?.[f.key]) && !picked[p.key]?.[f.key];
@@ -151,6 +174,7 @@ export default function AccessMatrix({
                               <div className="min-w-0 flex-1">
                                 <p className="flex items-center gap-1.5 text-sm font-medium">
                                   {f.label}
+                                  {f.scope === "all" && <Badge variant="outline" className="text-[10px]">Everyone&apos;s, not only own</Badge>}
                                   {baselineLocked && <Badge variant="secondary" className="gap-1 text-[10px]"><Lock className="size-3" aria-hidden />Included</Badge>}
                                 </p>
                                 {f.description && <p className="text-xs text-muted-foreground">{f.description}</p>}

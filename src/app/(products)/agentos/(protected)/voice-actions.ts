@@ -20,7 +20,7 @@ import { finishVoiceCall, getVoiceCall, refreshVoiceCall, startVoiceCall, type S
 type Fail = { ok: false; error: string };
 type Ok<T> = { ok: true } & T;
 
-async function run<T extends object>(permission: AibotsPermission | null, fn: (v: AibotsViewer) => Promise<T>, opts: { write?: boolean } = {}): Promise<Ok<T> | Fail> {
+async function run<T extends object>(permission: string | null, fn: (v: AibotsViewer) => Promise<T>, opts: { write?: boolean } = {}): Promise<Ok<T> | Fail> {
   let v: AibotsViewer;
   try {
     v = await requireViewer();
@@ -52,7 +52,7 @@ export interface VoiceOptions {
 export async function loadVoiceOptionsAction(): Promise<Ok<VoiceOptions> | Fail> {
   const v = await requireViewer().catch(() => null);
   if (!v) return { ok: false, error: "Your session has expired — please sign in again." };
-  if (!can(v, "EDIT_BOT") && !can(v, "CREATE_BOT")) return { ok: false, error: "You don't have permission to do that." };
+  if (!can(v, "agents.edit") && !can(v, "agents.create")) return { ok: false, error: "You don't have permission to do that." };
   const client = await workspaceAgentClient();
   if (!client) return { ok: true, configured: false, voices: [], languages: [] };
   try {
@@ -64,7 +64,7 @@ export async function loadVoiceOptionsAction(): Promise<Ok<VoiceOptions> | Fail>
 }
 
 export async function retryVoiceSyncAction(botId: string) {
-  return run("EDIT_BOT", async (v) => {
+  return run("agents.edit", async (v) => {
     const bot = await getBot(botId);
     if (!bot || bot.kind !== "voice") throw new NotFoundError();
     const res = await syncVoiceAgent(botId);
@@ -76,18 +76,18 @@ export async function retryVoiceSyncAction(botId: string) {
 
 /** Mints a signed URL for one call. Refused unless the viewer may use the agent. */
 export async function startVoiceCallAction(botId: string): Promise<Ok<StartedCall> | Fail> {
-  return run(null, (v) => startVoiceCall(v, botId), { write: true });
+  return run("agents.use", (v) => startVoiceCall(v, botId), { write: true });
 }
 
 /** After the call ends: stores the transcript and counts the minutes. May be called again while ElevenLabs is still processing. */
 export async function finishVoiceCallAction(chatId: string, conversationId: string): Promise<Ok<{ call: VoiceCallView }> | Fail> {
-  return run(null, async (v) => ({ call: await finishVoiceCall(v, chatId, conversationId) }));
+  return run("agents.use", async (v) => ({ call: await finishVoiceCall(v, chatId, conversationId) }));
 }
 
 export async function loadVoiceCallAction(chatId: string): Promise<Ok<{ call: VoiceCallView }> | Fail> {
-  return run(null, async (v) => ({ call: await getVoiceCall(v, chatId) }));
+  return run("agents.use", async (v) => ({ call: await getVoiceCall(v, chatId) }));
 }
 
 export async function refreshVoiceCallAction(chatId: string): Promise<Ok<{ call: VoiceCallView }> | Fail> {
-  return run(null, async (v) => ({ call: await refreshVoiceCall(v, chatId) }));
+  return run("agents.use", async (v) => ({ call: await refreshVoiceCall(v, chatId) }));
 }

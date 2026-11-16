@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/cybervault/gate";
 import { redirect } from "next/navigation";
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,8 @@ import { SCOPE_OPTIONS, STATUS_OPTIONS, queryFrom, visibleClientOptions, type Se
 export default async function DocumentVaultPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/cybervault/login");
+  const locked = lockedUnless(viewer, "documents.view", "Document Vault");
+  if (locked) return locked;
   const sp = await searchParams;
   const [rows, ui, clients] = await Promise.all([listDocuments(viewer, queryFrom(sp)), buildVaultUi(viewer), visibleClientOptions(viewer)]);
   const fields: FilterField[] = [
@@ -24,7 +27,7 @@ export default async function DocumentVaultPage({ searchParams }: { searchParams
     { key: "expiry", label: "Expiry", type: "select", options: EXPIRY_FILTERS, allLabel: "Any" },
     { key: "status", label: "Status", type: "select", options: STATUS_OPTIONS, allLabel: "Active" },
   ];
-  const canAdd = ui.manageDocs && (ui.writeCompany || ui.clients.length > 0);
+  const canAdd = ui.types.document.create && (ui.writeCompany || ui.clients.length > 0);
   return (
     <div className="space-y-4">
       <PageHeader

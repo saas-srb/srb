@@ -7,7 +7,6 @@ import { companySiteUrl } from "@/lib/platform/tenancy/site-url";
 import { getCurrentSeoUser } from "@/lib/seo-auth";
 import { signOutThisDevice } from "@/lib/security/sessions";
 import { notifyGoogleIndexing } from "@/lib/google-indexing";
-import type { SeoPermission } from "@/lib/seo-roles";
 import { requireViewer, can, ForbiddenError, SeoInputError, type SeoViewer } from "@/lib/products/rankmax-ai/viewer";
 import { recordAudit, diffSummary } from "@/lib/products/rankmax-ai/audit";
 import { markSeoNotificationsRead, notifySeoUsers } from "@/lib/products/rankmax-ai/notifications";
@@ -37,7 +36,7 @@ type Fail = { ok: false; error: string };
 type Ok<T = object> = { ok: true } & T;
 const SESSION_EXPIRED: Fail = { ok: false, error: "Your session has expired — please sign in again." };
 
-async function run<T extends object>(permission: SeoPermission | SeoPermission[], fn: (v: SeoViewer) => Promise<T>): Promise<Ok<T> | Fail> {
+async function run<T extends object>(permission: string | string[], fn: (v: SeoViewer) => Promise<T>): Promise<Ok<T> | Fail> {
   let v: SeoViewer;
   try {
     v = await requireViewer();
@@ -79,7 +78,7 @@ export async function markNotificationsReadAction(ids?: string[]) {
 // ── Pages / on-page ───────────────────────────────────────────────────────
 
 export async function addPageAction(path: string) {
-  return run("CREATE", async (v) => {
+  return run("pages.create", async (v) => {
     const page = await addManualPage(s(path), v.userId);
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "create", entity: "page", entityId: page._id, entityLabel: page.path, path: page.path, summary: "Added to the page inventory" });
     return { id: page._id };
@@ -87,7 +86,7 @@ export async function addPageAction(path: string) {
 }
 
 export async function deletePageAction(id: string) {
-  return run("DELETE", async (v) => {
+  return run("pages.delete", async (v) => {
     const page = await deletePage(s(id, 60));
     if (!page) throw new SeoInputError("Page not found.");
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "delete", entity: "page", entityId: page._id, entityLabel: page.path, path: page.path, summary: page.override ? "Removed, including its live metadata override" : "Removed from inventory" });
@@ -97,7 +96,7 @@ export async function deletePageAction(id: string) {
 
 /** Saves the live metadata override + focus keywords for a page. Empty fields fall back to the page's own code. */
 export async function savePageSeoAction(id: string, input: Record<string, unknown>) {
-  return run("MANAGE_ON_PAGE_SEO", async (v) => {
+  return run("onpage.manage", async (v) => {
     const override = cleanOverride(input);
     const focusKeyword = s(input.focusKeyword, 120).trim();
     const secondaryKeywords = s(input.secondaryKeywords, 1000).split(",").map((k) => k.trim()).filter(Boolean).slice(0, 20);
@@ -123,7 +122,7 @@ export async function savePageSeoAction(id: string, input: Record<string, unknow
 }
 
 export async function saveSitemapSettingsAction(id: string, input: Record<string, unknown>) {
-  return run("MANAGE_SITEMAP", async (v) => {
+  return run("sitemap.manage", async (v) => {
     const sitemap = cleanSitemapOverride(input);
     const { before, after } = await savePageSeo(s(id, 60), { sitemap }, v.userId);
     await recordAudit({
@@ -142,7 +141,7 @@ export async function saveSitemapSettingsAction(id: string, input: Record<string
 
 /** Google Indexing API notice (officially supported for JobPosting / livestream pages; Google may ignore others). */
 export async function requestIndexingAction(id: string) {
-  return run("MANAGE_TECHNICAL_SEO", async (v) => {
+  return run("technical.manage", async (v) => {
     const page = await getPage(s(id, 60));
     if (!page) throw new SeoInputError("Page not found.");
     const res = await notifyGoogleIndexing(`${await companySiteUrl()}${page.path === "/" ? "" : page.path}`, "URL_UPDATED");
@@ -155,7 +154,7 @@ export async function requestIndexingAction(id: string) {
 // ── Issues ────────────────────────────────────────────────────────────────
 
 export async function updateIssueAction(id: string, input: { status?: string; assigneeId?: string | null; notes?: string }) {
-  return run("EDIT", async (v) => {
+  return run("issues.edit", async (v) => {
     const patch: { status?: IssueStatus; assigneeId?: string | null; notes?: string } = {};
     if (input.status !== undefined) {
       if (!(ISSUE_STATUSES as readonly string[]).includes(input.status)) throw new SeoInputError("Unknown status.");
@@ -175,7 +174,7 @@ export async function updateIssueAction(id: string, input: { status?: string; as
 }
 
 export async function bulkIssueStatusAction(ids: string[], status: string) {
-  return run("EDIT", async (v) => {
+  return run("issues.edit", async (v) => {
     if (!(ISSUE_STATUSES as readonly string[]).includes(status)) throw new SeoInputError("Unknown status.");
     let n = 0;
     for (const id of ids.slice(0, 500)) {
@@ -188,7 +187,7 @@ export async function bulkIssueStatusAction(ids: string[], status: string) {
 }
 
 export async function createIssueAction(input: Record<string, unknown>) {
-  return run("CREATE", async (v) => {
+  return run("issues.create", async (v) => {
     const title = s(input.title, 200).trim();
     const path = s(input.path, 500).trim() || "/";
     if (!title) throw new SeoInputError("Title is required.");
@@ -219,7 +218,7 @@ function taskInput(input: Record<string, unknown>): TaskInput {
 }
 
 export async function createTaskAction(input: Record<string, unknown>) {
-  return run("MANAGE_TASKS", async (v) => {
+  return run("tasks.manage", async (v) => {
     const data = taskInput(input);
     if (!v.isManagerTier && data.assigneeId && data.assigneeId !== v.userId) throw new SeoInputError("Only an SEO manager can assign a task to someone else.");
     const task = await createTask(data, v.userId);
@@ -230,7 +229,7 @@ export async function createTaskAction(input: Record<string, unknown>) {
 }
 
 export async function createTaskFromIssueAction(issueId: string, input: Record<string, unknown>) {
-  return run("MANAGE_TASKS", async (v) => {
+  return run("tasks.manage", async (v) => {
     const issue = await getIssue(s(issueId, 60));
     if (!issue) throw new SeoInputError("Issue not found.");
     const data = taskInput({ ...input, issueId: issue._id, url: issue.path, type: input.type || taskTypeForCheck(issue.checkId), title: input.title || `${issue.title} — ${issue.path}`, description: input.description || `${issue.description}\n\nRecommendation: ${issue.recommendation}${issue.details.length ? `\n\nDetails:\n- ${issue.details.join("\n- ")}` : ""}` });
@@ -244,7 +243,7 @@ export async function createTaskFromIssueAction(issueId: string, input: Record<s
 }
 
 export async function updateTaskAction(id: string, input: Record<string, unknown>) {
-  return run("MANAGE_TASKS", async (v) => {
+  return run("tasks.manage", async (v) => {
     const { before, after } = await updateTask(s(id, 60), taskInput(input), v);
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "update", entity: "task", entityId: before._id, entityLabel: `${before.code} ${after.title}`, path: after.url, summary: diffSummary({ ...before }, { ...after }, ["title", "type", "priority", "status", "assigneeId", "dueDate", "url"]) });
     if (after.assigneeId && after.assigneeId !== before.assigneeId && after.assigneeId !== v.userId) await notifySeoUsers([after.assigneeId], { type: "seo_task_assigned", title: `${after.code}: ${after.title}`, link: `/rankmax-ai/tasks/${after._id}` });
@@ -253,7 +252,7 @@ export async function updateTaskAction(id: string, input: Record<string, unknown
 }
 
 export async function setTaskStatusAction(id: string, status: string) {
-  return run("MANAGE_TASKS", async (v) => {
+  return run("tasks.manage", async (v) => {
     if (!(status in TASK_STATUSES)) throw new SeoInputError("Unknown status.");
     const { before, after } = await setTaskStatus(s(id, 60), status as TaskStatus, v);
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "status", entity: "task", entityId: before._id, entityLabel: `${before.code} ${before.title}`, path: before.url, summary: `status: ${before.status} → ${after.status}` });
@@ -264,7 +263,7 @@ export async function setTaskStatusAction(id: string, status: string) {
 }
 
 export async function addTaskCommentAction(id: string, text: string) {
-  return run("MANAGE_TASKS", async (v) => {
+  return run("tasks.manage", async (v) => {
     const task = await addTaskComment(s(id, 60), s(text, 2000), v);
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "comment", entity: "task", entityId: task._id, entityLabel: `${task.code} ${task.title}`, path: task.url, summary: s(text, 140) });
     const watchers = [task.createdBy, task.assigneeId].filter((x): x is string => !!x && x !== v.userId);
@@ -274,7 +273,7 @@ export async function addTaskCommentAction(id: string, text: string) {
 }
 
 export async function deleteTaskAction(id: string) {
-  return run("DELETE", async (v) => {
+  return run("tasks.delete", async (v) => {
     const t = await deleteTask(s(id, 60));
     if (!t) throw new SeoInputError("Task not found.");
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "delete", entity: "task", entityId: t._id, entityLabel: `${t.code} ${t.title}`, path: t.url });
@@ -311,7 +310,7 @@ function keywordInput(input: Record<string, unknown>): KeywordInput {
 }
 
 export async function saveKeywordAction(id: string | null, input: Record<string, unknown>) {
-  return run("MANAGE_KEYWORDS", async (v) => {
+  return run("keywords.manage", async (v) => {
     const defaults = (await getSettings()).defaults;
     if (id) {
       const { before, after } = await updateKeyword(s(id, 60), keywordInput(input), defaults, v.userId);
@@ -325,7 +324,7 @@ export async function saveKeywordAction(id: string | null, input: Record<string,
 }
 
 export async function deleteKeywordAction(id: string) {
-  return run("DELETE", async (v) => {
+  return run("keywords.delete", async (v) => {
     const kw = await deleteKeyword(s(id, 60));
     if (!kw) throw new SeoInputError("Keyword not found.");
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "delete", entity: "keyword", entityId: kw._id, entityLabel: kw.keyword, summary: "Deleted with its ranking history" });
@@ -334,7 +333,7 @@ export async function deleteKeywordAction(id: string) {
 }
 
 export async function importKeywordsAction(csv: string, source: string) {
-  return run("MANAGE_KEYWORDS", async (v) => {
+  return run("keywords.manage", async (v) => {
     if (csv.length > 2_000_000) throw new SeoInputError("File is too large (max 2 MB).");
     const res = await importKeywords(csv, (await getSettings()).defaults, s(source, 60).trim() || "import", v.userId);
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "import", entity: "keyword", entityId: "import", entityLabel: `CSV (${s(source, 60) || "import"})`, summary: `${res.created} created, ${res.updated} updated, ${res.failed} failed` });
@@ -343,7 +342,7 @@ export async function importKeywordsAction(csv: string, source: string) {
 }
 
 export async function saveGroupAction(id: string | null, input: Record<string, unknown>) {
-  return run("MANAGE_KEYWORDS", async (v) => {
+  return run("keywords.manage", async (v) => {
     const g = await upsertGroup(id ? s(id, 60) : null, { name: s(input.name, 80), description: s(input.description, 500), color: s(input.color, 7) }, v.userId);
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: id ? "update" : "create", entity: "keyword_group", entityId: g._id, entityLabel: g.name });
     return { id: g._id };
@@ -351,8 +350,8 @@ export async function saveGroupAction(id: string | null, input: Record<string, u
 }
 
 export async function deleteGroupAction(id: string) {
-  return run(["DELETE", "MANAGE_KEYWORDS"], async (v) => {
-    if (!can(v, "DELETE")) throw new ForbiddenError("DELETE");
+  return run(["keywords.delete", "keywords.manage"], async (v) => {
+    if (!can(v, "keywords.delete")) throw new ForbiddenError("keywords.delete");
     const g = await deleteGroup(s(id, 60));
     if (!g) throw new SeoInputError("Group not found.");
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "delete", entity: "keyword_group", entityId: g._id, entityLabel: g.name, summary: "Its keywords were ungrouped" });
@@ -361,7 +360,7 @@ export async function deleteGroupAction(id: string) {
 }
 
 export async function recordPositionAction(keywordId: string, input: { date: string; position: string; url: string }) {
-  return run("MANAGE_RANKINGS", async (v) => {
+  return run("rankings.manage", async (v) => {
     const kw = await recordManualPosition(s(keywordId, 60), { date: s(input.date, 10), position: s(input.position, 12), url: s(input.url, 500) });
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "create", entity: "ranking", entityId: kw._id, entityLabel: kw.keyword, summary: `${s(input.date, 10)}: position ${s(input.position, 12) || "not ranking"}` });
     return {};
@@ -369,7 +368,7 @@ export async function recordPositionAction(keywordId: string, input: { date: str
 }
 
 export async function importRankingsAction(csv: string) {
-  return run("MANAGE_RANKINGS", async (v) => {
+  return run("rankings.manage", async (v) => {
     if (csv.length > 4_000_000) throw new SeoInputError("File is too large (max 4 MB).");
     const res = await importRankings(csv);
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "import", entity: "ranking", entityId: "import", entityLabel: "Rank CSV", summary: `${res.imported} rows for ${res.keywords} keywords, ${res.failed} failed` });
@@ -380,7 +379,7 @@ export async function importRankingsAction(csv: string) {
 // ── Backlinks ─────────────────────────────────────────────────────────────
 
 export async function saveBacklinkAction(id: string | null, input: Record<string, unknown>) {
-  return run("MANAGE_BACKLINKS", async (v) => {
+  return run("backlinks.manage", async (v) => {
     if (id) {
       const { before, after } = await updateBacklink(s(id, 60), { anchor: s(input.anchor, 300), rel: s(input.rel, 20), domainRating: input.domainRating, notes: s(input.notes, 2000), targetUrl: s(input.targetUrl, 500) }, v.userId);
       await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "update", entity: "backlink", entityId: before._id, entityLabel: before.sourceUrl, path: after.targetPath, summary: diffSummary({ ...before }, { ...after }, ["anchor", "rel", "domainRating", "targetPath"]) });
@@ -393,7 +392,7 @@ export async function saveBacklinkAction(id: string | null, input: Record<string
 }
 
 export async function deleteBacklinkAction(id: string) {
-  return run("DELETE", async (v) => {
+  return run("backlinks.delete", async (v) => {
     const b = await deleteBacklink(s(id, 60));
     if (!b) throw new SeoInputError("Backlink not found.");
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "delete", entity: "backlink", entityId: b._id, entityLabel: b.sourceUrl, path: b.targetPath });
@@ -402,7 +401,7 @@ export async function deleteBacklinkAction(id: string) {
 }
 
 export async function importBacklinksAction(csv: string, source: string) {
-  return run("MANAGE_BACKLINKS", async (v) => {
+  return run("backlinks.manage", async (v) => {
     if (csv.length > 4_000_000) throw new SeoInputError("File is too large (max 4 MB).");
     const res = await importBacklinks(csv, s(source, 60).trim() || "import", v.userId);
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "import", entity: "backlink", entityId: "import", entityLabel: `CSV (${s(source, 60) || "import"})`, summary: `${res.created} created, ${res.updated} updated, ${res.failed} failed` });
@@ -413,7 +412,7 @@ export async function importBacklinksAction(csv: string, source: string) {
 // ── Competitors ───────────────────────────────────────────────────────────
 
 export async function saveCompetitorAction(id: string | null, input: Record<string, unknown>) {
-  return run("MANAGE_COMPETITORS", async (v) => {
+  return run("competitors.manage", async (v) => {
     const metrics = Object.fromEntries(["organicKeywords", "rankingKeywords", "organicTraffic", "backlinks", "referringDomains", "domainRating", "source", "asOf"].map((k) => [k, input[k]]));
     const hasMetrics = Object.values(metrics).some((x) => x !== undefined && x !== "");
     const { before, after } = await upsertCompetitor(id ? s(id, 60) : null, { name: s(input.name, 100), domain: s(input.domain, 200), color: s(input.color, 7), notes: s(input.notes, 2000), metrics: hasMetrics || id ? metrics : undefined, topPages: s(input.topPages, 20000) }, v.userId);
@@ -423,7 +422,7 @@ export async function saveCompetitorAction(id: string | null, input: Record<stri
 }
 
 export async function deleteCompetitorAction(id: string) {
-  return run("DELETE", async (v) => {
+  return run("competitors.delete", async (v) => {
     const c = await deleteCompetitor(s(id, 60));
     if (!c) throw new SeoInputError("Competitor not found.");
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "delete", entity: "competitor", entityId: c._id, entityLabel: `${c.name} (${c.domain})` });
@@ -432,7 +431,7 @@ export async function deleteCompetitorAction(id: string) {
 }
 
 export async function importCompetitorRankingsAction(id: string, csv: string, source: string) {
-  return run("MANAGE_COMPETITORS", async (v) => {
+  return run("competitors.manage", async (v) => {
     if (csv.length > 4_000_000) throw new SeoInputError("File is too large (max 4 MB).");
     const res = await importCompetitorRankings(s(id, 60), csv, s(source, 60).trim() || "import");
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "import", entity: "competitor", entityId: s(id, 60), entityLabel: "Competitor positions CSV", summary: `${res.imported} rows` });
@@ -441,7 +440,7 @@ export async function importCompetitorRankingsAction(id: string, csv: string, so
 }
 
 export async function recordCompetitorPositionAction(id: string, input: Record<string, unknown>) {
-  return run("MANAGE_COMPETITORS", async (v) => {
+  return run("competitors.manage", async (v) => {
     await recordCompetitorPosition(s(id, 60), { keyword: s(input.keyword, 200), position: s(input.position, 12), url: s(input.url, 500), date: s(input.date, 10) });
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "create", entity: "competitor", entityId: s(id, 60), entityLabel: s(input.keyword, 200), summary: `Position ${s(input.position, 12) || "not ranking"}` });
     return {};
@@ -451,7 +450,7 @@ export async function recordCompetitorPositionAction(id: string, input: Record<s
 // ── Schema ────────────────────────────────────────────────────────────────
 
 export async function saveSchemaAction(id: string | null, input: Record<string, unknown>) {
-  return run("MANAGE_SCHEMA", async (v) => {
+  return run("schema.manage", async (v) => {
     const { before, after } = await saveSchema(id ? s(id, 60) : null, { name: s(input.name, 120), type: s(input.type, 40), path: s(input.path, 500), source: s(input.source, 100_000) }, v.userId);
     await recordAudit({
       actorId: v.userId,
@@ -468,7 +467,7 @@ export async function saveSchemaAction(id: string | null, input: Record<string, 
 }
 
 export async function setSchemaStatusAction(id: string, status: string) {
-  return run("MANAGE_SCHEMA", async (v) => {
+  return run("schema.manage", async (v) => {
     if (!["published", "draft", "disabled"].includes(status)) throw new SeoInputError("Unknown status.");
     const sc = await setSchemaStatus(s(id, 60), status as "published" | "draft" | "disabled", v.userId);
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: status === "published" ? "publish" : "unpublish", entity: "schema", entityId: sc._id, entityLabel: sc.name, path: sc.path === "*" ? null : sc.path, summary: `${sc.type} → ${status}` });
@@ -477,7 +476,7 @@ export async function setSchemaStatusAction(id: string, status: string) {
 }
 
 export async function deleteSchemaAction(id: string) {
-  return run("DELETE", async (v) => {
+  return run("schema.delete", async (v) => {
     const sc = await deleteSchema(s(id, 60));
     if (!sc) throw new SeoInputError("Schema not found.");
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "delete", entity: "schema", entityId: sc._id, entityLabel: sc.name, path: sc.path === "*" ? null : sc.path, summary: sc.status === "published" ? "Removed from the live site" : undefined });
@@ -488,7 +487,7 @@ export async function deleteSchemaAction(id: string) {
 // ── Robots.txt ────────────────────────────────────────────────────────────
 
 export async function publishRobotsAction(content: string | null, opts: { confirmBlockAll?: boolean; note?: string }) {
-  return run("MANAGE_ROBOTS", async (v) => {
+  return run("robots.manage", async (v) => {
     const res = await publishRobots(content === null ? null : s(content, 600_000), { actorId: v.userId, actorEmail: v.email, confirmBlockAll: !!opts.confirmBlockAll, note: s(opts.note, 200) });
     await recordAudit({
       actorId: v.userId,
@@ -508,7 +507,7 @@ export async function publishRobotsAction(content: string | null, opts: { confir
 // ── Settings & integrations ───────────────────────────────────────────────
 
 export async function saveSettingsAction(input: Record<string, unknown>) {
-  return run("MANAGE_INTEGRATIONS", async (v) => {
+  return run("settings.manage", async (v) => {
     const cur = await getSettings();
     const n = (x: unknown, min: number, max: number, fallback: number) => {
       const val = Number(x);
@@ -578,7 +577,7 @@ export async function saveSettingsAction(input: Record<string, unknown>) {
 }
 
 export async function testIntegrationAction(which: "gsc" | "ga4") {
-  return run("MANAGE_INTEGRATIONS", async (v) => {
+  return run("settings.manage", async (v) => {
     const res = which === "gsc" ? await testSearchConsole() : await testAnalytics();
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "verify", entity: "integration", entityId: which, entityLabel: which === "gsc" ? "Search Console" : "Google Analytics", summary: res.message });
     return { success: res.ok, message: res.message };
@@ -586,7 +585,7 @@ export async function testIntegrationAction(which: "gsc" | "ga4") {
 }
 
 export async function submitSitemapAction(url: string) {
-  return run("MANAGE_SITEMAP", async (v) => {
+  return run("sitemap.manage", async (v) => {
     await submitSitemap(s(url, 1000)).catch((err) => {
       throw new SeoInputError(err instanceof Error ? err.message : "Submission failed.");
     });

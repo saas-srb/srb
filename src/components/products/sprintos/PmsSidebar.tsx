@@ -1,6 +1,6 @@
 "use client";
 
-import LockedNavItem from "@/components/products/common/LockedNavItem";
+import NavGroup from "@/components/products/common/NavGroup";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -76,13 +76,6 @@ function NavLink({
   );
 }
 
-function SectionLabel({ children, collapsed }: { children: React.ReactNode; collapsed?: boolean }) {
-  if (collapsed) return <div className="mt-4 mb-1 border-t border-border/50" />;
-  return (
-    <div className="mt-4 mb-1 px-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{children}</div>
-  );
-}
-
 export default function PmsSidebar({
   roles,
   permissionOverrides,
@@ -98,7 +91,7 @@ export default function PmsSidebar({
 }) {
   const roleCtx = { roles, permissionOverrides };
   const nav = (props: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean ; locked?: boolean }) => (
-    (props.locked ? <LockedNavItem label={props.label} icon={props.icon} collapsed={collapsed} product="sprintos" onNavigate={onNavigate} /> : <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />)
+    (props.locked ? null : <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />)
   );
   const isStaff = hasPmsStaffRole(roles);
 
@@ -108,22 +101,27 @@ export default function PmsSidebar({
     <nav className="flex h-full flex-col gap-1 p-3">
       {nav({ href: "/sprintos", label: "Dashboard", icon: LayoutDashboard, exact: true, locked: !staff })}
 
-      <SectionLabel collapsed={collapsed}>Delivery</SectionLabel>
-      {nav({ href: "/sprintos/projects", label: "Projects", icon: FolderKanban, locked: !staff })}
-      {nav({ href: "/sprintos/clients", label: "Clients", icon: Building2, locked: !staff })}
-      {nav({ href: "/sprintos/calendar", label: "Calendar", icon: CalendarDays, locked: !staff })}
+      <NavGroup collapsed={collapsed} label="Delivery">
+        {nav({ href: "/sprintos/projects", label: "Projects", icon: FolderKanban, locked: !staff })}
+        {nav({ href: "/sprintos/clients", label: "Clients", icon: Building2, locked: !staff })}
+        {nav({ href: "/sprintos/calendar", label: "Calendar", icon: CalendarDays, locked: !staff })}
 
-      <SectionLabel collapsed={collapsed}>Timesheets & Tracking</SectionLabel>
-      {nav({ href: "/sprintos/timesheets", label: "Timesheet", icon: Clock, locked: !(staff && canReviewTimesheets(roleCtx)) })}
+      </NavGroup>
+      <NavGroup collapsed={collapsed} label="Timesheets & Tracking">
+        {nav({ href: "/sprintos/timesheets", label: "Timesheet", icon: Clock, locked: !(staff && canReviewTimesheets(roleCtx)) })}
 
-      <SectionLabel collapsed={collapsed}>Governance</SectionLabel>
-      {nav({ href: "/sprintos/analytics", label: "Analytics", icon: BarChart3, locked: !staff })}
+      </NavGroup>
+      <NavGroup collapsed={collapsed} label="Governance">
+        {nav({ href: "/sprintos/analytics", label: "Analytics", icon: BarChart3, locked: !staff })}
 
-      <SectionLabel collapsed={collapsed}>Me</SectionLabel>
-      {nav({ href: "/sprintos/me", label: "My Dashboard", icon: CircleUser, exact: true })}
-      {nav({ href: "/sprintos/me/projects", label: "My Projects", icon: FolderKanban })}
-      {nav({ href: "/sprintos/me/tasks", label: "My Tasks", icon: CheckSquare })}
-      {nav({ href: "/sprintos/me/timesheet", label: "My Timesheet", icon: Clock })}
+      </NavGroup>
+      <NavGroup collapsed={collapsed} label="Me">
+        {nav({ href: "/sprintos/me", label: "My Dashboard", icon: CircleUser, exact: true })}
+        {nav({ href: "/sprintos/me/projects", label: "My Projects", icon: FolderKanban })}
+        {nav({ href: "/sprintos/me/tasks", label: "My Tasks", icon: CheckSquare })}
+        {nav({ href: "/sprintos/me/timesheet", label: "My Timesheet", icon: Clock })}
+    
+      </NavGroup>
     </nav>
   );
 }

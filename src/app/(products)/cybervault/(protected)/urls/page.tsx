@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/cybervault/gate";
 import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,8 @@ import { SCOPE_OPTIONS, STATUS_OPTIONS, queryFrom, visibleClientOptions, type Se
 export default async function UrlsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/cybervault/login");
+  const locked = lockedUnless(viewer, "urls.view", "URLs & Accounts");
+  if (locked) return locked;
   const sp = await searchParams;
   const [rows, ui, clients, creds] = await Promise.all([listLinks(viewer, queryFrom(sp)), buildVaultUi(viewer), visibleClientOptions(viewer), credentialOptions(viewer)]);
   const fields: FilterField[] = [
@@ -24,7 +27,7 @@ export default async function UrlsPage({ searchParams }: { searchParams: Promise
     { key: "expiry", label: "Expiry", type: "select", options: EXPIRY_FILTERS, allLabel: "Any" },
     { key: "status", label: "Status", type: "select", options: STATUS_OPTIONS, allLabel: "Active" },
   ];
-  const canAdd = ui.create && (ui.writeCompany || ui.clients.length > 0);
+  const canAdd = ui.types.link.create && (ui.writeCompany || ui.clients.length > 0);
   return (
     <div className="space-y-4">
       <PageHeader

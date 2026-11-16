@@ -52,7 +52,7 @@ const int = (v: unknown, min: number, max: number, what: string) => {
 
 /** Validates and stores the calling rules. Needs VOICE_CALL_MANAGE. */
 export async function saveCallSettings(viewer: AibotsViewer, raw: Record<string, unknown>): Promise<CallSettings> {
-  if (!can(viewer, "VOICE_CALL_MANAGE")) throw new ForbiddenError("VOICE_CALL_MANAGE");
+  if (!can(viewer, "calls.manage")) throw new ForbiddenError("calls.manage");
   const windowStart = String(raw.windowStart ?? "");
   const windowEnd = String(raw.windowEnd ?? "");
   if (!HHMM.test(windowStart) || !HHMM.test(windowEnd)) throw new AibotsInputError("Enter the calling hours as HH:MM, for example 09:00.");
@@ -136,7 +136,7 @@ export async function getPublicCallSettings(): Promise<PublicCallSettings> {
 
 /** Validates and stores the website-call limits. A field that isn't sent keeps its stored value. Needs VOICE_CALL_MANAGE. */
 export async function savePublicCallSettings(viewer: AibotsViewer, raw: Record<string, unknown>): Promise<PublicCallSettings> {
-  if (!can(viewer, "VOICE_CALL_MANAGE")) throw new ForbiddenError("VOICE_CALL_MANAGE");
+  if (!can(viewer, "calls.manage")) throw new ForbiddenError("calls.manage");
   const cur = await getPublicCallSettings();
   const L = PUBLIC_SETTING_LIMITS;
   const pick = <T,>(key: keyof PublicCallSettings, parse: (v: unknown) => T, current: T): T => (raw[key] === undefined ? current : parse(raw[key]));

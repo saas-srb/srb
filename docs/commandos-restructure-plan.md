@@ -89,9 +89,9 @@ Source: the owner's brief (pasted in chat on 2026-11-15). Every sentence of the 
 
 ## 5. Decisions (owner approved all audit proposals, 2026-11-15)
 
-1. D1: locked items are SHOWN greyed (visible) in the one shared Director shell; the server still refuses them.
+1. D1: ~~locked items are SHOWN greyed (visible) in the one shared Director shell; the server still refuses them.~~ **Superseded by the owner on 2026-11-17: what a person has no permission for is HIDDEN (not greyed, not locked); sections with nothing left disappear. The server still refuses a direct address, and that address shows the polite locked page with the request-access button.**
 2. D2: the matrix is the only way to grant access. Custom roles and "Add Product Roles" go away; existing roles are converted to matrix rows by an additive migration; legacy fields stay untouched.
-3. D3: self-service features (my tasks, leave, payslips, own profile, own notifications) are always on for everyone and sit outside the matrix.
+3. D3: ~~self-service features (my tasks, leave, payslips, own profile, own notifications) are always on for everyone and sit outside the matrix.~~ **Superseded by the owner on 2026-11-17: no separate "Me" sections or employee-only menus. A person uses the same real pages as the Director and the data follows their scope (own records with the "own" feature, everyone's with the "all" feature). The scope helper `scopeFor` is built (`src/lib/access/scope.ts`); converting each product's former Me pages is NOT finished, see `docs/people-access-v2-ledger.md`.**
 4. D4: finer feature rows for risky actions (publish, place calls, approve, reveal secret, own-versus-all scope), but exactly two levels: Read & Write, Read Only.
 5. D5: Huddle channel groups and SprintOS squads stay separate from organization Teams.
 6. D6: designations stop carrying role bundles (plain titles); existing bundles are converted to matrix rows during migration.

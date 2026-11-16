@@ -2,7 +2,7 @@ import "server-only";
 import { RECORD_TYPES, type RecordType } from "@/lib/products/cybervault/constants";
 import { countRecords, feedItems, type FeedItem, type RecordQuery } from "@/lib/products/cybervault/records";
 import { recentActivity, type AuditLog } from "@/lib/products/cybervault/audit";
-import { can, type DlmsViewer } from "@/lib/products/cybervault/viewer";
+import { can, canType, type DlmsViewer } from "@/lib/products/cybervault/viewer";
 
 /** Dashboard + Expiry board aggregations. Every number goes through the same scope filter as the lists. */
 
@@ -15,8 +15,10 @@ export interface OverviewFilters {
   status?: string;
 }
 
-function typesFor(f: OverviewFilters): RecordType[] {
-  return (RECORD_TYPES as readonly string[]).includes(f.type ?? "") ? [f.type as RecordType] : [...RECORD_TYPES];
+function typesFor(f: OverviewFilters, viewer: DlmsViewer): RecordType[] {
+  const all = (RECORD_TYPES as readonly string[]).includes(f.type ?? "") ? [f.type as RecordType] : [...RECORD_TYPES];
+  // Only the record types the person may see: the others are not even queried.
+  return all.filter((t) => canType(viewer, t, "view"));
 }
 
 function queryOf(f: OverviewFilters): RecordQuery {
@@ -35,7 +37,7 @@ export interface DashboardData {
 }
 
 export async function getDashboard(viewer: DlmsViewer, f: OverviewFilters): Promise<DashboardData> {
-  const types = typesFor(f);
+  const types = typesFor(f, viewer);
   const q = queryOf(f);
   // Totals respect every filter; the two ownership tiles are simply the company / client halves.
   const wantCompany = f.scope !== "client" && !f.clientId;
@@ -62,7 +64,7 @@ export async function getDashboard(viewer: DlmsViewer, f: OverviewFilters): Prom
   const exp = (await Promise.all(withExpiry.map((t) => feedItems(viewer, t, expQ)))).flat().filter((i) => i.expiry === "expired" || i.expiry === "expiring");
   exp.sort((a, b) => (a.expiryDate ?? "").localeCompare(b.expiryDate ?? ""));
 
-  const auditor = can(viewer, "VIEW_AUDIT");
+  const auditor = can(viewer, "dashboard.activity");
   const activity = await recentActivity({ limit: 8, ...(auditor ? {} : { actorId: viewer.userId }), ...(f.scope ? { scope: f.scope } : {}), ...(f.clientId ? { clientId: f.clientId } : {}) });
 
   return {
@@ -85,7 +87,7 @@ export interface ExpiryBoard {
 
 /** Everything with an expiry date (credentials, documents, URLs/accounts), grouped by urgency. */
 export async function getExpiryBoard(viewer: DlmsViewer, f: OverviewFilters): Promise<ExpiryBoard> {
-  const types = typesFor(f).filter((t) => t !== "note");
+  const types = typesFor(f, viewer).filter((t) => t !== "note");
   const items = (await Promise.all(types.map((t) => feedItems(viewer, t, { ...queryOf(f), expiry: f.expiry || "set", limit: 200, sort: "expiry" })))).flat();
   items.sort((a, b) => (a.expiryDate ?? "").localeCompare(b.expiryDate ?? ""));
   return {

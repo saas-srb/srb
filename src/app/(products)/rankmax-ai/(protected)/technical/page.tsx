@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -39,6 +40,8 @@ const TILES: { title: string; checks: CheckId[] }[] = [
 export default async function TechnicalPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "technical.view", "Technical SEO");
+  if (locked) return locked;
   const [pages, issues, robots, sitemaps] = await Promise.all([
     allPages(),
     (await seoCollection<SeoIssue>(COLLECTIONS.issues)).find({ status: { $in: ["open", "in_progress"] } }, { projection: { checkId: 1 } }).toArray(),
@@ -199,7 +202,7 @@ export default async function TechnicalPage() {
       <SectionCard
         title={<span className="flex items-center gap-2">Core Web Vitals <TrustBadge trust="measured" label="PageSpeed Insights" /></span>}
         description="Lab metrics (LCP, CLS, TBT) and Google's real-user category, tested against the public production URL"
-        action={can(viewer, "RUN_AUDIT") && psiCandidates.length > 0 && <JobButton body={{ job: "pagespeed", paths: psiCandidates }} label={`Test top ${psiCandidates.length} pages`} busyLabel="Testing… (≈20s per page)" icon={<Gauge className="size-3.5" data-icon="inline-start" />} successMessage="Tested {checked} page(s)" />}
+        action={can(viewer, "technical.pagespeed") && psiCandidates.length > 0 && <JobButton body={{ job: "pagespeed", paths: psiCandidates }} label={`Test top ${psiCandidates.length} pages`} busyLabel="Testing… (≈20s per page)" icon={<Gauge className="size-3.5" data-icon="inline-start" />} successMessage="Tested {checked} page(s)" />}
       >
         {tested.length === 0 ? <EmptyState title="No pages tested yet">Test pages here or from a page&apos;s detail view.</EmptyState> : (
           <div className="max-h-96 overflow-auto">

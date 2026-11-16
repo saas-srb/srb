@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
@@ -18,6 +19,8 @@ import { formatDateTime } from "@/lib/utils";
 export default async function TasksPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "tasks.view", "SEO Tasks");
+  if (locked) return locked;
   const sp = await searchParams;
   const status = sp.status ?? "open";
   const [list, stats, users] = await Promise.all([listTasks({ ...sp, status, page: Math.max(Number(sp.page) || 1, 1), pageSize: 40 }, viewer), taskStats(viewer.userId), listSeoUsers()]);
@@ -32,7 +35,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
         crumbs={[{ label: "SEO Tasks" }]}
         description={viewer.isManagerTier ? "The SEO team's work queue. Managers can assign and update every task." : "Your SEO work queue. You can update tasks assigned to or created by you."}
         actions={
-          can(viewer, "MANAGE_TASKS") && (
+          can(viewer, "tasks.manage") && (
             <EditDialog
               trigger={<Button size="sm"><Plus className="size-3.5" data-icon="inline-start" />New task</Button>}
               title="New SEO task"
@@ -94,7 +97,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
         page={list.page}
         totalPages={list.totalPages}
         total={list.total}
-        exportBase={can(viewer, "EXPORT_REPORTS") ? "/api/rankmax-ai/export/tasks" : undefined}
+        exportBase={can(viewer, "reports.export") ? "/api/rankmax-ai/export/tasks" : undefined}
       />
     </div>
   );

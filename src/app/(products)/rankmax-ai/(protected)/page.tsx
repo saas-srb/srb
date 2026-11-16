@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import PanelFilterBar from "@/components/platform/panel/PanelFilterBar";
 import Link from "next/link";
 import PanelDashboardHeader from "@/components/platform/panel/PanelDashboardHeader";
@@ -37,6 +38,8 @@ export default async function SeoDashboardPage({ searchParams }: { searchParams:
   const sp = await searchParams;
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "dashboard.view", "Dashboard");
+  if (locked) return locked;
   const [d, siteHost] = await Promise.all([getDashboard(viewer.userId, { q: sp.q }), companySiteHost()]);
   const sc = d.scores;
   const gsc = d.search.connected;
@@ -60,7 +63,7 @@ export default async function SeoDashboardPage({ searchParams }: { searchParams:
           </>
         }
         actions={
-          can(viewer, "RUN_AUDIT") && (
+          can(viewer, "audit.run") && (
             <JobButton endpoint="/api/rankmax-ai/audit" label="Run website audit" busyLabel="Auditing… (up to a few minutes)" icon={<ScanSearch className="size-3.5" data-icon="inline-start" />} variant="default" successMessage="Audit complete" />
           )
         }
@@ -72,7 +75,7 @@ export default async function SeoDashboardPage({ searchParams }: { searchParams:
         </Notice>
       )}
       {!gsc && (
-        <Link href={can(viewer, "MANAGE_INTEGRATIONS") ? "/rankmax-ai/settings#integrations" : "/rankmax-ai/overview"} className="flex items-center gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm transition-colors hover:bg-amber-500/15">
+        <Link href={can(viewer, "settings.manage") ? "/rankmax-ai/settings#integrations" : "/rankmax-ai/overview"} className="flex items-center gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm transition-colors hover:bg-amber-500/15">
           <PlugZap className="size-5 shrink-0 text-amber-600" />
           <span className="min-w-0 flex-1 text-amber-900 dark:text-amber-200">
             <strong>Google Search Console is not connected</strong>, so impressions, clicks, CTR, average position and organic keywords show “—” rather than a made-up number.

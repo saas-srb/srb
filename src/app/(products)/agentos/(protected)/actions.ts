@@ -28,7 +28,7 @@ type Ok<T = object> = { ok: true } & T;
 const SESSION_EXPIRED: Fail = { ok: false, error: "Your session has expired — please sign in again." };
 const DENIED: Fail = { ok: false, error: "You don't have permission to do that." };
 
-async function run<T extends object>(permission: AibotsPermission | null, fn: (v: AibotsViewer) => Promise<T>, opts: { revalidate?: boolean; readOnlySafe?: boolean } = {}): Promise<Ok<T> | Fail> {
+async function run<T extends object>(permission: string | null, fn: (v: AibotsViewer) => Promise<T>, opts: { revalidate?: boolean; readOnlySafe?: boolean } = {}): Promise<Ok<T> | Fail> {
   let v: AibotsViewer;
   try {
     v = await requireViewer();
@@ -77,7 +77,7 @@ async function notifyNewlyGranted(v: AibotsViewer, bot: { _id: string; name: str
 }
 
 export async function saveBotAction(botId: string | null, input: BotInput) {
-  return run(botId ? "EDIT_BOT" : "CREATE_BOT", async (v) => {
+  return run(botId ? "agents.edit" : "agents.create", async (v) => {
     if (botId) {
       const { before, after } = await updateBot(botId, input, v.userId);
       const flat = (b: typeof before) => ({ ...b, temperature: b.temperature ?? "default" });
@@ -98,7 +98,7 @@ export async function saveBotAction(botId: string | null, input: BotInput) {
 }
 
 export async function setBotStatusAction(botId: string, active: boolean) {
-  return run("EDIT_BOT", async (v) => {
+  return run("agents.edit", async (v) => {
     const bot = await setBotStatus(botId, active ? "active" : "inactive", v.userId);
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: active ? "activate" : "deactivate", entity: "bot", entityId: botId, entityLabel: bot.name, botId });
     return {};
@@ -106,7 +106,7 @@ export async function setBotStatusAction(botId: string, active: boolean) {
 }
 
 export async function deleteBotAction(botId: string) {
-  return run("DELETE_BOT", async (v) => {
+  return run("agents.delete", async (v) => {
     const bot = await deleteBot(botId, v.userId);
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "delete", entity: "bot", entityId: botId, entityLabel: bot.name, botId, summary: "Bot and its OpenAI knowledge base removed" });
     return {};
@@ -122,7 +122,7 @@ async function loadBot(botId: string) {
 }
 
 export async function updateFileMetaAction(botId: string, fileId: string, meta: { title: string; description: string; category: string }) {
-  return run("MANAGE_KB", async (v) => {
+  return run("knowledge.manage", async (v) => {
     const bot = await loadBot(botId);
     const before = await updateBotFileMeta(bot._id, fileId, meta, v.userId);
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "update", entity: "file", entityId: fileId, entityLabel: meta.title || before.title, botId, summary: `${bot.name}: details edited` });
@@ -131,7 +131,7 @@ export async function updateFileMetaAction(botId: string, fileId: string, meta: 
 }
 
 export async function setFileEnabledAction(botId: string, fileId: string, enabled: boolean) {
-  return run("MANAGE_KB", async (v) => {
+  return run("knowledge.manage", async (v) => {
     const bot = await loadBot(botId);
     const f = await setBotFileEnabled(bot, fileId, enabled, v.userId);
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: enabled ? "enable" : "disable", entity: "file", entityId: fileId, entityLabel: f.title, botId, summary: bot.name });
@@ -140,7 +140,7 @@ export async function setFileEnabledAction(botId: string, fileId: string, enable
 }
 
 export async function deleteFileAction(botId: string, fileId: string) {
-  return run("DELETE_FILES", async (v) => {
+  return run("knowledge.delete", async (v) => {
     const bot = await loadBot(botId);
     const f = await deleteBotFile(bot, fileId, v.userId);
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "delete", entity: "file", entityId: fileId, entityLabel: f.title, botId, summary: `${bot.name}: removed from OpenAI` });
@@ -151,14 +151,14 @@ export async function deleteFileAction(botId: string, fileId: string) {
 /** Read a knowledge file's indexed text. Anyone who can open the knowledge base may view it. */
 export async function viewFileAction(botId: string, fileId: string) {
   return run(null, async (v) => {
-    if (!can(v, "EDIT_BOT") && !can(v, "MANAGE_KB") && !can(v, "UPLOAD_FILES") && !can(v, "DELETE_FILES")) throw new ForbiddenError();
+    if (!can(v, "agents.edit") && !can(v, "knowledge.manage") && !can(v, "knowledge.upload") && !can(v, "knowledge.delete")) throw new ForbiddenError();
     return getBotFileText(await loadBot(botId), fileId);
   }, { revalidate: false, readOnlySafe: true });
 }
 
 export async function refreshFilesAction(botId: string) {
   return run(null, async (v) => {
-    if (!can(v, "EDIT_BOT") && !can(v, "MANAGE_KB") && !can(v, "UPLOAD_FILES")) throw new ForbiddenError();
+    if (!can(v, "agents.edit") && !can(v, "knowledge.manage") && !can(v, "knowledge.upload")) throw new ForbiddenError();
     await refreshProcessing(await loadBot(botId));
     return {};
   }, { readOnlySafe: true });
@@ -167,7 +167,7 @@ export async function refreshFilesAction(botId: string) {
 // ── Chats ──────────────────────────────────────────────────────────────────
 
 export async function renameChatAction(chatId: string, title: string) {
-  return run(null, async (v) => {
+  return run("agents.use", async (v) => {
     const chat = await renameChat(v, chatId, title);
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "rename", entity: "chat", entityId: chatId, entityLabel: title, botId: chat.botId });
     return {};
@@ -194,7 +194,7 @@ export async function deleteChatAction(chatId: string) {
 // ── Settings ───────────────────────────────────────────────────────────────
 
 export async function saveSettingsAction(input: Parameters<typeof saveSettings>[0]) {
-  return run("MANAGE_SETTINGS", async (v) => {
+  return run("settings.manage", async (v) => {
     await saveSettings(input, v.userId);
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "settings", entity: "settings", entityId: "main", entityLabel: "AI Bots settings", summary: `${input.models.length} models` });
     return {};

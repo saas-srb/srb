@@ -5,9 +5,8 @@ import { revalidatePath } from "next/cache";
 import { ObjectId } from "mongodb";
 import { getCurrentDlmsUser } from "@/lib/dlms-auth";
 import { signOutThisDevice } from "@/lib/security/sessions";
-import type { DlmsPermission } from "@/lib/dlms-roles";
 import { RECORD_TYPES, STATUSES, type RecordStatus, type RecordType } from "@/lib/products/cybervault/constants";
-import { requireViewer, can, DlmsInputError, ForbiddenError, type DlmsViewer } from "@/lib/products/cybervault/viewer";
+import { requireViewer, can, typeKey, DlmsInputError, ForbiddenError, type DlmsViewer } from "@/lib/products/cybervault/viewer";
 import { recordAudit } from "@/lib/products/cybervault/audit";
 import { markDlmsNotificationsRead, notifyDlmsUsers } from "@/lib/products/cybervault/notifications";
 import {
@@ -40,7 +39,7 @@ type Ok<T = object> = { ok: true } & T;
 const SESSION_EXPIRED: Fail = { ok: false, error: "Your session has expired — please sign in again." };
 const DENIED: Fail = { ok: false, error: "You don't have permission to do that." };
 
-async function run<T extends object>(permission: DlmsPermission, fn: (v: DlmsViewer) => Promise<T>, opts: { revalidate?: boolean } = {}): Promise<Ok<T> | Fail> {
+async function run<T extends object>(permission: string, fn: (v: DlmsViewer) => Promise<T>, opts: { revalidate?: boolean } = {}): Promise<Ok<T> | Fail> {
   let v: DlmsViewer;
   try {
     v = await requireViewer();
@@ -48,7 +47,7 @@ async function run<T extends object>(permission: DlmsPermission, fn: (v: DlmsVie
     return SESSION_EXPIRED;
   }
   if (!can(v, permission)) return DENIED;
-  if (permission !== "REVEAL") {
+  if (permission !== "credentials.reveal") {
     const readOnly = await writeBlockReason();
     if (readOnly) return { ok: false, error: readOnly };
   }
@@ -85,7 +84,7 @@ export async function markNotificationsReadAction(ids?: string[]) {
 
 export async function saveCredentialAction(id: string | null, input: Record<string, unknown>) {
   const data = asInput(input);
-  return run(id ? "EDIT" : "CREATE", async (v) => {
+  return run(id ? "credentials.edit" : "credentials.create", async (v) => {
     if (id) {
       await updateCredential(v, String(id), data);
       return { id: String(id) };
@@ -96,7 +95,7 @@ export async function saveCredentialAction(id: string | null, input: Record<stri
 
 /** Returns the plaintext password to the one caller that asked, after the permission + scope + audit checks. */
 export async function revealCredentialAction(id: string, purpose: "reveal" | "copy"): Promise<{ ok: true; secret: string } | Fail> {
-  const res = await run("REVEAL", async (v) => ({ secret: await revealCredential(v, String(id), purpose === "copy" ? "copy" : "reveal") }), { revalidate: false });
+  const res = await run("credentials.reveal", async (v) => ({ secret: await revealCredential(v, String(id), purpose === "copy" ? "copy" : "reveal") }), { revalidate: false });
   return res as { ok: true; secret: string } | Fail;
 }
 
@@ -106,7 +105,7 @@ const inputFrom = (fd: FormData): Record<string, unknown> => Object.fromEntries(
 
 /** Edits a document's details. New documents and new versions upload through `/api/cybervault/documents` (bodies > 1 MB). */
 export async function saveDocumentAction(id: string, formData: FormData) {
-  return run("MANAGE_DOCUMENTS", async (v) => {
+  return run("documents.upload", async (v) => {
     await updateDocument(v, String(id), inputFrom(formData));
     return { id: String(id) };
   });
@@ -116,7 +115,7 @@ export async function saveDocumentAction(id: string, formData: FormData) {
 
 export async function saveLinkAction(id: string | null, input: Record<string, unknown>) {
   const data = asInput(input);
-  return run(id ? "EDIT" : "CREATE", async (v) => {
+  return run(id ? "urls.edit" : "urls.create", async (v) => {
     if (id) {
       await updateLink(v, String(id), data);
       return { id: String(id) };
@@ -127,7 +126,7 @@ export async function saveLinkAction(id: string | null, input: Record<string, un
 
 export async function saveNoteAction(id: string | null, input: Record<string, unknown>) {
   const data = asInput(input);
-  return run(id ? "EDIT" : "CREATE", async (v) => {
+  return run(id ? "notes.edit" : "notes.create", async (v) => {
     if (id) {
       await updateNote(v, String(id), data);
       return { id: String(id) };
@@ -140,7 +139,7 @@ export async function saveNoteAction(id: string | null, input: Record<string, un
 
 export async function setStatusAction(type: string, id: string, status: string) {
   if (!isType(type) || !(STATUSES as readonly string[]).includes(status)) return { ok: false as const, error: "Invalid request." };
-  return run("EDIT", async (v) => {
+  return run(typeKey(type, "edit"), async (v) => {
     await setRecordStatus(v, type, String(id), status as RecordStatus);
     return {};
   });
@@ -148,7 +147,7 @@ export async function setStatusAction(type: string, id: string, status: string) 
 
 export async function deleteRecordAction(type: string, id: string) {
   if (!isType(type)) return { ok: false as const, error: "Invalid request." };
-  return run("DELETE", async (v) => {
+  return run(typeKey(type, "delete"), async (v) => {
     await deleteRecord(v, type, String(id));
     return {};
   });
@@ -158,7 +157,7 @@ export async function deleteRecordAction(type: string, id: string) {
 
 export async function saveAccessAction(userId: string, input: { companyAccess: boolean; clientIds: string[] }) {
   const clientIds = Array.isArray(input?.clientIds) ? input.clientIds.filter((x): x is string => typeof x === "string") : [];
-  return run("MANAGE_ACCESS", async (v) => {
+  return run("settings.assign", async (v) => {
     const { added } = await setAccess(String(userId), { companyAccess: Boolean(input?.companyAccess), clientIds }, v.userId);
     await recordAudit({
       actorId: v.userId,
@@ -178,7 +177,7 @@ export async function saveAccessAction(userId: string, input: { companyAccess: b
 }
 
 export async function saveSettingsAction(input: { warnDays: number; alertsEnabled: boolean }) {
-  return run("MANAGE_SETTINGS", async (v) => {
+  return run("settings.alerts", async (v) => {
     await saveSettings({ warnDays: Number(input?.warnDays) || 30, alertsEnabled: Boolean(input?.alertsEnabled) }, v.userId);
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "settings", entity: "settings", entityId: "main", entityLabel: "CyberVault settings", summary: `Expiry warning window ${Number(input?.warnDays) || 30} days; alerts ${input?.alertsEnabled ? "on" : "off"}` });
     return {};

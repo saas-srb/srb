@@ -64,7 +64,7 @@ export async function liveSetupAction(): Promise<ActionResult<{ setup: Conferenc
   return runCallAction({}, async (v) => ({ ok: true as const, setup: await getConferenceSetup(v) }));
 }
 export async function confirmLiveSetupStepAction(step: "voiceUrl" | "agentAudio", done: boolean): Promise<ActionResult<object>> {
-  return runCallAction({ write: true, permission: "VOICE_CALL_MANAGE" }, async (v) => {
+  return runCallAction({ write: true, permission: "calls.manage" }, async (v) => {
     await confirmSetupStep(v, step, Boolean(done));
     return { ok: true as const };
   });

@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/agentos/gate";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ChevronLeft, ChevronRight, Phone } from "lucide-react";
@@ -34,13 +35,15 @@ const EMPTY: Record<string, { title: string; text: string }> = {
 export default async function CallsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/agentos/login");
+  const locked = lockedUnless(viewer, "calls.view", "Calls");
+  if (locked) return locked;
   const sp = await searchParams;
   const filters = parseMergedFilters(sp);
   await reconcileMyPendingCalls(viewer);
   const active = await listActiveCalls(viewer).catch(() => []);
   const timeZone = await companyTimeZone().catch(() => null);
-  const isManager = can(viewer, "VOICE_CALL_MANAGE");
-  const canWatchLive = can(viewer, "VOICE_CALL_TAKEOVER");
+  const isManager = can(viewer, "calls.manage");
+  const canWatchLive = can(viewer, "calls.takeover");
 
   let list: MergedCallList | null = null;
   try {

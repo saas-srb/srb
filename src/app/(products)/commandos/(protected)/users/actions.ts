@@ -1,5 +1,6 @@
 "use server";
 
+import { limitAction } from "@/lib/security/action-limit";
 import { isDirector } from "@/lib/access/director";
 import { checkSeatUsage } from "@/lib/notify/triggers/usage";
 import { countSeatsUsed } from "@/lib/platform/billing/enforce";
@@ -144,4 +145,31 @@ export async function resolveAccessRequestAction(id: string, status: "granted" |
   const r = await resolveAccessRequest(String(id ?? ""), status, actor.id);
   if (r.ok) revalidate();
   return r.ok ? { ok: true } : { ok: false, error: "That request was already handled." };
+}
+
+// ── Bulk access, copy access and access templates (there are no role presets) ────────────────────────────────────────────────────────────────────
+import { bulkSetAccess, deleteTemplate, listTemplates, saveTemplate, type AccessTemplate, type BulkResult, type BulkSource, type TemplateResult } from "@/lib/products/commandos/access-bundles";
+
+export async function bulkAccessAction(ids: string[], source: BulkSource, mode: "replace" | "add"): Promise<BulkResult> {
+  const actor = await requireWorkspaceAction("company.users");
+  const slow = await limitAction(actor.id, "bulk-access", 30, 600);
+  if (slow) return { changed: 0, skipped: 0, failed: 1, rows: [{ id: "", ok: false, error: slow }] };
+  const res = await bulkSetAccess(Array.isArray(ids) ? ids : [], source, mode === "replace" ? "replace" : "add", { id: actor.id, email: actor.email, roles: actor.roles });
+  revalidate();
+  return res;
+}
+
+export async function listTemplatesAction(): Promise<AccessTemplate[]> {
+  await requireWorkspaceAction("company.users");
+  return listTemplates();
+}
+
+export async function saveTemplateAction(input: { id?: string; name: string; description?: string; access: unknown }): Promise<TemplateResult> {
+  const actor = await requireWorkspaceAction("company.users");
+  return saveTemplate(input, actor.id);
+}
+
+export async function deleteTemplateAction(id: string): Promise<{ ok: boolean; error?: string }> {
+  const actor = await requireWorkspaceAction("company.users");
+  return deleteTemplate(String(id ?? ""), actor.id);
 }

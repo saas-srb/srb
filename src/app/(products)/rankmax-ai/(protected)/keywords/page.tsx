@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import PanelTabs from "@/components/platform/panel/PanelTabs";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -29,12 +30,14 @@ const KIND_LABEL = { duplicate_target: "Same keyword, different targets", shared
 export default async function KeywordsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "keywords.view", "Keywords");
+  if (locked) return locked;
   const sp = await searchParams;
   const tab = TABS.some(([k]) => k === sp.tab) ? sp.tab! : "keywords";
   const [settings, groups, users] = await Promise.all([getSettings(), listGroups(), listSeoUsers()]);
   const groupOpts = groups.map((g) => ({ value: g._id, label: g.name }));
   const userOpts = users.map((u) => ({ value: u.id, label: u.label }));
-  const canManage = can(viewer, "MANAGE_KEYWORDS");
+  const canManage = can(viewer, "keywords.manage");
 
   return (
     <div className="space-y-4">
@@ -72,8 +75,8 @@ export default async function KeywordsPage({ searchParams }: { searchParams: Pro
 
       <PanelTabs active={tab} tabs={TABS.map(([k, label]) => ({ key: k, label, href: `/rankmax-ai/keywords?tab=${k}` }))} />
 
-      {tab === "keywords" && <KeywordList sp={sp} groups={groups} users={userOpts} canExport={can(viewer, "EXPORT_REPORTS")} />}
-      {tab === "groups" && <Groups groups={groups} canManage={canManage} canDelete={can(viewer, "DELETE")} />}
+      {tab === "keywords" && <KeywordList sp={sp} groups={groups} users={userOpts} canExport={can(viewer, "reports.export")} />}
+      {tab === "groups" && <Groups groups={groups} canManage={canManage} canDelete={can(viewer, "keywords.delete")} />}
       {tab === "cannibalization" && <Cannibalization />}
     </div>
   );

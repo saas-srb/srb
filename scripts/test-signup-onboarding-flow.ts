@@ -32,6 +32,11 @@ import { getOnboarding, markOnboardingStep, skipOnboarding } from "@/lib/platfor
 import { ONBOARDING_STEPS } from "@/lib/platform/onboarding/catalog";
 import { ONBOARDING_PATH, WORKSPACE_HOME, isOnboardingOwner, postLoginTarget, setupIsOpen, showSetupStrip, type SetupFacts } from "@/lib/platform/onboarding/gate";
 import { getDb } from "@/lib/mongodb";
+import { setOpenAIForTests } from "@/lib/openai";
+
+// The sign-up writes an AI website in the background. A fake provider answers instead of OpenAI, so the test never needs a key (the website then
+// fails softly, which is exactly what sign-up must survive).
+setOpenAIForTests({ responses: { create: async () => { throw new Error("fake AI provider: no generation in tests"); } }, chat: { completions: { create: async () => { throw new Error("fake AI provider: no generation in tests"); } } } } as never);
 
 const uri = process.env.MONGODB_URI ?? "";
 const dbName = uri.split("/").pop()?.split("?")[0] ?? "";
@@ -76,10 +81,11 @@ async function run() {
   await setSignupMode("open", "test");
 
   console.log("sign-up form");
-  await check("the sign-up form asks only for company, address, owner name, e-mail, password and terms - no setup steps", () => {
+  await check("the sign-up form asks only for company, address, business type, e-mail, password and terms - no setup steps", () => {
     const form = fs.readFileSync(path.join(process.cwd(), "src/app/(platform)/signup/SignupForm.tsx"), "utf8");
     const names = [...form.matchAll(/name="([A-Za-z]+)"/g)].map((m) => m[1]).sort();
-    assert.deepEqual(names, ["acceptTerms", "companyName", "email", "name", "password", "slug"]);
+    // The business category and sub-category are asked at sign-up (they decide the starter website); the chosen plan travels as two hidden fields; there is still no setup wizard in the form.
+    assert.deepEqual(names, ["acceptTerms", "businessCategory", "businessSubCategory", "companyName", "email", "interval", "password", "plan", "slug"]);
     assert.ok(!/useState\(\s*(0|1)\s*\)[^\n]*step/i.test(form) && !/\bstep\b/i.test(form.replace(/\/\/.*$/gm, "")), "no multi-step flow in the form");
   });
 
@@ -90,7 +96,7 @@ async function run() {
     assert.ok(started.ok && started.kind === "created", JSON.stringify(started));
     assert.equal(await db.collection("pending_signups").countDocuments({ email: "fiona@fresh.test" }), 0, "no pending sign-up / confirmation step in open mode");
     const url = new URL(started.redirectTo);
-    assert.equal(url.host, "freshco.localhost:3000");
+    assert.equal(url.host, "freshco-app.localhost:3000", "the workspace app host of the new company");
     assert.equal(url.pathname, "/commandos/handoff");
     const company = await db.collection(COMPANIES_COLLECTION).findOne({ slug: "freshco" });
     freshCompanyId = String(company!._id);
@@ -176,7 +182,7 @@ async function run() {
     assert.equal(setupIsOpen(f({ state: { completedAt: null, dismissedAt: done } })), false, "skipped: no login landing");
   });
   await check("no page redirect decision exists on /workspace: the dashboard and the gate module have none", () => {
-    const page = fs.readFileSync(path.join(process.cwd(), "src/app/commandos/(protected)/page.tsx"), "utf8");
+    const page = fs.readFileSync(path.join(process.cwd(), "src/app/(products)/commandos/(protected)/page.tsx"), "utf8");
     assert.ok(!page.includes("/commandos/onboarding"), "the dashboard has no onboarding redirect");
     assert.ok(!page.includes("onboardingGateTarget"));
     const gate = fs.readFileSync(path.join(process.cwd(), "src/lib/platform/onboarding/gate.ts"), "utf8");
@@ -205,10 +211,12 @@ async function run() {
   });
   await check("an invitation accepted in the new company makes a teammate who is not routed to onboarding", async () => {
     await db.collection(COMPANIES_COLLECTION).updateOne({ _id: freshCompanyId as never }, { $set: { "onboarding.completedSteps": [], "onboarding.completedAt": null, "onboarding.dismissedAt": null } });
+    // A sign-up starts on a one-person plan; give this scratch company an unlimited (internal) subscription so a teammate can be invited.
+    await db.collection(COMPANIES_COLLECTION).updateOne({ _id: freshCompanyId as never }, { $set: { "subscription.status": "internal" } });
     const owner = await db.collection("admin_users").findOne({ companyId: freshCompanyId as never, email: "fiona@fresh.test" });
     const invited = await runAsCompany(freshCompanyId, () => inviteTeammate({ email: "dev@fresh.test", name: "Dev", preset: "developer" }, { id: String(owner!._id), email: "fiona@fresh.test" }, "http://freshco.localhost:3000"));
     assert.ok(invited.ok, invited.ok ? "" : invited.error);
-    const token = linkIn(emailsTo("dev@fresh.test")[0], /workspace\/invite\?token=([a-f0-9]+)/);
+    const token = linkIn(emailsTo("dev@fresh.test")[0], /commandos\/invite\?token=([a-f0-9]+)/);
     assert.ok(token);
     const accepted = await runAsCompany(freshCompanyId, () => acceptInvitation(token, { name: "Dev", password: "another-long-password" }));
     assert.ok(accepted.ok, accepted.ok ? "" : accepted.error);
@@ -223,9 +231,9 @@ async function run() {
   await check("login and handoff use the landing rule; the wizard, settings and upgrade pages sit under /workspace; handoff and approval land in the Workspace", () => {
     const root = process.cwd();
     const read = (rel: string) => fs.readFileSync(path.join(root, rel), "utf8");
-    assert.ok(read("src/app/commandos/login/actions.ts").includes("loginLanding") && read("src/app/commandos/handoff/route.ts").includes("loginLanding"), "login and handoff share the one landing rule");
-    assert.ok(!read("src/app/commandos/(protected)/onboarding/page.tsx").includes('redirect("/commandos")') || read("src/app/commandos/(protected)/onboarding/page.tsx").includes("super_admin"), "the wizard only bounces non-owners");
-    assert.ok(fs.existsSync(path.join(root, "src/app/commandos/(protected)/onboarding/OnboardingWizard.tsx")));
+    assert.ok(read("src/app/(products)/commandos/login/actions.ts").includes("loginLanding") && read("src/app/(products)/commandos/handoff/route.ts").includes("loginLanding"), "login and handoff share the one landing rule");
+    assert.ok(!read("src/app/(products)/commandos/(protected)/onboarding/page.tsx").includes('redirect("/commandos")') || read("src/app/(products)/commandos/(protected)/onboarding/page.tsx").includes("super_admin"), "the wizard only bounces non-owners");
+    assert.ok(fs.existsSync(path.join(root, "src/app/(products)/commandos/(protected)/onboarding/OnboardingWizard.tsx")));
     assert.ok(!read("src/lib/platform/signup.ts").includes('next: "/onboarding"'));
     assert.ok(read("src/lib/platform/signup.ts").includes('next: "/commandos"'));
   });

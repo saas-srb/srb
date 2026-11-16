@@ -162,12 +162,12 @@ async function existingCallInfo(found: Promise<CallDoc | null>, viewer?: AibotsV
   const c = await found;
   if (!c) return null;
   const mine = Boolean(viewer && c.initiatedBy?.userId === viewer.userId);
-  const oversee = Boolean(viewer && (can(viewer, "VOICE_CALL_TAKEOVER") || can(viewer, "VOICE_CALL_MANAGE")));
+  const oversee = Boolean(viewer && (can(viewer, "calls.takeover") || can(viewer, "calls.manage")));
   const live = c.status === "dialing" || c.status === "in_progress";
   return {
     id: c._id, agentName: (await getBot(c.agentId))?.name ?? "Deleted agent", purpose: c.purpose, status: c.status,
     at: (c.status === "scheduled" ? c.scheduledFor ?? c.createdAt : c.dialedAt ?? c.createdAt).toISOString(), startedBy: c.initiatedBy?.email ?? null,
-    mine, canEnd: live && (mine || oversee), canCancel: c.status === "scheduled" && (mine || Boolean(viewer && can(viewer, "VOICE_CALL_MANAGE"))), canLive: live && (mine || oversee), testMode: c.testMode === true,
+    mine, canEnd: live && (mine || oversee), canCancel: c.status === "scheduled" && (mine || Boolean(viewer && can(viewer, "calls.manage"))), canLive: live && (mine || oversee), testMode: c.testMode === true,
   };
 }
 

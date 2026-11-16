@@ -109,16 +109,16 @@ export async function botsCollection() {
 /** The access gate for chatting with a bot. Editors can use every bot (they need to test them). */
 export function canUseBot(viewer: AibotsViewer, bot: Pick<BotDoc, "access" | "status" | "deletedAt">): boolean {
   if (bot.deletedAt) return false;
-  if (can(viewer, "EDIT_BOT")) return true;
-  if (!can(viewer, "USE_BOT") || bot.status !== "active") return false;
+  if (can(viewer, "agents.edit")) return true;
+  if (!can(viewer, "agents.use") || bot.status !== "active") return false;
   if (bot.access.mode === "all") return true;
   return bot.access.userIds.includes(viewer.userId) || bot.access.roles.some((r) => viewer.roles.includes(r));
 }
 
 /** Mongo filter matching the ACTIVE bots a viewer may chat with. The sidebar and the bot picker go through this. */
 function usableFilter(viewer: AibotsViewer): Record<string, unknown> {
-  if (can(viewer, "EDIT_BOT")) return { ...notDeleted, status: "active" };
-  if (!can(viewer, "USE_BOT")) return { _id: "__none__" };
+  if (can(viewer, "agents.edit")) return { ...notDeleted, status: "active" };
+  if (!can(viewer, "agents.use")) return { _id: "__none__" };
   return {
     ...notDeleted,
     status: "active",
@@ -130,6 +130,13 @@ export async function listUsableBots(viewer: AibotsViewer): Promise<BotSummary[]
   const col = await botsCollection();
   const rows = await col.find(usableFilter(viewer)).sort({ name: 1 }).limit(500).toArray();
   return rows.map(toSummary);
+}
+
+/** The active agents a viewer may SEE in the hub (the read-only level: seeing an agent never lets the person chat with it). */
+export function viewableAgentsFilter(viewer: AibotsViewer): Record<string, unknown> {
+  if (can(viewer, "agents.edit")) return { ...notDeleted, status: "active" };
+  if (!can(viewer, "agents.view")) return { _id: "__none__" };
+  return { ...notDeleted, status: "active", $or: [{ "access.mode": "all" }, { "access.userIds": viewer.userId }, { "access.roles": { $in: viewer.roles } }] };
 }
 
 /** The ACTIVE agents a viewer may use (optionally one kind), as a Mongo filter. Shared by the Hub, the sidebar and the picker. */
@@ -198,7 +205,7 @@ export async function generalBot(): Promise<BotDoc> {
  * returns the general assistant.
  */
 export async function getChatBot(viewer: AibotsViewer, botId: string): Promise<BotDoc | null> {
-  if (botId === GENERAL_BOT_ID) return can(viewer, "USE_BOT") || can(viewer, "EDIT_BOT") ? generalBot() : null;
+  if (botId === GENERAL_BOT_ID) return can(viewer, "agents.use") || can(viewer, "agents.edit") ? generalBot() : null;
   const bot = await getBot(botId);
   return bot && canUseBot(viewer, bot) ? bot : null;
 }

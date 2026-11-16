@@ -20,7 +20,6 @@ export default function HubProfileMenu({
   return (
     <UnifiedProfileMenu
       email={email}
-      roleLabel="Director"
       roles={roles}
       createdAt={new Date().toISOString()}
       lastLoginAt={lastLoginAt}

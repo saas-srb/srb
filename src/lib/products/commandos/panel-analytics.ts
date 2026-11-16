@@ -662,7 +662,7 @@ const DLMS_COLLECTION_OF: Record<DlmsRecordType, string> = {
 
 export async function getDlmsAnalytics(filters?: PanelAnalyticsFilters) {
   const ctx = { roles: COMPANY_ROLES, permissionOverrides: null };
-  const viewer: DlmsViewer = { userId: COMPANY_VIEWER_ID, email: "", roles: COMPANY_ROLES, overrides: {}, ctx, seesAll: true, companyAccess: true, clientIds: [] };
+  const viewer: DlmsViewer = { userId: COMPANY_VIEWER_ID, email: "", roles: COMPANY_ROLES, overrides: {}, ctx, subject: { isDirector: true }, seesAll: true, companyAccess: true, clientIds: [] };
   const count = async (type: DlmsRecordType, q: DlmsRecordQuery) => (await soft(() => countDlmsRecords(viewer, type, q))) ?? 0;
   const period = periodOf(filters);
   const dated = DLMS_RECORD_TYPES.filter((t) => t !== "note"); // notes have no expiry date
@@ -766,7 +766,7 @@ export async function getOtsAnalytics(filters?: PanelAnalyticsFilters) {
 export type AibotsAnalytics = Awaited<ReturnType<typeof getAibotsAnalytics>>;
 
 export async function getAibotsAnalytics(_filters?: PanelAnalyticsFilters) {
-  const viewer: AibotsViewer = { userId: COMPANY_VIEWER_ID, email: "", roles: COMPANY_ROLES, ctx: { roles: COMPANY_ROLES, permissionOverrides: null }, seesAll: true };
+  const viewer: AibotsViewer = { userId: COMPANY_VIEWER_ID, email: "", roles: COMPANY_ROLES, ctx: { roles: COMPANY_ROLES, permissionOverrides: null }, subject: { isDirector: true }, seesAll: true };
   const d = await soft(() => getAibotsDashboard(viewer));
   const runs = d?.runs30 ?? 0;
   const failed = d?.failed30 ?? 0;

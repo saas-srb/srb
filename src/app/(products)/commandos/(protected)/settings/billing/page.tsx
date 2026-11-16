@@ -1,3 +1,5 @@
+import { getCompanyIdentity } from "@/lib/platform/company-identity";
+import { billingDetailsFromIdentity } from "@/lib/platform/billing/company-details-prefill";
 import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import type { Metadata } from "next";
@@ -111,6 +113,7 @@ export default async function BillingSettingsPage() {
       ? { planId: sub.pendingChange.planId, planName: pendingPlan?.name ?? sub.pendingChange.planId, interval: sub.pendingChange.interval, effectiveAt: sub.pendingChange.effectiveAt?.toISOString() ?? null }
       : null,
     billingDetails: sub.billingDetails ?? null,
+    companyDetails: billingDetailsFromIdentity(await getCompanyIdentity()),
     blockDowngrade: downgradeGuarded(entitlements.status),
     autopay: Boolean(sub.provider?.subscriptionId),
     lastPayment: sub.lastPayment ? { amount: sub.lastPayment.amount, currency: sub.lastPayment.currency, at: sub.lastPayment.at.toISOString() } : null,

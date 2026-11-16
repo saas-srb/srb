@@ -1,10 +1,8 @@
 /** Client-safe description of what the current viewer may do — computed on the server (`lib/cybervault/ui.ts`), used to show/hide controls. The server re-checks everything. */
 export interface VaultUi {
-  create: boolean;
-  edit: boolean;
-  del: boolean;
+  /** Per record type (credential, document, link, note): what the person may do. For documents, create and edit mean upload. */
+  types: Record<"credential" | "document" | "link" | "note", { view: boolean; create: boolean; edit: boolean; del: boolean }>;
   reveal: boolean;
-  manageDocs: boolean;
   download: boolean;
   writeCompany: boolean;
   /** Client ids the viewer may write to, or "all". */

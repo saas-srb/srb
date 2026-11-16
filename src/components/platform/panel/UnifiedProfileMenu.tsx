@@ -15,11 +15,14 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { usePersonTitle } from "@/lib/platform/organization/use-title";
 
 export interface UnifiedProfileMenuProps {
   email?: string;
   name?: string;
+  /** Only used with `fixedTitle`: words for a menu that is not for a company person (Platform Console, Client Portal). */
   roleLabel?: string;
+  fixedTitle?: boolean;
   roles?: string[];
   createdAt?: string;
   lastLoginAt?: string | null;
@@ -50,8 +53,9 @@ const MENU = [
 export default function UnifiedProfileMenu({
   email = "",
   name,
-  roleLabel = "Administrator",
-  roles = ["admin"],
+  roleLabel,
+  roles = [],
+  fixedTitle = false,
   createdAt,
   lastLoginAt = null,
   profileHref = "/commandos/settings",
@@ -69,16 +73,10 @@ export default function UnifiedProfileMenu({
   const displayName = name || nameFromEmail(email);
   const initials = initialsFor(email);
 
-  const isSuperAdmin =
-    !roleLabel ||
-    roleLabel === "Workspace User" ||
-    roleLabel.toLowerCase().includes("super") ||
-    roleLabel.toLowerCase().includes("admin") ||
-    roles?.some((r) =>
-      ["super_admin", "admin", "owner", "user"].includes(String(r).toLowerCase()) ||
-      String(r).toLowerCase().includes("admin")
-    );
-  const finalRoleLabel = isSuperAdmin ? "Director" : (roleLabel || "Director");
+  // The title is the person's designation from the organization service, the same in every product. Only a menu that is not for a company person
+  // (the Platform Console, the Client Portal) passes its own fixed words.
+  const person = usePersonTitle();
+  const finalRoleLabel = roleLabel && fixedTitle ? roleLabel : person.title;
 
   const handleLogout = () => {
     if (onLogout) {

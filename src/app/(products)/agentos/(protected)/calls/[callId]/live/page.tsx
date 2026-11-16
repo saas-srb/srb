@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/agentos/gate";
 import { notFound, redirect } from "next/navigation";
 import LiveConsole from "@/components/products/agentos/calls/LiveConsole";
 import { PageHeader } from "@/components/products/agentos/AibotsUi";
@@ -16,13 +17,15 @@ export const dynamic = "force-dynamic";
 export default async function LiveCallPage({ params }: { params: Promise<{ callId: string }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/agentos/login");
+  const locked = lockedUnless(viewer, "calls.view", "Calls");
+  if (locked) return locked;
   const { callId } = await params;
   const call = await loadWatchable(viewer, callId).catch(() => null);
   if (!call) notFound();
   const [initial, setup, botRow] = await Promise.all([getLiveView(viewer, call._id, 0), getConferenceSetup(viewer), (await botsCollection()).findOne({ _id: call.agentId })]);
   const bot = botRow ? toSummary(botRow) : null;
   const view = toView(call, viewer);
-  const canControl = view.mine || can(viewer, "VOICE_CALL_TAKEOVER");
+  const canControl = view.mine || can(viewer, "calls.takeover");
   return (
     <div className="space-y-4">
       <PageHeader title="Live call" crumbs={[{ label: "Calls", href: "/agentos/calls" }, { label: bot?.name ?? "Call" }]} description="Listen in, take over and hand back. Everything you do here is logged." />

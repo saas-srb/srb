@@ -1,7 +1,6 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextRequest, NextResponse } from "next/server";
 import { getViewer, can } from "@/lib/products/rankmax-ai/viewer";
-import type { SeoPermission } from "@/lib/seo-roles";
 import { recordAudit } from "@/lib/products/rankmax-ai/audit";
 import { syncSearchConsole, inspectIndexStatus } from "@/lib/products/rankmax-ai/integrations/gsc";
 import { syncAnalytics } from "@/lib/products/rankmax-ai/integrations/ga4";
@@ -20,15 +19,15 @@ import { companySiteUrl } from "@/lib/platform/tenancy/site-url";
  */
 export const maxDuration = 300;
 
-const JOBS: Record<string, { permission: SeoPermission; label: string; run: (body: Record<string, unknown>) => Promise<unknown> }> = {
-  "gsc-sync": { permission: "MANAGE_RANKINGS", label: "Search Console sync", run: () => syncSearchConsole() },
-  "ga4-sync": { permission: "MANAGE_RANKINGS", label: "Analytics sync", run: () => syncAnalytics() },
-  "index-status": { permission: "MANAGE_TECHNICAL_SEO", label: "Index status check", run: (b) => inspectIndexStatus(Array.isArray(b.paths) ? (b.paths as string[]).filter((p) => typeof p === "string") : []) },
-  pagespeed: { permission: "RUN_AUDIT", label: "PageSpeed check", run: (b) => runPageSpeed(Array.isArray(b.paths) ? (b.paths as string[]).filter((p) => typeof p === "string") : []) },
-  "verify-backlinks": { permission: "MANAGE_BACKLINKS", label: "Backlink verification", run: (b) => verifyBacklinks(Array.isArray(b.ids) ? (b.ids as string[]).filter((p) => typeof p === "string") : undefined) },
-  "competitor-sitemap": { permission: "MANAGE_COMPETITORS", label: "Competitor sitemap snapshot", run: (b) => snapshotCompetitorSitemap(String(b.id ?? "")) },
+const JOBS: Record<string, { permission: string; label: string; run: (body: Record<string, unknown>) => Promise<unknown> }> = {
+  "gsc-sync": { permission: "rankings.manage", label: "Search Console sync", run: () => syncSearchConsole() },
+  "ga4-sync": { permission: "rankings.manage", label: "Analytics sync", run: () => syncAnalytics() },
+  "index-status": { permission: "technical.manage", label: "Index status check", run: (b) => inspectIndexStatus(Array.isArray(b.paths) ? (b.paths as string[]).filter((p) => typeof p === "string") : []) },
+  pagespeed: { permission: "technical.pagespeed", label: "PageSpeed check", run: (b) => runPageSpeed(Array.isArray(b.paths) ? (b.paths as string[]).filter((p) => typeof p === "string") : []) },
+  "verify-backlinks": { permission: "backlinks.manage", label: "Backlink verification", run: (b) => verifyBacklinks(Array.isArray(b.ids) ? (b.ids as string[]).filter((p) => typeof p === "string") : undefined) },
+  "competitor-sitemap": { permission: "competitors.manage", label: "Competitor sitemap snapshot", run: (b) => snapshotCompetitorSitemap(String(b.id ?? "")) },
   "sitemap-discover": {
-    permission: "MANAGE_SITEMAP",
+    permission: "sitemap.manage",
     label: "Sitemap discovery",
     run: async () => {
       invalidateSite("/sitemap.xml");

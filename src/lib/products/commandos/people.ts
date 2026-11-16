@@ -7,6 +7,8 @@ import { CATALOGUE, PRODUCTS } from "@/lib/access/catalogue";
 import { completeWith, WORKSPACE_PRODUCT } from "@/lib/access/complete";
 import type { AccessMap } from "@/lib/access/types";
 import { buildAccessUi } from "@/lib/access/ui-model";
+import { microByKey, isFinished, microOf } from "@/lib/access/micro";
+import { withMicros } from "@/lib/access/micro/derive";
 import { summarizeAccess, productCount, type ProductSummary } from "@/lib/access/summary";
 import { listDepartments, listDesignations, listTeams } from "@/lib/platform/organization";
 import { inviteTeammate, type InvitedPerson } from "@/lib/platform/invitations";
@@ -26,7 +28,7 @@ import { cleanDetails, directorLockReason, hasAnyProduct, seatVerdict, validateD
  */
 
 const DIRECTOR = "super_admin";
-const label = (key: string) => CATALOGUE.find((e) => e.key === key)?.label ?? key;
+const label = (key: string) => CATALOGUE.find((e) => e.key === key)?.label ?? microByKey(key)?.label ?? key;
 
 export interface AccessCheck {
   /** The completed map that will be saved (picked features, product gates, baselines, Workspace baseline). */
@@ -52,7 +54,7 @@ export function checkAccess(input: unknown, opts: { isDirector?: boolean } = {})
   const derived = accessToLegacy(completed, { isDirector: opts.isDirector });
   const ui = buildAccessUi();
   const addedAutomatically: string[] = [];
-  for (const [p, m] of Object.entries(completed)) for (const k of Object.keys(m)) if (!picked[p]?.[k] && CATALOGUE.find((e) => e.key === k)?.kind !== "tier") addedAutomatically.push(label(k));
+  for (const [p, m] of Object.entries(completed)) for (const k of Object.keys(m)) if (!picked[p]?.[k] && CATALOGUE.find((e) => e.key === k)?.kind !== "tier" && !(isFinished(p) && CATALOGUE.some((e) => e.key === k))) addedAutomatically.push(label(k));
   const summary = summarizeAccess(completed, ui.products, opts.isDirector);
   const explanation: string[] = [];
   if (derived.widened.length) explanation.push(`These would also be allowed because older roles bundle them with what you picked: ${derived.widened.map(label).join(", ")}. Remove the related feature or choose a different level.`);
@@ -72,7 +74,8 @@ export function prefillFromLegacy(user: { roles: string[]; permissionOverrides?:
 }
 
 /** Keeps in `picked` the real features of products the person truly uses; access that is only the baseline another product brings is dropped. */
-export function splitPicked(access: AccessMap): AccessMap {
+export function splitPicked(input: AccessMap): AccessMap {
+  const access = withMicros(input);
   const real: AccessMap = {};
   const tiers: AccessMap = {};
   for (const e of CATALOGUE) {
@@ -92,6 +95,8 @@ export function splitPicked(access: AccessMap): AccessMap {
   const picked: AccessMap = {};
   for (const product of used) {
     const own = new Set(baselineFeatures(product));
+    // A finished product is picked in micro features (the legacy capabilities are derived from them).
+    if (isFinished(product)) { for (const m of microOf(product)) { const held = access[product]?.[m.key]; if (held) (picked[product] ??= {})[m.key] = held; } continue; }
     for (const k of Object.keys(real[product] ?? {})) (picked[product] ??= {})[k] = real[product][k];
     void own;
     for (const [k, v] of Object.entries(tiers[product] ?? {})) if (!/^[a-z]+\.has\w*Access$/.test(k)) (picked[product] ??= {})[k] = v;
@@ -167,7 +172,7 @@ export async function createPerson(draft: Partial<PersonDraft>, actor: { id: str
   const v = await validateDraft(draft);
   if (Object.keys(v.errors).length) return { ok: false, errors: v.errors, error: "Some details need fixing." };
   if (v.refusal || !v.check) return { ok: false, error: v.refusal ?? "This access cannot be saved." };
-  const blocked = await delegatedManagerBlock(actor, { roles: v.check.roles, overrides: Object.keys(v.check.overrides).length > 0 });
+  const blocked = await delegatedManagerBlock(actor, { roles: v.check.roles, overrides: Object.keys(v.check.overrides).length > 0, access: v.check.access });
   if (blocked) return { ok: false, error: blocked };
   const org = await orgLookup();
   const p = plan(v, org);
@@ -212,7 +217,7 @@ export async function updatePerson(id: string, draft: Partial<PersonDraft>, acto
   const lock = directorLockReason({ isDirector: targetIsDirector }, false);
   if (lock) return { ok: false, error: lock };
   if (!targetIsDirector && (v.refusal || !v.check)) return { ok: false, error: v.refusal ?? "This access cannot be saved." };
-  const blocked = await delegatedManagerBlock(actor, { targetId: id, roles: targetIsDirector ? undefined : v.check?.roles, overrides: targetIsDirector ? false : Object.keys(v.check?.overrides ?? {}).length > 0 });
+  const blocked = await delegatedManagerBlock(actor, { targetId: id, roles: targetIsDirector ? undefined : v.check?.roles, overrides: targetIsDirector ? false : Object.keys(v.check?.overrides ?? {}).length > 0, access: targetIsDirector ? undefined : v.check?.access });
   if (blocked) return { ok: false, error: blocked };
   const org = await orgLookup();
   const p = plan(v, org);

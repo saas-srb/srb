@@ -4,6 +4,7 @@ import { getDb } from "@/lib/mongodb";
 import { accessToLegacy, completeAccess, legacyToAccess } from "./adapter";
 import { normalizeAccess, type AccessSubject } from "./can";
 import type { AccessMap } from "./types";
+import { withMicros } from "./micro/derive";
 
 const PEOPLE = "admin_users";
 
@@ -30,7 +31,7 @@ export async function loadAccessSubject(userId: string): Promise<AccessSubject |
 
 export function subjectFromRow(row: { roles?: string[]; permissionOverrides?: Record<string, boolean> | null; access?: AccessMap | null }): AccessSubject {
   const isDirector = (row.roles ?? []).includes("super_admin");
-  if (row.access) return { isDirector, access: row.access };
+  if (row.access) return { isDirector, access: withMicros(row.access) };
   return legacyToAccess({ roles: row.roles ?? [], permissionOverrides: row.permissionOverrides ?? null });
 }
 

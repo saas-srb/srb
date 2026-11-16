@@ -18,7 +18,7 @@ async function run<T extends object>(fn: () => Promise<T>): Promise<Ok<T> | Fail
   let canEdit = false;
   try {
     const v = await requireViewer();
-    canEdit = can(v, "EDIT_BOT") || can(v, "CREATE_BOT");
+    canEdit = can(v, "agents.edit") || can(v, "agents.create");
   } catch {
     return { ok: false, error: "Your session has expired — please sign in again." };
   }

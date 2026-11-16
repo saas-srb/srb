@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Pencil } from "lucide-react";
@@ -19,13 +20,15 @@ import { formatDateTime } from "@/lib/utils";
 export default async function TaskDetail({ params }: { params: Promise<{ id: string }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "tasks.view", "SEO Tasks");
+  if (locked) return locked;
   const { id } = await params;
   const task = await getTask(id);
   if (!task) notFound();
   const [users, issue, page] = await Promise.all([listSeoUsers(), task.issueId ? getIssue(task.issueId) : null, task.url ? getPageByPath(task.url) : null]);
   const userOpts = users.map((u) => ({ value: u.id, label: u.label }));
   const name = (uid: string | null) => users.find((u) => u.id === uid)?.label ?? "—";
-  const canWork = can(viewer, "MANAGE_TASKS") && canWorkOnTask(viewer, task);
+  const canWork = can(viewer, "tasks.manage") && canWorkOnTask(viewer, task);
 
   return (
     <div className="space-y-4">
@@ -48,7 +51,7 @@ export default async function TaskDetail({ params }: { params: Promise<{ id: str
                 }}
               />
             )}
-            {can(viewer, "DELETE") && (
+            {can(viewer, "tasks.delete") && (
               <ActionButton action={async () => { "use server"; return deleteTaskAction(task._id); }} variant="ghost" redirectTo="/rankmax-ai/tasks" success="Task deleted" confirm={{ title: `Delete ${task.code}?`, description: "This can't be undone. Cancel the task instead to keep its history." }}>Delete</ActionButton>
             )}
           </>

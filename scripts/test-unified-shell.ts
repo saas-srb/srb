@@ -22,43 +22,39 @@ const flat = (n: ReturnType<typeof resolveNav>) => n.sections.flatMap((s) => s.i
 const keys = (n: ReturnType<typeof resolveNav>) => flat(n).map((i) => i.key);
 
 (async () => {
-  console.log("navigation: the Director's layout for everyone");
+  console.log("navigation: the Director's layout; what a person may not use is hidden (owner rule 2026-11-17)");
   const director = resolveNav(ctx(["super_admin"]));
   await T("the Director sees every item, none locked", () => {
     assert.ok(flat(director).length > 90);
     assert.deepEqual(flat(director).filter((i) => i.locked), []);
     assert.equal(director.lockedKeys.length, 0);
   });
-  await T("a person with no products sees the SAME items in the SAME order, with every product tile locked", () => {
+  await T("a person with no products sees only what they can open: no product tile, nothing greyed, nothing locked, and empty sections disappear", () => {
     const none = resolveNav(ctx([]));
-    assert.deepEqual(keys(none), keys(director), "same list and order");
-    assert.deepEqual(none.sections.map((s) => s.key), director.sections.map((s) => s.key), "same sections");
+    assert.deepEqual(flat(none).filter((i) => i.locked), [], "no item is shown locked");
     const products = flat(none).filter((i) => i.section === "panels" && i.key.startsWith("product."));
-    assert.ok(products.length >= 10);
-    // DealFlow follows the access matrix like every other product: no product tile is open to a person with no access.
-    assert.deepEqual(products.filter((i) => !i.locked).map((i) => i.key), []);
-    const open = flat(none).filter((i) => !i.locked).map((i) => i.key);
-    assert.ok(open.includes("dashboard"));
-    assert.ok(open.length < 10, `only a handful are open (${open.length})`);
-    for (const i of flat(none).filter((x) => x.locked)) assert.equal(i.href, lockedHref(i.key), `${i.key} opens the locked page`);
-    for (const i of flat(none).filter((x) => !x.locked)) assert.ok(!i.href.startsWith("/commandos/locked"), i.key);
+    assert.deepEqual(products.map((i) => i.key), [], "no product tile at all (DealFlow follows the matrix like every other product)");
+    assert.ok(keys(none).includes("dashboard"));
+    assert.ok(flat(none).length < 10, `only a handful are visible (${flat(none).length})`);
+    assert.ok(none.lockedKeys.length > 80, "the hidden ones are still known to the server, so a direct address can explain itself");
+    for (const s of none.sections) assert.ok(s.items.length > 0, `${s.key} has no empty heading`);
+    assert.ok(none.sections.length < director.sections.length, "sections with nothing to show are gone");
+    for (const i of flat(none)) assert.ok(!i.href.startsWith("/commandos/locked"), i.key);
   });
-  await T("partial access unlocks only the matching items", () => {
+  await T("partial access shows only the matching items, in the Director's order, with no lock anywhere", () => {
     const pms = resolveNav(ctx(["pms_manager"]));
-    const open = new Set(flat(pms).filter((i) => !i.locked).map((i) => i.key));
-    assert.ok(open.has("product.pms"), "SprintOS tile open");
-    assert.ok(!open.has("product.fms") && !open.has("product.hrms"), "the others stay locked");
-    assert.deepEqual(keys(pms), keys(director));
-    assert.ok(flat(pms).find((i) => i.key === "company.billing")!.locked, "company settings are the Director's");
+    const visible = new Set(keys(pms));
+    assert.ok(visible.has("product.pms"), "SprintOS tile visible");
+    assert.ok(!visible.has("product.fms") && !visible.has("product.hrms"), "the others are hidden, not greyed");
+    assert.ok(!visible.has("company.billing"), "company settings are the Director's");
+    const full = keys(director);
+    assert.deepEqual(keys(pms), full.filter((k) => visible.has(k)), "a subset of the Director's list, in the same order");
+    assert.deepEqual(flat(pms).filter((i) => i.locked), []);
   });
-  await T("the labels, order and icons are identical for open and locked items (only href and the lock differ)", () => {
-    const none = flat(resolveNav(ctx([])));
-    const full = flat(director);
-    for (let i = 0; i < full.length; i++) {
-      assert.equal(none[i].label, full[i].label);
-      assert.equal(none[i].icon, full[i].icon);
-      assert.equal(none[i].group, full[i].group);
-    }
+  await T("the labels, order and icons of what a person sees are the Director's", () => {
+    const some = flat(resolveNav(ctx(["pms_manager"])));
+    const full = new Map(flat(director).map((i) => [i.key, i]));
+    for (const i of some) { assert.equal(i.label, full.get(i.key)!.label); assert.equal(i.icon, full.get(i.key)!.icon); assert.equal(i.group, full.get(i.key)!.group); }
   });
   await T("products switched off by the plan are hidden for everyone, the Director included, and platform items need platform access", () => {
     const off = new Set(["pms", "tms"]);
@@ -66,7 +62,7 @@ const keys = (n: ReturnType<typeof resolveNav>) => flat(n).map((i) => i.key);
       const k = keys(resolveNav(ctx(roles, { unavailablePanels: off })));
       assert.ok(!k.includes("product.pms") && !k.includes("product.tms"), roles.join());
     }
-    assert.deepEqual(keys(resolveNav(ctx(["super_admin"], { unavailablePanels: off }))), keys(resolveNav(ctx([], { unavailablePanels: off }))), "hidden items are the same for everyone");
+    assert.ok(!keys(resolveNav(ctx(["pms_manager", "tms_admin"], { unavailablePanels: off }))).some((k) => ["product.pms", "product.tms"].includes(k)), "a person who holds those products still does not see them while they are off");
     assert.ok(!keys(director).some((k) => k.startsWith("platform.")), "no platform link without platform access");
     assert.ok(keys(resolveNav(ctx(["super_admin"], { platformAccess: true }))).some((k) => k.startsWith("platform.")));
   });
@@ -76,7 +72,7 @@ const keys = (n: ReturnType<typeof resolveNav>) => flat(n).map((i) => i.key);
       const d = accessToLegacy(map);
       const viaMap = resolveNav(ctx(d.roles, {}, d.permissionOverrides));
       assert.ok(viaMap.lockedKeys.length > 0 && viaMap.allowed.length > 0, product);
-      assert.deepEqual(keys(viaMap), keys(director), `${product}: same layout`);
+      assert.deepEqual(keys(viaMap), keys(director).filter((k) => viaMap.allowed.includes(k)), `${product}: the Director's layout, minus what is hidden`);
     }
   });
   await T("every nav item is open or locked for a person, and `stateOf` agrees with the resolved list", () => {
@@ -84,8 +80,8 @@ const keys = (n: ReturnType<typeof resolveNav>) => flat(n).map((i) => i.key);
     const n = resolveNav(c);
     for (const item of NAV_ITEMS) {
       const st = stateOf(item, c);
-      if (st === "hidden") assert.ok(!keys(n).includes(item.key), item.key);
-      else assert.equal(flat(n).find((i) => i.key === item.key)!.locked, st === "locked", item.key);
+      if (st === "open") assert.ok(keys(n).includes(item.key), item.key);
+      else assert.ok(!keys(n).includes(item.key), `${item.key} (${st}) is not shown`);
     }
   });
   await T("isDirector is the one place a Director is recognised", () => {
@@ -106,16 +102,16 @@ const keys = (n: ReturnType<typeof resolveNav>) => flat(n).map((i) => i.key);
     ["cashflow-ai/FmsSidebar", "cashflow-ai"], ["cohort-ai/TmsSidebar", "cohort-ai"], ["cybervault/DlmsSidebar", "cybervault"], ["evaliq/OtsSidebar", "evaliq"],
     ["spendiq/PrmsSidebar", "spendiq"], ["sprintos/PmsSidebar", "sprintos"], ["talentos/HrmsSidebar", "talentos"],
   ];
-  await T("the role-filtered product sidebars show the full list: items are locked, never removed, and there is no second menu for employees", () => {
-    for (const [f, product] of SIDEBARS) {
+  await T("the role-filtered product sidebars HIDE what a person may not use (owner rule 2026-11-17): no lock, no greyed item, a section with nothing left disappears, and still no second menu for employees", () => {
+    for (const [f] of SIDEBARS) {
       const s = read(`src/components/products/${f}.tsx`);
-      assert.match(s, /LockedNavItem/, `${f} uses the locked item`);
-      assert.ok(s.includes(`product="${product}"`), `${f} names its product`);
+      assert.doesNotMatch(s, /LockedNavItem/, `${f}: nothing is shown locked`);
+      assert.match(s, /NavGroup/, `${f}: sections vanish when empty`);
       assert.doesNotMatch(s, /if \(!isStaff\)/, `${f}: no separate employee-only menu`);
-      assert.ok(/locked: !/.test(s), `${f} locks items by permission`);
-      // Only "the product is switched off" may remove an item (it does not exist for the company); a role or permission may only lock it.
-      for (const line of s.split("\n").filter((l) => /&& nav\(\{/.test(l))) assert.match(line, /panels\.\w+\?\.available/, `${f}: ${line.trim().slice(0, 80)}`);
+      assert.ok(/locked: !/.test(s) && /props\.locked \? null/.test(s), `${f}: a permission removes the item`);
     }
+    const g = read("src/components/products/common/NavGroup.tsx");
+    assert.match(g, /shown\.length === 0\) return null/);
   });
   await T("self-service items (Me sections) have no lock in the person-facing menus (decision D3)", () => {
     for (const [f, base] of [["talentos/HrmsSidebar", "/talentos/me"], ["sprintos/PmsSidebar", "/sprintos/me"], ["spendiq/PrmsSidebar", "/spendiq/me"], ["cohort-ai/TmsSidebar", "/cohort-ai/me"]] as const) {
@@ -147,12 +143,12 @@ const keys = (n: ReturnType<typeof resolveNav>) => flat(n).map((i) => i.key);
     assert.deepEqual(stray, []);
     assert.match(read("src/lib/products/commandos/access.ts"), /lockedHref\(key\)/);
   });
-  await T("the locked page exists in the shell and the dashboard, settings and analytics show locked entries", () => {
+  await T("the locked page remains ONLY for a direct address to something not permitted; dashboard, analytics and product settings show nothing locked", () => {
     assert.ok(existsSync("src/app/(products)/commandos/(protected)/locked/page.tsx"));
-    assert.match(read("src/app/(products)/commandos/(protected)/page.tsx"), /lockedPanels/);
-    assert.match(read("src/app/(products)/commandos/(protected)/settings/page.tsx"), /locked/);
-    assert.match(read("src/app/(products)/commandos/(protected)/analytics/page.tsx"), /Locked analytics/);
-    assert.match(read("src/components/hub/HubSidebar.tsx"), /don&apos;t have access/);
+    assert.match(read("src/lib/products/commandos/access.ts"), /lockedHref\(key\)/);
+    assert.doesNotMatch(read("src/app/(products)/commandos/(protected)/analytics/page.tsx"), /Locked analytics/);
+    assert.match(read("src/app/(products)/commandos/(protected)/page.tsx"), /HIDDEN/);
+    assert.match(read("src/app/(products)/commandos/(protected)/settings/products/page.tsx"), /not shown at all/);
   });
 
   console.log("requests for access (pure)");

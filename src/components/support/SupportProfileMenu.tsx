@@ -7,7 +7,6 @@ export default function SupportProfileMenu({ email, roles, createdAt, lastLoginA
   return (
     <UnifiedProfileMenu
       email={email}
-      roleLabel={roles.some((r) => r === "super_admin") ? "Company Admin" : "Team Member"}
       roles={roles}
       createdAt={createdAt}
       lastLoginAt={lastLoginAt}

@@ -110,11 +110,11 @@ function memStore(): AvatarStore & { files: Map<string, { body: Buffer; contentT
   });
 
   await t("sidebar: Dashboard, Agents, then Manage - permission flags hide items without reordering", async () => {
-    const all = buildNavGroups({ createBot: true, manageBots: true, allChats: true, audit: true, settings: true });
+    const all = buildNavGroups({ dashboard: true, hub: true, use: true, calls: true, createBot: true, manageBots: true, allChats: true, audit: true, settings: true });
     assert.deepEqual(all.top.items.map((i) => i.label), ["Dashboard"]);
     assert.deepEqual(all.agents.items.map((i) => i.label), ["Agent Hub", "Create Agent"]);
     assert.deepEqual(all.manage.items.map((i) => i.label), ["Manage Agents", "Chat History", "Call History"]);
-    const none = buildNavGroups({ createBot: false, manageBots: false, allChats: false, audit: false, settings: false });
+    const none = buildNavGroups({ dashboard: true, hub: true, use: false, calls: true, createBot: false, manageBots: false, allChats: false, audit: false, settings: false });
     assert.deepEqual(none.agents.items.map((i) => i.label), ["Agent Hub"]);
     assert.deepEqual(none.manage.items.map((i) => i.label), ["Call History"]);
     assert.equal(all.recentLead.label, "General Chat");

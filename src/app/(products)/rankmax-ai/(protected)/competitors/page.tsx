@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -20,6 +21,8 @@ export default async function CompetitorsPage() {
   const brand = await getCompanyBrand();
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "competitors.view", "Competitors");
+  if (locked) return locked;
   const [comps, ourVis, bl, keywords, pages] = await Promise.all([(await competitorsCol()).find({}).sort({ name: 1 }).toArray(), ourVisibility(), backlinkOverview(), allActiveKeywords(), allPages()]);
   const comparisons = await Promise.all(comps.map((c) => compareCompetitor(c._id)));
   const ourTop10 = keywords.filter((k) => k.currentPosition !== null && k.currentPosition <= 10).length;
@@ -31,7 +34,7 @@ export default async function CompetitorsPage() {
         title="Competitors"
         crumbs={[{ label: "Competitors" }]}
         description={<>Compare {brand.name} with competitor sites. Competitor figures are <TrustBadge trust="estimated" /> (entered or imported from SEO tools); our figures are <TrustBadge trust="verified" /> product data. Visibility is calculated the same way for everyone over our tracked keyword set.</>}
-        actions={can(viewer, "MANAGE_COMPETITORS") && <EditDialog trigger={<Button size="sm"><Plus className="size-3.5" data-icon="inline-start" />Add competitor</Button>} title="Add a competitor" columns={2} fields={COMPETITOR_FIELDS} initial={competitorInitial(null)} onSubmit={async (v) => { "use server"; return saveCompetitorAction(null, v); }} />}
+        actions={can(viewer, "competitors.manage") && <EditDialog trigger={<Button size="sm"><Plus className="size-3.5" data-icon="inline-start" />Add competitor</Button>} title="Add a competitor" columns={2} fields={COMPETITOR_FIELDS} initial={competitorInitial(null)} onSubmit={async (v) => { "use server"; return saveCompetitorAction(null, v); }} />}
       />
       <PanelListFilters>
 {comps.length === 0 ? (

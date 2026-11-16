@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import PanelTabs from "@/components/platform/panel/PanelTabs";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -37,6 +38,8 @@ const TABS = [
 export default async function PageDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "pages.view", "Pages");
+  if (locked) return locked;
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const page = await getPage(id);
   if (!page) notFound();
@@ -53,9 +56,9 @@ export default async function PageDetail({ params, searchParams }: { params: Pro
         description={<>{c?.title || "Not crawled yet"} · <a href={liveUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">Open live page <ExternalLink className="size-3" /></a></>}
         actions={
           <>
-            {can(viewer, "RUN_AUDIT") && <JobButton body={{ job: "pagespeed", paths: [page.path] }} label="Test PageSpeed" busyLabel="Testing…" icon={<Gauge className="size-3.5" data-icon="inline-start" />} successMessage="PageSpeed results saved" />}
-            {can(viewer, "MANAGE_TECHNICAL_SEO") && settings.integrations.gsc.enabled && <JobButton body={{ job: "index-status", paths: [page.path] }} label="Check index status" busyLabel="Inspecting…" icon={<SearchCheck className="size-3.5" data-icon="inline-start" />} successMessage="Index status updated" />}
-            {can(viewer, "MANAGE_TECHNICAL_SEO") && (
+            {can(viewer, "technical.pagespeed") && <JobButton body={{ job: "pagespeed", paths: [page.path] }} label="Test PageSpeed" busyLabel="Testing…" icon={<Gauge className="size-3.5" data-icon="inline-start" />} successMessage="PageSpeed results saved" />}
+            {can(viewer, "technical.manage") && settings.integrations.gsc.enabled && <JobButton body={{ job: "index-status", paths: [page.path] }} label="Check index status" busyLabel="Inspecting…" icon={<SearchCheck className="size-3.5" data-icon="inline-start" />} successMessage="Index status updated" />}
+            {can(viewer, "technical.manage") && (
               <ActionButton
                 action={async () => {
                   "use server";
@@ -68,7 +71,7 @@ export default async function PageDetail({ params, searchParams }: { params: Pro
                 Request indexing
               </ActionButton>
             )}
-            {can(viewer, "DELETE") && (
+            {can(viewer, "pages.delete") && (
               <ActionButton
                 action={async () => {
                   "use server";
@@ -89,13 +92,13 @@ export default async function PageDetail({ params, searchParams }: { params: Pro
 
       <PanelTabs active={tab} tabs={TABS.map(([k, label]) => ({ key: k, label, href: `/rankmax-ai/pages/${page._id}?tab=${k}` }))} />
 
-      {tab === "overview" && <Overview pageId={page._id} path={page.path} viewerCanSitemap={can(viewer, "MANAGE_SITEMAP")} />}
+      {tab === "overview" && <Overview pageId={page._id} path={page.path} viewerCanSitemap={can(viewer, "sitemap.manage")} />}
       {tab === "on-page" && (
         <PageSeoEditor
           pageId={page._id}
           path={page.path}
           siteUrl={siteUrl}
-          canEdit={can(viewer, "MANAGE_ON_PAGE_SEO")}
+          canEdit={can(viewer, "onpage.manage")}
           limits={settings.thresholds}
           initial={{
             title: page.override?.title ?? "",

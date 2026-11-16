@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/agentos/gate";
 import { notFound, redirect } from "next/navigation";
 import { PageHeader } from "@/components/products/agentos/AibotsUi";
 import CallDetail from "@/components/products/agentos/voice/CallDetail";
@@ -16,6 +17,8 @@ import { formatIst } from "@/lib/products/agentos/voice/call-format";
 export default async function CallDetailPage({ params }: { params: Promise<{ callId: string }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/agentos/login");
+  const locked = lockedUnless(viewer, "calls.view", "Calls");
+  if (locked) return locked;
   const { callId } = await params;
 
   const engine = await loadCallDetail(viewer, callId).catch((e) => {
@@ -33,7 +36,7 @@ export default async function CallDetailPage({ params }: { params: Promise<{ cal
           crumbs={[{ label: "Call History", href: "/agentos/calls" }, { label: formatInZone(engine.call.dialedAt ?? engine.call.scheduledFor ?? engine.call.createdAt, engine.timeZone) }]}
           description={engine.call.mine ? "Your call" : engine.call.direction === "inbound" ? "Incoming call" : engine.call.direction === "web_public" ? "Call from a website visitor" : `Call by ${engine.call.initiatedBy ?? "a team member"}`}
         />
-        <EngineCallDetail data={engine} viewer={{ canCall: can(viewer, "VOICE_CALL"), isManager: can(viewer, "VOICE_CALL_MANAGE"), canWatchLive: can(viewer, "VOICE_CALL_TAKEOVER") }} />
+        <EngineCallDetail data={engine} viewer={{ canCall: can(viewer, "calls.place"), isManager: can(viewer, "calls.manage"), canWatchLive: can(viewer, "calls.takeover") }} />
       </div>
     );
   }

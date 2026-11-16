@@ -76,7 +76,8 @@ export default async function AllProductSettingsPage({ searchParams }: { searchP
     locked[product.key] = panelKey && session ? !allowed.has(product.key === "resolveiq" ? "panel.support" : `product.${panelKey}`) : false;
   }
 
-  const cardData = PRODUCT_GROUPS.flatMap((g) => g.products.map((p) => ({ ...productCardData({ key: p.key, name: p.name, description: p.description, group: slugOf(g.label), panelKey: SLUG_TO_PANEL[p.key], connections: connections[p.key] ?? [] }, statuses[p.key] ?? "ready", Boolean(locked[p.key])) })));
+  // A product the person has no access to is not shown at all (owner rule 2026-11-17); a direct address still lands on the polite locked page.
+  const cardData = PRODUCT_GROUPS.flatMap((g) => g.products.filter((p) => !locked[p.key]).map((p) => ({ ...productCardData({ key: p.key, name: p.name, description: p.description, group: slugOf(g.label), panelKey: SLUG_TO_PANEL[p.key], connections: connections[p.key] ?? [] }, statuses[p.key] ?? "ready", Boolean(locked[p.key])) })));
   const shown = filterCards(cardData, filter);
   const iconOf = new Map(all.map((p) => [p.key, p.icon]));
   const currentData = cardData.find((c) => c.key === current?.key);

@@ -23,6 +23,7 @@ export default function PortalProfileMenu({
     <UnifiedProfileMenu
       email={email}
       name={displayName}
+      fixedTitle
       roleLabel={roleLabel}
       roles={[roleLabel]}
       createdAt={createdAt ?? new Date().toISOString()}

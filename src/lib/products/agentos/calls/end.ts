@@ -24,7 +24,7 @@ export type EndDeps = LiveDeps & StaleDeps;
 export async function endCallNow(viewer: AibotsViewer, callId: string, deps: EndDeps = {}): Promise<{ ok: true; via: "cancelled" | "twilio" | "elevenlabs" | "already_over" } | { ok: false; failure: CallFailure }> {
   const c = await loadCallForViewer(viewer, callId, true);
   const mine = c.initiatedBy?.userId === viewer.userId;
-  if (!mine && !can(viewer, "VOICE_CALL_TAKEOVER") && !can(viewer, "VOICE_CALL_MANAGE")) throw new NotFoundError();
+  if (!mine && !can(viewer, "calls.takeover") && !can(viewer, "calls.manage")) throw new NotFoundError();
   if (c.status === "scheduled") {
     const r = await cancelCall(viewer, c._id);
     return r.ok ? { ok: true, via: "cancelled" } : r;
@@ -72,7 +72,7 @@ export interface ActiveCallRow extends ExistingCallInfo {
 
 /** The calls ringing or in progress right now that this person may see (their own; everyone's with take-over / manage / oversight), for the Active calls strip. */
 export async function listActiveCalls(viewer: AibotsViewer, deps: StaleDeps = {}): Promise<ActiveCallRow[]> {
-  const oversee = can(viewer, "VOICE_CALL_TAKEOVER") || can(viewer, "VOICE_CALL_MANAGE");
+  const oversee = can(viewer, "calls.takeover") || can(viewer, "calls.manage");
   await reconcileStaleCalls(oversee ? {} : { initiatorId: viewer.userId }, deps).catch(() => 0);
   const rows = await (await callsCollection())
     .find({ status: { $in: ["dialing", "in_progress"] }, direction: { $in: ["outbound", "inbound"] }, ...(oversee ? {} : { "initiatedBy.userId": viewer.userId }) }, { projection: { transcript: 0 } })

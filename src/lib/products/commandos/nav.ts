@@ -423,8 +423,10 @@ export function resolveNav(ctx: NavContext): ResolvedNav {
     label: s.label,
     href: s.href ?? null,
     sidebar: s.sidebar !== false,
+    // OWNER RULE (2026-11-17, replaces "locked items are shown greyed"): what a person has no access to is HIDDEN, not greyed and not locked. A section with
+    // nothing left to show disappears. A direct address to something hidden still lands on the polite locked page (`workspaceItemState`).
     items: shown
-      .filter((x) => x.item.section === s.key)
+      .filter((x) => x.item.section === s.key && !x.locked)
       .map(({ item: i, locked }) => {
         // Product tiles and analytics entries take their name / description from the Product Registry.
         const meta = ctx.panels?.[i.module ?? i.panel ?? ""];

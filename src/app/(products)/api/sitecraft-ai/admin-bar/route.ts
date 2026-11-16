@@ -1,8 +1,8 @@
+import { titleOfPerson } from "@/lib/platform/organization/title-server";
 import { withTransport } from "@/lib/security/transport";
 import { NextResponse } from "next/server";
 import { getViewer, can } from "@/lib/products/sitecraft-ai/viewer";
 import { getCurrentCmsUser } from "@/lib/cms-auth";
-import { primaryCmsRoleLabel } from "@/lib/cms-roles";
 import { getPageByPath } from "@/lib/products/sitecraft-ai/pages";
 import { getActiveThemeKey, getTheme } from "@/lib/products/sitecraft-ai/theme";
 import { COLLECTIONS } from "@/lib/products/sitecraft-ai/collections/registry";
@@ -43,7 +43,7 @@ async function handleGET(request: Request) {
 
   const body: AdminBarData = {
     email: user.email,
-    role: primaryCmsRoleLabel(user.roles),
+    role: (await titleOfPerson(user.id)).title,
     theme: { key: activeKey, name: theme?.name ?? "Default" },
     page: page ? { id: page._id, title: page.title, status: page.status, pending: !!page.hasUnpublishedChanges } : null,
     record,

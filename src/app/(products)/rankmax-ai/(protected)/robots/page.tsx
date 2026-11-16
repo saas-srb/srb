@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/rankmax-ai/gate";
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import { redirect } from "next/navigation";
 import { PageHeader, Notice } from "@/components/products/rankmax-ai/SeoUi";
@@ -12,6 +13,8 @@ import { formatDateTime } from "@/lib/utils";
 export default async function RobotsPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/rankmax-ai/login");
+  const locked = lockedUnless(viewer, "robots.view", "Robots.txt");
+  if (locked) return locked;
   const [doc, paths, settings, siteUrl, defaultText] = await Promise.all([getRobotsDoc(), importantPaths(), getSettings(), companySiteUrl(), defaultRobots()]);
   const live = await fetchUrl(`${settings.siteOrigin}/robots.txt`, { timeoutMs: 8000 });
   const managedText = doc.content ?? defaultText;
@@ -33,7 +36,7 @@ export default async function RobotsPage() {
         defaultText={defaultText}
         primaryHost={new URL(siteUrl).host}
         importantPaths={paths}
-        canEdit={can(viewer, "MANAGE_ROBOTS")}
+        canEdit={can(viewer, "robots.manage")}
         revisions={doc.revisions.map((r) => ({ content: r.content, at: formatDateTime(r.at), byEmail: r.byEmail, note: r.note }))}
       />
 </PanelListFilters>

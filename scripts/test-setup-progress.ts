@@ -310,13 +310,17 @@ T("ONE percentage everywhere: the old five-step strip count is gone; the strip, 
   assert.match(read("src/app/(platform)/console/companies/CompaniesGrid.tsx"), /Setup %/);
   assert.match(read("src/app/(platform)/console/companies/CompaniesFilterBar.tsx"), /value="stuck"/);
 });
-T("reminders run as a daily job through the Notification center, and are listed there", () => {
-  assert.ok(CRON_JOBS.some((j) => j.key === "setup-reminders" && j.scope === "each company" && j.path === "/api/setup/cron"));
-  assert.ok(existsSync("src/app/api/setup/cron/route.ts"));
+T("reminders ride on an existing daily job (no extra route or function) and are listed in the Notification center", () => {
+  assert.ok(!CRON_JOBS.some((j) => j.key === "setup-reminders"), "no job of its own");
+  assert.ok(!existsSync("src/app/api/setup/cron/route.ts"), "no extra route");
+  const backups = CRON_JOBS.find((j) => j.key === "backups")!;
+  assert.match(backups.description, /setup reminders/);
+  assert.match(backups.schedule, /^\d+ \d+ \* \* \*$/, "daily only");
+  assert.match(read("src/lib/cron/jobs.ts"), /runSetupReminders/);
   const store = read("src/lib/notify/center/store.ts");
   assert.match(store, /key: "setup_reminder"/);
   assert.match(store, /key: "setup_digest"/);
-  assert.match(read("vercel.json"), /\/api\/setup\/cron/);
+  assert.ok(!/\/api\/setup\/cron/.test(read("vercel.json")));
 });
 
 console.log(`\n${passed} passed`);

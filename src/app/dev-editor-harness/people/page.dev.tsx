@@ -43,6 +43,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
   const picked: AccessMap = {
     sprintos: Object.fromEntries(sprint.map((e) => [e.key, e.level])),
     "cashflow-ai": Object.fromEntries(finance.filter((e) => e.level === "read").map((e) => [e.key, "read"])),
+    // CyberVault is a finished product: picked in micro features (a partial person: sees credentials and notes of the assigned clients, adds notes).
+    cybervault: { "cybervault.credentials.view": "read", "cybervault.notes.view": "read", "cybervault.clients.view": "read", "cybervault.notes.create": "write" },
   };
   const details = cleanDetails({ name: "Meera Iyer", email: "meera@sample.test", phone: "+91 90000 11111", joiningDate: "2026-06-01", userType: "employee", departmentIds: ["d1"], teamIds: ["t1"], designationIds: ["g1", "g2"], invite: "password" });
 
