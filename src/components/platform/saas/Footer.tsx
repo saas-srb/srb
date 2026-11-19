@@ -45,7 +45,6 @@ export default async function Footer({}: { host?: string }) {
     ] },
   ];
   const explore = [
-    { href: "/ask", label: "Ask AI" },
     { href: "/pricing", label: "Pricing" },
     { href: "/faqs", label: "FAQs" },
     { href: "/blog", label: "Blog" },
@@ -60,7 +59,6 @@ export default async function Footer({}: { host?: string }) {
     { label: "Our vision", href: "/vision" },
     { label: "Roadmap", href: "/roadmap" },
     { label: "Success stories", href: "/success-stories" },
-    { label: "Getting started", href: "/onboarded-businesses" },
   ];
   return (
     <footer className="relative overflow-hidden border-t border-border/50 bg-muted/20">

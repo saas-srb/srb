@@ -13,7 +13,6 @@ import { panelColor } from "@/lib/platform/saas/palette";
 import ProductLogo from "@/components/products/ProductLogo";
 import { productPath } from "@/lib/platform/saas/product-routes";
 import Icon from "@/components/platform/saas/Icon";
-import { NumberedRows } from "@/components/platform/saas/Modern";
 import SectionScrollNav from "@/components/platform/saas/SectionScrollNav";
 import Reveal from "@/components/platform/saas/Reveal";
 import MarketingShot from "@/components/platform/saas/MarketingShot";
@@ -24,31 +23,13 @@ import { SAAS_BRAND } from "@/lib/platform/saas/brand";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = pageMeta({ path: "/about", title: "About SRB AI: What We Build and Why", description: "SRB AI is one software for running your whole business. Learn what we build, who it is for, how a business grows on it and the values behind it.", keywords: ["about SRB AI", "business automation company", "AI software company India", "who makes SRB AI", "business software mission", "SaaS company values", "all-in-one business platform company"], tag: "About" });
 
-const VALUES = [
-  { title: "Built for every business", body: "We design for the many businesses that use SRB AI, never for one special case. If one customer needs something, it becomes a feature that everyone can use.", icon: "building" as const },
-  { title: "Automation you can trust", body: "Automation is only useful if you can trust it. Every automatic action is recorded, explained and under your control, and people stay in the loop wherever a decision matters.", icon: "workflow" as const },
-  { title: "Your data stays yours", body: "Every business's data is kept strictly apart from every other business's. You decide who can do what, secrets are stored encrypted, and you can export your data at any time.", icon: "lock" as const },
-  { title: "Easy to start", body: "Powerful software should still be easy to begin with. A guided setup, sensible defaults and one consistent look across every product.", icon: "bolt" as const },
-  { title: "Your brand, not ours", body: "Every business uses SRB AI under its own name, with its own logo, colours, web address, emails and apps. SRB stays out of sight.", icon: "target" as const },
-  { title: "Honest by default", body: "We describe the product as it is. Where there is no customer story to share yet, we say so instead of inventing one.", icon: "check" as const },
-];
-
-const PRINCIPLES = [
-  { title: "Take the repetitive work off people", body: "Copying details from one app to another, chasing approvals and building reports should be the software's job, so people can spend their time on customers and growth." },
-  { title: "Start small, add what you need", body: "Each product works on its own. Choose the ones that fit your business today and add more when you are ready." },
-  { title: "Automation people can trust", body: "Every run is recorded and explained, automations can be paused at any time, and approvals keep people in control of anything that moves money." },
-  { title: "AI that asks permission", body: "AI answers from your real records, shows how it got there, and only sees what the person asking is allowed to see." },
-];
-
 const NAV = [
   { id: "about", label: "About us" },
-  { id: "mission", label: "Why we exist" },
   { id: "what-we-do", label: "What we do" },
   { id: "numbers", label: "At a glance" },
   { id: "who", label: "Who uses it" },
   { id: "growth", label: "Your first year" },
   { id: "stories", label: "Everyday examples" },
-  { id: "values", label: "Our values" },
   { id: "commitments", label: "Safety and control" },
   { id: "connect", label: "Get in touch" },
 ];
@@ -111,14 +92,6 @@ export default async function AboutPage() {
           </div>
           <Reveal><MarketingShot screenKey="workspace" name="SRB CommandOS" /></Reveal>
         </div>
-        </div>
-      </section>
-
-      {/* Mission */}
-      <section id="mission" className="sr-section relative overflow-hidden bg-muted/10" style={{ scrollMarginTop: 140 }}>
-        <div className="sr-container">
-          <Head id="mission" title="Give every business software" accent="that runs the routine." lead="From a ten-person team to a large organisation: one intelligent system that handles the repetitive parts of running a business, so people can focus on what only people can do: looking after customers, doing good work and growing." />
-          <NumberedRows items={PRINCIPLES.map((p) => ({ title: p.title, text: p.body }))} />
         </div>
       </section>
 
@@ -238,24 +211,6 @@ export default async function AboutPage() {
             ))}
           </div>
           <div className="text-center"><Link href="/success-stories" className="inline-flex items-center gap-2 rounded-full border border-white/25 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-white/10">See more examples and workflows <ArrowRight className="h-4 w-4" /></Link></div>
-        </div>
-      </section>
-
-      {/* Values */}
-      <section id="values" className="sr-section bg-muted/10" style={{ scrollMarginTop: 140 }}>
-        <div className="sr-container">
-          <Head id="values" title="What we hold" accent="ourselves to." lead="Six values that decide how we build and how we talk about the product." />
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {VALUES.map((v, i) => (
-              <Reveal key={v.title} delay={(i % 3) * 60}>
-                <div className="group h-full rounded-3xl border border-border/60 bg-card p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10">
-                  <span className="sr-icon mb-4 h-12 w-12 transition-transform group-hover:scale-110"><Icon name={v.icon} className="h-5 w-5" /></span>
-                  <h3 className="text-lg font-black leading-snug">{v.title}</h3>
-                  <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{v.body}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
         </div>
       </section>
 

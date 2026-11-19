@@ -56,7 +56,6 @@ export async function GET() {
     `- Product vision: ${origin}/vision`,
     `- Product roadmap: ${origin}/roadmap`,
     `- Customer stories and workflows: ${origin}/success-stories`,
-    `- Getting a business onboarded: ${origin}/onboarded-businesses`,
     `- About: ${origin}/about`,
     `- Request a demo: ${origin}/demo`,
     `- Contact: ${origin}/contact`,

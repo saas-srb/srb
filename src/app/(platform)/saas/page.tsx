@@ -5,34 +5,26 @@ import JsonLd from "@/components/platform/saas/JsonLd";
 import { itemList, planOffers, softwareApplication, webPage } from "@/lib/platform/saas/jsonld";
 import { ArrowRight, Check } from "lucide-react";
 import type { IconKey } from "@/lib/platform/saas/content";
-import { AI_CAPABILITIES, GLOSSARY, HOW_IT_WORKS, INDUSTRIES, SECURITY_POINTS, SIMPLE_ANSWERS, USE_CASES, USE_CASE_PLAIN_TITLES } from "@/lib/platform/saas/content";
-import { AI_BENEFITS, CAPABILITIES, COMPARISON, DEVICES, FLOWS, REPLACES, RUNS_ITSELF, YOUR_BRAND } from "@/lib/platform/saas/site";
+import { AI_CAPABILITIES, HOW_IT_WORKS, INDUSTRIES, SIMPLE_ANSWERS, USE_CASES, USE_CASE_PLAIN_TITLES } from "@/lib/platform/saas/content";
+import { AI_BENEFITS, CAPABILITIES, COMPARISON, DEVICES, FLOWS, RUNS_ITSELF } from "@/lib/platform/saas/site";
 import { getStandardPlans } from "@/lib/platform/billing/plans";
 import { buildShowcase } from "@/lib/platform/billing/showcase";
 import SavingsCalculator from "@/components/platform/saas/SavingsCalculator";
 import { panelColor } from "@/lib/platform/saas/palette";
 import { getFeatureModules } from "@/lib/platform/saas/modules";
-import { screenFor } from "@/lib/platform/saas/screens";
-import DeviceScene, { type SceneVariant } from "@/components/platform/saas/DeviceScene";
 import { CtaBand, HeroCtas, PageHero, SectionHead } from "@/components/platform/saas/blocks";
-import GlossaryGrid from "@/components/platform/saas/GlossaryGrid";
 import SectionScrollNav from "@/components/platform/saas/SectionScrollNav";
 import Reveal from "@/components/platform/saas/Reveal";
 import Icon from "@/components/platform/saas/Icon";
 import AutomationFlow from "@/components/platform/saas/AutomationFlow";
 import ModuleMarquee from "@/components/platform/saas/ModuleMarquee";
-import PanelOrbit from "@/components/platform/saas/PanelOrbit";
 import PanelShot from "@/components/platform/saas/PanelShot";
 import MarketingShot from "@/components/platform/saas/MarketingShot";
 import FaqSection from "@/components/platform/saas/FaqSection";
-import { productPath, SAAS_PRODUCT_COUNT } from "@/lib/platform/saas/product-routes";
+import { productPath } from "@/lib/platform/saas/product-routes";
 import StackCompare from "@/components/platform/saas/StackCompare";
 import WhyCompare from "@/components/platform/saas/WhyCompare";
-import BrandShowcase from "@/components/platform/saas/BrandShowcase";
-import ProductShowcase from "@/components/platform/saas/ProductShowcase";
 import ScreenGallery from "@/components/platform/saas/ScreenGallery";
-import { Journey } from "@/components/platform/saas/Visuals";
-import { ChipMarquee } from "@/components/platform/saas/Modern";
 import CountStats from "@/components/platform/saas/CountStats";
 import CapabilityExplorer from "@/components/platform/saas/CapabilityExplorer";
 import { SAAS_BRAND } from "@/lib/platform/saas/brand";
@@ -68,42 +60,26 @@ const DEVICE_ICON: IconKey[] = ["globe", "bolt", "rocket", "layers"];
 /** An icon for each getting-started step. */
 const HOW_ICON: IconKey[] = ["rocket", "building", "globe", "layers"];
 
-const SHOWCASE = ["workspace", "lms", "hrms", "fms", "pms", "prms", "tms", "messenger", "sop", "cms", "smms", "seo", "aibots", "ots"];
-
 export default async function SaasHome() {
   const [modules, plans] = await Promise.all([getFeatureModules(), getStandardPlans().then(buildShowcase).catch(() => [])]);
-  const freePlan = plans.find((p) => p.kind === "free");
   const platforms = new Set(DEVICES.flatMap((d) => d.platforms).filter((x) => !["Chrome", "Safari", "Edge", "Firefox"].includes(x))).size;
   const byKey = new Map(modules.map((m) => [m.key, m]));
-  const productTabs = SHOWCASE.flatMap((k, i) => {
-    const m = byKey.get(k);
-    return m && screenFor(k) ? [{ key: k, name: m.name, icon: m.icon, summary: m.summary, points: m.capabilities, node: <DeviceScene screenKey={k} name={m.name} variant={(i % 6) as SceneVariant} /> }] : [];
-  });
-  const brandTabs = YOUR_BRAND.flatMap((b, i) => (screenFor(b.shot) ? [{ key: b.key, name: b.title, icon: b.icon, summary: b.text, href: "/products#your-brand", node: <DeviceScene screenKey={b.shot} name={b.title} variant={((i + 2) % 6) as SceneVariant} /> }] : []));
   const starter = plans.find((p) => p.id === "starter");
   const SEC = [
     { id: "simple", label: "Overview", show: true },
-    { id: "products", label: "What is inside", show: true },
     { id: "why", label: "Why choose it", show: true },
     { id: "benefits", label: "Benefits", show: true },
     { id: "who", label: "Who uses it", show: true },
     { id: "examples", label: "Everyday uses", show: true },
-    { id: "connected", label: "An example", show: true },
     { id: "automation", label: "Automation", show: true },
     { id: "included", label: "What you get", show: true },
     { id: "ai", label: "AI", show: true },
-    { id: "screens", label: "See it", show: true },
     { id: "gallery", label: "More screens", show: true },
-    { id: "your-brand", label: "Your brand", show: true },
     { id: "devices", label: "Any device", show: true },
-    { id: "nolimits", label: "No limits", show: true },
     { id: "comparison", label: "Compare", show: true },
     { id: "cost", label: "Cost", show: !!starter && (starter.offer.monthly ?? 0) > 0 },
     { id: "savings", label: "Savings", show: plans.length > 0 },
-    { id: "free", label: "Free to start", show: !!freePlan },
-    { id: "trust", label: "Safety", show: true },
     { id: "how", label: "Get started", show: true },
-    { id: "words", label: "Glossary", show: true },
     { id: "faq", label: "FAQs", show: true },
   ].filter((x) => x.show);
   const no = (id: string) => String(SEC.findIndex((x) => x.id === id) + 1).padStart(2, "0");
@@ -172,21 +148,6 @@ export default async function SaasHome() {
               </Reveal>
             ))}
           </ol>
-        </div>
-      </section>
-
-      {/* Replace the stack */}
-      <section id="products" className="sr-section" style={{ scrollMarginTop: 140 }}>
-        <div className="sr-container">
-          <SectionHead n={no("products")} center icon="layers" eyebrow="What is inside" title="One software for" accent="every part of your business." lead="Most businesses use a separate app for every job: one for customers, one for salaries, one for invoices, one for projects and so on. SRB AI is a single software with a product for each of these jobs, so your team works in one place and does not type the same information again and again." />
-          <Reveal>
-            <ChipMarquee rows={[
-              REPLACES.map((r) => ({ label: r.software, icon: r.icon, struck: true })),
-              REPLACES.map((r) => ({ label: byKey.get(r.panel)?.name ?? "Included", icon: r.icon, productKey: r.panel })),
-            ]} />
-          </Reveal>
-          <p className="mx-auto mt-6 max-w-2xl text-center text-sm leading-relaxed text-muted-foreground">The crossed-out names are the separate apps a business usually pays for. Next to each one is the product of SRB AI that does the same job.</p>
-          <div className="mt-10 flex justify-center"><Link href="/products" className="sr-btn sr-btn-primary">See every product <ArrowRight className="h-4 w-4" /></Link></div>
         </div>
       </section>
 
@@ -356,22 +317,6 @@ export default async function SaasHome() {
         </div>
       </section>
 
-      {/* Connected */}
-      <section id="connected" style={{ scrollMarginTop: 140 }} className="sr-section bg-muted/10">
-        <div className="sr-container">
-          <SectionHead n={no("connected")} center icon="chart" eyebrow="A real example" title="From first enquiry" accent="to money in the bank." lead="Follow one customer through your business: they enquire, you win the deal, you do the work, you send the invoice and you get paid. Normally that touches five different apps. Here, nobody has to re-type anything." />
-          <Journey
-            steps={[
-              { label: "Enquiry received", text: "From your website, forms and campaigns.", module: "SRB DealFlow AI", productKey: "lms", icon: "target" },
-              { label: "Deal won", text: "The customer record is created for you.", module: "SRB DealFlow AI", productKey: "lms", icon: "check" },
-              { label: "Project delivered", text: "Tasks, hours worked and milestones are tracked.", module: "SRB SprintOS", productKey: "pms", icon: "layers" },
-              { label: "Invoice sent", text: "Created from the milestone, with a payment link.", module: "SRB CashFlow AI", productKey: "fms", icon: "wallet" },
-              { label: "Paid and recorded", text: "Your finance team is told and the accounts are updated.", module: "SRB CashFlow AI", productKey: "fms", icon: "chart" },
-            ]}
-          />
-        </div>
-      </section>
-
       {/* How the whole business runs itself */}
       <section id="automation" className="sr-section relative overflow-hidden" style={{ scrollMarginTop: 140 }}>
         <div className="sr-container">
@@ -445,27 +390,11 @@ export default async function SaasHome() {
         </div>
       </section>
 
-      {/* See the product */}
-      <section id="screens" className="sr-band sr-section" style={{ scrollMarginTop: 140 }}>
-        <div className="sr-container relative">
-          <SectionHead n={no("screens")} tone="dark" center icon="chart" eyebrow="See it" title="Real screens from" accent="the live product." lead="These are screenshots of the real product with sample data in it. Pick a product and look around." />
-          <ProductShowcase items={productTabs} />
-        </div>
-      </section>
-
       {/* More screens, in every device */}
       <section id="gallery" style={{ scrollMarginTop: 140 }} className="sr-section">
         <div className="sr-container">
           <SectionHead n={no("gallery")} center icon="layers" eyebrow="A closer look" title="More real screens," accent="in full detail." lead="Leads, invoices, people, projects, search rankings and your website, captured from the live product, not drawn." />
           <ScreenGallery />
-        </div>
-      </section>
-
-      {/* White label */}
-      <section id="your-brand" className="sr-section relative overflow-hidden" style={{ scrollMarginTop: 140 }}>
-        <div className="sr-container">
-          <SectionHead n={no("your-brand")} center icon="target" eyebrow="Your brand" title="Your business name" accent="everywhere." lead="Your team, your customers and your website visitors see your business: your logo, your web address, your emails, your apps and your notifications. SRB stays out of sight. Pick an item below to see where it shows up." />
-          {brandTabs.length > 0 && <BrandShowcase brand={SAAS_BRAND.name} items={brandTabs.map((t) => ({ key: t.key, title: t.name, text: t.summary, icon: t.icon, node: t.node }))} />}
         </div>
       </section>
 
@@ -496,37 +425,6 @@ export default async function SaasHome() {
             </div>
           </div>
           <Reveal className="lg:sticky lg:top-28"><MarketingShot screenKey="apps" name="Apps & downloads" /></Reveal>
-        </div>
-        </div>
-      </section>
-
-      {/* No limits: every product */}
-      <section id="nolimits" style={{ scrollMarginTop: 140 }} className="sr-section relative overflow-hidden bg-muted/10">
-        <div className="pointer-events-none absolute right-0 top-1/3 h-[700px] w-[700px] translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-[140px]" />
-        <div className="sr-container relative">
-          <SectionHead n={no("nolimits")} center icon="layers" eyebrow="No locked features" title="Every feature." accent="In every plan." lead="Customers, staff, payroll, money, projects, buying, training, documents, your website, AI and more. Nothing is hidden behind a higher plan. Plans differ only by team size and usage limits." />
-          <div className="grid items-start gap-10 lg:grid-cols-[1.2fr_1fr] xl:gap-12">
-          <div>
-            <div className="mb-4 flex flex-wrap items-center gap-2 text-xs font-black uppercase tracking-widest text-emerald-600">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1"><Check className="h-3.5 w-3.5" strokeWidth={3} />Included in every plan</span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1"><Check className="h-3.5 w-3.5" strokeWidth={3} />Free to start</span>
-            </div>
-            <ul className="grid gap-3 sm:grid-cols-2">
-              {modules.slice(0, SAAS_PRODUCT_COUNT).map((module) => (
-                <li key={module.key}>
-                  <Link href={productPath(module.key)} className="group flex h-full items-start gap-3 rounded-2xl border border-border/60 bg-card p-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10">
-                    <span className="flex h-11 w-11 flex-none items-center justify-center rounded-xl border border-border/60 bg-background shadow-sm transition-transform group-hover:scale-105"><ProductLogo productKey={module.key} size={30} title={module.name} /></span>
-                    <span className="min-w-0">
-                      <span className="block text-sm font-black leading-tight transition-colors group-hover:text-primary">{module.name.replace(/^(SRB|SRB)\s+/i, "")}</span>
-                      <span className="mt-1 block text-xs leading-snug text-muted-foreground">{module.capabilities[0] ?? module.summary}</span>
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            <Link href="/products" className="sr-btn sr-btn-primary mt-8">See every feature <ArrowRight className="h-4 w-4" /></Link>
-          </div>
-          <Reveal className="lg:sticky lg:top-28 lg:self-center"><PanelOrbit panels={orbit} brand={SAAS_BRAND.name} /></Reveal>
         </div>
         </div>
       </section>
@@ -579,47 +477,6 @@ export default async function SaasHome() {
         </section>
       )}
 
-      {/* Free forever */}
-      {freePlan && (
-        <section id="free" style={{ scrollMarginTop: 140 }} className="sr-section">
-          <div className="sr-container">
-            <SectionHead n={no("free")} icon="wallet" eyebrow="Free to start" title="Every feature." accent="₹0, forever." lead="The whole software is free to start, with every feature included. This is not a trial that runs out. Start using it today and pay only when your team grows." />
-            <div className="relative overflow-hidden rounded-[2.5rem] border border-border/60 bg-background p-8 shadow-2xl sm:p-14">
-              <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-primary/15 blur-3xl" />
-              <div className="pointer-events-none absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-brand-accent/15 blur-3xl" />
-              <div className="relative space-y-8">
-                <ul className="grid gap-x-10 sm:grid-cols-2 lg:grid-cols-3">
-                  {["Every feature of the whole software", "AI and automation included", "Your own brand, web address and apps", ...freePlan.limits.filter((l) => l.included).slice(0, 3).map((l) => `${l.label}: ${l.value}`), "No card needed"].map((t) => (
-                    <li key={t} className="flex items-center gap-3 border-b border-border/50 py-3.5 text-[15px] font-semibold"><span className="sr-circle h-6 w-6"><Check className="h-3.5 w-3.5" strokeWidth={3} /></span>{t}</li>
-                  ))}
-                </ul>
-                <div className="flex justify-center"><HeroCtas primary={{ label: "Start free forever", href: "/signup" }} secondary={{ label: "Compare plans", href: "/pricing" }} /></div>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Security */}
-      <section id="trust" className="sr-section bg-muted/10" style={{ scrollMarginTop: 140 }}>
-        <div className="sr-container">
-          <SectionHead n={no("trust")} center icon="shield" eyebrow="Safety" title="Safe by design," accent="yours by default." lead="Your data is kept separate from every other business's. People only see what their role allows. The AI only sees what the person asking is allowed to see." />
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {SECURITY_POINTS.slice(0, 6).map((x, i) => (
-              <Reveal key={x.title} delay={(i % 3) * 60}>
-                <div className="flex h-full gap-4 rounded-3xl border border-border/60 bg-card p-6 shadow-sm"><span className="sr-icon h-12 w-12 flex-none"><Icon name={x.icon} className="h-5 w-5" /></span><span><span className="block font-black leading-snug">{x.title}</span><span className="mt-1 block text-[15px] leading-relaxed text-muted-foreground">{x.body}</span></span></div>
-              </Reveal>
-            ))}
-          </div>
-          <div className="mt-10 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm font-bold">
-            <Link href="/security" className="text-primary hover:underline">Security and trust</Link>
-            <Link href="/vision" className="text-primary hover:underline">Our product vision</Link>
-            <Link href="/roadmap" className="text-primary hover:underline">What is available today</Link>
-            <Link href="/status" className="text-primary hover:underline">Live status</Link>
-          </div>
-        </div>
-      </section>
-
       {/* How it works */}
       <section id="how" style={{ scrollMarginTop: 140 }} className="sr-section">
         <div className="sr-container">
@@ -648,14 +505,6 @@ export default async function SaasHome() {
       </section>
 
       <CtaBand />
-
-      {/* Glossary */}
-      <section id="words" className="sr-section bg-muted/10" style={{ scrollMarginTop: 140 }}>
-        <div className="sr-container">
-          <SectionHead n={no("words")} center icon="book" eyebrow="Glossary" title="Business terms," accent="explained." lead="Some business and software words can be confusing. This is what each one means on this website." />
-          <GlossaryGrid items={GLOSSARY} />
-        </div>
-      </section>
 
       <FaqSection n={no("faq")} topics={["General", "Plans & pricing", "Setup", "Your brand"]} limit={7} />
     </>
