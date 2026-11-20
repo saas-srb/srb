@@ -22,7 +22,6 @@ const NAV = [
   { id: "reach", label: "Reach the right team" },
   { id: "next", label: "What happens next" },
   { id: "include", label: "What to include" },
-  { id: "self", label: "Find it yourself" },
   { id: "start", label: "Or just start" },
   { id: "faq", label: "FAQs" },
 ];
@@ -91,29 +90,9 @@ export default async function ContactPage() {
         </div>
       </section>
 
-      <section id="self" className="sr-section bg-muted/10" style={{ scrollMarginTop: 140 }}>
-        <div className="sr-container">
-          <SectionHead n="04" icon="search" eyebrow="Find it yourself" title="Maybe the answer" accent="is already here." lead="These pages answer most questions straight away." />
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {[
-              { icon: "book" as const, t: "Documentation", x: "Step-by-step guides and walkthroughs for every product.", href: "/docs" },
-              { icon: "chart" as const, t: "Status", x: "Is the platform up right now? Open incident notices show here.", href: "/status" },
-              { icon: "shield" as const, t: "Security and trust", x: "How data is protected, separated and handled.", href: "/security" },
-              { icon: "wallet" as const, t: "Plans and pricing", x: "What every plan includes, starting free.", href: "/pricing" },
-              { icon: "rocket" as const, t: "Product roadmap", x: "What is available today and how feedback is handled.", href: "/roadmap" },
-              { icon: "layers" as const, t: "All products", x: "Every product and what it does.", href: "/products" },
-            ].map((c, i) => (
-              <Reveal key={c.t} delay={(i % 3) * 60}>
-                <Link href={c.href} className="group flex h-full gap-4 rounded-3xl border border-border/60 bg-card p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg"><span className="sr-icon h-12 w-12 flex-none"><Icon name={c.icon} className="h-5 w-5" /></span><span><span className="block font-black">{c.t}</span><span className="block text-sm leading-snug text-muted-foreground">{c.x}</span><span className="mt-2 inline-flex items-center gap-1.5 text-sm font-bold text-primary">Open<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></span></span></Link>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <section id="start" className="sr-section" style={{ scrollMarginTop: 140 }}>
         <div className="sr-container">
-          <SectionHead n="05" icon="bolt" eyebrow="Or just start" title="Prefer to try it" accent="first?" lead="You do not have to talk to anyone to begin." />
+          <SectionHead n="04" icon="bolt" eyebrow="Or just start" title="Prefer to try it" accent="first?" lead="You do not have to talk to anyone to begin." />
           <div className="mx-auto grid max-w-5xl gap-5 md:grid-cols-2">
             <Reveal><div className="h-full rounded-3xl bg-gradient-to-br from-primary to-brand-accent p-8 text-white shadow-2xl shadow-primary/25"><h3 className="text-2xl font-black">Start free</h3><p className="mt-2 text-white/85">Register with your work email and switch on the products you need. Every product is in every plan.</p><ul className="mt-4 space-y-2">{["No card needed", "Every product and feature included"].map((x) => <li key={x} className="flex gap-2.5 font-semibold"><Check className="mt-0.5 h-5 w-5 flex-none" strokeWidth={3} />{x}</li>)}</ul><Link href="/signup" className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-primary shadow-lg">Get started free <ArrowRight className="h-4 w-4" /></Link></div></Reveal>
             <Reveal delay={80}><div className="h-full rounded-3xl border border-border/60 bg-card p-8 shadow-sm"><h3 className="text-2xl font-black">See it with your scenarios</h3><p className="mt-2 text-muted-foreground">Bring one process you want to improve and we will show how the platform handles it.</p><ul className="mt-4 space-y-2">{["A guided session around your workflow", "Or explore the live demo on your own"].map((x) => <li key={x} className="flex gap-2.5 font-semibold"><Check className="mt-0.5 h-5 w-5 flex-none text-primary" strokeWidth={3} />{x}</li>)}</ul><Link href="/demo" className="mt-6 inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-3 text-sm font-bold text-background">Request a demo <ArrowRight className="h-4 w-4" /></Link></div></Reveal>
@@ -121,7 +100,7 @@ export default async function ContactPage() {
         </div>
       </section>
 
-      <FaqSection n="06" topics={["Support", "Setup", "General"]} limit={6} title="Before you" accent="write to us." lead="Quick answers to what people ask most." />
+      <FaqSection n="05" topics={["Support", "Setup", "General"]} limit={6} title="Before you" accent="write to us." lead="Quick answers to what people ask most." />
     </>
   );
 }

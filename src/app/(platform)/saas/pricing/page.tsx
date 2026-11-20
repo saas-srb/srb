@@ -8,20 +8,17 @@ import { getOffers } from "@/lib/platform/saas/offers";
 import { getStandardPlans } from "@/lib/platform/billing/plans";
 import { buildShowcase } from "@/lib/platform/billing/showcase";
 import { getBillingSettings } from "@/lib/platform/billing/settings";
-import { getFeatureModules } from "@/lib/platform/saas/modules";
 import { EmptyState, HeroCtas, PageHero, SectionHead } from "@/components/platform/saas/blocks";
 import PricingPlans from "@/components/platform/saas/PricingPlans";
 import FaqSection from "@/components/platform/saas/FaqSection";
 import SectionScrollNav from "@/components/platform/saas/SectionScrollNav";
 import Reveal from "@/components/platform/saas/Reveal";
-import { productPath } from "@/lib/platform/saas/product-routes";
-import ProductLogo from "@/components/products/ProductLogo";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = pageMeta({ path: "/pricing", title: "Pricing: Free Forever, Pay as Your Team Grows", description: "Start free, no card needed. Every plan includes every product and every feature; plans differ only by team size and by storage, AI, email and voice allowances.", keywords: ["business software pricing", "free CRM and HR software", "free business software forever", "SaaS pricing plans", "affordable business software for small business", "free ERP alternative", "business software free plan", "pricing for all-in-one business platform", "pay as your team grows software"], tag: "Pricing" });
 
 export default async function PricingPage() {
-  const [allPlans, modules] = await Promise.all([Promise.all([getStandardPlans(), getBillingSettings().then((s) => s.billing.defaultTrialDays).catch(() => 30)]).then(([p, days]) => buildShowcase(p, days)).catch(() => []), getFeatureModules()]);
+  const allPlans = await Promise.all([getStandardPlans(), getBillingSettings().then((s) => s.billing.defaultTrialDays).catch(() => 30)]).then(([p, days]) => buildShowcase(p, days)).catch(() => []);
   const plans = allPlans.filter((p) => p.id !== "enterprise");
   const endsAt = (await getOffers().catch(() => null))?.endsAt ?? null;
   const has = plans.length > 0;
@@ -29,7 +26,6 @@ export default async function PricingPage() {
     { id: "plans", label: "Plans", show: true },
     { id: "how", label: "How pricing works", show: true },
     { id: "compare", label: "Compare plans", show: has },
-    { id: "products", label: "All products", show: true },
     { id: "faq", label: "FAQs", show: true },
   ].filter((x) => x.show);
   const no = (id: string) => String(SEC.findIndex((x) => x.id === id) + 1).padStart(2, "0");
@@ -99,28 +95,6 @@ export default async function PricingPage() {
           </div>
         </section>
       )}
-
-      <section id="products" className="sr-section" style={{ scrollMarginTop: 140 }}>
-        <div className="sr-container">
-          <SectionHead n={no("products")} center icon="layers" eyebrow="Included in every plan" title="Every product," accent="from the free plan up." lead="You never pay extra to unlock a product. Open any to see what it does." />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {modules.map((m, i) => (
-              <Reveal key={m.key} delay={(i % 4) * 50}>
-                <Link href={productPath(m.key)} className="group relative flex h-full flex-col gap-3 overflow-hidden rounded-2xl border border-border/60 bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10">
-                  <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary to-brand-accent opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />
-                  <span className="flex items-center justify-between">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-border/60 bg-background shadow-sm transition-transform group-hover:scale-110"><ProductLogo productKey={m.key} size={34} title={m.name} /></span>
-                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-600"><Check className="h-3 w-3" strokeWidth={3.5} />Included</span>
-                  </span>
-                  <span className="font-black leading-tight transition-colors group-hover:text-primary">{m.name.replace(/^(SRB|SRB)\s+/i, "")}</span>
-                  <span className="text-xs leading-relaxed text-muted-foreground">{m.description}</span>
-                  <span className="mt-auto inline-flex items-center gap-1.5 pt-1 text-xs font-bold text-primary">See what it does <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" /></span>
-                </Link>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
 
       <FaqSection n={no("faq")} topics={["Plans & pricing", "General"]} limit={6} lead="The questions people ask most about plans and pricing. More answers are on the FAQs page." />
     </>

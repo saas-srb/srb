@@ -34,7 +34,6 @@ export const LEGAL_LINKS: NavLink[] = [
   { href: "/dpa", label: "Data Processing Addendum", hint: "How we process personal data for our customers" },
   { href: "/subprocessors", label: "Sub-processors and International Transfers", hint: "The providers we use and how data crosses borders" },
   { href: "/data-requests", label: "Your Data Rights and Requests", hint: "Access, correct, delete or export your information" },
-  { href: "/grievance", label: "Grievance Redressal", hint: "Our Grievance Officer, how fast complaints are answered, where to escalate" },
   { href: "/vulnerability-disclosure", label: "Vulnerability Disclosure Policy", hint: "Report a security issue to us privately" },
 ];
 

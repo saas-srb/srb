@@ -5,20 +5,18 @@ import JsonLd from "@/components/platform/saas/JsonLd";
 import { itemList, planOffers, softwareApplication, webPage } from "@/lib/platform/saas/jsonld";
 import { ArrowRight, Check } from "lucide-react";
 import type { IconKey } from "@/lib/platform/saas/content";
-import { AI_CAPABILITIES, HOW_IT_WORKS, INDUSTRIES, SIMPLE_ANSWERS, USE_CASES, USE_CASE_PLAIN_TITLES } from "@/lib/platform/saas/content";
-import { AI_BENEFITS, CAPABILITIES, COMPARISON, DEVICES, FLOWS, RUNS_ITSELF } from "@/lib/platform/saas/site";
+import { HOW_IT_WORKS, SIMPLE_ANSWERS, USE_CASES, USE_CASE_PLAIN_TITLES } from "@/lib/platform/saas/content";
+import { AI_BENEFITS, CAPABILITIES, COMPARISON, DEVICES } from "@/lib/platform/saas/site";
 import { getStandardPlans } from "@/lib/platform/billing/plans";
 import { buildShowcase } from "@/lib/platform/billing/showcase";
 import SavingsCalculator from "@/components/platform/saas/SavingsCalculator";
 import { panelColor } from "@/lib/platform/saas/palette";
 import { getFeatureModules } from "@/lib/platform/saas/modules";
-import { CtaBand, HeroCtas, PageHero, SectionHead } from "@/components/platform/saas/blocks";
+import { HeroCtas, PageHero, SectionHead } from "@/components/platform/saas/blocks";
 import SectionScrollNav from "@/components/platform/saas/SectionScrollNav";
 import Reveal from "@/components/platform/saas/Reveal";
 import Icon from "@/components/platform/saas/Icon";
-import AutomationFlow from "@/components/platform/saas/AutomationFlow";
 import ModuleMarquee from "@/components/platform/saas/ModuleMarquee";
-import PanelShot from "@/components/platform/saas/PanelShot";
 import MarketingShot from "@/components/platform/saas/MarketingShot";
 import FaqSection from "@/components/platform/saas/FaqSection";
 import { productPath } from "@/lib/platform/saas/product-routes";
@@ -48,9 +46,6 @@ export const metadata: Metadata = {
 /** The real marketing image that goes with each capability area. */
 const CAP_SHOT: Record<string, string> = { AI: "intelligence", Automation: "automations", "Your brand": "branding", "Every device": "apps", Control: "workspace-users", "Data & insight": "workspace", "Website & growth": "cms-pages", "People & portals": "hrms" };
 
-/** An icon for each kind of business on the home page. */
-const INDUSTRY_ICON: Record<string, IconKey> = { "it-and-software": "bolt", "education-and-training": "graduation", "agencies-and-consultancies": "megaphone", "trading-and-distribution": "cart", "professional-services": "file", "growing-smes": "rocket" };
-
 /** An icon for each everyday job on the home page. */
 const USE_CASE_ICON: Record<string, IconKey> = { "lead-to-cash": "wallet", "hire-to-retire": "users", "procure-to-pay": "cart", "training-operations": "graduation", "always-on-marketing": "megaphone", "compliance-and-documents": "book", "client-onboarding-and-delivery": "layers", "customer-support-to-resolution": "chat", "leadership-live-answers": "brain", "contract-review-and-records": "file" };
 
@@ -69,11 +64,8 @@ export default async function SaasHome() {
     { id: "simple", label: "Overview", show: true },
     { id: "why", label: "Why choose it", show: true },
     { id: "benefits", label: "Benefits", show: true },
-    { id: "who", label: "Who uses it", show: true },
     { id: "examples", label: "Everyday uses", show: true },
-    { id: "automation", label: "Automation", show: true },
     { id: "included", label: "What you get", show: true },
-    { id: "ai", label: "AI", show: true },
     { id: "gallery", label: "More screens", show: true },
     { id: "devices", label: "Any device", show: true },
     { id: "comparison", label: "Compare", show: true },
@@ -254,37 +246,6 @@ export default async function SaasHome() {
         </div>
       </section>
 
-      {/* Who it is for */}
-      <section id="who" className="sr-section" style={{ scrollMarginTop: 140 }}>
-        <div className="sr-container">
-          <SectionHead n={no("who")} center icon="building" eyebrow="Who uses it" title="See how it fits" accent="your business." lead="Different kinds of businesses use SRB AI in different ways. Find the one closest to yours and see which jobs it takes care of." />
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {INDUSTRIES.map((x, i) => (
-              <Reveal key={x.slug} delay={(i % 3) * 60}>
-                <div className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-border/60 bg-card p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10">
-                  <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary to-brand-accent opacity-60 transition-opacity group-hover:opacity-100" aria-hidden />
-                  <div className="mb-5 flex items-center justify-between">
-                    <span className="sr-icon h-14 w-14 rounded-2xl transition-transform group-hover:scale-110"><Icon name={INDUSTRY_ICON[x.slug] ?? "building"} className="h-6 w-6" /></span>
-                    <span className="bg-gradient-to-b from-primary/30 to-transparent bg-clip-text text-4xl font-black leading-none text-transparent" aria-hidden>{String(i + 1).padStart(2, "0")}</span>
-                  </div>
-                  <h3 className="text-xl font-black leading-snug">{x.name}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{x.summary}</p>
-                  <p className="mb-2.5 mt-5 text-[11px] font-black uppercase tracking-[0.16em] text-primary">What it helps with</p>
-                  <ul className="space-y-2">{x.needs.map((n) => <li key={n} className="flex gap-2.5 text-sm leading-snug"><span className="sr-circle mt-0.5 h-5 w-5 flex-none"><Check className="h-3 w-3" strokeWidth={3} /></span>{n}</li>)}</ul>
-                  <div className="mt-auto pt-6"><div className="border-t border-border/50 pt-4">
-                    <p className="mb-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-muted-foreground">Products it uses</p>
-                    <ul className="flex flex-wrap gap-2">
-                      {x.modules.flatMap((k) => { const m = byKey.get(k); return m ? [<li key={k}><Link href={productPath(k)} title={m.name} aria-label={m.name} className="flex h-11 w-11 items-center justify-center rounded-xl border border-border/60 bg-background shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"><ProductLogo productKey={k} size={30} title={m.name} /></Link></li>] : []; })}
-                    </ul>
-                  </div></div>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-          <div className="mt-10 flex justify-center"><Link href="/success-stories" className="sr-btn sr-btn-primary">See how it works in practice <ArrowRight className="h-4 w-4" /></Link></div>
-        </div>
-      </section>
-
       {/* Everyday uses */}
       <section id="examples" className="sr-section relative overflow-hidden bg-muted/10" style={{ scrollMarginTop: 140 }}>
         <div className="sr-container">
@@ -317,76 +278,11 @@ export default async function SaasHome() {
         </div>
       </section>
 
-      {/* How the whole business runs itself */}
-      <section id="automation" className="sr-section relative overflow-hidden" style={{ scrollMarginTop: 140 }}>
-        <div className="sr-container">
-          <SectionHead n={no("automation")} center icon="workflow" eyebrow="Automation" title="Routine work" accent="that does itself." lead="You set the rules once, for example “when an invoice is late, send a reminder”. After that the system follows up, reminds people, asks for approvals and reports by itself, so nothing waits for someone to remember. Pick an example below and press run to watch it happen." />
-          <ol className="grid gap-5 md:grid-cols-2 lg:grid-cols-4 lg:gap-0">
-            {RUNS_ITSELF.map((l, i) => (
-              <Reveal key={l.title} as="li" delay={i * 90} className="relative lg:px-2.5">
-                <div className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-border/60 bg-card p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10">
-                  <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary to-brand-accent opacity-60 transition-opacity group-hover:opacity-100" aria-hidden />
-                  <div className="mb-5 flex items-center justify-between">
-                    <span className="sr-icon h-14 w-14 rounded-2xl transition-transform group-hover:scale-110"><Icon name={l.icon} className="h-6 w-6" /></span>
-                    <span className="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-primary">Step {i + 1}</span>
-                  </div>
-                  <h3 className="text-xl font-black leading-snug tracking-tight">{l.title}</h3>
-                  <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{l.text}</p>
-                  <div className="mt-auto pt-5">
-                    <ul className="space-y-2.5 rounded-2xl bg-muted/40 p-4 text-sm font-medium">
-                      {l.points.map((pt) => <li key={pt} className="flex gap-2.5 leading-snug"><span className="sr-circle mt-0.5 h-5 w-5 flex-none"><Check className="h-3 w-3" strokeWidth={3} /></span>{pt}</li>)}
-                    </ul>
-                  </div>
-                </div>
-                {i < RUNS_ITSELF.length - 1 && (
-                  <span className="pointer-events-none absolute -right-3.5 top-1/2 z-10 hidden h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-border/60 bg-background text-primary shadow-md lg:flex" aria-hidden><ArrowRight className="h-4 w-4" /></span>
-                )}
-              </Reveal>
-            ))}
-          </ol>
-          <div className="mt-20 grid grid-cols-[minmax(0,1fr)] items-center gap-10 lg:grid-cols-[1.5fr_1fr] lg:gap-14">
-            <Reveal><AutomationFlow flows={FLOWS} /></Reveal>
-            <Reveal delay={120}><MarketingShot screenKey="automations" name="Automations" /></Reveal>
-          </div>
-        </div>
-      </section>
-
       {/* Everything included */}
       <section id="included" className="sr-section relative overflow-hidden bg-muted/10" style={{ scrollMarginTop: 140 }}>
         <div className="sr-container">
           <SectionHead n={no("included")} center icon="bolt" eyebrow="What you get" title="Everything below" accent="is included." lead="These are not extras. Every plan, even the free one, includes all of it from day one. Pick a group below to see what is inside it." />
           <Reveal><CapabilityExplorer items={CAPABILITIES.map((c) => ({ title: c.title, icon: c.icon, items: c.items, media: CAP_SHOT[c.title] ? <MarketingShot screenKey={CAP_SHOT[c.title]} name={c.title} /> : undefined }))} /></Reveal>
-        </div>
-      </section>
-
-      {/* AI first */}
-      <section id="ai" className="sr-section" style={{ scrollMarginTop: 140 }}>
-        <div className="sr-container">
-          <SectionHead n={no("ai")} center icon="bot" eyebrow="AI that helps" title="AI that helps" accent="with real work." lead="This is not just a chatbot added on the side. The AI reads your own records, helps you write, answers your customers and works inside your automations. It only ever shows a person what they are allowed to see, and it does not change your data without someone approving it." />
-          <div className="grid items-start gap-10 lg:grid-cols-[1.15fr_1fr] xl:gap-12">
-          <div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {AI_CAPABILITIES.map((c, i) => (
-                <Reveal key={c.title} delay={(i % 2) * 80}>
-                  <div className="group relative h-full overflow-hidden rounded-2xl border border-border/60 bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10">
-                    <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary to-brand-accent opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />
-                    <Icon name={c.icon} className="pointer-events-none absolute -bottom-5 -right-5 h-24 w-24 text-primary/[0.07] transition-transform duration-500 group-hover:scale-110" />
-                    <span className="sr-icon relative mb-4 h-12 w-12 rounded-2xl transition-transform group-hover:scale-110"><Icon name={c.icon} className="h-5 w-5" /></span>
-                    <h3 className="relative text-base font-black leading-snug">{c.title}</h3>
-                    <p className="relative mt-1.5 text-sm leading-relaxed text-muted-foreground">{c.body}</p>
-                  </div>
-                </Reveal>
-              ))}
-            </div>
-          </div>
-          <Reveal className="space-y-5 lg:sticky lg:top-28">
-            <MarketingShot screenKey="intelligence" name="SRB DataBrain AI" />
-            <div className="grid grid-cols-2 gap-4">
-              <PanelShot moduleKey="aibots" name="SRB AgentOS" glow={false} />
-              <PanelShot moduleKey="chatbot" name="AI Chatbot" glow={false} />
-            </div>
-          </Reveal>
-        </div>
         </div>
       </section>
 
@@ -503,8 +399,6 @@ export default async function SaasHome() {
           <div className="mt-16 flex justify-center"><HeroCtas primary={{ label: "Get started free", href: "/signup" }} secondary={{ label: "See it with your own example", href: "/demo" }} /></div>
         </div>
       </section>
-
-      <CtaBand />
 
       <FaqSection n={no("faq")} topics={["General", "Plans & pricing", "Setup", "Your brand"]} limit={7} />
     </>

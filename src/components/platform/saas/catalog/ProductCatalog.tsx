@@ -33,23 +33,6 @@ export default function ProductCatalog({ products, groups, afterWall }: { produc
 
   return (
     <>
-      {/* brand wall */}
-      <section aria-label="Every product of SelfRun AI" className="border-b border-border/50 bg-gradient-to-b from-muted/30 to-background">
-        <div className="sr-container py-10 lg:py-14">
-          <p className="mb-6 text-center text-xs font-black uppercase tracking-[0.2em] text-primary">Every product of SelfRun AI</p>
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-10">
-            {products.map((p) => (
-              <li key={p.key}>
-                <Link href={p.href} aria-label={`${p.name} details`} className="group flex h-full flex-col items-center gap-2.5 rounded-2xl border border-border/60 bg-card p-4 text-center shadow-sm transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10">
-                  <span className="flex h-16 w-16 items-center justify-center rounded-2xl border border-border/60 bg-background shadow-sm transition-transform group-hover:scale-110"><ProductLogo productKey={p.key} size={46} title={p.name} /></span>
-                  <span className="text-[13px] font-black leading-tight">{p.name.replace(/^SelfRun\s+/i, "")}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
       {afterWall}
 
       {/* filter bar */}

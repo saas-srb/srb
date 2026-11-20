@@ -4,7 +4,7 @@ import { pageMeta } from "@/lib/platform/saas/seo-meta";
 import type { Metadata } from "next";
 import { getFeatureGroups } from "@/lib/platform/saas/modules";
 import { PANEL_VALUE, featureCount } from "@/lib/platform/saas/feature-lists";
-import { CtaBand, HeroCtas, PageHero } from "@/components/platform/saas/blocks";
+import { HeroCtas, PageHero } from "@/components/platform/saas/blocks";
 import FaqSection from "@/components/platform/saas/FaqSection";
 import ProductCatalog from "@/components/platform/saas/catalog/ProductCatalog";
 import { productShort } from "@/lib/platform/saas/product-short";
@@ -55,7 +55,6 @@ export default async function ProductsPage() {
         )}
       />
 
-      <CtaBand />
       <FaqSection
         topics={[
           "AI & automation",

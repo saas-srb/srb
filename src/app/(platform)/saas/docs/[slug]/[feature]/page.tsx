@@ -11,10 +11,9 @@ import { PANEL_VALUE, featuresOf } from "@/lib/platform/saas/feature-lists";
 import { PANEL_DETAIL } from "@/lib/platform/saas/panel-detail";
 import { guideFor } from "@/lib/platform/saas/guide-steps";
 import FaqSection from "@/components/platform/saas/FaqSection";
-import { CtaBand, HeroCtas, PageHero } from "@/components/platform/saas/blocks";
+import { HeroCtas, PageHero } from "@/components/platform/saas/blocks";
 import DocsNav from "@/components/platform/saas/DocsNav";
 import { productDocsPath, productKeyFromSlug, productSlugFor } from "@/lib/platform/saas/product-routes";
-import ProductLogo from "@/components/products/ProductLogo";
 import ScrollToTop from "@/components/platform/saas/product/ScrollToTop";
 
 export const dynamic = "force-dynamic";
@@ -89,18 +88,6 @@ export default async function FeatureGuidePage({ params }: { params: Promise<{ s
     const fs = featuresOf(p.key);
     return { key: p.key, name: p.name, icon: p.icon, groups: [...new Set(fs.map((x) => x.group))].map((g) => ({ name: g, items: fs.filter((x) => x.group === g).map((x) => ({ slug: x.slug, name: x.name })) })) };
   }).filter((p) => p.groups.length);
-  const toc = [
-    { id: "simple", label: "What it does", show: true },
-    { id: "before", label: "Before you start", show: true },
-    { id: "steps", label: guide.auto ? "How it works" : "Step by step", show: true },
-    { id: "tips", label: "Tips", show: guide.tips.length > 0 },
-    { id: "recap", label: "Quick recap", show: true },
-    { id: "connects", label: "What it connects to", show: !!detail && detail.connects.length > 0 },
-    { id: "screen", label: "What you will see", show: onScreen.length > 0 },
-    { id: "why", label: `Why use ${m.name}`, show: !!value },
-    { id: "who", label: `Who uses ${m.name}`, show: !!detail && detail.audience.length > 0 },
-    { id: "more", label: `More in ${f.group}`, show: siblings.length > 0 },
-  ].filter((x) => x.show);
   return (
     <>
     <JsonLd data={[
@@ -113,7 +100,7 @@ export default async function FeatureGuidePage({ params }: { params: Promise<{ s
     </PageHero>
     <ScrollToTop pageKey={`${m.key}/${f.slug}`} />
     <section className="sr-section">
-      <div data-hop-target className="sr-container grid max-w-[calc(var(--sr-max)+12rem)] gap-10 lg:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[340px_minmax(0,1fr)_280px] 2xl:grid-cols-[380px_minmax(0,1fr)_300px]">
+      <div data-hop-target className="sr-container grid max-w-[calc(var(--sr-max)+12rem)] gap-10 xl:grid-cols-[340px_minmax(0,1fr)] 2xl:grid-cols-[380px_minmax(0,1fr)]">
       <aside className="hidden xl:block">
         <div className="sticky top-28 flex max-h-[calc(100vh-8rem)] flex-col overflow-hidden rounded-3xl border border-border/60 bg-background shadow-sm">
           <DocsNav panels={navPanels} currentPanel={m.key} currentSlug={f.slug} />
@@ -258,25 +245,8 @@ export default async function FeatureGuidePage({ params }: { params: Promise<{ s
           </div>
         </section>
       </div>
-      <aside className="hidden lg:block">
-        <div className="sticky top-28 space-y-5">
-          <div className="rounded-3xl border border-border/60 bg-background p-5 shadow-sm">
-            <div className="mb-4 flex items-center gap-3"><span className="sr-icon h-10 w-10"><ProductLogo productKey={m.key} size={36} title={m.name} /></span><div><p className="text-xs font-bold uppercase tracking-widest text-primary">Guide</p><p className="font-black leading-tight">{m.name}</p></div></div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">On this page</p>
-            <ul className="space-y-0.5 border-l border-border/60">
-              {toc.map((t) => <li key={t.id}><a href={`#${t.id}`} className="-ml-px block border-l-2 border-transparent py-1.5 pl-4 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary">{t.label}</a></li>)}
-            </ul>
-          </div>
-          <div className="sr-band rounded-3xl p-5 shadow-xl shadow-primary/20">
-            <p className="font-black leading-snug">Use {f.name} in your own workspace.</p>
-            <p className="mt-1 text-sm text-white/75">Free to start — every product included.</p>
-            <Link href="/signup" className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-black transition-transform hover:scale-105">Get started free <ArrowRight className="h-4 w-4" /></Link>
-          </div>
-        </div>
-      </aside>
       </div>
     </section>
-    <CtaBand title={`Run ${m.name} — and every other product — free.`} lead="Every product and every feature is included in every plan, starting free, no card needed." />
     <FaqSection
       topics={["Setup", "Support", "General"]}
       limit={3}

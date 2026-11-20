@@ -10,9 +10,6 @@ import Header from "@/components/platform/saas/Header";
 import Footer from "@/components/platform/saas/Footer";
 import Interactions from "@/components/platform/saas/Interactions";
 import { OfferTopBar } from "@/components/platform/saas/OfferChrome";
-import MarketingShot from "@/components/platform/saas/MarketingShot";
-import Reveal from "@/components/platform/saas/Reveal";
-import { SectionHead } from "@/components/platform/saas/blocks";
 import SignupForm from "./SignupForm";
 import { resolveSignupPlan } from "@/lib/platform/billing/signup-plan";
 import { trialLabel } from "@/lib/platform/billing/signup-plan-rule";
@@ -107,22 +104,6 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
           </div>
         </section>
 
-        <section className="sr-section border-t border-border/50 bg-muted/10">
-          <div className="sr-container">
-            <SectionHead center icon="rocket" eyebrow="Take a look" title="Your workspace," accent="ready in minutes." lead="This is the Workspace you will land in: your dashboard, every product you switch on, and your team, all in one place." />
-            <Reveal><div className="mx-auto max-w-5xl"><MarketingShot screenKey="workspace" name="Workspace" /></div></Reveal>
-            <ul className="mx-auto mt-10 grid max-w-3xl gap-4 sm:grid-cols-3">
-              {[{ v: "All", l: "products, every feature included" }, { v: "AI", l: "built in, to answer questions and write drafts" }, { v: "₹0", l: "to start, no card needed" }].map((x, i) => (
-                <Reveal key={x.v} as="li" delay={i * 70}>
-                  <div className="h-full rounded-2xl border border-border/60 bg-card p-5 text-center shadow-sm transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10">
-                    <p className="bg-gradient-to-br from-primary to-brand-accent bg-clip-text text-4xl font-black leading-none tracking-tight text-transparent">{x.v}</p>
-                    <p className="mt-2 text-sm font-medium leading-snug text-muted-foreground">{x.l}</p>
-                  </div>
-                </Reveal>
-              ))}
-            </ul>
-          </div>
-        </section>
       </main>
       <Footer />
     </SrRoot>

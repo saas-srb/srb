@@ -56,7 +56,7 @@ export default async function DocArticle({ params }: { params: Promise<{ slug: s
       </PageHero>
       <ScrollToTop pageKey={g.slug} />
       <section className="sr-section">
-        <div data-hop-target className="sr-container grid gap-12 lg:grid-cols-[300px_minmax(0,1fr)_220px]">
+        <div data-hop-target className="sr-container grid gap-12 lg:grid-cols-[300px_minmax(0,1fr)]">
           <aside className="hidden lg:block" aria-label="All guides">
             <div className="sticky top-28">
               <DocsGuideSidebar key={g.category} groups={DOC_CATEGORIES.map((c) => ({ name: c.name, items: DOCS.filter((x) => x.category === c.name).map((x) => ({ slug: x.slug, title: x.title, readMinutes: x.readMinutes })) })).filter((c) => c.items.length)} activeSlug={g.slug} activeCategory={g.category} />
@@ -126,13 +126,6 @@ export default async function DocArticle({ params }: { params: Promise<{ slug: s
               ))}
             </div>
           </article>
-
-          <aside className="hidden lg:block">
-            <nav aria-label="On this page" className="sticky top-28 space-y-2 border-l pl-4">
-              <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">On this page</p>
-              {g.sections.map((s) => <a key={s.heading} href={`#${slugOf(s.heading)}`} className="block text-[13px] leading-snug text-muted-foreground transition-colors hover:text-foreground">{s.heading}</a>)}
-            </nav>
-          </aside>
         </div>
       </section>
       <CtaBand title="Put this guide to work — free." lead="Every product and every feature is included in every plan, starting free forever." />

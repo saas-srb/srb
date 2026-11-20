@@ -7,7 +7,7 @@ import { productPath } from "@/lib/platform/saas/product-routes";
 
 /** The legal and trust links, grouped by what a reader is looking for. */
 const LEGAL_GROUPS: { title: string; note: string; icon: typeof Scale; hrefs: string[] }[] = [
-  { title: "Legal", note: "The agreements and policies for using the service.", icon: Scale, hrefs: ["/terms", "/privacy", "/cookies", "/refund-policy", "/grievance"] },
+  { title: "Legal", note: "The agreements and policies for using the service.", icon: Scale, hrefs: ["/terms", "/privacy", "/cookies", "/refund-policy"] },
   { title: "Your data", note: "How your information is handled, and your rights over it.", icon: Lock, hrefs: ["/data-policy", "/data-requests", "/dpa", "/subprocessors"] },
   { title: "Trust and security", note: "How the service is protected and kept running.", icon: ShieldCheck, hrefs: ["/security", "/sla", "/status", "/vulnerability-disclosure"] },
 ];
