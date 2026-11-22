@@ -26,7 +26,7 @@ export default async function CampaignAnalyticsPage({
 }: {
   searchParams: Promise<CampaignSearchParams>;
 }) {
-  await requireLmsPage("VIEW_ANALYTICS");
+  await requireLmsPage("campaigns.view");
   const sp = await searchParams;
   const f = resolveCampaignFilters(sp);
 

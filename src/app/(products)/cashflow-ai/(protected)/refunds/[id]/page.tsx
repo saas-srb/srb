@@ -7,7 +7,7 @@ import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import { RefundStatusBadge } from "@/components/products/cashflow-ai/StatusBadges";
 import RefundStatusActions from "@/components/products/cashflow-ai/RefundStatusActions";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canMoveRefund } from "@/lib/fms-roles";
+import { canMoveRefund } from "@/lib/fms-access";
 import { REFUND_TRANSITIONS } from "@/lib/products/cashflow-ai/constants";
 import { getRefund, serializeRefund } from "@/lib/products/cashflow-ai/refunds";
 import { formatMoney } from "@/lib/products/cashflow-ai/constants";

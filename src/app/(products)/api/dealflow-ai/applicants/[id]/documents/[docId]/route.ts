@@ -12,7 +12,7 @@ type Context = { params: Promise<{ id: string; docId: string }> };
  * applicant's portal account — never served by id alone.
  */
 async function handleGET(_req: Request, { params }: Context) {
-  const user = await requireLms("VIEW_CAREERS");
+  const user = await requireLms("careers.view");
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id, docId } = await params;
   const doc = await applicantDocument(id, docId);

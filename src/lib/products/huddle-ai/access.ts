@@ -1,7 +1,7 @@
 import "server-only";
 import { getDb } from "@/lib/mongodb";
 import { scopeKey } from "@/lib/products/huddle-ai/events";
-import { isChatAdmin, type ChatRole } from "@/lib/messenger-roles";
+import { canModerateAll, type ChatHolder } from "@/lib/messenger-access";
 
 /**
  * Resolves the full set of realtime *scopes* a user is allowed to receive
@@ -21,11 +21,7 @@ export interface VisibleScopes {
   scopeKeys: string[];
 }
 
-export async function resolveVisibleScopes(user: {
-  id: string;
-  roles: ChatRole[];
-  permissionOverrides?: Record<string, boolean>;
-}): Promise<VisibleScopes> {
+export async function resolveVisibleScopes(user: { id: string } & ChatHolder): Promise<VisibleScopes> {
   const db = await getDb();
 
   const [memberRows, publicChannels, convRows, callRows] = await Promise.all([
@@ -33,7 +29,7 @@ export async function resolveVisibleScopes(user: {
     db
       .collection<{ _id: string }>("chat_channels")
       .find(
-        isChatAdmin(user)
+        canModerateAll(user)
           ? { deletedAt: null }
           : { kind: "team", visibility: "public", deletedAt: null }
       )

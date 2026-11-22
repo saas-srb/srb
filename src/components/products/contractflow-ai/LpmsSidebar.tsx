@@ -26,6 +26,9 @@ export interface LpmsNavFlags {
   canSign: boolean;
   canViewAudit: boolean;
   canSettings: boolean;
+  canViewDashboard: boolean;
+  canViewDocuments: boolean;
+  canViewArchive: boolean;
   pendingApprovals: number;
 }
 
@@ -91,7 +94,7 @@ const ICONS: Record<CfNavIcon, React.ComponentType<{ className?: string }>> = { 
 
 export default function LpmsSidebar({ flags, onNavigate, collapsed = false }: { flags: LpmsNavFlags; onNavigate?: () => void; collapsed?: boolean }) {
   const pathname = usePathname() ?? "";
-  const navFlags = { settings: flags.canSettings };
+  const navFlags = { settings: flags.canSettings, dashboard: flags.canViewDashboard, documents: flags.canViewDocuments, archive: flags.canViewArchive };
   const groups = groupedCfNav(navFlags);
   const active = activeCfItem(visibleCfNav(navFlags), pathname);
   const task = cfCurrentTask(pathname);

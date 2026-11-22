@@ -1,6 +1,6 @@
 import "server-only";
+import { can } from "@/lib/products/contractflow-ai/viewer";
 import { randomUUID } from "node:crypto";
-import { lpmsCan } from "@/lib/lpms-roles";
 import { cfParties } from "./cf-db";
 import { PARTY_ADAPTERS, escapeRegex, type SourceRecord } from "./party-adapters";
 import { MANUAL_PARTY_TYPES, PARTY_TYPES, isLinkedType, isPartyType, type PartyDoc, type PartyType, type PartyView, type PickerHit } from "./party-types";
@@ -24,12 +24,12 @@ const ctx = (v: LpmsViewer) => ({ roles: v.roles, permissionOverrides: v.overrid
 /** Whether the viewer may see parties of this type at all. */
 export function canAccessPartyType(v: LpmsViewer, type: PartyType): boolean {
   if (isLinkedType(type)) return PARTY_ADAPTERS[type].canAccess(v);
-  return v.sendForSignature === true || lpmsCan(ctx(v), "VIEW") || lpmsCan(ctx(v), "MANAGE_DOCUMENTS");
+  return v.sendForSignature === true || can(v, "documents.view") || can(v, "signatures.manage");
 }
 export function visiblePartyTypes(v: LpmsViewer): PartyType[] {
   return PARTY_TYPES.filter((t) => canAccessPartyType(v, t));
 }
-const canCreateManual = (v: LpmsViewer) => v.sendForSignature === true || lpmsCan(ctx(v), "CREATE") || lpmsCan(ctx(v), "SIGN") || lpmsCan(ctx(v), "MANAGE_DOCUMENTS");
+const canCreateManual = (v: LpmsViewer) => v.sendForSignature === true || can(v, "documents.create") || can(v, "signatures.sign") || can(v, "signatures.manage");
 
 const searchKeyOf = (name: string, extra = "") => `${name} ${extra}`.toLowerCase().replace(/\s+/g, " ").trim();
 const clean = (s: unknown, max: number) => (typeof s === "string" ? s.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max) : "");

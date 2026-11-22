@@ -1,3 +1,4 @@
+import { legacyToAccess } from "../src/lib/access/adapter";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -24,7 +25,7 @@ const ROOT = path.resolve(__dirname, "..");
   await pdb.dropDatabase();
   await pdb.collection("companies").insertMany([{ _id: "coA", status: "active" }, { _id: "coB", status: "active" }, { _id: "coS", status: "suspended" }] as never);
 
-  const viewer = (roles: string[]): Viewer => ({ userId: "u_" + roles.join("_"), email: "x@test.invalid", roles, overrides: {}, lpmsRoles: [], employeeId: null, companyId: "" });
+  const viewer = (roles: string[]): Viewer => ({ userId: "u_" + roles.join("_"), email: "x@test.invalid", roles, overrides: {}, subject: legacyToAccess({ roles, permissionOverrides: null }), lpmsRoles: [], employeeId: null, companyId: "" });
   const MANAGER = viewer(["lpms_manager"]);
   const PLAIN = viewer(["lpms_viewer"]);
   const inA = <T,>(fn: () => Promise<T>) => runAsCompany("coA", fn);

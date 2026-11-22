@@ -34,9 +34,6 @@ export interface OtsNavFlags {
   categories: boolean;
   audit: boolean;
   settings: boolean;
-  takeTests: boolean;
-  /** May see their own results (separate from taking tests). */
-  myResults: boolean;
   certificates: boolean;
   /** Tests waiting for the viewer to start / continue. */
   myOpen: number;
@@ -112,15 +109,12 @@ export default function OtsSidebar({ flags, onNavigate, collapsed = false }: { f
       <NavGroup collapsed={collapsed} label="Assessments">
         {nav({ href: "/evaliq/tests", label: "Tests", icon: FileCheck2 , locked: !(flags.tests) })}
         {nav({ href: "/evaliq/questions", label: "Question Bank", icon: Library , locked: !(flags.questions) })}
-        {nav({ href: "/evaliq/assignments", label: "Test Assignments", icon: Send , locked: !(flags.assignments) })}
+        {nav({ href: "/evaliq/assignments", label: "Assigned Tests", icon: Send, badge: flags.myOpen, locked: !(flags.assignments) })}
         {nav({ href: "/evaliq/results", label: "Results", icon: ListChecks, badge: flags.toEvaluate , locked: !(flags.results) })}
 
       </NavGroup>
-      <NavGroup collapsed={collapsed} label="My Tests">
-        {nav({ href: "/evaliq/my-tests", label: "My Tests", icon: ClipboardList, badge: flags.myOpen , locked: !(flags.takeTests) })}
-        {nav({ href: "/evaliq/my-results", label: "My Results", icon: Trophy , locked: !(flags.myResults) })}
+      <NavGroup collapsed={collapsed} label="Certificates">
         {nav({ href: "/evaliq/certificates", label: "Certificates", icon: Award , locked: !(flags.certificates) })}
-
       </NavGroup>
       <NavGroup collapsed={collapsed} label="Insights">
         {nav({ href: "/evaliq/reports", label: "Test Reports", icon: BarChart3 , locked: !(flags.reports) })}

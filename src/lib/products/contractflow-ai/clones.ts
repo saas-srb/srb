@@ -1,6 +1,6 @@
 import "server-only";
+import { can } from "@/lib/products/contractflow-ai/viewer";
 import { randomUUID } from "node:crypto";
-import { lpmsCan } from "@/lib/lpms-roles";
 import { playbookCan } from "@/lib/playbook-roles";
 import { getDb } from "@/lib/mongodb";
 import { PB_COLLECTIONS } from "@/lib/products/playbook-ai/pb-collections";
@@ -43,10 +43,10 @@ const TEXT_CAP = 1000;
 
 // ── Access ─────────────────────────────────────────────────────────────────────────────────────────────────────
 export function canViewClone(v: LpmsViewer, c: Pick<CloneDoc, "party">): boolean {
-  return lpmsCan(ctx(v), "VIEW") && (!c.party.partyId || canAccessPartyType(v, c.party.type));
+  return can(v, "documents.view") && (!c.party.partyId || canAccessPartyType(v, c.party.type));
 }
-const canEditClone = (v: LpmsViewer) => lpmsCan(ctx(v), "EDIT");
-const canManageClone = (v: LpmsViewer) => lpmsCan(ctx(v), "SIGN") || lpmsCan(ctx(v), "MANAGE_DOCUMENTS");
+const canEditClone = (v: LpmsViewer) => can(v, "documents.edit");
+const canManageClone = (v: LpmsViewer) => can(v, "signatures.sign") || can(v, "signatures.manage");
 
 export const isCloneLocked = (c: Pick<CloneDoc, "lockedAt" | "signatureCount" | "status">) =>
   c.lockedAt !== null || c.signatureCount > 0 || c.status === "partially_signed" || c.status === "signed";
@@ -62,7 +62,7 @@ export function cloneCapabilities(v: LpmsViewer, c: CloneDoc | CloneSummary) {
     reclone: canManageClone(v) && c.status === "voided" && !c.replacedBy,
     markReady: canManageClone(v) && c.status === "clone_draft",
     send: canManageClone(v) && c.status === "ready",
-    download: lpmsCan(ctx(v), "DOWNLOAD"),
+    download: can(v, "documents.download"),
   };
 }
 
@@ -101,7 +101,7 @@ export async function getClone(v: LpmsViewer, id: string): Promise<CloneResult<{
 }
 
 export async function listClones(v: LpmsViewer, opts: { status?: string; kind?: ItemKind; limit?: number } = {}): Promise<CloneSummary[]> {
-  if (!lpmsCan(ctx(v), "VIEW")) return [];
+  if (!can(v, "documents.view")) return [];
   const filter: Record<string, unknown> = { deletedAt: null };
   if (opts.status) filter.status = opts.status;
   if (opts.kind) filter.kind = opts.kind === "document" ? { $in: ["document", null] } : opts.kind;

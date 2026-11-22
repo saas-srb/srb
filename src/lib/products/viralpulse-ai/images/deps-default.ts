@@ -101,7 +101,7 @@ export function defaultImageDeps(): ImageDeps {
     async notify(ids, n) {
       await notifySmmsUsers(ids, { type: "smms_ugc_approval", title: n.title, body: n.body, link: n.link });
     },
-    managerIds: () => smmsUsersWith("PUBLISH_CONTENT"),
+    managerIds: () => smmsUsersWith("posts.publish"),
     kit: getBrandKit,
     async storagePrefix() {
       return `smms/${(await currentCompanyIdOrNull()) ?? "shared"}/studio`;

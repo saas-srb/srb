@@ -10,7 +10,7 @@ import { NoteStatusBadge } from "@/components/products/cashflow-ai/StatusBadges"
 import RecordVendorPaymentForm from "@/components/products/cashflow-ai/RecordVendorPaymentForm";
 import DebitNoteForm from "@/components/products/cashflow-ai/DebitNoteForm";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageTransactions } from "@/lib/fms-roles";
+import { canManageTransactions } from "@/lib/fms-access";
 import { getBillDetail } from "@/lib/products/cashflow-ai/bills";
 import { listFundAccountOptions } from "@/lib/products/cashflow-ai/fund-accounts";
 import { formatMoney } from "@/lib/products/cashflow-ai/constants";

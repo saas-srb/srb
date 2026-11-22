@@ -292,7 +292,7 @@ export async function decideRequest(
     type: "request_decided",
     title: `Your ${label(req.kind)} request was ${decision}`,
     body: note ? note.slice(0, 140) : req.kind === "expense" && decision === "approved" ? (res.payoutId ? `₹${res.approvedAmount?.toLocaleString("en-IN")} has been sent to your bank account.` : `₹${res.approvedAmount?.toLocaleString("en-IN")} will be paid with ${res.month} salary.`) : "",
-    link: "/talentos/me/requests",
+    link: "/talentos/requests",
     entityType: "work_request",
     entityId: id,
   });

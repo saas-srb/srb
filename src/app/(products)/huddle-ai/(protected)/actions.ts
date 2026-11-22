@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { ObjectId } from "mongodb";
 import { getCurrentChatUser } from "@/lib/messenger-auth";
+import { chatCan } from "@/lib/messenger-access";
 import { goOffline } from "@/lib/products/huddle-ai/presence";
 import { markRead, markAllRead } from "@/lib/products/huddle-ai/notifications";
 import { signOutThisDevice } from "@/lib/security/sessions";
@@ -25,7 +26,7 @@ export async function messengerLogoutAction(): Promise<void> {
 
 export async function markNotificationsReadAction(ids: string[]): Promise<{ ok: boolean }> {
   const user = await getCurrentChatUser();
-  if (!user) return { ok: false };
+  if (!user || !chatCan(user, "notifications.view")) return { ok: false };
   await markRead(ids, user.id);
   revalidatePath("/huddle-ai/notifications");
   return { ok: true };
@@ -33,7 +34,7 @@ export async function markNotificationsReadAction(ids: string[]): Promise<{ ok: 
 
 export async function markAllNotificationsReadAction(): Promise<{ ok: boolean }> {
   const user = await getCurrentChatUser();
-  if (!user) return { ok: false };
+  if (!user || !chatCan(user, "notifications.view")) return { ok: false };
   await markAllRead(user.id);
   revalidatePath("/huddle-ai/notifications");
   return { ok: true };

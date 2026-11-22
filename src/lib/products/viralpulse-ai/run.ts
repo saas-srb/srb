@@ -1,6 +1,5 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
-import type { SmmsPermission } from "@/lib/smms-roles";
 import { requireViewer, can, SmmsInputError, ForbiddenError, NotFoundError, type SmmsViewer } from "@/lib/products/viralpulse-ai/viewer";
 import { aiErrorMessage } from "@/lib/products/viralpulse-ai/ai";
 import { isBillingLimitError, writeBlockReason } from "@/lib/platform/billing/enforce";
@@ -17,7 +16,7 @@ export type Ok<T = object> = { ok: true } & T;
 const SESSION_EXPIRED: Fail = { ok: false, error: "Your session has expired — please sign in again." };
 const DENIED: Fail = { ok: false, error: "You don't have permission to do that." };
 
-export async function run<T extends object>(permissions: SmmsPermission[], fn: (v: SmmsViewer) => Promise<T>, opts: { revalidate?: boolean } = {}): Promise<Ok<T> | Fail> {
+export async function run<T extends object>(permissions: string[], fn: (v: SmmsViewer) => Promise<T>, opts: { revalidate?: boolean } = {}): Promise<Ok<T> | Fail> {
   let v: SmmsViewer;
   try {
     v = await requireViewer();
@@ -26,7 +25,7 @@ export async function run<T extends object>(permissions: SmmsPermission[], fn: (
   }
   if (!permissions.every((p) => can(v, p))) return DENIED;
   // Suspended/canceled workspaces are read-only: block anything beyond viewing.
-  if (permissions.some((p) => !p.startsWith("VIEW_"))) {
+  if (permissions.some((p) => !/\.view$/.test(p))) {
     const readOnly = await writeBlockReason();
     if (readOnly) return { ok: false, error: readOnly };
   }

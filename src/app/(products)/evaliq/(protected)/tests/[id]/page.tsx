@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/evaliq/gate";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Users, CheckCheck, Hourglass, Percent, Trophy, Timer, RefreshCw } from "lucide-react";
@@ -25,7 +26,8 @@ const yes = (b: boolean) => (b ? "Yes" : "No");
 export default async function TestDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/evaliq/login");
-  if (!can(viewer, "VIEW_TESTS")) redirect("/evaliq");
+  const locked = lockedUnless(viewer, "tests.view", "Tests");
+  if (locked) return locked;
   const { id } = await params;
   const t = await getTest(id);
   if (!t) notFound();
@@ -34,7 +36,7 @@ export default async function TestDetailPage({ params }: { params: Promise<{ id:
     summarizeTest(t),
     categoryMap("test"),
     listDispatches(id, 20),
-    can(viewer, "VIEW_REPORTS") ? groupAnalytics("test", { testId: id }) : Promise.resolve([]),
+    can(viewer, "reports.view") ? groupAnalytics("test", { testId: id }) : Promise.resolve([]),
     getDirectory(),
     listAudit({ testId: id, pageSize: 12 }),
   ]);
@@ -58,7 +60,7 @@ export default async function TestDetailPage({ params }: { params: Promise<{ id:
         }
         actions={<TestActions id={id} name={t.name} status={status} perms={perms} />}
       />
-      {status === "draft" && can(viewer, "EDIT_TEST") && <TestStepper testId={id} current="publish" />}
+      {status === "draft" && can(viewer, "tests.edit") && <TestStepper testId={id} current="publish" />}
       {status === "draft" && summary.issues.length > 0 && (
         <Notice tone="warn">
           <p className="font-semibold">Not ready to publish yet:</p>
@@ -148,7 +150,7 @@ export default async function TestDetailPage({ params }: { params: Promise<{ id:
                     <Link href={`/evaliq/assignments?dispatchId=${d._id}`} className="hover:text-primary">{d.targetSummary}</Link>
                     <p className="text-[11px] text-muted-foreground">{`${d.created} assigned${d.skipped ? ` · ${d.skipped} skipped` : ""} · ${formatDateTime(d.createdAt)}${d.dueAt ? ` · due ${formatDateTime(d.dueAt)}` : ""}`}</p>
                   </div>
-                  {can(viewer, "ASSIGN_TEST") && (status === "active" || status === "published") && (
+                  {can(viewer, "assignments.assign") && (status === "active" || status === "published") && (
                     <ActionButton action={resyncDispatchAction.bind(null, d._id)} size="xs" success="Re-synced" aria-label="Re-sync">
                       <RefreshCw className="size-3" />
                     </ActionButton>
@@ -158,7 +160,7 @@ export default async function TestDetailPage({ params }: { params: Promise<{ id:
             </ul>
           )}
         </SectionCard>
-        <SectionCard title="Activity" action={can(viewer, "VIEW_AUDIT_LOG") ? <Link href={`/evaliq/activity?testId=${id}`} className="text-xs text-primary hover:underline">All</Link> : undefined}>
+        <SectionCard title="Activity" action={can(viewer, "activity.view") ? <Link href={`/evaliq/activity?testId=${id}`} className="text-xs text-primary hover:underline">All</Link> : undefined}>
           <ul className="space-y-1.5 text-xs">
             {trail.items.length === 0 && <li className="text-muted-foreground">No activity yet.</li>}
             {trail.items.map((a) => (

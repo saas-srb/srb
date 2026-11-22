@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canReconcile } from "@/lib/fms-roles";
+import { canReconcile } from "@/lib/fms-access";
 import { createStatementLine, matchStatementLine, flagStatementLine, type StatementLineWriteData } from "@/lib/products/cashflow-ai/bank-reconciliation";
 
 export interface BankReconciliationActionResult {

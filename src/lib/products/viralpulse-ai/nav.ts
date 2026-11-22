@@ -11,6 +11,13 @@ export interface SmmsNavFlags {
   media: boolean;
   ai: boolean;
   ugc?: boolean;
+  /** Module pages (micro features): the menu shows an item only when the person holds the feature of that page. */
+  studio?: boolean;
+  generateImage?: boolean;
+  brochures?: boolean;
+  vcards?: boolean;
+  library?: boolean;
+  brand?: boolean;
   analytics: boolean;
   audit: boolean;
   settings: boolean;
@@ -46,13 +53,13 @@ export const NAV_GROUPS: readonly { key: NavGroupKey; label: string }[] = [
 
 export const NAV_ITEMS: readonly NavItem[] = [
   { key: "dashboard", href: "/viralpulse-ai", label: "Dashboard", icon: "dashboard", exact: true },
-  { key: "image-studio", href: "/viralpulse-ai/image-studio", label: "AI Image Studio", icon: "image", anyOf: ["media", "ai"], group: "studio" },
-  { key: "generate-image", href: "/viralpulse-ai/generate-image", label: "Generate Image", icon: "generate", anyOf: ["ai"], group: "studio" },
+  { key: "image-studio", href: "/viralpulse-ai/image-studio", label: "AI Image Studio", icon: "image", anyOf: ["studio"], group: "studio" },
+  { key: "generate-image", href: "/viralpulse-ai/generate-image", label: "Generate Image", icon: "generate", anyOf: ["generateImage"], group: "studio" },
   { key: "ugc", href: "/viralpulse-ai/ugc", label: "AI UGC Studio", icon: "ugc", anyOf: ["ugc"], badge: "generatingUgc", group: "studio" },
-  { key: "brochure", href: "/viralpulse-ai/brochures", label: "Brochure Builder", icon: "brochure", anyOf: ["media", "ai", "posts"], group: "studio" },
-  { key: "vcard", href: "/viralpulse-ai/vcards", label: "AI Visiting Cards", icon: "vcard", anyOf: ["media", "ai", "posts"], group: "studio" },
-  { key: "library", href: "/viralpulse-ai/library", label: "Media Library", icon: "library", anyOf: ["media"], group: "studio" },
-  { key: "brand-kit", href: "/viralpulse-ai/brand-kit", label: "Brand Kit", icon: "brand", anyOf: ["media", "ai"], group: "studio" },
+  { key: "brochure", href: "/viralpulse-ai/brochures", label: "Brochure Builder", icon: "brochure", anyOf: ["brochures"], group: "studio" },
+  { key: "vcard", href: "/viralpulse-ai/vcards", label: "AI Visiting Cards", icon: "vcard", anyOf: ["vcards"], group: "studio" },
+  { key: "library", href: "/viralpulse-ai/library", label: "Media Library", icon: "library", anyOf: ["library"], group: "studio" },
+  { key: "brand-kit", href: "/viralpulse-ai/brand-kit", label: "Brand Kit", icon: "brand", anyOf: ["brand"], group: "studio" },
   { key: "posts", href: "/viralpulse-ai/posts", label: "Social Media Reels/Posts", icon: "posts", anyOf: ["posts"], badge: "failedPosts", group: "publish" },
   { key: "campaigns", href: "/viralpulse-ai/campaigns", label: "Campaigns & Ads", icon: "campaigns", anyOf: ["campaigns"], badge: "dueAds", group: "publish" },
   { key: "analytics", href: "/viralpulse-ai/analytics", label: "Analytics", icon: "analytics", anyOf: ["analytics"], group: "insights" },

@@ -1,5 +1,5 @@
 import "server-only";
-import { lpmsCan } from "@/lib/lpms-roles";
+import { can } from "@/lib/products/contractflow-ai/viewer";
 import { applyBrandToDoc, brandRenderOptions, brandWatermark, loadBrand } from "@/lib/products/playbook-ai/brand/apply";
 import { layoutInputFor } from "@/lib/products/playbook-ai/items-layout";
 import { todayIso } from "@/lib/products/playbook-ai/db";
@@ -56,7 +56,7 @@ export async function renderCloneDoc(clone: CloneDoc, format: CloneFormat, opts:
 
 /** Download or preview: needs the DOWNLOAD permission and access to the clone. `unsavedDoc` previews the editor's current content (draft only). */
 export async function renderClone(v: LpmsViewer, id: string, format: CloneFormat, opts: { unsavedDoc?: unknown } = {}): Promise<CloneResult<{ file: RenderedClone }>> {
-  if (!lpmsCan({ roles: v.roles, permissionOverrides: v.overrides }, "DOWNLOAD")) return { ok: false, error: { code: "forbidden", message: "You may not download documents." } };
+  if (!can(v, "documents.download")) return { ok: false, error: { code: "forbidden", message: "You may not download documents." } };
   const g = await getClone(v, id);
   if (!g.ok) return g;
   let doc: PBDoc | undefined;

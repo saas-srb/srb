@@ -5,7 +5,7 @@ import LpmsSidebar from "@/components/products/contractflow-ai/LpmsSidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 const pb = { mySops: true, templates: true, compliance: true, reports: true, audit: true, settings: true, documents: true, brand: true, create: true, templateLibrary: true, myTemplates: true, assignedOpen: 0 };
-const cf = { canCreate: true, canManageTemplates: true, canManageMakers: true, canApprove: true, canSign: true, canViewAudit: true, canSettings: true, pendingApprovals: 0 };
+const cf = { canCreate: true, canManageTemplates: true, canManageMakers: true, canApprove: true, canSign: true, canViewAudit: true, canSettings: true, canViewDashboard: true, canViewDocuments: true, canViewArchive: true, pendingApprovals: 0 };
 
 export default function SidebarsHarness() {
   const box = "w-64 rounded-2xl border border-border/50 bg-card shadow-sm";

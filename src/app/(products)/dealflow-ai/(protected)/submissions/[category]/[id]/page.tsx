@@ -23,7 +23,7 @@ export default async function SubmissionDetailPage({
 }: {
   params: Promise<{ category: string; id: string }>;
 }) {
-  await requireLmsPage("VIEW_LEADS");
+  await requireLmsPage("submissions.view");
   const { category, id } = await params;
   if (!isValidCategory(category)) notFound();
 

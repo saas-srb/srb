@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/viralpulse-ai/gate";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BarChart3, Eye, Heart, Percent, Radio, Users, Wallet } from "lucide-react";
@@ -37,7 +38,9 @@ const STATUS_LABEL: Record<string, string> = { ok: "Up to date", error: "Failing
 export default async function AnalyticsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/viralpulse-ai/login");
-  if (!can(viewer, "VIEW_ANALYTICS")) redirect("/viralpulse-ai");
+  const locked = lockedUnless(viewer, "analytics.view", "Analytics");
+  if (locked) return locked;
+  if (!can(viewer, "analytics.view")) redirect("/viralpulse-ai");
   const sp = await searchParams;
   const tab = TABS.some(([k]) => k === sp.tab) ? sp.tab! : "overview";
   const filters = { from: sp.from, to: sp.to, platform: sp.platform, account: sp.account, campaign: sp.campaign, contentType: sp.contentType, creativeSource: sp.creativeSource };
@@ -93,7 +96,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
       {tab === "posts" && <Posts d={d} />}
       {tab === "paid" && <Paid d={d} />}
       {tab === "creatives" && <Creatives d={d} />}
-      {tab === "accounts" && <Accounts d={d} settings={settings} canEdit={can(viewer, "MANAGE_INTEGRATIONS")} />}
+      {tab === "accounts" && <Accounts d={d} settings={settings} canEdit={can(viewer, "integrations.manage")} />}
       {tab === "besttime" && <BestTime d={d} />}
     </div>
   );

@@ -24,7 +24,7 @@ const bad = (error: string, status = 400) => NextResponse.json({ ok: false, erro
  * Links are returned once; only their hash is kept.
  */
 async function handlePOST(req: NextRequest, { params }: { params: Promise<{ roomId: string }> }) {
-  const user = await requireLms("VIEW_LEADS");
+  const user = await requireLms("meetings.view");
   if (!user) return deny();
   try {
     const { roomId } = await params;

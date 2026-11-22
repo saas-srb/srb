@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/sitecraft-ai/gate";
 import { redirect } from "next/navigation";
 import { getViewer, can } from "@/lib/products/sitecraft-ai/viewer";
 import { listFooterColumns, listFooterLinks } from "@/lib/products/sitecraft-ai/footer";
@@ -8,6 +9,8 @@ import CmsPageHeader from "@/components/products/sitecraft-ai/ui/CmsPageHeader";
 export default async function CmsFooterPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/sitecraft-ai/login");
+  const locked = lockedUnless(viewer, "footer.view", "Footer");
+  if (locked) return locked;
 
   const [columns, links] = await Promise.all([listFooterColumns(), listFooterLinks()]);
 
@@ -19,7 +22,7 @@ export default async function CmsFooterPage() {
         title="Footer"
         description={<>The website footer&apos;s link columns. Contact details, social links and the footer&apos;s CTA/intro text are under Site Identity.</>}
       />
-      <FooterManager initialColumns={columns} initialLinks={links} canEdit={can(viewer, "FOOTER_MANAGE")} />
+      <FooterManager initialColumns={columns} initialLinks={links} canEdit={can(viewer, "footer.manage")} />
     </div>
   );
 }

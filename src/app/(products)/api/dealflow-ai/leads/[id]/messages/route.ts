@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
  * is the same "staff has now seen this" moment as opening the full lead page.
  */
 async function handleGET(_req: Request, ctx: RouteContext<"/api/dealflow-ai/leads/[id]/messages">) {
-  const user = await requireLms("VIEW_LEADS");
+  const user = await requireLms("messages.view");
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await ctx.params;

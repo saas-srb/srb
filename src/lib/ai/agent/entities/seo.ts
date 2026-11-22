@@ -1,7 +1,7 @@
 import "server-only";
 import * as A from "@/app/(products)/rankmax-ai/(protected)/actions";
-import { seoCan, type SeoPermission } from "@/lib/seo-roles";
-import { getViewer as seoViewer, can as viewerCan } from "@/lib/products/rankmax-ai/viewer";
+type SeoPermission = string;
+import { microLegacy, microAny, microOr, featureScope as microFeatureScope, holds } from "@/lib/ai/agent/micro-gate";
 import { runCrawl, CrawlBusyError } from "@/lib/products/rankmax-ai/crawler";
 import { notifySeoUsers } from "@/lib/products/rankmax-ai/notifications";
 import { getDashboard } from "@/lib/products/rankmax-ai/analytics";
@@ -18,11 +18,8 @@ import type { ActionDef, AgentUser, EntityDef, FieldDef, Json, ReportDef } from 
  * keywords and rankings, backlinks, competitors, structured data, sitemap and robots — through the product's own actions and rules.
  */
 
-const ctx = (u: AgentUser) => ({ roles: u.roles, permissionOverrides: u.permissionOverrides });
-const can = (p: SeoPermission) => (u: AgentUser) => seoCan(ctx(u), p);
-/** The offer list above is only a hint: what the agent can read or run is decided here by the person's micro features, on the server. */
-const mayDo = async (key: string) => { const v = await seoViewer().catch(() => null); return Boolean(v && viewerCan(v, key)); };
-const featureScope = (key: string) => async (): Promise<Json | null> => ((await mayDo(key)) ? {} : { _id: "__none__" });
+const can = microLegacy("seo");
+const featureScope = (k: string) => microFeatureScope("rankmax-ai." + k);
 const soft = { deletedAt: null };
 const TT = Object.keys(TASK_TYPES); const TS = Object.keys(TASK_STATUSES); const TP = Object.keys(TASK_PRIORITIES);
 const ro = (key: string, label: string, description: string, collection: string, extra: Partial<EntityDef> = {}): EntityDef => ({ key, panel: "seo", label, description, collection, idType: "string", read: "any", allowRead: can("VIEW"), ...extra });
@@ -63,7 +60,6 @@ export const SEO_ACTIONS: ActionDef[] = [
   {
     key: "seo.run_audit", panel: "seo", label: "Run a website audit", description: "Crawl the website and update scores and issues. Takes up to a few minutes.", params: [], level: "any", allow: can("RUN_AUDIT"),
     run: async (_v, u) => {
-      if (!(await mayDo("audit.run"))) return fail("You don't have permission to run audits.");
       try {
         const run = await runCrawl({ trigger: "manual", actorId: u.id, actorEmail: u.email });
         if (run.status === "completed") await notifySeoUsers([u.id], { type: "seo_audit_completed", title: `Website audit finished — score ${run.scores?.overall ?? "—"}`, body: `${run.pagesCrawled} pages`, link: "/rankmax-ai/audit" } as never);
@@ -130,9 +126,9 @@ export const SEO_ACTIONS: ActionDef[] = [
 ];
 
 export const SEO_REPORTS: ReportDef[] = [
-  { key: "seo.dashboard", panel: "seo", label: "SEO dashboard numbers", description: "Scores, issues, keyword positions, traffic and tasks at a glance.", level: "any", allow: can("VIEW"), params: [], run: async (_v, u) => !(await mayDo("dashboard.view")) ? fail("Not allowed.") : (await getDashboard(u.id)) as unknown as Json },
-  { key: "seo.issue_stats", panel: "seo", label: "Issue statistics", description: "Open issues by severity, category and status.", level: "any", allow: can("VIEW"), params: [], run: async () => !(await mayDo("issues.view")) ? fail("Not allowed.") : (await issueStats()) as unknown as Json },
-  { key: "seo.task_stats", panel: "seo", label: "Task statistics", description: "SEO tasks by status and priority (add mine=true for just yours).", level: "any", allow: can("VIEW"), params: [f.bool("mine", "Only my tasks")], run: async (v, u) => !(await mayDo("tasks.view")) ? fail("Not allowed.") : (await taskStats(v.mine === true ? u.id : undefined)) as unknown as Json },
-  { key: "seo.cannibalization", panel: "seo", label: "Keyword cannibalisation", description: "Keywords where several of your pages compete for the same term.", level: "any", allow: can("VIEW"), params: [], run: async () => !(await mayDo("keywords.view")) ? fail("Not allowed.") : ({ cases: await detectCannibalization() }) as unknown as Json },
+  { key: "seo.dashboard", panel: "seo", label: "SEO dashboard numbers", description: "Scores, issues, keyword positions, traffic and tasks at a glance.", level: "any", allow: can("VIEW"), params: [], run: async (_v, u) => (await getDashboard(u.id)) as unknown as Json },
+  { key: "seo.issue_stats", panel: "seo", label: "Issue statistics", description: "Open issues by severity, category and status.", level: "any", allow: can("VIEW"), params: [], run: async () => (await issueStats()) as unknown as Json },
+  { key: "seo.task_stats", panel: "seo", label: "Task statistics", description: "SEO tasks by status and priority (add mine=true for just yours).", level: "any", allow: can("VIEW"), params: [f.bool("mine", "Only my tasks")], run: async (v, u) => (await taskStats(v.mine === true ? u.id : undefined)) as unknown as Json },
+  { key: "seo.cannibalization", panel: "seo", label: "Keyword cannibalisation", description: "Keywords where several of your pages compete for the same term.", level: "any", allow: can("VIEW"), params: [], run: async () => ({ cases: await detectCannibalization() }) as unknown as Json },
 ];
-void seoViewer; void TT;
+void TT;

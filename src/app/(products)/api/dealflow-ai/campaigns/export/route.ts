@@ -7,7 +7,7 @@ import { getPlatformMeta } from "@/lib/campaign-platforms";
 import { toCsv } from "@/lib/csv";
 
 async function handleGET(req: NextRequest) {
-  const lmsUser = await requireLms("EXPORT_DATA");
+  const lmsUser = await requireLms("data.export");
   if (!lmsUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const sp = req.nextUrl.searchParams;

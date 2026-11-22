@@ -3,7 +3,7 @@ import { requireLms } from "@/lib/lms-auth";
 import { generateContextualAiReply } from "@/lib/dealflow-ai/ai-generator";
 
 export async function POST(request: Request) {
-  if (!(await requireLms("MESSAGE_LEADS"))) return NextResponse.json({ ok: false, error: "Not allowed" }, { status: 403 });
+  if (!(await requireLms("messages.send"))) return NextResponse.json({ ok: false, error: "Not allowed" }, { status: 403 });
   try {
     const body = await request.json();
     const {

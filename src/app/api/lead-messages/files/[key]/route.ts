@@ -40,7 +40,7 @@ async function handleGET(_req: NextRequest, ctx: RouteContext<"/api/lead-message
     allowed = message.visibility === "portal" && !!lead && lead.externalUserId === portalUser.id;
   }
   if (!allowed) {
-    const lmsUser = await requireLms("VIEW_LEADS");
+    const lmsUser = await requireLms("leads.view");
     allowed = !!lmsUser;
   }
   if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });

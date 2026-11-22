@@ -109,8 +109,8 @@ function useActiveVoiceCalls(enabled: boolean): number {
 }
 
 export default function LmsSidebar({ onNavigate, collapsed = false }: { onNavigate?: () => void; collapsed?: boolean }) {
-  const canCareers = useLmsCan("VIEW_CAREERS");
-  const canLeads = useLmsCan("VIEW_LEADS");
+  const canCareers = useLmsCan("careers.view");
+  const canLeads = useLmsCan("leads.view");
   const liveCalls = useActiveVoiceCalls(canLeads);
 
   return (

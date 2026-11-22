@@ -10,7 +10,7 @@ const NO_PERMISSION = "You don't have permission to do that.";
 
 export async function listPagesAction() {
   const v = await requireViewer().catch(() => null);
-  if (!v || !can(v, "VIEW")) return [];
+  if (!v || !can(v, "pages.view")) return [];
   return listPages();
 }
 
@@ -21,7 +21,7 @@ export async function createPageAction(input: { path: string; title: string; tem
   } catch {
     return { ok: false, error: SESSION_EXPIRED };
   }
-  if (!can(v, "PAGES_CREATE")) return { ok: false, error: NO_PERMISSION };
+  if (!can(v, "pages.create")) return { ok: false, error: NO_PERMISSION };
 
   // A new page starts empty; its sections are added in the page builder.
   const sections: PageSection[] = [];
@@ -39,7 +39,7 @@ export async function deletePageAction(id: string, path: string): Promise<Result
   } catch {
     return { ok: false, error: SESSION_EXPIRED };
   }
-  if (!can(v, "PAGES_DELETE")) return { ok: false, error: NO_PERMISSION };
+  if (!can(v, "pages.delete")) return { ok: false, error: NO_PERMISSION };
 
   const res = await deletePage(id, v.userId);
   if (res.ok) {
@@ -60,7 +60,7 @@ export async function bulkPublishPagesAction(ids: string[]): Promise<Result<{ pu
   } catch {
     return { ok: false, error: SESSION_EXPIRED };
   }
-  if (!can(v, "PAGES_PUBLISH")) return { ok: false, error: NO_PERMISSION };
+  if (!can(v, "pages.publish")) return { ok: false, error: NO_PERMISSION };
   if (ids.length > 200) return { ok: false, error: "Publish at most 200 pages at a time." };
 
   let published = 0;

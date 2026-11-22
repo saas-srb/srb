@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageTransactions, canApproveTransactions } from "@/lib/fms-roles";
+import { canManageTransactions, canApproveTransactions } from "@/lib/fms-access";
 import {
   requestAdvance,
   changeAdvanceStatus,

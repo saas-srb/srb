@@ -1,4 +1,4 @@
-import { getCurrentChatUser } from "@/lib/messenger-auth";
+import { getCurrentChatUser, requireChatPage } from "@/lib/messenger-auth";
 import { listConversationsForUser, serializeConversations } from "@/lib/products/huddle-ai/conversations";
 import { getPresence } from "@/lib/products/huddle-ai/presence";
 import ConversationList, { type ConversationRow } from "@/components/products/huddle-ai/ConversationList";
@@ -8,6 +8,8 @@ import { listDirectoryUsers } from "@/lib/products/huddle-ai/users";
 export const dynamic = "force-dynamic";
 
 export default async function DmLayout({ children }: { children: React.ReactNode }) {
+  // The menu hides this section from people without it; a typed address goes back to the Huddle home.
+  await requireChatPage("dm.view");
   const user = await getCurrentChatUser();
   if (!user) return null;
 

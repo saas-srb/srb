@@ -1,6 +1,7 @@
 import "server-only";
 import * as A from "@/app/(products)/evaliq/(protected)/actions";
-import { otsCan, type OtsPermission } from "@/lib/ots-roles";
+type OtsPermission = string;
+import { microLegacy, microAny, microOr, legacyScope, featureScope as microFeatureScope, holds } from "@/lib/ai/agent/micro-gate";
 import { TEST_TYPES, DIFFICULTIES, QUESTION_DIFFICULTIES, QUESTION_STATUSES, PRIORITIES, RESULT_RELEASES, RESULT_DETAILS, ATTEMPT_SCORING, TARGET_TYPES } from "@/lib/products/evaliq/constants";
 import { QUESTION_TYPE_LIST } from "@/lib/products/evaliq/question-types";
 import { getDashboard } from "@/lib/products/evaliq/analytics";
@@ -13,13 +14,13 @@ import type { ActionDef, AgentUser, EntityDef, FieldDef, Json, ReportDef } from 
  * evaluate answers, publish results and issue certificates — through the product's own actions and permission rules.
  */
 
-const ctx = (u: AgentUser) => ({ roles: u.roles, permissionOverrides: u.permissionOverrides });
-const can = (p: OtsPermission) => (u: AgentUser) => otsCan(ctx(u), p);
+const can = microLegacy("ots");
+const featureScope = legacyScope("ots");
 const soft = { deletedAt: null };
 const QT = QUESTION_TYPE_LIST.map((q) => q.value as string);
 const jsonRound = (v: unknown): Json => JSON.parse(JSON.stringify(v ?? {})) as Json;
 
-const ro = (key: string, label: string, description: string, collection: string, perm: OtsPermission, extra: Partial<EntityDef> = {}): EntityDef => ({ key, panel: "ots", label, description, collection, idType: "string", read: "staff", allowRead: can(perm), ...extra });
+const ro = (key: string, label: string, description: string, collection: string, perm: OtsPermission, extra: Partial<EntityDef> = {}): EntityDef => ({ key, panel: "ots", label, description, collection, idType: "string", read: "staff", allowRead: can(perm), scope: featureScope(perm), ...extra });
 export const OTS_ENTITIES: EntityDef[] = [
   ro("ots.test", "Test", "Online tests: name, code, type, status (draft / published / closed / archived), configuration and sections.", "ots_tests", "VIEW_TESTS", { baseFilter: soft, titleField: "name", search: ["name", "code", "subject"] }),
   ro("ots.question", "Question", "Question bank: type, prompt, difficulty, marks, subject, status (answer keys are included for authors).", "ots_questions", "VIEW_QUESTIONS", { baseFilter: soft, titleField: "prompt", search: ["prompt", "code", "subject", "topic", "tags"] }),

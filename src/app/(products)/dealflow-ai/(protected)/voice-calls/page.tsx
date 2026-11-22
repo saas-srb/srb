@@ -6,7 +6,7 @@ import { listActiveDealflowCalls, listCallPeople } from "@/lib/dealflow-ai/call-
 export const dynamic = "force-dynamic";
 
 export default async function PageVoiceCalls({ searchParams }: { searchParams: Promise<{ person?: string }> }) {
-  const user = await requireLmsPage("VIEW_LEADS");
+  const user = await requireLmsPage("calls.view");
   const { person } = await searchParams;
   const ctx = { lms: user, agentos: await getViewer().catch(() => null) };
   const [people, active] = await Promise.all([listCallPeople(ctx, {}), listActiveDealflowCalls(ctx)]);

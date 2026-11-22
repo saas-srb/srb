@@ -1,3 +1,4 @@
+import { loadAccessSubject } from "@/lib/access/server";
 import "server-only";
 import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/mongodb";
@@ -62,7 +63,8 @@ export async function currentAgentUser(): Promise<AgentUser | null> {
   } catch {
     employeeId = null;
   }
-  return { id: u.id, email: u.email, roles: u.roles ?? [], employeeId, studentId, permissionOverrides: u.permissionOverrides };
+  const subject = (await loadAccessSubject(u.id).catch(() => null)) ?? undefined;
+  return { id: u.id, email: u.email, roles: u.roles ?? [], employeeId, studentId, permissionOverrides: u.permissionOverrides, subject };
 }
 
 export async function onPlatformOwnerHost(): Promise<boolean> {

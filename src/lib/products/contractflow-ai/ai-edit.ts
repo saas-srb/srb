@@ -1,6 +1,6 @@
 import "server-only";
+import { can } from "@/lib/products/contractflow-ai/viewer";
 import { randomUUID } from "node:crypto";
-import { lpmsCan } from "@/lib/lpms-roles";
 import { attachmentRecord, prepareAttachments } from "@/lib/products/playbook-ai/ai/attachments";
 import { applyOps, proposeEdit, MAX_MESSAGE } from "@/lib/products/playbook-ai/ai/edit-core";
 import { askDocument, reviewDocument, transformText, type ToolCtx } from "@/lib/products/playbook-ai/ai/ai-tools";
@@ -29,7 +29,7 @@ export async function listChat(v: LpmsViewer, cloneId: string): Promise<CloneRes
 }
 
 function chatBlockedReason(v: LpmsViewer, c: Parameters<typeof isCloneLocked>[0] & { status: string }): string | null {
-  if (!lpmsCan({ roles: v.roles, permissionOverrides: v.overrides }, "EDIT")) return "You can read this document but not edit it.";
+  if (!can(v, "documents.edit")) return "You can read this document but not edit it.";
   if (isCloneLocked(c)) return "A signature has been applied, so this document is locked and AI edits are off. Void it and create a new one to change it.";
   if (!["clone_draft", "ready", "sent"].includes(c.status)) return `This document is ${c.status.replace("_", " ")} and cannot be edited.`;
   return null;
@@ -133,7 +133,7 @@ export async function rejectSuggestions(v: LpmsViewer, cloneId: string, turnId: 
 export async function askClone(v: LpmsViewer, cloneId: string, message: string, files: File[] = []): Promise<CloneResult<{ answer: string; references: { blockId: string; quote: string }[] }>> {
   const g = await getClone(v, cloneId);
   if (!g.ok) return g;
-  if (!lpmsCan({ roles: v.roles, permissionOverrides: v.overrides }, "VIEW")) return { ok: false, error: { code: "forbidden", message: "You may not view documents." } };
+  if (!can(v, "documents.view")) return { ok: false, error: { code: "forbidden", message: "You may not view documents." } };
   const prepared = files.length ? await prepareAttachments(files) : { ok: true as const, items: [] };
   if (!prepared.ok) return { ok: false, error: { code: "invalid", message: prepared.message } };
   const history = await (await cfCloneChat()).find({ cloneId }).sort({ at: -1 }).limit(6).toArray();

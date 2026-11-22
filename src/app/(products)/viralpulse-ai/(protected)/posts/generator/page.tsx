@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/viralpulse-ai/gate";
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import { redirect } from "next/navigation";
 import { PageHeader, Notice } from "@/components/products/viralpulse-ai/SmmsUi";
@@ -13,7 +14,9 @@ export const maxDuration = 300;
 export default async function AiGeneratorPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/viralpulse-ai/login");
-  if (!can(viewer, "GENERATE_AI_CONTENT")) redirect("/viralpulse-ai");
+  const locked = lockedUnless(viewer, "posts.generate", "AI generator");
+  if (locked) return locked;
+  if (!can(viewer, "posts.generate")) redirect("/viralpulse-ai");
   const [runs, offers, clients] = await Promise.all([listWorkspaceRuns(viewer.userId, 20), listLiveOffers(30), listClientChoices()]);
   return (
     <div className="space-y-4">
@@ -21,7 +24,7 @@ export default async function AiGeneratorPage() {
       <PanelListFilters>
 {!(await isOpenAIConfigured()) && <Notice tone="warn">OpenAI isn&apos;t connected for this workspace (Settings → Integrations), so generation will fail.</Notice>}
       <AiWorkspace
-        canCreatePost={can(viewer, "MANAGE_POSTS")}
+        canCreatePost={can(viewer, "posts.manage")}
         offers={offers.map((o) => ({ _id: o._id, title: o.title, badge: o.badge }))}
         clients={clients}
         history={runs.map((r) => {

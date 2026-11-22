@@ -8,7 +8,7 @@ import { recordAudit } from "@/lib/products/viralpulse-ai/audit";
 
 /** Company-wide publishing switches. Needs MANAGE_INTEGRATIONS (same as connecting accounts). */
 export async function savePublishingSettingsAction(input: { timezone: unknown; aiDisclosureOff: unknown; batchCap: unknown; gbpEnabled: unknown }) {
-  return run(["MANAGE_INTEGRATIONS"], async (v) => {
+  return run(["integrations.manage"], async (v) => {
     const timezone = typeof input?.timezone === "string" ? input.timezone : "";
     if (!isValidTimezone(timezone)) throw new SmmsInputError("That time zone isn't recognised.");
     const cap = Math.round(Number(input?.batchCap));

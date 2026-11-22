@@ -66,7 +66,7 @@ export async function getBrochureLeadsAction(id: string) {
 export async function generateBrochureAiAction(input: import("@/lib/products/viralpulse-ai/brochure/ai").BrochureBriefInput) {
   const { run } = await import("@/lib/products/viralpulse-ai/run");
   const { generateBrochureContent } = await import("@/lib/products/viralpulse-ai/brochure/ai");
-  return run(["GENERATE_AI_CONTENT"], async () => {
+  return run(["brochures.use"], async () => {
     const res = await generateBrochureContent(input);
     return { generated: res };
   }, { revalidate: false });
@@ -77,7 +77,7 @@ export async function createAiBrochureAction(input: import("@/lib/products/viral
   const { generateBrochureContent } = await import("@/lib/products/viralpulse-ai/brochure/ai");
   const { createBrochure } = await import("@/lib/products/viralpulse-ai/brochure/store");
   const { defaultMeta } = await import("@/lib/products/viralpulse-ai/brochure/defaults");
-  return run(["MANAGE_POSTS", "GENERATE_AI_CONTENT"], async (v) => {
+  return run(["posts.manage", "brochures.use"], async (v) => {
     const gen = await generateBrochureContent(input);
     const brochure = await createBrochure(
       {
@@ -112,7 +112,7 @@ export async function aiUpdateSectionAction(input: {
 }) {
   const { run } = await import("@/lib/products/viralpulse-ai/run");
   const { aiUpdateSection } = await import("@/lib/products/viralpulse-ai/brochure/ai");
-  return run(["GENERATE_AI_CONTENT"], async () => {
+  return run(["brochures.use"], async () => {
     const updated = await aiUpdateSection(input.section, input.prompt, input.brochureContext);
     return { section: updated };
   }, { revalidate: false });
@@ -125,7 +125,7 @@ export async function aiGenerateSectionAction(input: {
 }) {
   const { run } = await import("@/lib/products/viralpulse-ai/run");
   const { aiGenerateSection } = await import("@/lib/products/viralpulse-ai/brochure/ai");
-  return run(["GENERATE_AI_CONTENT"], async () => {
+  return run(["brochures.use"], async () => {
     const section = await aiGenerateSection(input.prompt, input.brochureContext, input.preferredType);
     return { section };
   }, { revalidate: false });
@@ -137,7 +137,7 @@ export async function aiStyleThemeAction(input: {
 }) {
   const { run } = await import("@/lib/products/viralpulse-ai/run");
   const { aiStyleTheme } = await import("@/lib/products/viralpulse-ai/brochure/ai");
-  return run(["GENERATE_AI_CONTENT"], async () => {
+  return run(["brochures.use"], async () => {
     const theme = await aiStyleTheme(input.prompt, input.currentTheme);
     return { theme };
   }, { revalidate: false });
@@ -149,7 +149,7 @@ export async function aiChatAssistantAction(
   const { run } = await import("@/lib/products/viralpulse-ai/run");
   const { aiChatAssistant } = await import("@/lib/products/viralpulse-ai/brochure/ai");
   return run(
-    ["GENERATE_AI_CONTENT"],
+    ["brochures.use"],
     async () => {
       const result = await aiChatAssistant(input);
       return result;

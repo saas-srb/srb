@@ -1,6 +1,5 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
-import type { OtsPermission } from "@/lib/ots-roles";
 import { requireViewer, can, OtsInputError, ForbiddenError, NotFoundError, type OtsViewer } from "@/lib/products/evaliq/viewer";
 import { QuestionInputError } from "@/lib/products/evaliq/question-types";
 import { isBillingLimitError, writeBlockReason } from "@/lib/platform/billing/enforce";
@@ -26,7 +25,7 @@ export function mapError(err: unknown, tag: string): Fail {
 }
 
 export async function run<T extends object>(
-  permissions: OtsPermission[],
+  permissions: string[],
   fn: (v: OtsViewer) => Promise<T>,
   opts: { revalidate?: boolean; any?: boolean } = {}
 ): Promise<Ok<T> | Fail> {
@@ -39,7 +38,7 @@ export async function run<T extends object>(
   const allowed = opts.any ? permissions.some((p) => can(v, p)) : permissions.every((p) => can(v, p));
   if (!allowed) return DENIED;
   // Suspended/canceled workspaces are read-only: block anything beyond viewing.
-  if (!permissions.every((p) => p.startsWith("VIEW_"))) {
+  if (!permissions.every((p) => /\.(view|all|own)$/.test(p))) {
     const readOnly = await writeBlockReason();
     if (readOnly) return { ok: false, error: readOnly };
   }

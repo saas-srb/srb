@@ -11,7 +11,7 @@ import BankAccountForm from "@/components/products/cashflow-ai/BankAccountForm";
 import RevealAccountNumberButton from "@/components/products/cashflow-ai/RevealAccountNumberButton";
 import { TransactionStatusBadge, TransactionTypeBadge, FundAccountStatusBadge } from "@/components/products/cashflow-ai/StatusBadges";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageBanking } from "@/lib/fms-roles";
+import { canManageBanking } from "@/lib/fms-access";
 import { getBankAccount, serializeBankAccount } from "@/lib/products/cashflow-ai/bank-accounts";
 import { transactionsForFundAccount, serializeTransaction } from "@/lib/products/cashflow-ai/transactions";
 import { formatMoney } from "@/lib/products/cashflow-ai/constants";

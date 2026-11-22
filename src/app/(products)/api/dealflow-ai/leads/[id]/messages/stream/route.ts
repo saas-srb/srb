@@ -17,7 +17,7 @@ const POLL_INTERVAL_MS = 1500;
 const PING_INTERVAL_MS = 25_000;
 
 export async function GET(request: NextRequest, ctx: RouteContext<"/api/dealflow-ai/leads/[id]/messages/stream">) {
-  const user = await requireLms("VIEW_LEADS");
+  const user = await requireLms("messages.view");
   if (!user) return new Response("Unauthorized", { status: 401 });
 
   const { id } = await ctx.params;

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canReconcile } from "@/lib/fms-roles";
+import { canReconcile } from "@/lib/fms-access";
 import { bookSettlement, syncSettlements } from "@/lib/products/cashflow-ai/payments/settlements";
 
 async function reconciler() {

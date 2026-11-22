@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/evaliq/gate";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/products/evaliq/OtsUi";
 import BulkQuestions from "@/components/products/evaliq/BulkQuestions";
@@ -7,7 +8,8 @@ import { listCategories } from "@/lib/products/evaliq/categories";
 export default async function BulkQuestionsPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/evaliq/login");
-  if (!can(viewer, "CREATE_QUESTION")) redirect("/evaliq/questions");
+  const locked = lockedUnless(viewer, "questions.create", "Create questions");
+  if (locked) return locked;
   const cats = await listCategories("question");
   return (
     <div className="space-y-4">

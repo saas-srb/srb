@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/evaliq/gate";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Pencil, Copy, Archive, ArchiveRestore, Trash2 } from "lucide-react";
@@ -17,7 +18,8 @@ import { formatDateTime } from "@/lib/utils";
 export default async function QuestionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/evaliq/login");
-  if (!can(viewer, "VIEW_QUESTIONS")) redirect("/evaliq");
+  const locked = lockedUnless(viewer, "questions.view", "Question Bank");
+  if (locked) return locked;
   const { id } = await params;
   const q = await getQuestion(id);
   if (!q) notFound();
@@ -34,17 +36,17 @@ export default async function QuestionDetailPage({ params }: { params: Promise<{
         description={`${spec.label} · ${labelOf(QUESTION_DIFFICULTIES, q.difficulty)} · version ${q.version}`}
         actions={
           <>
-            {can(viewer, "EDIT_QUESTION") && (
+            {can(viewer, "questions.edit") && (
               <Button size="sm" nativeButton={false} render={<Link href={`/evaliq/questions/${id}/edit`} />}>
                 <Pencil className="size-3.5" /> Edit
               </Button>
             )}
-            {can(viewer, "CREATE_QUESTION") && (
+            {can(viewer, "questions.create") && (
               <ActionButton action={duplicateQuestionAction.bind(null, id)} success="Duplicated as a draft" redirectPrefix="/evaliq/questions/">
                 <Copy className="size-3.5" /> Duplicate
               </ActionButton>
             )}
-            {can(viewer, "EDIT_QUESTION") &&
+            {can(viewer, "questions.edit") &&
               (q.status === "archived" ? (
                 <ActionButton action={setQuestionStatusAction.bind(null, id, "active")} success="Restored">
                   <ArchiveRestore className="size-3.5" /> Restore
@@ -54,7 +56,7 @@ export default async function QuestionDetailPage({ params }: { params: Promise<{
                   <Archive className="size-3.5" /> Archive
                 </ActionButton>
               ))}
-            {can(viewer, "DELETE_QUESTION") && (
+            {can(viewer, "questions.delete") && (
               <ActionButton action={deleteQuestionAction.bind(null, id)} variant="destructive" success="Question deleted" redirectTo="/evaliq/questions" confirm={{ title: "Delete this question?", description: "Only possible while no test selects it by hand. Past results keep their own copy.", confirmLabel: "Delete" }}>
                 <Trash2 className="size-3.5" /> Delete
               </ActionButton>

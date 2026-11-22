@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/sitecraft-ai/gate";
 import { notFound, redirect } from "next/navigation";
 import { getViewer } from "@/lib/products/sitecraft-ai/viewer";
 import { getPage } from "@/lib/products/sitecraft-ai/pages";
@@ -23,7 +24,10 @@ export const dynamic = "force-dynamic";
  * Outside the CMS shell so it can be framed at real device widths.
  */
 export default async function CmsDraftPreviewPage({ params }: { params: Promise<{ id: string }> }) {
-  if (!(await getViewer())) redirect("/sitecraft-ai/login");
+  const viewer = await getViewer();
+  if (!viewer) redirect("/sitecraft-ai/login");
+  const locked = lockedUnless(viewer, "pages.view", "Pages");
+  if (locked) return locked;
   const { id } = await params;
   const page = await getPage(id);
   if (!page) notFound();

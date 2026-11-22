@@ -28,7 +28,7 @@ export default async function ApplicantsListPage({
     sortDir?: string;
   }>;
 }) {
-  await requireLmsPage("VIEW_CAREERS");
+  await requireLmsPage("careers.view");
   const sp = await searchParams;
   const page = Math.max(Number(sp.page) || 1, 1);
   const status = sp.status && isValidCareerApplicationStatus(sp.status) ? sp.status : undefined;

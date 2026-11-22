@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import AnnouncementComposer from "@/components/products/huddle-ai/AnnouncementComposer";
 import { getCurrentChatUser } from "@/lib/messenger-auth";
-import { canPostAnnouncements } from "@/lib/messenger-roles";
+import { canPostAnnouncements } from "@/lib/messenger-access";
 import { getAudienceOptions } from "@/lib/products/huddle-ai/announcement-audience";
 
 export const dynamic = "force-dynamic";

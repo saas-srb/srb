@@ -6,7 +6,7 @@ import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BookSettlementForm, SyncSettlementsForm } from "@/components/products/cashflow-ai/SettlementActions";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canReconcile } from "@/lib/fms-roles";
+import { canReconcile } from "@/lib/fms-access";
 import { formatMoney } from "@/lib/products/cashflow-ai/constants";
 import { listBankAccounts } from "@/lib/products/cashflow-ai/bank-accounts";
 import { listSettlements, unsettledPayments } from "@/lib/products/cashflow-ai/payments/settlements";

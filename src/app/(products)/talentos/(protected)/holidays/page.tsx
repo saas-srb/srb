@@ -3,12 +3,12 @@ import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import HolidayManager from "@/components/products/talentos/HolidayManager";
 import { getCurrentHrmsUser } from "@/lib/hrms-auth";
-import { canManageHolidays } from "@/lib/hrms-roles";
+import { hrCan } from "@/lib/talentos-access";
 import { listHolidays, listHolidayYears, serializeHoliday } from "@/lib/products/talentos/holidays";
 
 export default async function HolidaysPage({ searchParams }: { searchParams: Promise<{ year?: string }> }) {
   const user = await getCurrentHrmsUser();
-  const canManage = !!user && canManageHolidays(user);
+  const canManage = !!user && hrCan(user, "holidays.manage");
 
   const sp = await searchParams;
   const thisYear = new Date().getUTCFullYear();

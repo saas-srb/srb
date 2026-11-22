@@ -10,7 +10,7 @@ import KpiGrid from "@/components/products/dealflow-ai/KpiGrid";
 import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import CashCountForm from "@/components/products/cashflow-ai/CashCountForm";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canReconcile } from "@/lib/fms-roles";
+import { canReconcile } from "@/lib/fms-access";
 import { listCashAccountOptions } from "@/lib/products/cashflow-ai/cash-accounts";
 import { listCashCounts, serializeCashCount } from "@/lib/products/cashflow-ai/cash-reconciliation";
 import { formatMoney } from "@/lib/products/cashflow-ai/constants";

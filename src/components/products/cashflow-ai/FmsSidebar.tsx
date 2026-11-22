@@ -1,3 +1,4 @@
+import type { AccessSubject } from "@/lib/access/can";
 "use client";
 
 import NavGroup from "@/components/products/common/NavGroup";
@@ -33,7 +34,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import type { FmsRole } from "@/lib/fms-roles";
-import { canManageAccounts, canViewAuditLog, canViewBanking, canViewCommercialFinance, canViewFinancialStatements, canViewPayrollFinance } from "@/lib/fms-roles";
+import { canManageAccounts, canViewAuditLog, canViewBanking, canViewCommercialFinance, canViewFinancialStatements, canViewPayrollFinance } from "@/lib/fms-access";
 
 function NavLink({
   href,
@@ -104,17 +105,20 @@ function NavLink({
 export default function FmsSidebar({
   roles,
   permissionOverrides,
+  subject,
   onNavigate,
   collapsed = false,
 }: {
   roles: FmsRole[];
   permissionOverrides?: Record<string, boolean>;
+  subject: AccessSubject;
   onNavigate?: () => void;
   collapsed?: boolean;
 }) {
   const panels = usePanels();
   const panelLabel = usePanelLabel();
-  const roleCtx = { roles, permissionOverrides };
+  void roles; void permissionOverrides;
+  const roleCtx = { subject };
   const nav = (props: {
     locked?: boolean;
     href: string;

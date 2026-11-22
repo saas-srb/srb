@@ -3,7 +3,6 @@ import { setAiFeature } from "@/lib/platform/billing/ai-usage-log";
 import "server-only";
 import type { CmsViewer } from "@/lib/products/sitecraft-ai/viewer";
 import { can } from "@/lib/products/sitecraft-ai/viewer";
-import type { CmsPermission } from "@/lib/cms-roles";
 import { recordAudit, type AuditAction, type AuditEntity } from "@/lib/products/sitecraft-ai/audit";
 import { expireSiteCache } from "@/lib/products/sitecraft-ai/db";
 import { SECTION_REGISTRY, type FieldSpec, type PageSection } from "@/lib/products/sitecraft-ai/section-registry";
@@ -40,7 +39,7 @@ interface Tool {
   /** JSON-schema `properties`; every key listed in `required` must be given. */
   properties: Record<string, unknown>;
   required?: string[];
-  permission?: CmsPermission;
+  permission?: string;
   run: (args: Json, v: CmsViewer) => Promise<Out>;
 }
 
@@ -88,7 +87,7 @@ const TOOLS: Tool[] = [
     name: "site_overview",
     description: "Everything at a glance: pages (path, title, published or draft), the menu, the footer columns, the active theme and the site identity. Call this first when you need to know what exists.",
     properties: {},
-    permission: "VIEW",
+    permission: "dashboard.view",
     run: async () => {
       const [pages, nav, cols, links, info, themeKey] = await Promise.all([listPages(), listNavItems(), listFooterColumns(), listFooterLinks(), getSiteInfoForEdit(), getActiveThemeKey()]);
       return {
@@ -104,7 +103,7 @@ const TOOLS: Tool[] = [
     name: "section_types",
     description: "The kinds of sections a page can contain (type key and name). Use describe_section_type to see the fields of one.",
     properties: {},
-    permission: "VIEW",
+    permission: "pages.view",
     run: async () => ({ types: Object.values(SECTION_REGISTRY).map((d) => ({ type: d.type, label: d.label })) }),
   },
   {
@@ -112,7 +111,7 @@ const TOOLS: Tool[] = [
     description: "The editable fields of a section type and its default content, so you know exactly which keys to set.",
     properties: { type: { type: "string" } },
     required: ["type"],
-    permission: "VIEW",
+    permission: "pages.view",
     run: async (a) => {
       const def = SECTION_REGISTRY[s(a.type)];
       if (!def) return err("Unknown section type.");
@@ -124,7 +123,7 @@ const TOOLS: Tool[] = [
     description: "A page's current draft: title, SEO and every section with its id, type, enabled flag and content.",
     properties: { path: { type: "string", description: "Page path such as / or /about" } },
     required: ["path"],
-    permission: "VIEW",
+    permission: "pages.view",
     run: async (a) => {
       const page = await pageOrError(a.path);
       if (!page) return err("No page at that path.");
@@ -136,7 +135,7 @@ const TOOLS: Tool[] = [
     description: "Change the content of one section. `config` is a partial object of the fields to change (nested objects are merged; arrays such as lists of items are replaced whole, so send the full new array). The page's draft is saved; call publish_page to make it live.",
     properties: { path: { type: "string" }, sectionId: { type: "string" }, config: { type: "object", additionalProperties: true } },
     required: ["path", "sectionId", "config"],
-    permission: "SECTIONS_EDIT",
+    permission: "sections.edit",
     run: async (a, v) => {
       const page = await pageOrError(a.path);
       if (!page) return err("No page at that path.");
@@ -157,7 +156,7 @@ const TOOLS: Tool[] = [
     description: "Add a section to a page. `config` overrides the type's defaults. Put it after `afterSectionId`, or at the end when omitted.",
     properties: { path: { type: "string" }, type: { type: "string" }, config: { type: "object", additionalProperties: true }, afterSectionId: { type: "string" } },
     required: ["path", "type"],
-    permission: "SECTIONS_EDIT",
+    permission: "sections.edit",
     run: async (a, v) => {
       const page = await pageOrError(a.path);
       if (!page) return err("No page at that path.");
@@ -183,7 +182,7 @@ const TOOLS: Tool[] = [
     description: "Remove a section from a page.",
     properties: { path: { type: "string" }, sectionId: { type: "string" } },
     required: ["path", "sectionId"],
-    permission: "SECTIONS_EDIT",
+    permission: "sections.edit",
     run: async (a, v) => {
       const page = await pageOrError(a.path);
       if (!page) return err("No page at that path.");
@@ -201,7 +200,7 @@ const TOOLS: Tool[] = [
     description: "Move a section so it comes right after another section (or to the top when afterSectionId is empty).",
     properties: { path: { type: "string" }, sectionId: { type: "string" }, afterSectionId: { type: "string" } },
     required: ["path", "sectionId"],
-    permission: "SECTIONS_EDIT",
+    permission: "sections.edit",
     run: async (a, v) => {
       const page = await pageOrError(a.path);
       if (!page) return err("No page at that path.");
@@ -222,7 +221,7 @@ const TOOLS: Tool[] = [
     description: "Show or hide a section without deleting it.",
     properties: { path: { type: "string" }, sectionId: { type: "string" }, enabled: { type: "boolean" } },
     required: ["path", "sectionId", "enabled"],
-    permission: "SECTIONS_EDIT",
+    permission: "sections.edit",
     run: async (a, v) => {
       const page = await pageOrError(a.path);
       if (!page) return err("No page at that path.");
@@ -238,7 +237,7 @@ const TOOLS: Tool[] = [
     description: "Set a page's search title and description.",
     properties: { path: { type: "string" }, title: { type: "string" }, description: { type: "string" } },
     required: ["path"],
-    permission: "PAGES_EDIT",
+    permission: "pages.edit",
     run: async (a, v) => {
       const page = await pageOrError(a.path);
       if (!page) return err("No page at that path.");
@@ -254,7 +253,7 @@ const TOOLS: Tool[] = [
     description: "Create a new page at a path with its sections (each {type, config}). It is saved as a draft; publish it to make it live. Add it to the menu with menu_add if it should be linked.",
     properties: { path: { type: "string" }, title: { type: "string" }, sections: { type: "array", items: { type: "object", properties: { type: { type: "string" }, config: { type: "object", additionalProperties: true } }, required: ["type"] } }, seoTitle: { type: "string" }, seoDescription: { type: "string" } },
     required: ["path", "title", "sections"],
-    permission: "PAGES_CREATE",
+    permission: "pages.create",
     run: async (a, v) => {
       const raw = Array.isArray(a.sections) ? (a.sections as Json[]) : [];
       const sections: PageSection[] = [];
@@ -277,7 +276,7 @@ const TOOLS: Tool[] = [
     description: "Permanently delete a page. Only call this after the person has clearly confirmed in the chat that they want this exact page deleted; then pass confirmed=true.",
     properties: { path: { type: "string" }, confirmed: { type: "boolean" } },
     required: ["path", "confirmed"],
-    permission: "PAGES_DELETE",
+    permission: "pages.delete",
     run: async (a, v) => {
       if (a.confirmed !== true) return err("Ask the person to confirm the deletion first.");
       const page = await pageOrError(a.path);
@@ -295,7 +294,7 @@ const TOOLS: Tool[] = [
     description: "Make a page's draft live on the public website.",
     properties: { path: { type: "string" }, summary: { type: "string" } },
     required: ["path"],
-    permission: "PAGES_PUBLISH",
+    permission: "pages.publish",
     run: async (a, v) => {
       const page = await pageOrError(a.path);
       if (!page) return err("No page at that path.");
@@ -311,7 +310,7 @@ const TOOLS: Tool[] = [
     description: "Add an item to the website menu (top level, or under a parent item by its id).",
     properties: { label: { type: "string" }, href: { type: "string" }, parentId: { type: "string" }, description: { type: "string" } },
     required: ["label", "href"],
-    permission: "NAV_MANAGE",
+    permission: "navigation.manage",
     run: async (a, v) => {
       const created = await createNavItem({ parentId: a.parentId ? s(a.parentId) : null, label: s(a.label, 60), href: s(a.href, 300), description: s(a.description, 160) }, v.userId);
       await audit(v, "create", "nav", created._id, created.label);
@@ -323,7 +322,7 @@ const TOOLS: Tool[] = [
     description: "Rename or relink a menu item by id.",
     properties: { id: { type: "string" }, label: { type: "string" }, href: { type: "string" }, description: { type: "string" } },
     required: ["id"],
-    permission: "NAV_MANAGE",
+    permission: "navigation.manage",
     run: async (a, v) => {
       await updateNavItem(s(a.id), { ...(a.label ? { label: s(a.label, 60) } : {}), ...(a.href ? { href: s(a.href, 300) } : {}), ...(a.description ? { description: s(a.description, 160) } : {}) }, v.userId);
       await audit(v, "update", "nav", s(a.id), s(a.label) || "menu item");
@@ -335,7 +334,7 @@ const TOOLS: Tool[] = [
     description: "Remove a menu item (and its sub-items) by id.",
     properties: { id: { type: "string" } },
     required: ["id"],
-    permission: "NAV_MANAGE",
+    permission: "navigation.manage",
     run: async (a, v) => {
       const all = await listNavItems();
       for (const child of all.filter((n) => n.parentId === s(a.id))) await deleteNavItem(child._id);
@@ -349,7 +348,7 @@ const TOOLS: Tool[] = [
     description: "Add a footer column with its links ([{label, href}]).",
     properties: { title: { type: "string" }, links: { type: "array", items: { type: "object", properties: { label: { type: "string" }, href: { type: "string" } }, required: ["label", "href"] } } },
     required: ["title"],
-    permission: "FOOTER_MANAGE",
+    permission: "footer.manage",
     run: async (a, v) => {
       const col = await createFooterColumn({ title: s(a.title, 60) }, v.userId);
       for (const l of (Array.isArray(a.links) ? a.links : []) as Json[]) await createFooterLink({ columnId: col._id, label: s(l.label, 60), href: s(l.href, 300) }, v.userId);
@@ -362,7 +361,7 @@ const TOOLS: Tool[] = [
     description: "Add a link to an existing footer column (by column id).",
     properties: { columnId: { type: "string" }, label: { type: "string" }, href: { type: "string" } },
     required: ["columnId", "label", "href"],
-    permission: "FOOTER_MANAGE",
+    permission: "footer.manage",
     run: async (a, v) => {
       const link = await createFooterLink({ columnId: s(a.columnId), label: s(a.label, 60), href: s(a.href, 300) }, v.userId);
       await audit(v, "create", "footer", link._id, link.label);
@@ -373,7 +372,7 @@ const TOOLS: Tool[] = [
     name: "footer_remove",
     description: "Remove a footer link (linkId) or a whole footer column (columnId).",
     properties: { linkId: { type: "string" }, columnId: { type: "string" } },
-    permission: "FOOTER_MANAGE",
+    permission: "footer.manage",
     run: async (a, v) => {
       if (a.linkId) await deleteFooterLink(s(a.linkId));
       else if (a.columnId) await deleteFooterColumn(s(a.columnId));
@@ -387,7 +386,7 @@ const TOOLS: Tool[] = [
     description: "Change the site identity: brand name parts, tagline-like footer text, call-to-action text and labels, contact details (email, phone, address, WhatsApp, map link) and social links. `patch` is a partial object merged into the current site info (see site_overview for its shape).",
     properties: { patch: { type: "object", additionalProperties: true } },
     required: ["patch"],
-    permission: "SETTINGS_MANAGE",
+    permission: "settings.manage",
     run: async (a, v) => {
       const current = await getSiteInfoForEdit();
       const saved = await saveSiteInfo(mergeDeep(current, a.patch), v.userId);
@@ -399,7 +398,7 @@ const TOOLS: Tool[] = [
     name: "set_theme",
     description: `Change the look of the website. Any of: primary/secondary/accent (hex colours like #1f6f5c), tone (white|warm|cool|tinted), radius (0.25rem|0.5rem|0.75rem|1rem|1.5rem), headingFont/bodyFont (${FONT_OPTIONS.map((f) => f.key).join("|")}), header (${HEADER_VARIANTS.map((x) => x.key).join("|")}), footer (${FOOTER_VARIANTS.map((x) => x.key).join("|")}), menu (${MENU_VARIANTS.map((x) => x.key).join("|")}), cards (${CARD_VARIANTS.map((x) => x.key).join("|")}), width (${WIDTH_VARIANTS.map((x) => x.key).join("|")}), density (${DENSITY_VARIANTS.map((x) => x.key).join("|")}), images (${IMAGE_VARIANTS.map((x) => x.key).join("|")}). Colours and fonts rebuild a full light and dark theme with safe contrast. Content is never changed.`,
     properties: Object.fromEntries(["primary", "secondary", "accent", "tone", "radius", "headingFont", "bodyFont", "header", "footer", "menu", "cards", "width", "density", "images"].map((k) => [k, { type: "string" }])),
-    permission: "THEME_PUBLISH",
+    permission: "theme.publish",
     run: async (a, v) => {
       const key = "ai-site";
       const active = await getActiveThemeKey();
@@ -437,7 +436,7 @@ const TOOLS: Tool[] = [
     description: "Create a new photo from a description and add it to the media library. Returns a URL you can put in a section's image field. Describe a realistic photograph of the business setting; no text or logos.",
     properties: { prompt: { type: "string" }, name: { type: "string" } },
     required: ["prompt"],
-    permission: "MEDIA_UPLOAD",
+    permission: "media.upload",
     run: async (a, v) => {
       setAiFeature("Website assistant");
       const client = await getOpenAI();
@@ -453,7 +452,7 @@ const TOOLS: Tool[] = [
     name: "rewrite_whole_website",
     description: "Rewrite the whole website (all generated pages, menu, footer, theme and photos) from the business categories. Slow (about a minute) and replaces what the platform generated earlier; pages the person wrote or edited are kept. Only when the person asks for a complete redo.",
     properties: {},
-    permission: "THEME_PUBLISH",
+    permission: "theme.publish",
     run: async (_a, v) => {
       const res = await generateAiWebsite({ force: true });
       if (!res.ok) return err(res.error);
@@ -466,7 +465,7 @@ const TOOLS: Tool[] = [
     name: "list_collections",
     description: "The site's content collections (blog posts, jobs, engagement models, products): key, name, and the editable fields of one record, plus how many records exist.",
     properties: {},
-    permission: "VIEW",
+    permission: "collections.view",
     run: async () => ({ collections: await Promise.all((Object.keys(COLLECTIONS) as CollectionKey[]).map(async (key) => ({ key, label: COLLECTIONS[key].label, singular: COLLECTIONS[key].singular, records: (await listAdminRecords(key)).length, fields: fieldTree(COLLECTIONS[key].fields) }))) }),
   },
   {
@@ -474,7 +473,7 @@ const TOOLS: Tool[] = [
     description: "The records of one collection with slug, title, state (published / draft / archived) and whether there are unpublished changes.",
     properties: { collection: { type: "string", description: "blog, jobs, engagement or products" } },
     required: ["collection"],
-    permission: "VIEW",
+    permission: "collections.view",
     run: async (a) => (isCollection(a.collection) ? { records: await listAdminRecords(a.collection) } : err("Unknown collection.")),
   },
   {
@@ -482,7 +481,7 @@ const TOOLS: Tool[] = [
     description: "One record's current draft content.",
     properties: { collection: { type: "string" }, slug: { type: "string" } },
     required: ["collection", "slug"],
-    permission: "VIEW",
+    permission: "collections.view",
     run: async (a) => {
       if (!isCollection(a.collection)) return err("Unknown collection.");
       const rec = await getEditableRecord(a.collection, s(a.slug, 120));
@@ -494,7 +493,7 @@ const TOOLS: Tool[] = [
     description: "Create a record (if the slug is new) or change an existing one. `data` holds the fields to set (see list_collections for the field keys; nested objects merge, arrays are replaced whole). It saves a draft; call publish_record to make it live.",
     properties: { collection: { type: "string" }, slug: { type: "string", description: "URL slug, lowercase letters, digits and dashes" }, data: { type: "object", additionalProperties: true } },
     required: ["collection", "slug", "data"],
-    permission: "COLLECTIONS_EDIT",
+    permission: "collections.edit",
     run: async (a, v) => {
       if (!isCollection(a.collection)) return err("Unknown collection.");
       const key = a.collection;
@@ -521,7 +520,7 @@ const TOOLS: Tool[] = [
     description: "Publish a record's draft so it is live on the site.",
     properties: { collection: { type: "string" }, slug: { type: "string" } },
     required: ["collection", "slug"],
-    permission: "COLLECTIONS_PUBLISH",
+    permission: "collections.publish",
     run: async (a, v) => {
       if (!isCollection(a.collection)) return err("Unknown collection.");
       const res = await publishRecord(a.collection, s(a.slug, 120), v.userId);
@@ -535,7 +534,7 @@ const TOOLS: Tool[] = [
     description: "Hide a published record from the site (archive), or bring it back (archived: false).",
     properties: { collection: { type: "string" }, slug: { type: "string" }, archived: { type: "boolean" } },
     required: ["collection", "slug", "archived"],
-    permission: "COLLECTIONS_PUBLISH",
+    permission: "collections.publish",
     run: async (a, v) => {
       if (!isCollection(a.collection)) return err("Unknown collection.");
       const res = await setRecordArchived(a.collection, s(a.slug, 120), a.archived === true, v.userId);
@@ -549,7 +548,7 @@ const TOOLS: Tool[] = [
     description: "Throw away a record's unpublished changes (a record that was never published is deleted).",
     properties: { collection: { type: "string" }, slug: { type: "string" } },
     required: ["collection", "slug"],
-    permission: "COLLECTIONS_PUBLISH",
+    permission: "collections.publish",
     run: async (a, v) => {
       if (!isCollection(a.collection)) return err("Unknown collection.");
       const res = await revertRecord(a.collection, s(a.slug, 120));
@@ -562,7 +561,7 @@ const TOOLS: Tool[] = [
     name: "list_media",
     description: "The photos and files in the media library (id, name, url, alt text). Use a photo's url inside section content.",
     properties: { q: { type: "string", description: "Optional search text" } },
-    permission: "VIEW",
+    permission: "media.view",
     run: async (a) => ({ media: (await listMedia(s(a.q, 100) || undefined)).slice(0, 60) }),
   },
   {
@@ -570,7 +569,7 @@ const TOOLS: Tool[] = [
     description: "Rename a library photo or set its alt text (for accessibility and SEO).",
     properties: { id: { type: "string" }, name: { type: "string" }, altText: { type: "string" } },
     required: ["id"],
-    permission: "MEDIA_UPLOAD",
+    permission: "media.upload",
     run: async (a, v) => {
       const m = await getMedia(s(a.id, 80));
       if (!m) return err("No such media item.");
@@ -583,7 +582,7 @@ const TOOLS: Tool[] = [
     name: "get_contact_form",
     description: "The contact form's fields (name, label, placeholder, help text, required, visible, order).",
     properties: {},
-    permission: "VIEW",
+    permission: "forms.view",
     run: async () => ({ fields: await getFormDoc("contact", CONTACT_FORM_FIELD_NAMES) }),
   },
   {
@@ -591,7 +590,7 @@ const TOOLS: Tool[] = [
     description: "Change contact-form fields. Send only the fields to change, each identified by its `name` (system key from get_contact_form); label, placeholder, helpText, required, visible and orderKey can be set.",
     properties: { fields: { type: "array", items: { type: "object", additionalProperties: true } } },
     required: ["fields"],
-    permission: "FORMS_MANAGE",
+    permission: "forms.manage",
     run: async (a, v) => {
       const cur = await getFormDoc("contact", CONTACT_FORM_FIELD_NAMES);
       const patches = Array.isArray(a.fields) ? (a.fields as Json[]) : [];

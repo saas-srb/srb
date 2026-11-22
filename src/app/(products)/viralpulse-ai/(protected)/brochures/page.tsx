@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/viralpulse-ai/gate";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Plus, BookOpen, BarChart3, Eye, Copy, Trash2, Globe, FileText } from "lucide-react";
@@ -21,7 +22,9 @@ export const dynamic = "force-dynamic";
 export default async function BrochureListPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/viralpulse-ai/login");
-  if (!can(viewer, "MANAGE_POSTS") && !can(viewer, "MANAGE_MEDIA") && !can(viewer, "GENERATE_AI_CONTENT")) redirect("/viralpulse-ai");
+  const locked = lockedUnless(viewer, "brochures.use", "Brochures");
+  if (locked) return locked;
+  if (!can(viewer, "posts.manage") && !can(viewer, "media.manage") && !can(viewer, "brochures.use")) redirect("/viralpulse-ai");
 
   const sp = await searchParams;
   const { items, total } = await listBrochures({

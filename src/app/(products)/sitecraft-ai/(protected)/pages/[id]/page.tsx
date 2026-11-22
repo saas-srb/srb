@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/sitecraft-ai/gate";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { notFound, redirect } from "next/navigation";
 import { getViewer, can } from "@/lib/products/sitecraft-ai/viewer";
@@ -11,6 +12,8 @@ export default async function CmsPageBuilderPage({ params }: { params: Promise<{
   const { id } = await params;
   const viewer = await getViewer();
   if (!viewer) redirect("/sitecraft-ai/login");
+  const locked = lockedUnless(viewer, "pages.view", "Pages");
+  if (locked) return locked;
 
   const [page, themes] = await Promise.all([getPage(id), listThemes()]);
   if (!page) notFound();
@@ -27,9 +30,9 @@ export default async function CmsPageBuilderPage({ params }: { params: Promise<{
       hasUnpublishedChanges={page.hasUnpublishedChanges}
       sections={page.draft.sections}
       themes={themes.map((t) => ({ key: t._id, name: t.name }))}
-      canEdit={can(viewer, "SECTIONS_EDIT")}
-      canPublish={can(viewer, "PAGES_PUBLISH")}
-      canRestore={can(viewer, "PAGES_RESTORE")}
+      canEdit={can(viewer, "sections.edit")}
+      canPublish={can(viewer, "pages.publish")}
+      canRestore={can(viewer, "pages.restore")}
     />
     <PageSeoEditor
       key={new Date(page.updatedAt).toISOString()}
@@ -37,7 +40,7 @@ export default async function CmsPageBuilderPage({ params }: { params: Promise<{
       initialSeo={page.draft.seo ?? null}
       initialJsonLd={page.draft.jsonLd ?? []}
       initialFrame={parsePageFrame(page.draft.frame)}
-      canEdit={can(viewer, "SECTIONS_EDIT")}
+      canEdit={can(viewer, "sections.edit")}
     />
     </>
   );

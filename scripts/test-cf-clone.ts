@@ -1,3 +1,4 @@
+import { legacyToAccess } from "../src/lib/access/adapter";
 import assert from "node:assert/strict";
 
 // Clone store (B1). Throwaway database only: MONGODB_URI=mongodb://127.0.0.1:27017/zz_throwaway_<n>. No network, no real provider.
@@ -22,7 +23,7 @@ const t = async (name: string, fn: () => Promise<void> | void) => { await fn(); 
   assert.ok(/zz_throwaway_/.test(pdb.databaseName), "refusing to run on " + pdb.databaseName);
   await pdb.dropDatabase();
 
-  const viewer = (roles: string[], id = roles.join("_")): Viewer => ({ userId: "u_" + id, email: "x@test.invalid", roles, overrides: {}, lpmsRoles: [], employeeId: null, companyId: "" });
+  const viewer = (roles: string[], id = roles.join("_")): Viewer => ({ userId: "u_" + id, email: "x@test.invalid", roles, overrides: {}, subject: legacyToAccess({ roles, permissionOverrides: null }), lpmsRoles: [], employeeId: null, companyId: "" });
   const AUTHOR = viewer(["lpms_author"]);
   const AUTHOR2 = viewer(["lpms_author"], "second");
   const MANAGER = viewer(["lpms_manager"]);
@@ -170,7 +171,7 @@ const t = async (name: string, fn: () => Promise<void> | void) => { await fn(); 
     const docx = await inA(() => RN.renderClone(AUTHOR, a._id, "docx"));
     assert.ok(docx.ok, JSON.stringify(docx));
     if (docx.ok) { assert.equal(docx.file.buffer.subarray(0, 2).toString(), "PK"); assert.match(docx.file.mimeType, /wordprocessingml/); }
-    const bad = await inA(() => RN.renderClone({ ...READER, overrides: { "lpms.canDownload": false } }, a._id, "pdf"));
+    const bad = await inA(() => RN.renderClone({ ...READER, overrides: { "lpms.canDownload": false }, subject: legacyToAccess({ roles: READER.roles, permissionOverrides: { "lpms.canDownload": false } }) }, a._id, "pdf"));
     rejectsWith(bad, "forbidden");
   });
 

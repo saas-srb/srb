@@ -12,7 +12,7 @@ function parseDateParam(value: string | null, endOfDay = false): Date | undefine
 }
 
 async function handleGET(req: NextRequest) {
-  const lmsUser = await requireLms("EXPORT_DATA");
+  const lmsUser = await requireLms("data.export");
   if (!lmsUser) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

@@ -258,6 +258,8 @@ export interface LpmsViewer {
   lpmsRoles: string[];
   employeeId: string | null;
   companyId: string;
+  /** The person's access (micro features of ContractFlow). */
+  subject: import("@/lib/access/can").AccessSubject;
   /** Set only by code that has already checked the Playbook right to send documents for signature (SEND_FOR_SIGNATURE). Lets that person pick parties. */
   sendForSignature?: boolean;
 }

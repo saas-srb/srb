@@ -26,6 +26,8 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import type { HrmsRole } from "@/lib/hrms-roles";
 import { canApproveLeave, canRunPayroll, hasStaffRole } from "@/lib/hrms-roles";
+import type { AccessSubject } from "@/lib/access/can";
+import { hrCan } from "@/lib/talentos-access";
 
 function NavLink({
   href,
@@ -116,12 +118,14 @@ function NavLink({
 export default function HrmsSidebar({
   roles,
   permissionOverrides,
+  subject,
   employeeId,
   onNavigate,
   collapsed = false,
 }: {
   roles: HrmsRole[];
   permissionOverrides?: Record<string, boolean>;
+  subject: AccessSubject;
   employeeId: string | null;
   onNavigate?: () => void;
   collapsed?: boolean;
@@ -145,10 +149,10 @@ export default function HrmsSidebar({
 
       </NavGroup>
       <NavGroup collapsed={collapsed} label="Operations">
-        {nav({ href: "/talentos/attendance", label: "Attendance", icon: CalendarClock, locked: !staff })}
-        {nav({ href: "/talentos/leave", label: "Leave", icon: CalendarDays, locked: !staff })}
-        {nav({ href: "/talentos/requests", label: "Requests", icon: Inbox, locked: !(staff && canApproveLeave(roleCtx)) })}
-        {nav({ href: "/talentos/holidays", label: "Holidays", icon: CalendarCheck })}
+        {nav({ href: "/talentos/attendance", label: "Attendance", icon: CalendarClock, locked: !hrCan({ subject }, "attendance.view") })}
+        {nav({ href: "/talentos/leave", label: "Leave", icon: CalendarDays, locked: !hrCan({ subject }, "leave.view") })}
+        {nav({ href: "/talentos/requests", label: "Requests", icon: Inbox, locked: !hrCan({ subject }, "requests.view") })}
+        {nav({ href: "/talentos/holidays", label: "Holidays", icon: CalendarCheck, locked: !hrCan({ subject }, "holidays.view") })}
 
       </NavGroup>
       <NavGroup collapsed={collapsed} label="Payroll">
@@ -165,11 +169,8 @@ export default function HrmsSidebar({
       </NavGroup>
       <NavGroup collapsed={collapsed} label="Me">
         {nav({ href: "/talentos/me", label: "My Dashboard", icon: LayoutDashboard, exact: true })}
-        {nav({ href: "/talentos/me/attendance", label: "My Attendance", icon: CalendarClock })}
-        {nav({ href: "/talentos/me/leave", label: "My Leave", icon: CalendarDays })}
         {nav({ href: "/talentos/me/salary", label: "My Salary", icon: Wallet })}
         {nav({ href: "/talentos/me/tax", label: "My Tax", icon: FileText })}
-        {nav({ href: "/talentos/me/requests", label: "My Requests", icon: Inbox })}
         {nav({ href: "/talentos/me/documents", label: "My Documents", icon: FileText })}
         {nav({ href: "/talentos/me/profile", label: "My Profile", icon: UserRound })}
         {nav({ href: "/talentos/me/directory", label: "Directory", icon: Network })}

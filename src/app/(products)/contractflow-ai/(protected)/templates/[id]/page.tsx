@@ -1,3 +1,5 @@
+import { lockedUnless } from "@/lib/products/contractflow-ai/gate";
+import { can } from "@/lib/products/contractflow-ai/viewer";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
@@ -6,7 +8,6 @@ import { buttonVariants } from "@/components/ui/button";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import { CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { getViewer } from "@/lib/products/contractflow-ai/viewer";
-import { lpmsCan } from "@/lib/lpms-roles";
 import { getTemplate } from "@/lib/products/contractflow-ai/templates";
 import { TEMPLATE_BLOCK_TYPES } from "@/lib/products/contractflow-ai/constants";
 
@@ -27,10 +28,11 @@ export default async function TemplateEditorPage({
 }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/contractflow-ai/login");
+  const locked = lockedUnless(viewer, "templates.manage", "Templates");
+  if (locked) return locked;
 
   const ctx = { roles: viewer.roles, permissionOverrides: viewer.overrides };
-  if (!lpmsCan(ctx, "MANAGE_TEMPLATES")) redirect("/contractflow-ai");
-
+  
   const { id } = await params;
   const template = id === "new" ? null : await getTemplate(id, viewer);
   if (id !== "new" && !template) notFound();

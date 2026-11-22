@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/sitecraft-ai/gate";
 import { isPlatformOwnerContext } from "@/lib/platform/tenancy/context";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
@@ -28,6 +29,8 @@ export default async function CmsThemePreviewPage({
   const { page: pageId } = await searchParams;
   const viewer = await getViewer();
   if (!viewer) redirect("/sitecraft-ai/login");
+  const locked = lockedUnless(viewer, "theme.view", "Theme");
+  if (locked) return locked;
 
   const theme = await getTheme(key).catch(() => null);
   if (!theme) notFound();

@@ -1,6 +1,6 @@
 import { withTransport } from "@/lib/security/transport";
 import type { NextRequest } from "next/server";
-import { resolveScope, requireSession, jsonError, HttpError } from "@/lib/products/huddle-ai/route-helpers";
+import { resolveScope, requireSession, requireSessionFor, jsonError, HttpError } from "@/lib/products/huddle-ai/route-helpers";
 import {
   postMessage,
   editMessage,
@@ -20,7 +20,7 @@ async function handleGET(request: NextRequest) {
   try {
     const user = await requireSession();
     const sp = request.nextUrl.searchParams;
-    const resolved = await resolveScope(sp.get("scopeType"), sp.get("scopeId"), user);
+    const resolved = await resolveScope(sp.get("scopeType"), sp.get("scopeId"), user, "read");
     const me = await getChatUser(user.id);
     const starredIds = me?.starredMessageIds ?? [];
 

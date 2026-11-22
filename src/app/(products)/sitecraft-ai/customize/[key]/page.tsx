@@ -27,7 +27,7 @@ export default async function CmsThemeCustomizePage({
   searchParams: Promise<{ path?: string }>;
 }) {
   const viewer = await getViewer();
-  if (!viewer || !can(viewer, "VIEW")) redirect("/sitecraft-ai/login");
+  if (!viewer || !can(viewer, "theme.view")) redirect("/sitecraft-ai/login");
   const { key } = await params;
   const { path } = await searchParams;
 
@@ -56,8 +56,8 @@ export default async function CmsThemeCustomizePage({
           initialComponents={installed ? installed.draftComponents ?? installed.components ?? {} : preset!.components}
           pages={published}
           initialPath={path?.startsWith("/") ? path : "/"}
-          canEdit={can(viewer, "THEME_UPDATE")}
-          canPublish={can(viewer, "THEME_PUBLISH")}
+          canEdit={can(viewer, "theme.edit")}
+          canPublish={can(viewer, "theme.publish")}
         />
         <Toaster position="top-right" richColors closeButton />
       </ConfirmProvider>

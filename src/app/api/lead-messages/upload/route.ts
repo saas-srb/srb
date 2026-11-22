@@ -38,7 +38,7 @@ async function handlePOST(request: NextRequest) {
       return NextResponse.json({ attachment });
     }
 
-    const lmsUser = await requireLms("MESSAGE_LEADS");
+    const lmsUser = await requireLms("messages.send");
     if (lmsUser) {
       const leadId = form.get("leadId");
       if (typeof leadId !== "string" || !leadId) return NextResponse.json({ error: "leadId is required." }, { status: 400 });

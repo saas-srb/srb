@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireLmsOrCms } from "@/lib/lms-auth";
+import { requireGrowth, requireGrowthExport } from "@/lib/products/sitecraft-ai/growth";
 import { validateOfferInput, type OfferWriteInput } from "@/lib/offers/offer-validation";
 import { createOffer, updateOffer, deleteOffer, getOffer } from "@/lib/offers/offers";
 
 async function requireLmsUser() {
-  const u = await requireLmsOrCms("MANAGE_OFFERS", "PAGES_EDIT");
+  const u = await requireGrowth("offers");
   if (!u) throw new Error("Forbidden");
   return u;
 }

@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/evaliq/gate";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/products/evaliq/OtsUi";
 import QuestionEditor from "@/components/products/evaliq/QuestionEditor";
@@ -9,7 +10,8 @@ import { EMPTY_DRAFT } from "@/lib/products/evaliq/question-draft";
 export default async function NewQuestionPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/evaliq/login");
-  if (!can(viewer, "CREATE_QUESTION")) redirect("/evaliq/questions");
+  const locked = lockedUnless(viewer, "questions.create", "Create questions");
+  if (locked) return locked;
   const [cats, facets] = await Promise.all([listCategories("question"), questionFacets()]);
   return (
     <div className="space-y-4">

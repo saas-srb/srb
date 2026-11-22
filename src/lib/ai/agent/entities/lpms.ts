@@ -1,6 +1,7 @@
 import "server-only";
 import * as A from "@/app/(products)/contractflow-ai/(protected)/actions";
-import { lpmsCan, type LpmsPermission } from "@/lib/lpms-roles";
+type LpmsPermission = string;
+import { microLegacy, microAny, microOr, featureScope as microFeatureScope, holds } from "@/lib/ai/agent/micro-gate";
 import { viaAction, f, str } from "@/lib/ai/agent/entities/helpers";
 import type { ActionDef, AgentUser, EntityDef, FieldDef, Json } from "@/lib/ai/agent/types";
 
@@ -9,9 +10,10 @@ import type { ActionDef, AgentUser, EntityDef, FieldDef, Json } from "@/lib/ai/a
  * submit them for approval, approve / reject, publish, archive, and maintain templates, maker types, categories and approval workflows.
  */
 
-const ctx = (u: AgentUser) => ({ roles: u.roles, permissionOverrides: u.permissionOverrides });
-const can = (p: LpmsPermission) => (u: AgentUser) => lpmsCan(ctx(u), p);
-const ro = (key: string, label: string, description: string, collection: string, extra: Partial<EntityDef> = {}): EntityDef => ({ key, panel: "lpms", label, description, collection, idType: "string", read: "any", allowRead: can("VIEW"), ...extra });
+const can = microLegacy("lpms");
+/** The offer list above is only a hint: what the agent can read is decided here by the person's micro features, on the server. */
+const featureScope = (k: string) => microFeatureScope("contractflow-ai." + k);
+const ro = (key: string, label: string, description: string, collection: string, extra: Partial<EntityDef> = {}): EntityDef => ({ key, panel: "lpms", label, description, collection, idType: "string", read: "any", allowRead: can("VIEW"), scope: featureScope("documents.view"), ...extra });
 
 export const LPMS_ENTITIES: EntityDef[] = [
   ro("lpms.document", "Legal document", "Documents: number, title, status (draft / review / pending approval / approved / published / active / archived), maker type, owner, dates. Use lpms.read for the text.", "lpms_documents", { titleField: "title", search: ["title", "documentNumber", "category", "department"], hide: ["blocks", "headerBlocks", "footerBlocks"] }),
@@ -22,7 +24,7 @@ export const LPMS_ENTITIES: EntityDef[] = [
   ro("lpms.approval", "Approval", "Approval requests per document and step (pending / approved / rejected).", "lpms_approvals", {}),
   ro("lpms.signature", "Signature", "Signatures collected on documents.", "lpms_signatures", {}),
   ro("lpms.version", "Document version", "Saved versions of documents.", "lpms_document_versions", { hide: ["blocks"] }),
-  ro("lpms.activity", "Audit log", "Who changed what in LPMS.", "lpms_audit", { search: ["entityLabel", "summary", "actorEmail"], read: "admin", allowRead: can("VIEW_AUDIT") }),
+  ro("lpms.activity", "Audit log", "Who changed what in LPMS.", "lpms_audit", { search: ["entityLabel", "summary", "actorEmail"], read: "admin", allowRead: can("VIEW_AUDIT"), scope: featureScope("audit.view") }),
 ];
 
 const BLOCKS = `Blocks: {type:"heading", content, level:1-4} · {type:"paragraph", content} · {type:"bullets"|"numbered", items:[…]} · {type:"table", header:[…], rows:[[…]]} · {type:"variable", key, label, fallback} · {type:"signature", label, signerRole, required} · {type:"note", content, variant:"info"|"warning"|"important"} · {type:"divider"} · {type:"pagebreak"}. Each block needs a unique id.`;

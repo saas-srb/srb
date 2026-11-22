@@ -9,7 +9,7 @@ export async function saveLegalProfileAction(input: LegalInput): Promise<LegalSa
   if (!auth.ok) return { ok: false, errors: { form: auth.error } };
   const res = await saveLegalProfile(input, { id: auth.user.id, email: auth.user.email });
   if (res.ok) {
-    for (const path of ["/console/legal", "/terms", "/privacy", "/refund-policy", "/cookies", "/data-policy", "/dpa", "/subprocessors", "/data-requests"]) revalidatePath(path);
+    for (const path of ["/console/legal", "/terms", "/privacy", "/refund-policy", "/cookies", "/data-policy", "/dpa", "/data-requests"]) revalidatePath(path);
   }
   return res;
 }

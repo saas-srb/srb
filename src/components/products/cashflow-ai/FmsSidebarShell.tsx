@@ -1,3 +1,4 @@
+import type { AccessSubject } from "@/lib/access/can";
 "use client";
 
 import { motion } from "framer-motion";
@@ -16,12 +17,14 @@ export default function FmsSidebarShell({
   email,
   roles,
   permissionOverrides,
+  subject,
   createdAt,
   lastLoginAt,
 }: {
   email: string;
   roles: FmsRole[];
   permissionOverrides?: Record<string, boolean>;
+  subject: AccessSubject;
   createdAt: string;
   lastLoginAt: string | null;
 }) {
@@ -54,7 +57,7 @@ export default function FmsSidebarShell({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <FmsSidebar roles={roles} permissionOverrides={permissionOverrides} collapsed={collapsed} />
+        <FmsSidebar roles={roles} permissionOverrides={permissionOverrides} subject={subject} collapsed={collapsed} />
       </div>
 
       <SidebarProfileSlot>

@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/viralpulse-ai/gate";
 import { redirect } from "next/navigation";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import AdsWizard from "@/components/products/viralpulse-ai/ads/AdsWizard";
@@ -13,7 +14,9 @@ export const maxDuration = 300;
 export default async function NewCampaignPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/viralpulse-ai/login");
-  if (!can(viewer, "CREATE_CAMPAIGNS") || !can(viewer, "CREATE_ADS")) redirect("/viralpulse-ai/campaigns");
+  const locked = lockedUnless(viewer, "campaigns.create", "Create campaigns");
+  if (locked) return locked;
+  if (!can(viewer, "campaigns.create") || !can(viewer, "ads.create")) redirect("/viralpulse-ai/campaigns");
   const handoff = parseHandoff(await searchParams);
   const [accounts, guard, initial, media, ai] = await Promise.all([loadAccountOptions(), getGuard(), loadWizard(null), getMediaMany(handoff.mediaIds), isOpenAIConfigured()]);
   return (
@@ -27,10 +30,10 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
         initial={initial!}
         accounts={accounts}
         guard={guardSummary(guard)}
-        perms={{ canEdit: true, canCreate: true, canApprove: can(viewer, "APPROVE_AD_SPEND"), canPublish: can(viewer, "PUBLISH_CONTENT"), userId: viewer.userId, canGenerate: can(viewer, "GENERATE_AI_CONTENT") && ai, canUpload: can(viewer, "MANAGE_MEDIA") }}
+        perms={{ canEdit: true, canCreate: true, canApprove: can(viewer, "ads.approve"), canPublish: can(viewer, "posts.publish"), userId: viewer.userId, canGenerate: can(viewer, "posts.generate") && ai, canUpload: can(viewer, "media.manage") }}
         handoff={handoff}
         handoffMedia={media.map(toMediaCard)}
-        limitsHref={can(viewer, "APPROVE_AD_SPEND") ? "/viralpulse-ai/campaigns/limits" : null}
+        limitsHref={can(viewer, "ads.approve") ? "/viralpulse-ai/campaigns/limits" : null}
       />
     </div>
   );

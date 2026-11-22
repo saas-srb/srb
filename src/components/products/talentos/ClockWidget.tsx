@@ -8,7 +8,7 @@ import { CardContent } from "@/components/ui/card";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import { Button } from "@/components/ui/button";
 import { formatMinutesAsDuration } from "@/lib/products/talentos/time";
-import { clockInAction, clockOutAction } from "@/app/(products)/talentos/(protected)/me/attendance/actions";
+import { clockInAction, clockOutAction } from "@/app/(products)/talentos/(protected)/attendance/actions";
 
 export default function ClockWidget({
   dayLabel,

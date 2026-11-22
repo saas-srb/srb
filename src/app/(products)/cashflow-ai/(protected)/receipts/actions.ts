@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageTransactions } from "@/lib/fms-roles";
+import { canManageTransactions, fmsCan } from "@/lib/fms-access";
 import { recordReceipt, voidReceipt, clearCheque, bounceCheque, type RecordReceiptData } from "@/lib/products/cashflow-ai/receipts";
 import { listOutstandingInvoicesForCustomer, serializeInvoice, type SerializedInvoice } from "@/lib/products/cashflow-ai/invoices";
 import { getClient } from "@/lib/products/sprintos/clients";
@@ -36,6 +36,8 @@ function revalidate() {
 export async function listOutstandingInvoicesAction(customerId: string): Promise<SerializedInvoice[]> {
   const user = await getCurrentFmsUser();
   if (!user) throw new Error("Unauthorized");
+  // Outstanding invoices are commercial data: only people who may see receipts (a payroll-only account may not).
+  if (!fmsCan(user, "receipts.view")) throw new Error("Forbidden");
   if (!customerId) return [];
   const invoices = await listOutstandingInvoicesForCustomer(customerId);
   return invoices.map(serializeInvoice);

@@ -68,7 +68,7 @@ export default async function LmsDashboardPage({
     platform?: string;
   }>;
 }) {
-  await requireLmsPage("VIEW_LEADS");
+  await requireLmsPage("dashboard.view");
   const sp = await searchParams;
   const lmsUser = await getCurrentLmsUser();
 

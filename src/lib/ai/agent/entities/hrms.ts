@@ -28,6 +28,8 @@ import { validateSalaryRevision, validatePayslipOverrides, validateOffer, valida
 import { EMPLOYEE_STATUSES, EMPLOYMENT_TYPES, GENDERS, WORK_LOCATIONS, isValidEmployeeStatus } from "@/lib/products/talentos/employee-status";
 import { HOLIDAY_TYPES } from "@/lib/products/talentos/holiday-types";
 import { OFFER_STATUSES, isValidOfferStatus } from "@/lib/products/talentos/offers-status";
+import { microAny, holds } from "@/lib/ai/agent/micro-gate";
+import { hrScope } from "@/lib/talentos-access";
 import { canApproveLeave, canManageAttendance, canManageEmployees, canManageHolidays, canManageMasters, canManagePayroll, canManagePayrollConfig, canRunPayroll, canManageSettings, canViewAllEmployees, canViewAuditLog } from "@/lib/hrms-roles";
 import * as Bank from "@/app/(products)/talentos/(protected)/(staff)/employees/[id]/bank-actions";
 import { check, fail, formInput, invalid, str, viaAction } from "@/lib/ai/agent/entities/helpers";
@@ -55,6 +57,21 @@ async function inScope(u: AgentUser, employeeId: string): Promise<boolean> {
   if (employeeId === u.employeeId) return true;
   return (await descendantEmployeeIds(u.employeeId)).includes(employeeId);
 }
+/** Module-aware reach (the same own / reporting line / everyone rule the screens use): the employee ids the person may reach, undefined = everyone, [] = nobody. */
+async function reachIds(u: AgentUser, module: Parameters<typeof hrScope>[1]): Promise<string[] | undefined> {
+  const scope = hrScope({ subject: u.subject as never }, module);
+  if (scope === "all") return undefined;
+  if (scope === "none" || !u.employeeId) return [];
+  if (scope === "own") return [u.employeeId];
+  return descendantEmployeeIds(u.employeeId);
+}
+const inScopeFor = async (u: AgentUser, module: Parameters<typeof hrScope>[1], employeeId: string): Promise<boolean> => { const ids = await reachIds(u, module); return ids === undefined || ids.includes(employeeId); };
+/** Row scope for a module's records: everything for the "all" scope, the reporting line or the person's own otherwise. */
+const scopeSelf = (module: Parameters<typeof hrScope>[1], field = "employeeId") => async (u: AgentUser): Promise<Json | null> => {
+  const ids = await reachIds(u, module);
+  if (ids === undefined) return {};
+  return ids.length ? { [field]: { $in: ids } } : null;
+};
 async function lineFilter(field: string, u: AgentUser): Promise<Json | null> {
   if (!u.employeeId) return null;
   return { [field]: { $in: [u.employeeId, ...(await descendantEmployeeIds(u.employeeId))] } };
@@ -244,7 +261,7 @@ export const HRMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "hrms.holiday", panel: "hrms", label: "Holiday", description: "The company holiday calendar.", collection: "hrms_holidays", idType: "string", baseFilter: soft, titleField: "name", search: ["name", "date"],
-    read: "any", write: "staff", allow: canManageHolidays, canDelete: true,
+    read: "any", allowRead: microAny("talentos.holidays.view"), write: "staff", allow: microAny("talentos.holidays.manage"), canDelete: true,
     fields: [
       { key: "date", label: "Date", type: "dateString", required: true },
       { key: "name", label: "Name", type: "string", required: true },
@@ -317,8 +334,8 @@ export const HRMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "hrms.leave_request", panel: "hrms", label: "Leave request", description: "Leave applications (pending / approved / rejected / cancelled). Employees see and file their own; managers their reporting line; HR all.", collection: "hrms_leave_requests", idType: "string", baseFilter: soft,
-    search: ["reason", "leaveTypeCode", "status", "startDate"], read: "staff", allowRead: canViewAllEmployees, write: "any", selfWrite: true,
-    self: (u) => lineFilter("employeeId", u),
+    search: ["reason", "leaveTypeCode", "status", "startDate"], read: "staff", allowRead: microAny("talentos.leave.all"), write: "any", selfWrite: true,
+    self: scopeSelf("leave"),
     fields: [
       { key: "employeeId", label: "Employee (hrms.employee id) — leave out to apply for yourself", type: "ref", ref: "hrms.employee", createOnly: true },
       { key: "leaveTypeCode", label: "Leave type code (see hrms.leave_type)", type: "string", required: true, createOnly: true },
@@ -330,10 +347,10 @@ export const HRMS_ENTITIES: EntityDef[] = [
     ],
     ops: {
       create: async (v, u) => {
-        const onBehalf = canApproveLeave(u) && typeof v.employeeId === "string" && v.employeeId;
+        const onBehalf = holds(u.subject, "talentos.leave.approve") && typeof v.employeeId === "string" && v.employeeId;
         const employeeId = onBehalf ? String(v.employeeId) : u.employeeId;
         if (!employeeId) return fail("Your login isn't linked to an employee record, so leave can't be filed for you. Ask HR to link it.");
-        if (onBehalf && !(await inScope(u, employeeId))) return fail("That employee is outside your reporting line.");
+        if (onBehalf && !(await inScopeFor(u, "leave", employeeId))) return fail("That employee is outside your reporting line.");
         const c = check(validateLeaveRequest({ ...v, employeeId }));
         if (!c.ok) return c.error;
         if (await isMonthLocked(c.data.startDate.slice(0, 7))) return fail("Payroll for that month is finalised — leave can't be filed for it.");
@@ -345,8 +362,8 @@ export const HRMS_ENTITIES: EntityDef[] = [
       },
     },
   },
-  { key: "hrms.leave_balance", panel: "hrms", label: "Leave balance", description: "Allocated / used / pending leave per employee, leave type and year.", collection: "hrms_leave_balances", read: "staff", allowRead: canViewAllEmployees, self: (u) => lineFilter("employeeId", u) },
-  { key: "hrms.attendance", panel: "hrms", label: "Attendance", description: "Daily attendance per employee (status, check-in/out, late minutes).", collection: "hrms_attendance", read: "staff", allowRead: canViewAllEmployees, self: (u) => lineFilter("employeeId", u) },
+  { key: "hrms.leave_balance", panel: "hrms", label: "Leave balance", description: "Allocated / used / pending leave per employee, leave type and year.", collection: "hrms_leave_balances", read: "staff", allowRead: microAny("talentos.leave.all"), self: scopeSelf("leave") },
+  { key: "hrms.attendance", panel: "hrms", label: "Attendance", description: "Daily attendance per employee (status, check-in/out, late minutes).", collection: "hrms_attendance", read: "staff", allowRead: microAny("talentos.attendance.all"), self: scopeSelf("attendance") },
   {
     key: "hrms.offer", panel: "hrms", label: "Job offer", description: "Offers made to applicants (draft → extended → accepted → joined, or declined/withdrawn).", collection: "hrms_offers", idType: "string", baseFilter: soft, search: ["candidateName", "positionTitle"], titleField: "candidateName",
     read: "staff", allowRead: canManageEmployees, write: "staff", allow: canManageEmployees,
@@ -406,12 +423,12 @@ export const HRMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "hrms.decide_leave", panel: "hrms", label: "Approve or reject a leave request", description: "Decide a pending leave request in your reporting line. Updates the balance and attendance and notifies the employee.", level: "staff", allow: canApproveLeave,
+    key: "hrms.decide_leave", panel: "hrms", label: "Approve or reject a leave request", description: "Decide a pending leave request in your reporting line. Updates the balance and attendance and notifies the employee.", level: "staff", allow: microAny("talentos.leave.approve"),
     params: [{ key: "requestId", label: "Leave request id", type: "ref", ref: "hrms.leave_request", required: true }, { key: "decision", label: "Decision", type: "enum", options: ["approved", "rejected"], required: true }, { key: "note", label: "Note to the employee", type: "string" }],
     run: async (v, u) => {
       const req = await getLeaveRequest(String(v.requestId));
       if (!req) return fail("Leave request not found.");
-      if (!(await inScope(u, req.employeeId))) return fail("That request is outside your reporting line.");
+      if (!(await inScopeFor(u, "leave", req.employeeId))) return fail("That request is outside your reporting line.");
       if (v.decision === "approved" && (await isMonthLocked(req.startDate.slice(0, 7)))) return fail("Payroll for that month is finalised — this leave can no longer be approved.");
       const r = await decideLeaveRequest(req._id, v.decision as "approved", str(v.note), u.id);
       if (!r.ok) return fail(r.reason ?? "Could not decide that request.");
@@ -421,13 +438,13 @@ export const HRMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "hrms.cancel_leave", panel: "hrms", label: "Cancel or withdraw a leave request", description: "Cancel a leave request and give the days back. Employees can withdraw their own pending request.", level: "any", destructive: true,
+    key: "hrms.cancel_leave", panel: "hrms", label: "Cancel or withdraw a leave request", description: "Cancel a leave request and give the days back. Employees can withdraw their own pending request.", level: "any", destructive: true, allow: microAny("talentos.leave.apply", "talentos.leave.approve"),
     params: [{ key: "requestId", label: "Leave request id", type: "ref", ref: "hrms.leave_request", required: true }],
     run: async (v, u) => {
       const req = await getLeaveRequest(String(v.requestId));
       if (!req) return fail("Leave request not found.");
-      if (canApproveLeave(u)) {
-        if (!(await inScope(u, req.employeeId))) return fail("That request is outside your reporting line.");
+      if (holds(u.subject, "talentos.leave.approve")) {
+        if (!(await inScopeFor(u, "leave", req.employeeId))) return fail("That request is outside your reporting line.");
       } else {
         if (req.employeeId !== own(u)) return fail("Leave request not found.");
         if (req.status !== "pending") return fail("Only a pending request can be withdrawn.");
@@ -439,7 +456,7 @@ export const HRMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "hrms.set_leave_allocation", panel: "hrms", label: "Set an employee's leave allocation", description: "Set how many days of a leave type an employee has for a year.", level: "staff", allow: canManageEmployees,
+    key: "hrms.set_leave_allocation", panel: "hrms", label: "Set an employee's leave allocation", description: "Set how many days of a leave type an employee has for a year.", level: "staff", allow: microAny("talentos.employees.manage"),
     params: [{ key: "employeeId", label: "Employee (hrms.employee id)", type: "ref", ref: "hrms.employee", required: true }, { key: "leaveTypeCode", label: "Leave type code", type: "string", required: true }, { key: "year", label: "Year", type: "number", required: true }, { key: "allocated", label: "Days", type: "number", required: true }],
     run: async (v, u) => {
       const allocated = Number(v.allocated);
@@ -452,7 +469,7 @@ export const HRMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "hrms.mark_attendance", panel: "hrms", label: "Record one employee's attendance for a day", description: "Mark present, half day or absent with optional check-in/out times.", level: "staff", allow: canManageAttendance,
+    key: "hrms.mark_attendance", panel: "hrms", label: "Record one employee's attendance for a day", description: "Mark present, half day or absent with optional check-in/out times.", level: "staff", allow: microAny("talentos.attendance.manage"),
     params: [
       { key: "employeeId", label: "Employee (hrms.employee id)", type: "ref", ref: "hrms.employee", required: true },
       { key: "date", label: "Date", type: "dateString", required: true },
@@ -464,7 +481,7 @@ export const HRMS_ACTIONS: ActionDef[] = [
       const date = String(v.date);
       if (!isDateString(date)) return fail("Invalid date.");
       if (await isMonthLocked(date.slice(0, 7))) return fail("Payroll for this month is finalised — attendance is locked.");
-      if (!(await inScope(u, String(v.employeeId)))) return fail("That employee is outside your reporting line.");
+      if (!(await inScopeFor(u, "attendance", String(v.employeeId)))) return fail("That employee is outside your reporting line.");
       const c = check(validateAttendanceEntry(v));
       if (!c.ok) return c.error;
       const r = await recordAttendance(String(v.employeeId), date, c.data, u.id);
@@ -475,14 +492,14 @@ export const HRMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "hrms.bulk_mark_attendance", panel: "hrms", label: "Mark attendance for many employees on a day", description: "Mark a list of employees present, half day or absent for one date.", level: "staff", allow: canManageAttendance,
+    key: "hrms.bulk_mark_attendance", panel: "hrms", label: "Mark attendance for many employees on a day", description: "Mark a list of employees present, half day or absent for one date.", level: "staff", allow: microAny("talentos.attendance.manage"),
     params: [{ key: "date", label: "Date", type: "dateString", required: true }, { key: "employeeIds", label: "Employees (hrms.employee ids)", type: "stringList", required: true }, { key: "status", label: "Status", type: "enum", options: [...MANUAL_ATTENDANCE_STATUSES], required: true }],
     run: async (v, u) => {
       const date = String(v.date);
       if (!isDateString(date)) return fail("Invalid date.");
       if (await isMonthLocked(date.slice(0, 7))) return fail("Payroll for this month is finalised — attendance is locked.");
       const ids: string[] = [];
-      for (const id of v.employeeIds as string[]) if (await inScope(u, id)) ids.push(id);
+      for (const id of v.employeeIds as string[]) if (await inScopeFor(u, "attendance", id)) ids.push(id);
       if (!ids.length) return fail("No in-scope employees selected.");
       const marked = await bulkMarkAttendance(date, ids, v.status as never, u.id);
       await audit(u, { action: "bulk_mark", entity: "attendance", entityId: date, entityLabel: `${date} · ${marked} employee(s)`, summary: `bulk-marked ${String(v.status)}` });
@@ -756,47 +773,47 @@ export const HRMS_REPORTS: ReportDef[] = [
     run: async (v) => (await getHrmsDashboardStats({ dateFrom: v.dateFrom ? new Date(String(v.dateFrom)) : undefined, dateTo: v.dateTo ? new Date(`${String(v.dateTo)}T23:59:59`) : undefined, departmentId: str(v.departmentId) ?? undefined })) as unknown as Json,
   },
   {
-    key: "hrms.leave_analytics", panel: "hrms", label: "Leave analytics", description: "Leave taken by type and department over a period.", level: "staff", allow: canViewAllEmployees,
+    key: "hrms.leave_analytics", panel: "hrms", label: "Leave analytics", description: "Leave taken by type and department over a period.", level: "staff", allow: microAny("talentos.leave.team", "talentos.leave.all"),
     params: [{ key: "from", label: "From", type: "dateString", required: true }, { key: "to", label: "To", type: "dateString", required: true }],
-    run: async (v) => (await getLeaveAnalytics(String(v.from), String(v.to))) as unknown as Json,
+    run: async (v, u) => (await getLeaveAnalytics(String(v.from), String(v.to), await reachIds(u, "leave"))) as unknown as Json,
   },
   {
-    key: "hrms.leave_calendar", panel: "hrms", label: "Who is on leave when", description: "Approved and pending leave across a date range.", level: "any", allow: staffOnly,
+    key: "hrms.leave_calendar", panel: "hrms", label: "Who is on leave when", description: "Approved and pending leave across a date range.", level: "any", allow: microAny("talentos.leave.team", "talentos.leave.all"),
     params: [{ key: "from", label: "From", type: "dateString", required: true }, { key: "to", label: "To", type: "dateString", required: true }],
     run: async (v, u) => {
-      const restrict = canViewAllEmployees(u) ? undefined : [u.employeeId!, ...(await descendantEmployeeIds(u.employeeId!))];
+      const restrict = await reachIds(u, "leave");
       return { entries: await getLeaveCalendar(String(v.from), String(v.to), restrict) } as unknown as Json;
     },
   },
   {
-    key: "hrms.leave_balances", panel: "hrms", label: "Leave balances of an employee", description: "Allocated, used, pending and available days per leave type for a year (default: you, this year).", level: "any", allow: staffOnly,
+    key: "hrms.leave_balances", panel: "hrms", label: "Leave balances of an employee", description: "Allocated, used, pending and available days per leave type for a year (default: you, this year).", level: "any", allow: microAny("talentos.leave.view"),
     params: [{ key: "employeeId", label: "Employee (hrms.employee id)", type: "ref", ref: "hrms.employee" }, { key: "year", label: "Year", type: "number" }],
     run: async (v, u) => {
       const id = str(v.employeeId) ?? u.employeeId;
       if (!id) return fail("Say which employee.");
-      if (!(await inScope(u, id))) return fail("That employee is outside your reporting line.");
+      if (!(await inScopeFor(u, "leave", id))) return fail("That employee is outside your reporting line.");
       if (!(await getEmployee(id))) return fail("Employee not found.");
       return { employeeId: id, balances: await getBalances(id, Number(v.year) || new Date().getFullYear()) } as unknown as Json;
     },
   },
   {
-    key: "hrms.on_leave_today", panel: "hrms", label: "Employees on leave on a day", description: "Ids of employees on approved leave on a date (default today).", level: "staff", allow: canViewAllEmployees,
+    key: "hrms.on_leave_today", panel: "hrms", label: "Employees on leave on a day", description: "Ids of employees on approved leave on a date (default today).", level: "staff", allow: microAny("talentos.leave.all"),
     params: [{ key: "date", label: "Date", type: "dateString" }],
     run: async (v) => ({ date: str(v.date) ?? isoDay(), employeeIds: await employeesOnLeave(str(v.date) ?? undefined) }),
   },
   {
-    key: "hrms.attendance_today", panel: "hrms", label: "Today's attendance snapshot", description: "Present, absent, late, on leave counts for today.", level: "staff", allow: (u) => canManageAttendance(u) || canViewAllEmployees(u),
+    key: "hrms.attendance_today", panel: "hrms", label: "Today's attendance snapshot", description: "Present, absent, late, on leave counts for today.", level: "staff", allow: microAny("talentos.attendance.team", "talentos.attendance.all"),
     params: [],
-    run: async (_v, u) => (await getTodaySnapshot(canViewAllEmployees(u) ? undefined : u.employeeId ?? undefined)) as unknown as Json,
+    run: async (_v, u) => (await getTodaySnapshot((await reachIds(u, "attendance")) === undefined ? undefined : u.employeeId ?? undefined)) as unknown as Json,
   },
   {
-    key: "hrms.attendance_month", panel: "hrms", label: "Monthly attendance report", description: "Per-employee present/absent/late/leave days for a month.", level: "staff", allow: (u) => canManageAttendance(u) || canViewAllEmployees(u),
+    key: "hrms.attendance_month", panel: "hrms", label: "Monthly attendance report", description: "Per-employee present/absent/late/leave days for a month.", level: "staff", allow: microAny("talentos.attendance.team", "talentos.attendance.all"),
     params: [{ key: "month", label: "Month (YYYY-MM)", type: "string", required: true }, { key: "departmentId", label: "Department id", type: "string" }],
-    run: async (v, u) => ({ rows: await getMonthlyReport(String(v.month), { departmentId: str(v.departmentId) ?? undefined, restrictToManagerId: canViewAllEmployees(u) ? undefined : u.employeeId ?? undefined }) }) as unknown as Json,
+    run: async (v, u) => ({ rows: await getMonthlyReport(String(v.month), { departmentId: str(v.departmentId) ?? undefined, restrictToManagerId: (await reachIds(u, "attendance")) === undefined ? undefined : u.employeeId ?? undefined }) }) as unknown as Json,
   },
   {
-    key: "hrms.attendance_trend", panel: "hrms", label: "Attendance trend", description: "Daily attendance counts across a date range.", level: "staff", allow: (u) => canManageAttendance(u) || canViewAllEmployees(u),
+    key: "hrms.attendance_trend", panel: "hrms", label: "Attendance trend", description: "Daily attendance counts across a date range.", level: "staff", allow: microAny("talentos.attendance.team", "talentos.attendance.all"),
     params: [{ key: "from", label: "From", type: "dateString", required: true }, { key: "to", label: "To", type: "dateString", required: true }],
-    run: async (v, u) => ({ points: await getAttendanceOverview(String(v.from), String(v.to), { restrictToManagerId: canViewAllEmployees(u) ? undefined : u.employeeId ?? undefined }) }) as unknown as Json,
+    run: async (v, u) => ({ points: await getAttendanceOverview(String(v.from), String(v.to), { restrictToManagerId: (await reachIds(u, "attendance")) === undefined ? undefined : u.employeeId ?? undefined }) }) as unknown as Json,
   },
 ];

@@ -8,7 +8,7 @@ import { VerifyDetailsForm } from "@/components/products/cashflow-ai/vendor-cont
 import { MsmeDaysForm, MsmeVendorForm } from "@/components/products/cashflow-ai/vendor-controls/MsmeForms";
 import { AdjustAdvanceForm, NewAdvanceForm, RefundAdvanceForm } from "@/components/products/cashflow-ai/vendor-controls/AdvanceForms";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canApproveTransactions, canManageCompliance } from "@/lib/fms-roles";
+import { canApproveTransactions, canManageCompliance } from "@/lib/fms-access";
 import { formatMoney } from "@/lib/products/cashflow-ai/constants";
 import { istToday, MSME_LABEL, VERIFY_METHODS, verifierProblem } from "@/lib/products/cashflow-ai/vendor-controls/core";
 import { listAdvances, listBankReview, listMsmeBills, listMsmeVendors, listOpenBills, listVendorChoices } from "@/lib/products/cashflow-ai/vendor-controls/store";

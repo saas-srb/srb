@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/viralpulse-ai/gate";
 import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -18,6 +19,8 @@ const ACTION_ICON = { post: Plus, campaign: Megaphone, image: Sparkles, ugc: Cla
 export default async function ViralPulseDashboardPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/viralpulse-ai/login");
+  const locked = lockedUnless(viewer, "dashboard.view", "Dashboard");
+  if (locked) return locked;
   const perms = dashPerms((p) => can(viewer, p));
 
   // One analytics read and one health probe per request, shared by every section that needs them.

@@ -9,7 +9,7 @@ import { AdvanceStatusBadge } from "@/components/products/cashflow-ai/StatusBadg
 import AdvanceStatusActions from "@/components/products/cashflow-ai/AdvanceStatusActions";
 import RepaymentForm from "@/components/products/cashflow-ai/RepaymentForm";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageTransactions, canApproveTransactions } from "@/lib/fms-roles";
+import { canManageTransactions, canApproveTransactions } from "@/lib/fms-access";
 import { getAdvance, serializeAdvance } from "@/lib/products/cashflow-ai/employee-advances";
 import { listFundAccountOptions } from "@/lib/products/cashflow-ai/fund-accounts";
 import { formatMoney } from "@/lib/products/cashflow-ai/constants";

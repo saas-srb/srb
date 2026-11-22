@@ -1,7 +1,7 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canViewCommercialFinance } from "@/lib/fms-roles";
+import { canViewCommercialFinance } from "@/lib/fms-access";
 import { getReceiptByNumber } from "@/lib/products/cashflow-ai/receipts";
 import { renderReceiptPdf } from "@/components/products/cashflow-ai/ReceiptPdf";
 import { recordPdf } from "@/lib/pdf/activity";

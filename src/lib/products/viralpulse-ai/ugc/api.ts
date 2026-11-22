@@ -1,5 +1,4 @@
 import "server-only";
-import type { SmmsPermission } from "@/lib/smms-roles";
 import { run, type Fail, type Ok } from "@/lib/products/viralpulse-ai/run";
 import { can, SmmsInputError, type SmmsViewer } from "@/lib/products/viralpulse-ai/viewer";
 import { smmsCollection, notDeleted, COLLECTIONS } from "@/lib/products/viralpulse-ai/db";
@@ -28,8 +27,8 @@ import type { ScenePlan, UgcOptions } from "./types";
  * (managers) to approve spend above the company threshold; MANAGE_INTEGRATIONS (admins) for the caps; MANAGE_POSTS to attach to a post.
  */
 
-const actorOf = (v: SmmsViewer): Actor => ({ userId: v.userId, email: v.email, canApprove: can(v, "PUBLISH_CONTENT") });
-const GEN: SmmsPermission[] = ["GENERATE_AI_CONTENT"];
+const actorOf = (v: SmmsViewer): Actor => ({ userId: v.userId, email: v.email, canApprove: can(v, "posts.publish") });
+const GEN: string[] = ["ugc.use"];
 
 export interface SceneJobView {
   sceneIndex: number;
@@ -122,7 +121,7 @@ export const changeStyle = (id: string, styleId: string) => run(GEN, async (v) =
 export const generatePlan = (id: string, instruction?: string) => run(GEN, async (v) => ({ project: toView(await engine.generatePlan(id, actorOf(v), defaultDeps(), { instruction })) }));
 export const editPlan = (id: string, plan: ScenePlan) => run(GEN, async (v) => ({ project: toView(await engine.editPlan(id, plan, actorOf(v), defaultDeps())) }));
 export const restoreVersion = (id: string, version: number) => run(GEN, async (v) => ({ project: toView(await engine.restoreVersion(id, version, actorOf(v), defaultDeps())) }));
-export const estimate = (id: string) => run(["VIEW_CAMPAIGNS"], async () => ({ estimate: await engine.estimateProject(id) }));
+export const estimate = (id: string) => run(["campaigns.view"], async () => ({ estimate: await engine.estimateProject(id) }));
 export const addReference = (id: string, mediaId: string, attestation: engine.Attestation) => run(GEN, async (v) => ({ project: toView(await engine.addReference(id, mediaId, attestation, actorOf(v), defaultDeps())) }));
 export const removeReference = (id: string, mediaId: string) => run(GEN, async (v) => ({ project: toView(await engine.removeReference(id, mediaId, actorOf(v), defaultDeps())) }));
 
@@ -147,22 +146,22 @@ export async function regenerateScene(id: string, sceneIndex: number, opts: { no
 export const cancel = (id: string) => run(GEN, async (v) => ({ project: toView(await engine.cancelProject(id, actorOf(v), defaultDeps())) }));
 export const resume = (id: string) => run(GEN, async (v) => ({ project: toView(await engine.resumeProject(id, actorOf(v), defaultDeps())) }));
 export const deleteProject = (id: string) => run(GEN, async (v) => (await engine.deleteProject(id, actorOf(v), defaultDeps()), {}));
-export const getProject = (id: string) => run(["VIEW_CAMPAIGNS"], async () => ({ project: await view(id) }), { revalidate: false });
+export const getProject = (id: string) => run(["campaigns.view"], async () => ({ project: await view(id) }), { revalidate: false });
 export const listProjects = (status?: ProjectDoc["status"]) =>
-  run(["VIEW_CAMPAIGNS"], async () => ({ projects: (await engine.listProjectDocs({ status }, 100)).map((p) => ({ id: p._id, title: p.title, styleId: p.styleId, status: p.status, aspect: p.options.aspect, estimateUsd: p.estimate?.usd ?? null, spendUsd: p.spendUsd, secs: p.render?.durationSecs ?? p.estimate?.totalSecs ?? null, language: p.options.language, pendingApproval: !!p.pendingApproval, thumbnailId: p.render?.thumbnailId ?? null, mediaId: p.render?.mediaId ?? null, updatedAt: p.updatedAt.toISOString() })) }), { revalidate: false });
+  run(["campaigns.view"], async () => ({ projects: (await engine.listProjectDocs({ status }, 100)).map((p) => ({ id: p._id, title: p.title, styleId: p.styleId, status: p.status, aspect: p.options.aspect, estimateUsd: p.estimate?.usd ?? null, spendUsd: p.spendUsd, secs: p.render?.durationSecs ?? p.estimate?.totalSecs ?? null, language: p.options.language, pendingApproval: !!p.pendingApproval, thumbnailId: p.render?.thumbnailId ?? null, mediaId: p.render?.mediaId ?? null, updatedAt: p.updatedAt.toISOString() })) }), { revalidate: false });
 
-export const attachToPost = (id: string, postId: string) => run(["MANAGE_POSTS"], async (v) => ({ attached: await engine.attachToPost(id, postId, actorOf(v), defaultDeps()) }));
+export const attachToPost = (id: string, postId: string) => run(["posts.manage"], async (v) => ({ attached: await engine.attachToPost(id, postId, actorOf(v), defaultDeps()) }));
 
-export const getSettings = () => run(["VIEW_CAMPAIGNS"], async () => ({ settings: await getUgcSettings() }), { revalidate: false });
+export const getSettings = () => run(["campaigns.view"], async () => ({ settings: await getUgcSettings() }), { revalidate: false });
 export const saveSettings = (patch: Partial<UgcSettings>) =>
-  run(["MANAGE_INTEGRATIONS"], async (v) => {
+  run(["ugc.settings"], async (v) => {
     const s = await saveUgcSettings(patch, v.userId);
     await defaultDeps().audit({ actorId: v.userId, actorEmail: v.email, action: "settings", entity: "ugc", entityId: "settings", entityLabel: "UGC settings", summary: `Updated UGC limits: daily cap $${s.dailySpendCapUsd}, approval above $${s.approvalThresholdUsd}`, metadata: { dailySpendCapUsd: s.dailySpendCapUsd, approvalThresholdUsd: s.approvalThresholdUsd } });
     return { settings: s };
   });
 
 export async function exportSrt(id: string) {
-  return run(["VIEW_CAMPAIGNS"], async () => {
+  return run(["campaigns.view"], async () => {
     const p = await engine.getProjectOrThrow(id);
     if (!p.plan) throw new SmmsInputError("There's no script yet.");
     return { srt: p.render?.srt || toSrt(buildCues(p.plan)) };
@@ -193,7 +192,7 @@ export interface UgcOverview {
 
 /** Everything the list page's stat cards and the wizard's cap check need, in one read. */
 export const overview = () =>
-  run(["VIEW_CAMPAIGNS"], async () => {
+  run(["campaigns.view"], async () => {
     const col = await projectsCollection();
     const rows = await col.aggregate<{ _id: ProjectDoc["status"]; n: number }>([{ $match: { ...notDeleted, ...NOT_SAMPLE } }, { $group: { _id: "$status", n: { $sum: 1 } } }]).toArray();
     const counts = { draft: 0, scripted: 0, approved: 0, generating: 0, ready: 0, failed: 0, cancelled: 0 } as Record<ProjectDoc["status"], number>;
@@ -222,7 +221,7 @@ export interface UgcConnections {
 
 /** What is connected, for the status cards and for disabling buttons that could only fail. Never returns a key. */
 export const connections = () =>
-  run(["VIEW_CAMPAIGNS"], async () => {
+  run(["campaigns.view"], async () => {
     const [video, scripts, ffmpeg] = await Promise.all([isVideoConfigured().catch(() => false), isOpenAIConfigured().catch(() => false), findFfmpeg().catch(() => null)]);
     const c: UgcConnections = { video, scripts, assembly: !!ffmpeg };
     return { connections: c };
@@ -238,7 +237,7 @@ export interface TrailEntry {
 
 /** The project's audit trail (create, script, approve, regenerate, cancel, attach), newest first. */
 export const trail = (id: string) =>
-  run(["VIEW_CAMPAIGNS"], async () => {
+  run(["campaigns.view"], async () => {
     await engine.getProjectOrThrow(id);
     const r = await listAudit({ entity: "ugc", recordId: id, pageSize: 50 });
     const items: TrailEntry[] = r.items.map((a) => ({ id: a._id, at: a.createdAt.toISOString(), by: a.actorEmail, action: String(a.action), summary: a.summary ?? "" }));
@@ -248,11 +247,11 @@ export const trail = (id: string) =>
 /* ---- style samples (optional, paid, explicit) ---- */
 
 /** Every live sample of the company, for the gallery. Read-only. */
-export const listStyleSamples = () => run(["VIEW_CAMPAIGNS"], async () => ({ samples: await sampleEngine.listSamples() }), { revalidate: false });
+export const listStyleSamples = () => run(["campaigns.view"], async () => ({ samples: await sampleEngine.listSamples() }), { revalidate: false });
 
 /** The exact estimate, limits and blockers shown before anyone is asked to confirm. Free; calls no provider. */
 export const styleSampleQuote = (styleId: string, seed: string) =>
-  run(["VIEW_CAMPAIGNS"], async (v) => ({ quote: await sampleEngine.sampleQuote(styleId, seed, actorOf(v), defaultDeps()) }), { revalidate: false });
+  run(["campaigns.view"], async (v) => ({ quote: await sampleEngine.sampleQuote(styleId, seed, actorOf(v), defaultDeps()) }), { revalidate: false });
 
 export async function requestStyleSample(styleId: string, seed: string, opts: { confirmUsd?: number; replace?: boolean; acknowledgeFlags?: string[] }) {
   const r = await run(GEN, async (v) => ({ result: await sampleEngine.requestSample(styleId, seed, actorOf(v), defaultDeps(), opts) }));

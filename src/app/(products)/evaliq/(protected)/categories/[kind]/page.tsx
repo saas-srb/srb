@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/evaliq/gate";
 import { notFound, redirect } from "next/navigation";
 import { PageHeader, SectionCard } from "@/components/products/evaliq/OtsUi";
 import CategoriesManager from "@/components/products/evaliq/CategoriesManager";
@@ -7,7 +8,8 @@ import { listCategoriesWithUsage } from "@/lib/products/evaliq/categories";
 export default async function CategoriesPage({ params }: { params: Promise<{ kind: string }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/evaliq/login");
-  if (!can(viewer, "MANAGE_SETTINGS")) redirect("/evaliq");
+  const locked = lockedUnless(viewer, "settings.manage", "Categories");
+  if (locked) return locked;
   const { kind: raw } = await params;
   if (raw !== "questions" && raw !== "tests") notFound();
   const kind = raw === "tests" ? "test" : "question";

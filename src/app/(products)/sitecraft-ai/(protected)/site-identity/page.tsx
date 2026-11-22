@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/sitecraft-ai/gate";
 import { redirect } from "next/navigation";
 import { getViewer, can } from "@/lib/products/sitecraft-ai/viewer";
 import { getSiteInfoForEdit } from "@/lib/products/sitecraft-ai/site-info";
@@ -8,7 +9,9 @@ import CmsPageHeader from "@/components/products/sitecraft-ai/ui/CmsPageHeader";
 export default async function CmsSiteIdentityPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/sitecraft-ai/login");
-  if (!can(viewer, "VIEW")) redirect("/sitecraft-ai");
+  const locked = lockedUnless(viewer, "identity.view", "Site identity");
+  if (locked) return locked;
+  if (!can(viewer, "identity.view")) redirect("/sitecraft-ai");
 
   const info = await getSiteInfoForEdit();
 
@@ -20,7 +23,7 @@ export default async function CmsSiteIdentityPage() {
         title="Site Identity & Contact"
         description={<>Brand, logo, contact details, social links and the header/footer text around the menus. Used by the header, both footer styles, the contact page, the floating WhatsApp button and offer CTAs. Saving publishes immediately.</>}
       />
-      <SiteInfoEditor initial={info} canEdit={can(viewer, "NAV_MANAGE") || can(viewer, "FOOTER_MANAGE")} />
+      <SiteInfoEditor initial={info} canEdit={can(viewer, "navigation.manage") || can(viewer, "footer.manage")} />
     </div>
   );
 }

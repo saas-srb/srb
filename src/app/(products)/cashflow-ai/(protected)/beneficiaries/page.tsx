@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { revalidatePath } from "next/cache";
 import { saveBeneficiary } from "@/lib/products/cashflow-ai/beneficiaries";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageTransactions } from "@/lib/fms-roles";
+import { canManageTransactions } from "@/lib/fms-access";
 
 export default async function BeneficiariesPage({
   searchParams,

@@ -13,35 +13,35 @@ const id = (v: unknown): string => {
 };
 
 export async function setAccountEnabledAction(accountId: string, enabled: boolean) {
-  return run(["MANAGE_INTEGRATIONS"], async (v) => {
+  return run(["integrations.manage"], async (v) => {
     await setAccountEnabled(id(accountId), Boolean(enabled), actor(v));
     return {};
   });
 }
 
 export async function setAccountDefaultAction(accountId: string) {
-  return run(["MANAGE_INTEGRATIONS"], async (v) => {
+  return run(["integrations.manage"], async (v) => {
     await setAccountDefault(id(accountId), actor(v));
     return {};
   });
 }
 
 export async function setAccountClientAction(accountId: string, client: string) {
-  return run(["MANAGE_INTEGRATIONS"], async (v) => {
+  return run(["integrations.manage"], async (v) => {
     await setAccountClient(id(accountId), typeof client === "string" ? client : "", actor(v));
     return {};
   });
 }
 
 export async function disconnectConnectionAction(connectionId: string) {
-  return run(["MANAGE_INTEGRATIONS"], async (v) => {
+  return run(["integrations.manage"], async (v) => {
     const r = await disconnectConnection(id(connectionId), actor(v));
     return { revokedAtProvider: r.revokedAtProvider };
   });
 }
 
 export async function testAccountAction(accountId: string) {
-  return run(["MANAGE_INTEGRATIONS"], async (v) => {
+  return run(["integrations.manage"], async (v) => {
     const r = await testAccount(id(accountId), actor(v));
     return { passed: r.ok, detail: r.detail };
   });

@@ -1,3 +1,4 @@
+import { legacyToAccess } from "../src/lib/access/adapter";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -44,7 +45,7 @@ const ROOT = path.resolve(__dirname, "..");
   const lastCode = () => /\b(\d{6})\b/.exec(mail[mail.length - 1].text)![1];
   const lastSms = () => /\b(\d{6})\b/.exec(texts[texts.length - 1].text)![1];
 
-  const viewer = (roles: string[]): Viewer => ({ userId: "u_" + roles.join("_"), email: "x@test.invalid", roles, overrides: {}, lpmsRoles: [], employeeId: null, companyId: "" });
+  const viewer = (roles: string[]): Viewer => ({ userId: "u_" + roles.join("_"), email: "x@test.invalid", roles, overrides: {}, subject: legacyToAccess({ roles, permissionOverrides: null }), lpmsRoles: [], employeeId: null, companyId: "" });
   const MANAGER = viewer(["lpms_manager"]);
   const AUTHOR = viewer(["lpms_author"]);
   const inA = <T,>(fn: () => Promise<T>) => runAsCompany("coA", fn);

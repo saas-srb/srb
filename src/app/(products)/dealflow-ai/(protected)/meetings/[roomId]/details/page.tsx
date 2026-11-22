@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 const nowMs = () => Date.now();
 
 export default async function MeetingDetailsPage({ params }: { params: Promise<{ roomId: string }> }) {
-  const user = await requireLmsPage("VIEW_LEADS");
+  const user = await requireLmsPage("meetings.view");
   const { roomId } = await params;
   const m = await getMeeting(roomId);
   if (!m || !canSeeMeeting(user, m)) notFound();

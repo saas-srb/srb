@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageTransactions, canMoveRefund } from "@/lib/fms-roles";
+import { canManageTransactions, canMoveRefund } from "@/lib/fms-access";
 import { requestRefund, changeRefundStatus, getRefund, type RefundWriteData } from "@/lib/products/cashflow-ai/refunds";
 import { isValidRefundStatus } from "@/lib/products/cashflow-ai/constants";
 import { paymentGate } from "@/lib/products/cashflow-ai/payment-guard";

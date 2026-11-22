@@ -9,7 +9,7 @@ import { DEFAULT_IMAGE_MODEL } from "@/lib/products/viralpulse-ai/models";
 import type { StudioConfig } from "@/components/products/viralpulse-ai/studio/config";
 
 /** Image generation needs both permissions (the same rule the server actions use). */
-export const canGenerateImages = (v: SmmsViewer) => can(v, "MANAGE_MEDIA") && can(v, "GENERATE_AI_CONTENT");
+export const canGenerateImages = (v: SmmsViewer) => can(v, "media.manage") && can(v, "posts.generate");
 
 /** What the wizard, the quick generator and the project page all need from the server. */
 export async function loadStudioConfig(viewer: SmmsViewer): Promise<StudioConfig> {
@@ -24,9 +24,9 @@ export async function loadStudioConfig(viewer: SmmsViewer): Promise<StudioConfig
     defaultProvider: settings.defaultProvider === "gemini" && gemini ? "gemini" : openai ? "openai" : gemini ? "gemini" : "openai",
     defaultQuality: settings.defaultQuality,
     spentTodayUsd: await spentToday(new Date()),
-    canApprove: can(viewer, "PUBLISH_CONTENT"),
-    canPost: can(viewer, "MANAGE_POSTS"),
-    canAds: can(viewer, "CREATE_ADS"),
-    canUpload: can(viewer, "MANAGE_MEDIA") || can(viewer, "MANAGE_POSTS"),
+    canApprove: can(viewer, "posts.publish"),
+    canPost: can(viewer, "posts.manage"),
+    canAds: can(viewer, "ads.create"),
+    canUpload: can(viewer, "media.manage") || can(viewer, "posts.manage"),
   };
 }

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageTransactions, canApproveTransactions } from "@/lib/fms-roles";
+import { canManageTransactions, canApproveTransactions } from "@/lib/fms-access";
 import { createCreditNote, issueCreditNote, cancelCreditNote, getCreditNote, type CreditNoteWriteData } from "@/lib/products/cashflow-ai/credit-notes";
 import { recordAudit } from "@/lib/products/cashflow-ai/audit";
 

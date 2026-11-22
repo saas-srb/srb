@@ -19,7 +19,7 @@ const invalidCategoryResponse = () =>
   );
 
 async function handleGET(req: NextRequest, { params }: Context) {
-  if (!(await isAuthorizedLmsRequest(req, "VIEW_LEADS"))) {
+  if (!(await isAuthorizedLmsRequest(req, "leads.view"))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -32,7 +32,7 @@ async function handleGET(req: NextRequest, { params }: Context) {
 }
 
 async function handlePATCH(req: NextRequest, { params }: Context) {
-  if (!(await isAuthorizedLmsRequest(req, "EDIT_LEADS"))) {
+  if (!(await isAuthorizedLmsRequest(req, "leads.edit"))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -65,7 +65,7 @@ async function handlePATCH(req: NextRequest, { params }: Context) {
 }
 
 async function handleDELETE(req: NextRequest, { params }: Context) {
-  if (!(await isAuthorizedLmsRequest(req, "DELETE_LEADS"))) {
+  if (!(await isAuthorizedLmsRequest(req, "leads.delete"))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

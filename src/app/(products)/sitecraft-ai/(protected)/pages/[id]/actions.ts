@@ -37,37 +37,37 @@ async function guard(permission: Parameters<typeof can>[1]) {
 }
 
 export async function saveSectionAction(pageId: string, section: PageSection): Promise<Result> {
-  const { v, error } = await guard("SECTIONS_EDIT");
+  const { v, error } = await guard("sections.edit");
   if (!v) return { ok: false, error: error! };
   return upsertDraftSection(pageId, section, v.userId);
 }
 
 export async function removeSectionAction(pageId: string, sectionId: string): Promise<Result> {
-  const { v, error } = await guard("SECTIONS_EDIT");
+  const { v, error } = await guard("sections.edit");
   if (!v) return { ok: false, error: error! };
   return removeDraftSection(pageId, sectionId, v.userId);
 }
 
 export async function reorderSectionAction(pageId: string, sectionId: string, orderKey: number): Promise<Result> {
-  const { v, error } = await guard("SECTIONS_EDIT");
+  const { v, error } = await guard("sections.edit");
   if (!v) return { ok: false, error: error! };
   return reorderDraftSection(pageId, sectionId, orderKey, v.userId);
 }
 
 export async function toggleSectionAction(pageId: string, sectionId: string, enabled: boolean): Promise<Result> {
-  const { v, error } = await guard("SECTIONS_EDIT");
+  const { v, error } = await guard("sections.edit");
   if (!v) return { ok: false, error: error! };
   return setSectionEnabled(pageId, sectionId, enabled, v.userId);
 }
 
 export async function saveDraftSectionsAction(pageId: string, sections: PageSection[]): Promise<Result> {
-  const { v, error } = await guard("SECTIONS_EDIT");
+  const { v, error } = await guard("sections.edit");
   if (!v) return { ok: false, error: error! };
   return saveDraft(pageId, sections, v.userId);
 }
 
 export async function publishPageAction(pageId: string, changeSummary: string): Promise<Result<{ version: string }>> {
-  const { v, error } = await guard("PAGES_PUBLISH");
+  const { v, error } = await guard("pages.publish");
   if (!v) return { ok: false, error: error! };
   const page = await getPage(pageId);
   const res = await publishPage(pageId, v.userId, changeSummary);
@@ -88,12 +88,12 @@ export async function publishPageAction(pageId: string, changeSummary: string): 
 
 export async function listVersionsAction(pageId: string) {
   const v = await requireViewer().catch(() => null);
-  if (!v || !can(v, "VIEW")) return [];
+  if (!v || !can(v, "pages.view")) return [];
   return listVersions(pageId);
 }
 
 export async function restoreVersionAction(pageId: string, version: string): Promise<Result> {
-  const { v, error } = await guard("PAGES_RESTORE");
+  const { v, error } = await guard("pages.restore");
   if (!v) return { ok: false, error: error! };
   const res = await restoreVersionToDraft(pageId, version, v.userId);
   if (res.ok) {
@@ -107,49 +107,49 @@ export async function restoreVersionAction(pageId: string, version: string): Pro
 
 export async function getThemeVariantSectionsAction(pageId: string, themeKey: string): Promise<PageSection[]> {
   const v = await requireViewer().catch(() => null);
-  if (!v || !can(v, "VIEW")) return [];
+  if (!v || !can(v, "pages.view")) return [];
   return getThemeVariantSections(pageId, themeKey);
 }
 
 export async function saveThemeVariantSectionAction(pageId: string, themeKey: string, section: PageSection): Promise<Result> {
-  const { v, error } = await guard("SECTIONS_EDIT");
+  const { v, error } = await guard("sections.edit");
   if (!v) return { ok: false, error: error! };
   return upsertThemeVariantSection(pageId, themeKey, section, v.userId);
 }
 
 export async function removeThemeVariantSectionAction(pageId: string, themeKey: string, sectionId: string): Promise<Result> {
-  const { v, error } = await guard("SECTIONS_EDIT");
+  const { v, error } = await guard("sections.edit");
   if (!v) return { ok: false, error: error! };
   return removeThemeVariantSection(pageId, themeKey, sectionId, v.userId);
 }
 
 export async function reorderThemeVariantSectionAction(pageId: string, themeKey: string, sectionId: string, orderKey: number): Promise<Result> {
-  const { v, error } = await guard("SECTIONS_EDIT");
+  const { v, error } = await guard("sections.edit");
   if (!v) return { ok: false, error: error! };
   return reorderThemeVariantSection(pageId, themeKey, sectionId, orderKey, v.userId);
 }
 
 export async function toggleThemeVariantSectionAction(pageId: string, themeKey: string, sectionId: string, enabled: boolean): Promise<Result> {
-  const { v, error } = await guard("SECTIONS_EDIT");
+  const { v, error } = await guard("sections.edit");
   if (!v) return { ok: false, error: error! };
   return setThemeVariantSectionEnabled(pageId, themeKey, sectionId, enabled, v.userId);
 }
 
 export async function copyDefaultIntoThemeVariantAction(pageId: string, themeKey: string): Promise<Result> {
-  const { v, error } = await guard("SECTIONS_EDIT");
+  const { v, error } = await guard("sections.edit");
   if (!v) return { ok: false, error: error! };
   return copyDefaultIntoThemeVariant(pageId, themeKey, v.userId);
 }
 
 export async function deleteThemeVariantAction(pageId: string, themeKey: string): Promise<Result> {
-  const { v, error } = await guard("SECTIONS_EDIT");
+  const { v, error } = await guard("sections.edit");
   if (!v) return { ok: false, error: error! };
   return deleteThemeVariant(pageId, themeKey, v.userId);
 }
 
 /** Saves the page draft's SEO, structured data and frame (published with the page's next publish). */
 export async function saveSeoAction(pageId: string, raw: { seo: unknown; jsonLd: unknown; frame: unknown }): Promise<Result> {
-  const { v, error } = await guard("SECTIONS_EDIT");
+  const { v, error } = await guard("sections.edit");
   if (!v) return { ok: false, error };
   if (!Array.isArray(raw.jsonLd)) return { ok: false, error: "Structured data must be a JSON array of objects." };
   const res = await saveDraftSeo(pageId, parsePageSeo(raw.seo), parsePageJsonLd(raw.jsonLd), parsePageFrame(raw.frame), v.userId);
@@ -162,7 +162,7 @@ export async function saveSeoAction(pageId: string, raw: { seo: unknown; jsonLd:
 
 /** Resets the draft to the published version (the "Discard changes" button). */
 export async function discardChangesAction(pageId: string): Promise<Result<{ sections: PageSection[] }>> {
-  const { v, error } = await guard("SECTIONS_EDIT");
+  const { v, error } = await guard("sections.edit");
   if (!v) return { ok: false, error: error! };
   const res = await discardDraftChanges(pageId, v.userId);
   if (res.ok) {

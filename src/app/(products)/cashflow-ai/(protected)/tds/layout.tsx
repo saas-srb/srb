@@ -1,14 +1,8 @@
 import { requireFmsPage } from "@/lib/fms-auth";
-import { canViewFinancialStatements } from "@/lib/fms-roles";
-import TdsNav from "@/components/products/cashflow-ai/tds/TdsNav";
+import { fmsCan } from "@/lib/fms-access";
 
-// The sidebar is not the boundary: TDS working is for roles that may see the books, whatever URL is typed.
+// The sidebar is not the boundary: this section is only for people who hold its feature, whatever URL is typed.
 export default async function Layout({ children }: { children: React.ReactNode }) {
-  await requireFmsPage(canViewFinancialStatements);
-  return (
-    <div className="space-y-4">
-      <TdsNav />
-      {children}
-    </div>
-  );
+  await requireFmsPage((u) => fmsCan(u, "tds.view"));
+  return children;
 }

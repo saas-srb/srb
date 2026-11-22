@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageFiscalPeriods, canReconcile } from "@/lib/fms-roles";
+import { canManageFiscalPeriods, canReconcile } from "@/lib/fms-access";
 import { isMonthString } from "@/lib/products/cashflow-ai/month-close/core";
 import { clearStep, lockMonth, recordOverride, recordStep, removeOverride } from "@/lib/products/cashflow-ai/month-close/store";
 

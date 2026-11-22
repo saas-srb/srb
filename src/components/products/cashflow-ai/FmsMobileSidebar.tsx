@@ -1,3 +1,4 @@
+import type { AccessSubject } from "@/lib/access/can";
 "use client";
 
 import { PanelName } from "@/components/platform/PanelsProvider";
@@ -13,9 +14,11 @@ import type { FmsRole } from "@/lib/fms-roles";
 export default function FmsMobileSidebar({
   roles,
   permissionOverrides,
+  subject,
 }: {
   roles: FmsRole[];
   permissionOverrides?: Record<string, boolean>;
+  subject: AccessSubject;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -32,7 +35,7 @@ export default function FmsMobileSidebar({
             <SidebarBrand />
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <FmsSidebar roles={roles} permissionOverrides={permissionOverrides} onNavigate={() => setOpen(false)} />
+            <FmsSidebar roles={roles} permissionOverrides={permissionOverrides} subject={subject} onNavigate={() => setOpen(false)} />
           </div>
           <MobileSidebarProfile />
         </SheetContent>

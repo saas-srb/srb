@@ -5,7 +5,7 @@ import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LockControls, MonthPicker, PersonStepControls } from "@/components/products/cashflow-ai/month-close/MonthCloseControls";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageFiscalPeriods, canReconcile } from "@/lib/fms-roles";
+import { canManageFiscalPeriods, canReconcile } from "@/lib/fms-access";
 import { REPORT_LINKS, currentMonthIst, defaultCloseMonth, indiaFiscalYear, isMonthString, monthLabel, progressOf, stepDef, type StepStatus } from "@/lib/products/cashflow-ai/month-close/core";
 import { getMonthClose } from "@/lib/products/cashflow-ai/month-close/store";
 

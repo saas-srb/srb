@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/sitecraft-ai/gate";
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import { redirect } from "next/navigation";
 import { getViewer, can } from "@/lib/products/sitecraft-ai/viewer";
@@ -9,6 +10,8 @@ import CmsPageHeader from "@/components/products/sitecraft-ai/ui/CmsPageHeader";
 export default async function CmsMediaPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/sitecraft-ai/login");
+  const locked = lockedUnless(viewer, "media.view", "Media");
+  if (locked) return locked;
 
   const items = await listMedia();
 
@@ -21,7 +24,7 @@ export default async function CmsMediaPage() {
         description={<>Every image used across the website. Click a file to edit its title and alt text, copy its URL or delete it.</>}
       />
       <PanelListFilters>
-<MediaLibraryGrid initialItems={items} canUpload={can(viewer, "MEDIA_UPLOAD")} canDelete={can(viewer, "MEDIA_DELETE")} />
+<MediaLibraryGrid initialItems={items} canUpload={can(viewer, "media.upload")} canDelete={can(viewer, "media.delete")} />
 </PanelListFilters>
     </div>
   );

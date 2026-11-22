@@ -20,6 +20,8 @@ import MessengerDashboardFilters from "@/components/products/huddle-ai/Messenger
 import Link from "next/link";
 import { CalendarClock, Video as VideoIcon } from "lucide-react";
 import { getCurrentChatUser } from "@/lib/messenger-auth";
+import { chatCan, canViewWorkspaceAnalytics } from "@/lib/messenger-access";
+import ProductLocked from "@/components/products/common/ProductLocked";
 import { getMessengerDashboardStats } from "@/lib/products/huddle-ai/dashboard";
 import { listMeetingsForUser } from "@/lib/products/huddle-ai/meetings";
 import { isValidDateRangePreset, resolveDateRangePreset, type DateRangePreset } from "@/lib/date-ranges";
@@ -40,6 +42,9 @@ export default async function MessengerDashboardPage({
   const sp = await searchParams;
   const user = await getCurrentChatUser();
   if (!user) return null;
+  if (!chatCan(user, "dashboard.view")) return <ProductLocked product="huddle-ai" feature="Dashboard" />;
+  // Workspace-wide numbers are for people who hold the analytics feature; everyone else sees their own summary.
+  const workspace = canViewWorkspaceAnalytics(user);
 
   const rangeParam: DateRangePreset =
     sp.range && isValidDateRangePreset(sp.range) ? sp.range : sp.dateFrom || sp.dateTo ? "custom" : "last30";
@@ -113,6 +118,17 @@ export default async function MessengerDashboardPage({
           </GlassCard>
         )}
 
+        {!workspace && (
+        <KpiGrid>
+          <KpiCard
+            label="Unread Messages"
+            value={stats.kpis.unreadMessages}
+            tone={stats.kpis.unreadMessages > 0 ? "down" : undefined}
+            icon={<MailWarning className="size-4" />}
+          />
+        </KpiGrid>
+        )}
+        {workspace && (<>
         <KpiGrid>
           <KpiCard label="Active Users" value={stats.kpis.activeUsers} icon={<Users className="size-4" />} />
           <KpiCard label="Online Members" value={stats.kpis.onlineMembers} accent icon={<UserCheck className="size-4" />} />
@@ -128,7 +144,6 @@ export default async function MessengerDashboardPage({
             icon={<MailWarning className="size-4" />}
           />
         </KpiGrid>
-
         <GlassCard>
           <CardHeader>
             <CardTitle>Daily Messaging Trend</CardTitle>
@@ -181,6 +196,7 @@ export default async function MessengerDashboardPage({
             <CategoryBarChart data={stats.peakHours} />
           </CardContent>
         </GlassCard>
+        </>)}
       </div>
     </div>
   );

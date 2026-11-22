@@ -1,3 +1,5 @@
+import { lockedUnless } from "@/lib/products/contractflow-ai/gate";
+import { can } from "@/lib/products/contractflow-ai/viewer";
 import { redirect } from "next/navigation";
 import { CheckCircle2, Eye, FileText, Send, XCircle } from "lucide-react";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
@@ -6,7 +8,6 @@ import PanelTabs from "@/components/platform/panel/PanelTabs";
 import KpiCard from "@/components/products/dealflow-ai/KpiCard";
 import KpiGrid from "@/components/products/dealflow-ai/KpiGrid";
 import CloneTable, { type CloneRow } from "@/components/products/contractflow-ai/CloneTable";
-import { lpmsCan } from "@/lib/lpms-roles";
 import { getViewer } from "@/lib/products/contractflow-ai/viewer";
 import { cloneCapabilities, listClones } from "@/lib/products/contractflow-ai/clones";
 import { cfSigners } from "@/lib/products/contractflow-ai/cf-db";
@@ -19,6 +20,8 @@ export default async function CloneListPage({ kind, searchParams }: { kind: Item
   const sp = await searchParams;
   const v = await getViewer();
   if (!v) redirect("/contractflow-ai/login");
+  const locked = lockedUnless(v, kind === "document" ? "documents.view" : "dashboard.view", CF_TITLE[kind]);
+  if (locked) return locked;
   const info = ITEM_KIND_INFO[kind];
   const clones = await listClones(v, { kind, limit: 500 });
 
@@ -43,8 +46,8 @@ export default async function CloneListPage({ kind, searchParams }: { kind: Item
     return {
       id: c._id, title: c.title, kind: c.kind ?? "document", state: st, partyName: c.party.displayName, partyType: c.party.type, partyId: c.party.partyId,
       updatedAt: c.updatedAt.toISOString(), requestId: c.requestId, signerPlan: c.signerPlan.map((s) => ({ name: s.name, email: s.email, role: s.role })),
-      canEdit: cap.edit, canSend: lpmsCan({ roles: v.roles, permissionOverrides: v.overrides }, "SIGN") && (st === "clone_draft" || st === "ready"),
-      canVoid: cap.void, canDelete: lpmsCan({ roles: v.roles, permissionOverrides: v.overrides }, "EDIT") && !cap.locked, replaces: !!c.replaces,
+      canEdit: cap.edit, canSend: can(v, "signatures.sign") && (st === "clone_draft" || st === "ready"),
+      canVoid: cap.void, canDelete: can(v, "documents.edit") && !cap.locked, replaces: !!c.replaces,
     };
   });
 

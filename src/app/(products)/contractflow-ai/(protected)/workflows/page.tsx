@@ -1,3 +1,5 @@
+import { lockedUnless } from "@/lib/products/contractflow-ai/gate";
+import { can } from "@/lib/products/contractflow-ai/viewer";
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { redirect } from "next/navigation";
@@ -8,16 +10,16 @@ import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import { CardContent } from "@/components/ui/card";
 import { getViewer } from "@/lib/products/contractflow-ai/viewer";
-import { lpmsCan } from "@/lib/lpms-roles";
 import { listWorkflows } from "@/lib/products/contractflow-ai/workflows";
 
 export default async function WorkflowsPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/contractflow-ai/login");
+  const locked = lockedUnless(viewer, "policies.manage", "Workflows");
+  if (locked) return locked;
 
   const ctx = { roles: viewer.roles, permissionOverrides: viewer.overrides };
-  if (!lpmsCan(ctx, "MANAGE_POLICIES")) redirect("/contractflow-ai");
-
+  
   const workflows = await listWorkflows(viewer);
 
   return (

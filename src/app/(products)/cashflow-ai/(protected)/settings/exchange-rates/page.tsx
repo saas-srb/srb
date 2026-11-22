@@ -9,7 +9,7 @@ import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import SimpleActionButton from "@/components/products/cashflow-ai/SimpleActionButton";
 import { Trash2 } from "lucide-react";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageAccounts } from "@/lib/fms-roles";
+import { canManageAccounts } from "@/lib/fms-access";
 import { listExchangeRates } from "@/lib/products/cashflow-ai/exchange-rates";
 import { SUPPORTED_CURRENCIES, DEFAULT_CURRENCY } from "@/lib/products/cashflow-ai/constants";
 import { addExchangeRateAction, deleteExchangeRateAction } from "./actions";

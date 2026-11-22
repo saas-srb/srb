@@ -1155,6 +1155,30 @@ export const CATALOGUE: CatalogueEntry[] = [
     "description": "Read the audit trail."
   },
   {
+    "key": "hrms.hasAnyHrmsRole",
+    "product": "talentos",
+    "source": "hrms",
+    "kind": "tier",
+    "fn": "hasAnyHrmsRole",
+    "perm": null,
+    "overrideKey": null,
+    "level": "read",
+    "label": "Any TalentOS role",
+    "description": "Who can open this area"
+  },
+  {
+    "key": "hrms.hasStaffRole",
+    "product": "talentos",
+    "source": "hrms",
+    "kind": "tier",
+    "fn": "hasStaffRole",
+    "perm": null,
+    "overrideKey": null,
+    "level": "read",
+    "label": "Staff role",
+    "description": "Can open the staff product at `/talentos/*` (dashboard, employees, payroll, …)."
+  },
+  {
     "key": "hrms.isEmployeeOnly",
     "product": "talentos",
     "source": "hrms",
@@ -2439,6 +2463,18 @@ export const CATALOGUE: CatalogueEntry[] = [
     "description": "Can open the PMS product at `/sprintos/*` (staff product or employee portal)."
   },
   {
+    "key": "pms.hasPmsStaffRole",
+    "product": "sprintos",
+    "source": "pms",
+    "kind": "tier",
+    "fn": "hasPmsStaffRole",
+    "perm": null,
+    "overrideKey": null,
+    "level": "read",
+    "label": "SprintOS staff role",
+    "description": "Can open the full staff product (dashboard, clients, projects, costing, settings)."
+  },
+  {
     "key": "pms.isPmsAdmin",
     "product": "sprintos",
     "source": "pms",
@@ -2557,6 +2593,18 @@ export const CATALOGUE: CatalogueEntry[] = [
     "level": "read",
     "label": "SpendIQ access",
     "description": "Can open the PRMS product at `/spendiq/*` (staff product or employee portal)."
+  },
+  {
+    "key": "prms.hasPrmsStaffRole",
+    "product": "spendiq",
+    "source": "prms",
+    "kind": "tier",
+    "fn": "hasPrmsStaffRole",
+    "perm": null,
+    "overrideKey": null,
+    "level": "read",
+    "label": "SpendIQ staff role",
+    "description": "Can open the full staff product (dashboard, vendors, requisitions, settings)."
   },
   {
     "key": "prms.isEmployeeOnly",
@@ -3289,6 +3337,18 @@ export const CATALOGUE: CatalogueEntry[] = [
     "level": "read",
     "label": "CohortAI access",
     "description": "Can open the TMS product at `/cohort-ai/*` (staff product or student portal)."
+  },
+  {
+    "key": "tms.hasTmsStaffRole",
+    "product": "cohort-ai",
+    "source": "tms",
+    "kind": "tier",
+    "fn": "hasTmsStaffRole",
+    "perm": null,
+    "overrideKey": null,
+    "level": "read",
+    "label": "CohortAI staff role",
+    "description": "Can open the full staff product (dashboard, programs, batches, students, settings)."
   },
   {
     "key": "tms.isStudentOnly",

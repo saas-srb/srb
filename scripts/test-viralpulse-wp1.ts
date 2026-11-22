@@ -392,8 +392,8 @@ async function main() {
   });
 
   // ── navigation ──
-  const ALL: SmmsNavFlags = { campaigns: true, posts: true, media: true, ai: true, ugc: true, analytics: true, audit: true, settings: true };
-  const NONE: SmmsNavFlags = { campaigns: false, posts: false, media: false, ai: false, ugc: false, analytics: false, audit: false, settings: false };
+  const ALL: SmmsNavFlags = { campaigns: true, posts: true, media: true, ai: true, ugc: true, analytics: true, audit: true, settings: true, studio: true, generateImage: true, brochures: true, vcards: true, library: true, brand: true };
+  const NONE: SmmsNavFlags = { campaigns: false, posts: false, media: false, ai: false, ugc: false, analytics: false, audit: false, settings: false, studio: false, generateImage: false, brochures: false, vcards: false, library: false, brand: false };
   await t("nav: sections and order are exactly the requested ones", () => {
     const g = groupedNav(ALL).map((s) => [s.label, s.items.map((i) => i.label)]);
     assert.deepEqual(g, [
@@ -409,9 +409,10 @@ async function main() {
     assert.deepEqual(visibleNav(NONE).map((i) => i.key), ["dashboard"]);
     assert.deepEqual(groupedNav(NONE).map((s) => s.key), ["top"]);
     const only = groupedNav({ ...NONE, posts: true, analytics: true });
-    assert.deepEqual(only.map((s) => s.label), [null, "Content Studio", "Publish & Advertise", "Insights"]); // brochures and visiting cards are open to anyone who can post
-    assert.deepEqual(visibleNav({ ...NONE, media: true }).map((i) => i.key), ["dashboard", "image-studio", "library", "brand-kit"]);
-    assert.deepEqual(visibleNav({ ...NONE, ai: true }).map((i) => i.key), ["dashboard", "image-studio", "generate-image", "brand-kit"]);
+    assert.deepEqual(only.map((s) => s.label), [null, "Publish & Advertise", "Insights"]); // each module page has its own feature: nothing else shows
+    assert.deepEqual(visibleNav({ ...NONE, studio: true, library: true }).map((i) => i.key), ["dashboard", "image-studio", "library"]);
+    assert.deepEqual(visibleNav({ ...NONE, generateImage: true, brand: true }).map((i) => i.key), ["dashboard", "generate-image", "brand-kit"]);
+    assert.deepEqual(visibleNav({ ...NONE, brochures: true, vcards: true }).map((i) => i.key), ["dashboard", "brochure", "vcard"]);
     assert.ok(!visibleNav({ ...NONE, ai: true, ugc: false }).some((i) => i.key === "ugc"));
   });
   await t("nav: active matching covers nested routes and never double-highlights", () => {

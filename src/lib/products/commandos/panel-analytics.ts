@@ -964,6 +964,7 @@ export async function getLpmsAnalytics(_filters?: PanelAnalyticsFilters) {
     lpmsRoles: COMPANY_ROLES as any,
     employeeId: null,
     companyId: (await currentCompanyId()) ?? "",
+    subject: { isDirector: true },
   };
   const d = await soft(() => getLpmsDashboard(viewer));
 

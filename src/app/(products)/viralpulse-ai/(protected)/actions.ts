@@ -48,12 +48,12 @@ export async function markNotificationsReadAction(ids?: string[]) {
 const BRIEF_FIELDS = ["name", "objective", "platforms", "industry", "location", "budget", "cta", "landingPage", "offerService", "tone", "language"];
 
 export async function createCampaignAction(input: Record<string, unknown>, generate: boolean) {
-  return run(["CREATE_CAMPAIGNS"], async (v) => {
+  return run(["campaigns.create"], async (v) => {
     const c = await createCampaign(parseBrief(input), v.userId);
     await recordAudit({ ...who(v), action: "create", entity: "campaign", entityId: c._id, entityLabel: c.name, recordId: c._id, summary: c.platforms.map((p) => PLATFORM_META[p].label).join(", ") });
     let generated = false;
     let generateError: string | null = null;
-    if (generate && can(v, "GENERATE_AI_CONTENT")) {
+    if (generate && can(v, "posts.generate")) {
       try {
         await generateCampaignStrategy(c, v, null);
         await recordAudit({ ...who(v), action: "generate", entity: "campaign", entityId: c._id, entityLabel: c.name, recordId: c._id, summary: "Campaign strategy" });
@@ -67,7 +67,7 @@ export async function createCampaignAction(input: Record<string, unknown>, gener
 }
 
 export async function updateCampaignBriefAction(id: string, input: Record<string, unknown>) {
-  return run(["EDIT_CAMPAIGNS"], async (v) => {
+  return run(["campaigns.edit"], async (v) => {
     const { before, after } = await updateBrief(id, parseBrief(input), v.userId);
     const flat = (c: typeof before) => ({ ...c, platforms: c.platforms.join(",") });
     await recordAudit({ ...who(v), action: "update", entity: "campaign", entityId: id, entityLabel: after.name, recordId: id, summary: diffSummary(flat(before), flat(after), BRIEF_FIELDS) ?? "Brief edited" });
@@ -76,7 +76,7 @@ export async function updateCampaignBriefAction(id: string, input: Record<string
 }
 
 export async function generateCampaignAction(id: string, instruction?: string) {
-  return run(["EDIT_CAMPAIGNS", "GENERATE_AI_CONTENT"], async (v) => {
+  return run(["campaigns.edit", "posts.generate"], async (v) => {
     const c = await requireCampaign(id);
     const hadContent = Boolean(c.ai.summary);
     const { version } = await generateCampaignStrategy(c, v, instr(instruction));
@@ -86,7 +86,7 @@ export async function generateCampaignAction(id: string, instruction?: string) {
 }
 
 export async function saveCampaignAiAction(id: string, ai: unknown) {
-  return run(["EDIT_CAMPAIGNS"], async (v) => {
+  return run(["campaigns.edit"], async (v) => {
     const c = await requireCampaign(id);
     if (c.status === "archived") throw new SmmsInputError("Restore the campaign before editing it.");
     const data = normalizeCampaignAi(ai);
@@ -98,7 +98,7 @@ export async function saveCampaignAiAction(id: string, ai: unknown) {
 }
 
 export async function duplicateCampaignAction(id: string) {
-  return run(["CREATE_CAMPAIGNS"], async (v) => {
+  return run(["campaigns.create"], async (v) => {
     const copy = await duplicateCampaign(id, v.userId);
     await recordAudit({ ...who(v), action: "duplicate", entity: "campaign", entityId: copy._id, entityLabel: copy.name, recordId: copy._id, summary: `From ${id}` });
     return { id: copy._id };
@@ -106,7 +106,7 @@ export async function duplicateCampaignAction(id: string) {
 }
 
 export async function archiveCampaignAction(id: string, archive: boolean) {
-  return run(["EDIT_CAMPAIGNS"], async (v) => {
+  return run(["campaigns.edit"], async (v) => {
     const c = await requireCampaign(id);
     if (archive) await setCampaignStatus(id, "archived", v.userId, { archivedFrom: c.status === "archived" ? c.archivedFrom : c.status });
     else await setCampaignStatus(id, c.archivedFrom && c.archivedFrom !== "archived" ? c.archivedFrom : "edited", v.userId, { archivedFrom: null });
@@ -116,7 +116,7 @@ export async function archiveCampaignAction(id: string, archive: boolean) {
 }
 
 export async function deleteCampaignAction(id: string) {
-  return run(["DELETE_CAMPAIGNS"], async (v) => {
+  return run(["campaigns.delete"], async (v) => {
     const c = await softDeleteCampaign(id, v.userId);
     await recordAudit({ ...who(v), action: "delete", entity: "campaign", entityId: id, entityLabel: c.name, recordId: id, summary: "Campaign and its ads removed" });
     return {};
@@ -125,8 +125,8 @@ export async function deleteCampaignAction(id: string) {
 
 /** scheduled = planned launch (needs dates); published = launched in the ad platforms (by a person). */
 export async function setCampaignLifecycleAction(id: string, to: "scheduled" | "published" | "unschedule" | "failed") {
-  const perm = to === "published" || to === "failed" ? "PUBLISH_CONTENT" : "SCHEDULE_POSTS";
-  return run(["VIEW_CAMPAIGNS", perm], async (v) => {
+  const perm = to === "published" || to === "failed" ? "posts.publish" : "posts.schedule";
+  return run(["campaigns.view", perm], async (v) => {
     const c = await requireCampaign(id);
     if (c.status === "archived") throw new SmmsInputError("Restore the campaign first.");
     let status: ContentStatus;
@@ -142,7 +142,7 @@ export async function setCampaignLifecycleAction(id: string, to: "scheduled" | "
 }
 
 export async function linkLmsCampaignsAction(id: string, keys: string[]) {
-  return run(["EDIT_CAMPAIGNS"], async (v) => {
+  return run(["campaigns.edit"], async (v) => {
     const c = await requireCampaign(id);
     await setLmsLinks(id, Array.isArray(keys) ? keys : [], v.userId);
     await recordAudit({ ...who(v), action: "update", entity: "campaign", entityId: id, entityLabel: c.name, recordId: id, summary: `Linked ${keys.length} DealFlow campaign${keys.length === 1 ? "" : "s"}` });
@@ -153,7 +153,7 @@ export async function linkLmsCampaignsAction(id: string, keys: string[]) {
 // ── Ads ─────────────────────────────────────────────────────────────────────
 
 export async function createAdAction(campaignId: string, header: Record<string, unknown>, conceptIndex: number | null) {
-  return run(["CREATE_ADS"], async (v) => {
+  return run(["ads.create"], async (v) => {
     const c = await requireCampaign(campaignId);
     if (c.status === "archived") throw new SmmsInputError("Restore the campaign first.");
     let h;
@@ -172,7 +172,7 @@ export async function createAdAction(campaignId: string, header: Record<string, 
 }
 
 export async function saveAdAction(campaignId: string, adId: string, input: { header: Record<string, unknown>; content: unknown; mediaIds: unknown; thumbnailId: unknown }) {
-  return run(["CREATE_ADS"], async (v) => {
+  return run(["ads.create"], async (v) => {
     const [c, ad] = await Promise.all([requireCampaign(campaignId), requireAd(campaignId, adId)]);
     if (ad.status === "archived") throw new SmmsInputError("Restore the ad before editing it.");
     const h = parseAdHeader(input.header, c.platforms);
@@ -188,7 +188,7 @@ export async function saveAdAction(campaignId: string, adId: string, input: { he
 }
 
 export async function generateAdAction(campaignId: string, adId: string, instruction?: string) {
-  return run(["CREATE_ADS", "GENERATE_AI_CONTENT"], async (v) => {
+  return run(["ads.create", "posts.generate"], async (v) => {
     const [c, ad] = await Promise.all([requireCampaign(campaignId), requireAd(campaignId, adId)]);
     const { version } = await generateAdCreative(ad, c, v, instr(instruction));
     await recordAudit({ ...who(v), action: ad.content.headline ? "regenerate" : "generate", entity: "ad", entityId: adId, entityLabel: ad.name, recordId: campaignId, summary: `v${version}${instr(instruction) ? ` · “${instr(instruction)}”` : ""}` });
@@ -197,14 +197,14 @@ export async function generateAdAction(campaignId: string, adId: string, instruc
 }
 
 export async function duplicateAdAction(campaignId: string, adId: string, targetPlatform?: string) {
-  return run(["CREATE_ADS"], async (v) => {
+  return run(["ads.create"], async (v) => {
     const [c, ad] = await Promise.all([requireCampaign(campaignId), requireAd(campaignId, adId)]);
     const adapt = targetPlatform && targetPlatform !== ad.platform;
     if (adapt && (!isAdPlatform(targetPlatform) || !c.platforms.includes(targetPlatform))) throw new SmmsInputError("Pick one of the campaign's platforms.");
     const copy = await duplicateAd(ad, v.userId, adapt ? { platform: targetPlatform as typeof ad.platform, formatKey: null, name: `${ad.name} — ${PLATFORM_META[targetPlatform as typeof ad.platform].label}`.slice(0, 120) } : {});
     await recordAudit({ ...who(v), action: "duplicate", entity: "ad", entityId: copy._id, entityLabel: copy.name, recordId: campaignId, summary: adapt ? `Adapted from ${PLATFORM_META[ad.platform].label}` : "Copy" });
     let adapted = false;
-    if (adapt && can(v, "GENERATE_AI_CONTENT")) {
+    if (adapt && can(v, "posts.generate")) {
       try {
         await generateAdCreative(copy, c, v, `Adapt this ad for ${PLATFORM_META[copy.platform].label}: respect its limits, format and conventions while keeping the same message.`);
         adapted = true;
@@ -217,7 +217,7 @@ export async function duplicateAdAction(campaignId: string, adId: string, target
 }
 
 export async function scheduleAdAction(campaignId: string, adId: string, when: string | null) {
-  return run(["SCHEDULE_POSTS"], async (v) => {
+  return run(["posts.schedule"], async (v) => {
     const ad = await requireAd(campaignId, adId);
     if (ad.status === "archived" || ad.status === "published") throw new SmmsInputError("This ad can't be scheduled in its current state.");
     if (when) {
@@ -237,7 +237,7 @@ export async function scheduleAdAction(campaignId: string, adId: string, when: s
  * refused for them; for other platforms the ad is labelled "manually tracked" and the reason is recorded.
  */
 export async function markAdLiveAction(campaignId: string, adId: string, externalRef: string, failed = false, reason = "Launched outside the app in the platform's ads manager.") {
-  return run(["PUBLISH_CONTENT"], async (v) => {
+  return run(["posts.publish"], async (v) => {
     const ad = await requireAd(campaignId, adId);
     if (ad.status === "archived") throw new SmmsInputError("Restore the ad first.");
     if (failed) await updateAd(adId, { status: "failed" }, v.userId);
@@ -248,7 +248,7 @@ export async function markAdLiveAction(campaignId: string, adId: string, externa
 }
 
 export async function archiveAdAction(campaignId: string, adId: string, archive: boolean) {
-  return run(["CREATE_ADS"], async (v) => {
+  return run(["ads.create"], async (v) => {
     const ad = await requireAd(campaignId, adId);
     if (archive) await updateAd(adId, { status: "archived", archivedFrom: ad.status === "archived" ? ad.archivedFrom : ad.status }, v.userId);
     else await updateAd(adId, { status: ad.archivedFrom && ad.archivedFrom !== "archived" ? ad.archivedFrom : "edited", archivedFrom: null }, v.userId);
@@ -258,7 +258,7 @@ export async function archiveAdAction(campaignId: string, adId: string, archive:
 }
 
 export async function deleteAdAction(campaignId: string, adId: string) {
-  return run(["DELETE_CAMPAIGNS"], async (v) => {
+  return run(["campaigns.delete"], async (v) => {
     const ad = await requireAd(campaignId, adId);
     await softDeleteAd(adId, v.userId);
     await recordAudit({ ...who(v), action: "delete", entity: "ad", entityId: adId, entityLabel: ad.name, recordId: campaignId });
@@ -267,7 +267,7 @@ export async function deleteAdAction(campaignId: string, adId: string) {
 }
 
 export async function generateAdImageAction(campaignId: string, adId: string, prompt: string) {
-  return run(["CREATE_ADS", "GENERATE_AI_CONTENT"], async (v) => {
+  return run(["ads.create", "posts.generate"], async (v) => {
     const ad = await requireAd(campaignId, adId);
     const media = await generateImageToLibrary({ prompt: prompt || ad.content.image.prompt, platform: ad.platform, formatKey: ad.formatKey, name: `${ad.name} — AI image`, actor: v, link: { targetType: "ad", targetId: adId } });
     await updateAd(adId, ad.format === "video" ? { thumbnailId: ad.thumbnailId ?? media._id } : { mediaIds: [...ad.mediaIds, media._id].slice(0, 10) }, v.userId);
@@ -279,11 +279,11 @@ export async function generateAdImageAction(campaignId: string, adId: string, pr
 // ── Posts ───────────────────────────────────────────────────────────────────
 
 export async function createPostAction(input: Record<string, unknown>, generate: boolean) {
-  return run(["MANAGE_POSTS"], async (v) => {
+  return run(["posts.manage"], async (v) => {
     const p = await createPost(parsePostBrief(input), v.userId);
     await recordAudit({ ...who(v), action: "create", entity: "post", entityId: p._id, entityLabel: p.title, recordId: p._id, summary: p.platforms.map((x) => PLATFORM_META[x].label).join(", ") });
     let generateError: string | null = null;
-    if (generate && can(v, "GENERATE_AI_CONTENT")) {
+    if (generate && can(v, "posts.generate")) {
       try {
         await generatePostContent(p, v, null);
         await recordAudit({ ...who(v), action: "generate", entity: "post", entityId: p._id, entityLabel: p.title, recordId: p._id, summary: "Post + platform versions" });
@@ -296,7 +296,7 @@ export async function createPostAction(input: Record<string, unknown>, generate:
 }
 
 export async function updatePostBriefAction(id: string, input: Record<string, unknown>) {
-  return run(["MANAGE_POSTS"], async (v) => {
+  return run(["posts.manage"], async (v) => {
     const p = await requirePost(id);
     if (p.status === "archived") throw new SmmsInputError("Restore the post before editing it.");
     const brief = parsePostBrief(input);
@@ -309,7 +309,7 @@ export async function updatePostBriefAction(id: string, input: Record<string, un
 }
 
 export async function savePostContentAction(id: string, input: { idea: unknown; creative: unknown; variants: unknown; mediaIds: unknown; thumbnailId: unknown }) {
-  return run(["MANAGE_POSTS"], async (v) => {
+  return run(["posts.manage"], async (v) => {
     const p = await requirePost(id);
     if (p.status === "archived") throw new SmmsInputError("Restore the post before editing it.");
     const incoming = Array.isArray(input.variants) ? (input.variants as { platform?: unknown }[]) : [];
@@ -330,7 +330,7 @@ export async function savePostContentAction(id: string, input: { idea: unknown; 
 }
 
 export async function generatePostAction(id: string, instruction?: string, platform?: string) {
-  return run(["MANAGE_POSTS", "GENERATE_AI_CONTENT"], async (v) => {
+  return run(["posts.manage", "posts.generate"], async (v) => {
     const p = await requirePost(id);
     const hadContent = Boolean(p.idea || p.variants.some((x) => x.content));
     const { version } = platform ? await regenerateVariant(p, platform, v, instr(instruction)) : await generatePostContent(p, v, instr(instruction));
@@ -340,7 +340,7 @@ export async function generatePostAction(id: string, instruction?: string, platf
 }
 
 export async function generatePostImageAction(id: string, prompt: string, platform: string | null, formatKey: string | null) {
-  return run(["MANAGE_POSTS", "GENERATE_AI_CONTENT"], async (v) => {
+  return run(["posts.manage", "posts.generate"], async (v) => {
     const p = await requirePost(id);
     const plat = platform && isPostPlatform(platform) ? platform : p.platforms[0];
     const media = await generateImageToLibrary({ prompt: prompt || p.creative.imagePrompt, platform: plat, formatKey, name: `${p.title} — AI image`, actor: v, link: { targetType: "post", targetId: id } });
@@ -352,7 +352,7 @@ export async function generatePostImageAction(id: string, prompt: string, platfo
 }
 
 export async function duplicatePostAction(id: string) {
-  return run(["MANAGE_POSTS"], async (v) => {
+  return run(["posts.manage"], async (v) => {
     const copy = await duplicatePost(await requirePost(id), v.userId);
     await recordAudit({ ...who(v), action: "duplicate", entity: "post", entityId: copy._id, entityLabel: copy.title, recordId: copy._id, summary: `From ${id}` });
     return { id: copy._id };
@@ -360,7 +360,7 @@ export async function duplicatePostAction(id: string) {
 }
 
 export async function archivePostAction(id: string, archive: boolean) {
-  return run(["MANAGE_POSTS"], async (v) => {
+  return run(["posts.manage"], async (v) => {
     const p = await requirePost(id);
     if (archive) await updatePost(id, { status: "archived", archivedFrom: p.status === "archived" ? p.archivedFrom : p.status, approvedBy: null, approvedAt: null }, v.userId);
     else {
@@ -374,9 +374,9 @@ export async function archivePostAction(id: string, archive: boolean) {
 }
 
 export async function deletePostAction(id: string) {
-  return run(["MANAGE_POSTS"], async (v) => {
+  return run(["posts.manage"], async (v) => {
     const p = await requirePost(id);
-    if (p.variants.some((x) => x.publish.state === "published") && !can(v, "DELETE_CAMPAIGNS")) throw new SmmsInputError("Published posts can only be archived.");
+    if (p.variants.some((x) => x.publish.state === "published") && !can(v, "campaigns.delete")) throw new SmmsInputError("Published posts can only be archived.");
     await softDeletePost(id, v.userId);
     await recordAudit({ ...who(v), action: "delete", entity: "post", entityId: id, entityLabel: p.title, recordId: id });
     return {};
@@ -388,7 +388,7 @@ export async function deletePostAction(id: string) {
  * same preflight (`schedulePost`), cancels waiting attempts and resets the publish claim, and unscheduling goes through `cancelScheduled`.
  */
 export async function schedulePostAction(id: string, when: string | null, approve: boolean) {
-  return run(["SCHEDULE_POSTS"], async (v) => {
+  return run(["posts.schedule"], async (v) => {
     const postId = String(id ?? "");
     if (!when) {
       await cancelScheduled(postId, v);
@@ -399,7 +399,7 @@ export async function schedulePostAction(id: string, when: string | null, approv
     // A browser datetime-local value or an agent's "2026-10-20T10:00" is wall-clock time in the company time zone; an explicit offset / Z is an instant.
     const r = await schedulePost(postId, /(?:Z|[+-]\d\d:?\d\d)$/i.test(w) ? { at: w, approve: approve === true } : { local: w, approve: approve === true }, v);
     if (!r.approved) {
-      const approvers = (await smmsUsersWith("PUBLISH_CONTENT")).filter((u) => u !== v.userId);
+      const approvers = (await smmsUsersWith("posts.publish")).filter((u) => u !== v.userId);
       if (approvers.length) await notifySmmsUsers(approvers, { type: "smms_approval_needed", title: `Approval needed: ${p.title}`, body: `Scheduled for ${r.plan.scheduledDisplay ?? r.scheduledAt.toISOString()}. It publishes only after someone with Publish approves it.`, link: `/viralpulse-ai/posts/${postId}`, dedupeKey: `smms-approval-${postId}-${r.scheduledAt.getTime()}` });
     }
     return { approved: r.approved };
@@ -407,7 +407,7 @@ export async function schedulePostAction(id: string, when: string | null, approv
 }
 
 export async function approvePostAction(id: string, approve: boolean) {
-  return run(["PUBLISH_CONTENT"], async (v) => {
+  return run(["posts.publish"], async (v) => {
     const p = await requirePost(id);
     if (p.status !== "scheduled") throw new SmmsInputError("Only scheduled posts can be approved.");
     if (approve) {
@@ -428,14 +428,14 @@ export async function approvePostAction(id: string, approve: boolean) {
 }
 
 export async function publishPostAction(id: string, platforms: string[]) {
-  return run(["PUBLISH_CONTENT"], async (v) => {
+  return run(["posts.publish"], async (v) => {
     const results = await publishPostNow(id, (Array.isArray(platforms) ? platforms : []).filter(isPostPlatform), { userId: v.userId, email: v.email });
     return { results };
   });
 }
 
 export async function markPostPublishedAction(id: string, platform: string, url: string) {
-  return run(["PUBLISH_CONTENT"], async (v) => {
+  return run(["posts.publish"], async (v) => {
     if (!isPostPlatform(platform)) throw new SmmsInputError("Unknown platform.");
     const p = await markPublishedManually(id, platform, url?.trim() || null, { userId: v.userId, email: v.email });
     await recordAudit({ ...who(v), action: "publish", entity: "post", entityId: id, entityLabel: p.title, recordId: id, summary: `${PLATFORM_META[platform].label} marked published${url ? ` · ${url}` : ""}` });
@@ -444,7 +444,7 @@ export async function markPostPublishedAction(id: string, platform: string, url:
 }
 
 export async function resetVariantPublishAction(id: string, platform: string) {
-  return run(["PUBLISH_CONTENT"], async (v) => {
+  return run(["posts.publish"], async (v) => {
     if (!isPostPlatform(platform)) throw new SmmsInputError("Unknown platform.");
     const p = await requirePost(id);
     await resetPublish(id, platform, v.userId);
@@ -454,7 +454,7 @@ export async function resetVariantPublishAction(id: string, platform: string) {
 }
 
 export async function savePostMetricsAction(id: string, platform: string, metrics: Record<string, unknown>) {
-  return run(["VIEW_ANALYTICS"], async (v) => {
+  return run(["analytics.view"], async (v) => {
     const p = await requirePost(id);
     const idx = p.variants.findIndex((x) => x.platform === platform);
     if (idx < 0) throw new SmmsInputError("That platform isn't part of this post.");
@@ -471,16 +471,16 @@ export async function savePostMetricsAction(id: string, platform: string, metric
 
 async function assertVersionAccess(v: SmmsViewer, targetType: TargetType, targetId: string, write: boolean): Promise<{ campaignId?: string }> {
   if (targetType === "campaign") {
-    if (!can(v, write ? "EDIT_CAMPAIGNS" : "VIEW_CAMPAIGNS")) throw new ForbiddenError();
+    if (!can(v, write ? "campaigns.edit" : "campaigns.view")) throw new ForbiddenError();
     await requireCampaign(targetId);
     return {};
   }
   if (targetType === "ad") {
-    if (!can(v, write ? "CREATE_ADS" : "VIEW_CAMPAIGNS")) throw new ForbiddenError();
+    if (!can(v, write ? "ads.create" : "campaigns.view")) throw new ForbiddenError();
     return {};
   }
   if (targetType === "post") {
-    if (!(can(v, "MANAGE_POSTS") || (!write && can(v, "VIEW_CAMPAIGNS")))) throw new ForbiddenError();
+    if (!(can(v, "posts.manage") || (!write && can(v, "campaigns.view")))) throw new ForbiddenError();
     await requirePost(targetId);
     return {};
   }
@@ -534,7 +534,7 @@ export async function restoreVersionAction(targetType: TargetType, targetId: str
 // ── Media library ───────────────────────────────────────────────────────────
 
 export async function registerMediaAction(pathname: string, meta: Record<string, unknown>) {
-  return run(["MANAGE_MEDIA"], async (v) => {
+  return run(["media.manage"], async (v) => {
     const m = await registerUpload(String(pathname), meta, v.userId);
     await recordAudit({ ...who(v), action: "upload", entity: "media", entityId: m._id, entityLabel: m.name, summary: `${m.kind} · ${(m.size / 1048576).toFixed(1)} MB` });
     return { media: toMediaCard(m) };
@@ -542,7 +542,7 @@ export async function registerMediaAction(pathname: string, meta: Record<string,
 }
 
 export async function replaceMediaAction(id: string, pathname: string, meta: Record<string, unknown>) {
-  return run(["MANAGE_MEDIA"], async (v) => {
+  return run(["media.manage"], async (v) => {
     const { after } = await replaceMediaFile(id, String(pathname), meta, v.userId);
     await withdrawApprovalForMedia(id, v, "an attached picture or video was replaced");
     await recordAudit({ ...who(v), action: "replace", entity: "media", entityId: id, entityLabel: after.name, summary: `New file (${(after.size / 1048576).toFixed(1)} MB)` });
@@ -551,7 +551,7 @@ export async function replaceMediaAction(id: string, pathname: string, meta: Rec
 }
 
 export async function updateMediaMetaAction(id: string, meta: Record<string, unknown>) {
-  return run(["MANAGE_MEDIA"], async (v) => {
+  return run(["media.manage"], async (v) => {
     const { before, after } = await updateMediaMeta(id, meta, v.userId);
     if (before.altText !== after.altText) await withdrawApprovalForMedia(id, v, "alt text of attached media changed");
     await recordAudit({ ...who(v), action: "update", entity: "media", entityId: id, entityLabel: after.name, summary: diffSummary({ ...before, tags: before.tags.join(",") }, { ...after, tags: after.tags.join(",") }, ["name", "platform", "tags", "thumbnailId"]) ?? "Details edited" });
@@ -560,7 +560,7 @@ export async function updateMediaMetaAction(id: string, meta: Record<string, unk
 }
 
 export async function deleteMediaAction(id: string) {
-  return run(["MANAGE_MEDIA"], async (v) => {
+  return run(["media.manage"], async (v) => {
     const m = await deleteMedia(id, v.userId);
     await recordAudit({ ...who(v), action: "delete", entity: "media", entityId: id, entityLabel: m.name });
     return {};
@@ -568,7 +568,7 @@ export async function deleteMediaAction(id: string) {
 }
 
 export async function generateMediaPromptAction(id: string) {
-  return run(["MANAGE_MEDIA", "GENERATE_AI_CONTENT"], async (v) => {
+  return run(["media.manage", "posts.generate"], async (v) => {
     const m = await getMedia(id);
     if (!m) throw new SmmsInputError("That media item no longer exists.");
     const out = await generateMediaPrompt(m, v);
@@ -579,7 +579,7 @@ export async function generateMediaPromptAction(id: string) {
 }
 
 export async function generateLibraryImageAction(input: { prompt: string; platform: string; formatKey: string; name: string }) {
-  return run(["MANAGE_MEDIA", "GENERATE_AI_CONTENT"], async (v) => {
+  return run(["media.manage", "posts.generate"], async (v) => {
     const platform = isPlatform(input.platform) ? input.platform : null;
     const media = await generateImageToLibrary({ prompt: String(input.prompt ?? ""), platform, formatKey: String(input.formatKey ?? "") || null, name: String(input.name ?? "").slice(0, 160) || "AI image", actor: v });
     await recordAudit({ ...who(v), action: "generate", entity: "media", entityId: media._id, entityLabel: media.name, summary: "AI image" });
@@ -589,7 +589,7 @@ export async function generateLibraryImageAction(input: { prompt: string; platfo
 
 export async function mediaUsageAction(id: string) {
   return run([], async (v) => {
-    if (!can(v, "MANAGE_MEDIA") && !can(v, "MANAGE_POSTS") && !can(v, "CREATE_ADS")) throw new ForbiddenError();
+    if (!can(v, "media.manage") && !can(v, "posts.manage") && !can(v, "ads.create")) throw new ForbiddenError();
     return { usage: await mediaUsage(String(id)) };
   }, { revalidate: false });
 }
@@ -597,7 +597,7 @@ export async function mediaUsageAction(id: string) {
 /** For the media picker dialog. */
 export async function pickerMediaAction(q: string, kind: string, page: number) {
   return run([], async (v) => {
-    if (!can(v, "MANAGE_POSTS") && !can(v, "CREATE_ADS") && !can(v, "MANAGE_MEDIA")) throw new ForbiddenError();
+    if (!can(v, "posts.manage") && !can(v, "ads.create") && !can(v, "media.manage")) throw new ForbiddenError();
     const r = await listMedia({ q: String(q ?? "").slice(0, 100), kind, page, pageSize: 24 });
     return { items: r.items.map(toMediaCard), totalPages: r.totalPages };
   }, { revalidate: false });
@@ -606,7 +606,7 @@ export async function pickerMediaAction(q: string, kind: string, page: number) {
 // ── AI Content Generator ────────────────────────────────────────────────────
 
 export async function runGeneratorAction(input: Record<string, unknown>) {
-  return run(["GENERATE_AI_CONTENT"], async (v) => {
+  return run(["posts.generate"], async (v) => {
     if (!isGeneratorType(input.type)) throw new SmmsInputError("Pick what to generate.");
     const platform = typeof input.platform === "string" && isPlatform(input.platform) ? input.platform : "";
     const out = await runWorkspace(
@@ -629,7 +629,7 @@ export async function runGeneratorAction(input: Record<string, unknown>) {
 }
 
 export async function workspaceHistoryAction() {
-  return run(["GENERATE_AI_CONTENT"], async (v) => {
+  return run(["posts.generate"], async (v) => {
     const rows = await listWorkspaceRuns(v.userId, 20);
     return { runs: rows.map((r) => ({ id: r.targetId, kind: r.kind, label: r.label, platform: r.platform, createdAt: r.createdAt.toISOString(), snapshot: JSON.parse(JSON.stringify(r.snapshot)) })) };
   }, { revalidate: false });
@@ -637,7 +637,7 @@ export async function workspaceHistoryAction() {
 
 /** Turns one generator result into a post draft for its platform. */
 export async function postFromGeneratorAction(item: { heading: string; body: string; cta: string; hashtags: string[] }, platform: string) {
-  return run(["MANAGE_POSTS"], async (v) => {
+  return run(["posts.manage"], async (v) => {
     const plat = isPostPlatform(platform) ? platform : "linkedin";
     const brief = parsePostBrief({ topic: String(item.heading || item.body).slice(0, 300), title: String(item.heading ?? "").slice(0, 120), platforms: [plat], contentType: "image" });
     const variant = { platform: plat, ...normalizeVariant({ title: item.heading, content: item.body, cta: item.cta, hashtags: item.hashtags }) };
@@ -651,7 +651,7 @@ export async function postFromGeneratorAction(item: { heading: string; body: str
 // ── Settings & integrations ─────────────────────────────────────────────────
 
 export async function saveBrandAction(input: Record<string, unknown>) {
-  return run(["MANAGE_INTEGRATIONS"], async (v) => {
+  return run(["integrations.manage"], async (v) => {
     await saveBrand(input, v.userId);
     await recordAudit({ ...who(v), action: "settings", entity: "settings", entityId: "brand", entityLabel: "Brand context" });
     return {};
@@ -659,7 +659,7 @@ export async function saveBrandAction(input: Record<string, unknown>) {
 }
 
 export async function saveAiSettingsAction(input: Record<string, unknown>) {
-  return run(["MANAGE_INTEGRATIONS"], async (v) => {
+  return run(["integrations.manage"], async (v) => {
     const ai = await saveAi(input, v.userId);
     await recordAudit({ ...who(v), action: "settings", entity: "settings", entityId: "ai", entityLabel: "AI settings", summary: `${ai.textModel} / ${ai.imageModel}` });
     return {};
@@ -667,7 +667,7 @@ export async function saveAiSettingsAction(input: Record<string, unknown>) {
 }
 
 export async function disconnectIntegrationAction(provider: string) {
-  return run(["MANAGE_INTEGRATIONS"], async (v) => {
+  return run(["integrations.manage"], async (v) => {
     if (!isProvider(provider)) throw new SmmsInputError("Unknown provider.");
     await disconnect(provider);
     await recordAudit({ ...who(v), action: "disconnect", entity: "integration", entityId: provider, entityLabel: provider });
@@ -676,7 +676,7 @@ export async function disconnectIntegrationAction(provider: string) {
 }
 
 export async function selectIntegrationTargetAction(provider: string, platform: string, targetId: string) {
-  return run(["MANAGE_INTEGRATIONS"], async (v) => {
+  return run(["integrations.manage"], async (v) => {
     if (!isProvider(provider) || !isPlatform(platform)) throw new SmmsInputError("Unknown provider.");
     await selectTarget(provider, platform, targetId);
     await recordAudit({ ...who(v), action: "update", entity: "integration", entityId: provider, entityLabel: provider, summary: `${PLATFORM_META[platform].label} → ${targetId}` });

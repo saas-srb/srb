@@ -7,7 +7,7 @@ import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Gstr2bUploadForm from "@/components/products/cashflow-ai/gst/Gstr2bUploadForm";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance } from "@/lib/fms-roles";
+import { canManageCompliance } from "@/lib/fms-access";
 import { formatMoney } from "@/lib/products/cashflow-ai/constants";
 import { isMonth } from "@/lib/products/cashflow-ai/gst/core";
 import { AMOUNT_TOLERANCE, CANNOT_MATCH_TEXT, EXTRA_MONTHS_BACK, MATCH_STATUSES, MAX_FILE_BYTES, suggestionFor, taxOfRow, type MatchStatus, type ReconRow } from "@/lib/products/cashflow-ai/gst/gstr2b-core";

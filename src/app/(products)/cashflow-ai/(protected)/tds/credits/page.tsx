@@ -9,7 +9,7 @@ import TdsCreditsUploadForm from "@/components/products/cashflow-ai/tds/TdsCredi
 import TdsCreditsTemplateButton from "@/components/products/cashflow-ai/tds/TdsCreditsTemplateButton";
 import TdsCreditsFyPicker from "@/components/products/cashflow-ai/tds/TdsCreditsFyPicker";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance } from "@/lib/fms-roles";
+import { canManageCompliance } from "@/lib/fms-access";
 import { formatMoney } from "@/lib/products/cashflow-ai/constants";
 import { istToday } from "@/lib/products/cashflow-ai/accrual/core";
 import { financialYearOf, isFinancialYear } from "@/lib/products/cashflow-ai/tds/core";

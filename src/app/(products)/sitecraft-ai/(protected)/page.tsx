@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/sitecraft-ai/gate";
 import PanelFilterBar from "@/components/platform/panel/PanelFilterBar";
 import PanelDashboardHeader from "@/components/platform/panel/PanelDashboardHeader";
 import Link from "next/link";
@@ -43,6 +44,8 @@ export default async function CmsDashboardPage({ searchParams }: { searchParams:
     listAudit({ pageSize: 10 }),
     Promise.all(keys.map(async (k) => ({ key: k, rows: await listAdminRecords(k) }))),
   ]);
+  const locked = viewer ? lockedUnless(viewer, "dashboard.view", "Dashboard") : null;
+  if (locked) return locked;
 
   // The search box narrows the page counts and lists to pages whose title or URL contains the text.
   const needle = sp.q?.trim().toLowerCase();
@@ -59,7 +62,7 @@ export default async function CmsDashboardPage({ searchParams }: { searchParams:
 
   const pct = (n: number) => (pages.length ? (n / pages.length) * 100 : 0);
   const quick = [
-    { href: "/sitecraft-ai/pages", label: "New page", icon: Plus, show: viewer ? can(viewer, "PAGES_CREATE") : false },
+    { href: "/sitecraft-ai/pages", label: "New page", icon: Plus, show: viewer ? can(viewer, "pages.create") : false },
     { href: "/sitecraft-ai/media", label: "Upload media", icon: Upload, show: true },
     { href: "/sitecraft-ai/navigation", label: "Edit menu", icon: MenuIcon, show: true },
     { href: "/sitecraft-ai/site-identity", label: "Site identity", icon: BadgeInfo, show: true },
@@ -271,7 +274,7 @@ export default async function CmsDashboardPage({ searchParams }: { searchParams:
       />
 
 
-      <DashboardWidgets welcome={<WelcomePanel activeTheme={activeKey} canCreate={viewer ? can(viewer, "PAGES_CREATE") : false} />} widgets={widgets} />
+      <DashboardWidgets welcome={<WelcomePanel activeTheme={activeKey} canCreate={viewer ? can(viewer, "pages.create") : false} />} widgets={widgets} />
     </div>
   );
 }

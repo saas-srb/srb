@@ -8,7 +8,7 @@ import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import AccountForm from "@/components/products/cashflow-ai/AccountForm";
 import SeedDefaultsButton from "@/components/products/cashflow-ai/SeedDefaultsButton";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageAccounts } from "@/lib/fms-roles";
+import { canManageAccounts } from "@/lib/fms-access";
 import { listAccounts, serializeAccount } from "@/lib/products/cashflow-ai/accounts";
 import { ACCOUNT_TYPES } from "@/lib/products/cashflow-ai/constants";
 

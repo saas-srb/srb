@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/evaliq/gate";
 import { redirect } from "next/navigation";
 import { PageHeader, SectionCard } from "@/components/products/evaliq/OtsUi";
 import TestInfoForm from "@/components/products/evaliq/TestInfoForm";
@@ -10,7 +11,8 @@ import { testInfoValues } from "@/lib/products/evaliq/test-draft";
 export default async function NewTestPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/evaliq/login");
-  if (!can(viewer, "CREATE_TEST")) redirect("/evaliq/tests");
+  const locked = lockedUnless(viewer, "tests.create", "Create tests");
+  if (locked) return locked;
   const [cats, dir] = await Promise.all([listCategories("test"), getDirectory()]);
   return (
     <div className="space-y-4">

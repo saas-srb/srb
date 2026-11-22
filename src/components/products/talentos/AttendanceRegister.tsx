@@ -19,7 +19,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { getAttendanceStatusMeta, MANUAL_ATTENDANCE_STATUSES } from "@/lib/products/talentos/attendance-status";
 import { formatMinutesAsDuration } from "@/lib/products/talentos/time";
 import { formatDate } from "@/lib/utils";
-import { recordAttendanceAction, bulkMarkAttendanceAction } from "@/app/(products)/talentos/(protected)/(staff)/attendance/actions";
+import { recordAttendanceAction, bulkMarkAttendanceAction } from "@/app/(products)/talentos/(protected)/attendance/actions";
 
 interface Row {
   employeeId: string;

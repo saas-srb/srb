@@ -6,8 +6,10 @@ import { redirect } from "next/navigation";
 import { ObjectId } from "mongodb";
 import { WORKSPACE_SESSION_COOKIE, workspaceSessionAccountId } from "@/lib/workspace-session";
 import { getDb } from "@/lib/mongodb";
-import { hasLmsAccess, lmsCan, type LmsPermission } from "@/lib/lms-roles";
-import { cmsCan, hasCmsAccess, type CmsPermission } from "@/lib/cms-roles";
+import { hasLmsAccess } from "@/lib/lms-roles";
+import { can as accessCan, type AccessSubject } from "@/lib/access/can";
+import { subjectFromRow } from "@/lib/access/server";
+import { microByKey } from "@/lib/access/micro";
 
 // NOTE: was literally `admin_session` — an accidental exact collision with
 // the separate Director Command Center's own cookie of the same name
@@ -52,6 +54,8 @@ export interface CurrentLmsUser {
   roles: string[];
   /** The Director's per-user capability overrides (`permission-overrides.ts`). */
   permissionOverrides: Record<string, boolean>;
+  /** The person's access (micro features of DealFlow and the shared growth features). */
+  subject: AccessSubject;
   createdAt: Date;
   lastLoginAt: Date | null;
 }
@@ -139,6 +143,13 @@ export async function getSessionLmsUser(token: string | undefined | null): Promi
   return getLmsUserForAccount(session.adminId);
 }
 
+/** The one DealFlow check. `key` is `<module>.<feature>` without the product, e.g. "leads.edit". An unknown key is never allowed (the coverage test also fails on it). */
+export function lmsCan(holder: { subject: AccessSubject }, key: string): boolean {
+  const full = `dealflow-ai.${key}`;
+  const m = microByKey(full);
+  return Boolean(m) && accessCan(holder.subject, "dealflow-ai", full, m!.level);
+}
+
 /**
  * This product's user for an `admin_users` account, under the product's own role
  * rule — shared by the product's session and the Workspace session.
@@ -153,6 +164,7 @@ export async function getLmsUserForAccount(adminId: ObjectId): Promise<CurrentLm
     email: user.email,
     roles: user.roles ?? [],
     permissionOverrides: user.permissionOverrides ?? {},
+    subject: subjectFromRow(user as never),
     createdAt: user.createdAt,
     lastLoginAt: user.lastLoginAt,
   };
@@ -184,41 +196,22 @@ export async function getCurrentLmsUser(): Promise<CurrentLmsUser | null> {
 }
 
 /**
- * The signed-in person ONLY if they may use the CRM (an LMS role, or Director) — and, when `permission` is given,
- * hold that capability. `getCurrentLmsUser()` alone is just "a signed-in staff account": other products' roles reach it too,
- * so every CRM page, action and route calls this instead.
+ * The signed-in person ONLY if they may use the CRM (an LMS role, or Director) — and, when `permission` (a micro feature key such as
+ * "leads.edit") is given, hold that feature. `getCurrentLmsUser()` alone is just "a signed-in staff account": other products' roles
+ * reach it too, so every CRM page, action and route calls this instead.
  */
-export async function requireLms(permission?: LmsPermission): Promise<CurrentLmsUser | null> {
+export async function requireLms(permission?: string): Promise<CurrentLmsUser | null> {
   const user = await getCurrentLmsUser();
   if (!user || !hasLmsAccess(user.roles)) return null;
   if (permission && !lmsCan(user, permission)) return null;
   return user;
 }
 
-/**
- * For the website-growth tools that live in the CMS product (offers, wallets, chatbot): allowed for someone holding the CRM
- * capability, or a CMS user holding the matching CMS permission (settings by default; editors for offers). Anyone else — an HR employee, a project member — is refused.
- */
-export async function requireLmsOrCms(permission: LmsPermission, cmsPermission: CmsPermission = "SETTINGS_MANAGE"): Promise<CurrentLmsUser | null> {
-  const user = await getCurrentLmsUser();
-  if (!user) return null;
-  if (hasLmsAccess(user.roles) && lmsCan(user, permission)) return user;
-  if (hasCmsAccess(user.roles) && cmsCan(user, cmsPermission)) return user;
-  return null;
-}
-
-/** Page guard: the user with that capability, or a redirect (sign-in when signed out, the CRM home when the capability is missing). */
-export async function requireLmsPage(permission: LmsPermission): Promise<CurrentLmsUser> {
+/** Page guard: the user with that feature, or a redirect (sign-in when signed out, the CRM home when the feature is missing). */
+export async function requireLmsPage(permission: string): Promise<CurrentLmsUser> {
   const user = await getCurrentLmsUser();
   if (!user) redirect("/dealflow-ai/login");
   if (!hasLmsAccess(user.roles)) redirect("/commandos");
-  if (!lmsCan(user, permission)) redirect(permission === "VIEW_LEADS" ? "/commandos" : "/dealflow-ai");
-  return user;
-}
-
-/** Page guard for the growth tools inside the CMS (offers, wallets, chatbot): the capability via the CRM roles or a CMS administrator, else back to the CMS home. */
-export async function requireLmsOrCmsPage(permission: LmsPermission, cmsPermission: CmsPermission = "SETTINGS_MANAGE"): Promise<CurrentLmsUser> {
-  const user = await requireLmsOrCms(permission, cmsPermission);
-  if (!user) redirect("/sitecraft-ai");
+  if (!lmsCan(user, permission)) redirect(permission === "leads.view" || permission === "dashboard.view" ? "/commandos" : "/dealflow-ai");
   return user;
 }

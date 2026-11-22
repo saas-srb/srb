@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageFiscalPeriods } from "@/lib/fms-roles";
+import { canManageFiscalPeriods } from "@/lib/fms-access";
 import { createFiscalPeriod, closePeriod, reopenPeriod } from "@/lib/products/cashflow-ai/fiscal-periods";
 
 function revalidate() {

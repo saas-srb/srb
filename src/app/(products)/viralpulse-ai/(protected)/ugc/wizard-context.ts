@@ -11,7 +11,7 @@ export async function loadWizardContext(): Promise<
 > {
   const viewer = await getViewer();
   if (!viewer) return { ok: false, redirect: "/viralpulse-ai/login" };
-  if (!can(viewer, "GENERATE_AI_CONTENT")) return { ok: false, redirect: "/viralpulse-ai/ugc" };
+  if (!can(viewer, "ugc.use")) return { ok: false, redirect: "/viralpulse-ai/ugc" };
   const [ov, conn] = await Promise.all([api.overview(), api.connections()]);
   if (!ov.ok || !conn.ok) return { ok: false, redirect: "/viralpulse-ai/ugc" };
   return {
@@ -20,9 +20,9 @@ export async function loadWizardContext(): Promise<
       settings: ov.overview.settings,
       spentTodayUsd: ov.overview.spentTodayUsd,
       connections: conn.connections,
-      canApprove: can(viewer, "PUBLISH_CONTENT"),
-      canUpload: can(viewer, "MANAGE_MEDIA") || can(viewer, "MANAGE_POSTS"),
-      canIntegrations: can(viewer, "MANAGE_INTEGRATIONS"),
+      canApprove: can(viewer, "posts.publish"),
+      canUpload: can(viewer, "media.manage") || can(viewer, "posts.manage"),
+      canIntegrations: can(viewer, "ugc.settings"),
     },
   };
 }

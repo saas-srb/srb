@@ -7,7 +7,7 @@ import { importLeadListCsv, importPerformanceCsv } from "@/lib/campaigns";
 const MAX_BYTES = 5 * 1024 * 1024;
 
 async function handlePOST(req: NextRequest) {
-  const lmsUser = await requireLms("MANAGE_CAMPAIGNS");
+  const lmsUser = await requireLms("campaigns.manage");
   if (!lmsUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   let formData: FormData;

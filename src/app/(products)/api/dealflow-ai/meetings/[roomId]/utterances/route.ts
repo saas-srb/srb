@@ -28,7 +28,7 @@ async function handlePOST(req: NextRequest, { params }: { params: Promise<{ room
 
 /** GET — the stored transcript, for staff who may see the meeting. */
 async function handleGET(_: NextRequest, { params }: { params: Promise<{ roomId: string }> }) {
-  const user = await requireLms("VIEW_LEADS");
+  const user = await requireLms("meetings.view");
   if (!user) return NextResponse.json({ ok: false, error: "Not allowed" }, { status: 403 });
   const { roomId } = await params;
   const m = await getMeeting(roomId);

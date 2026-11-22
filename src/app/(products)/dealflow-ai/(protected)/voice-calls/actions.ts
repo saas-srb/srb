@@ -17,7 +17,7 @@ import { isPanelFilter, type PanelActiveCall, type PanelCallDetail, type PanelCa
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : "");
 
 async function context(): Promise<PanelViewerCtx | null> {
-  const lms = await requireLms("VIEW_LEADS");
+  const lms = await requireLms("calls.view");
   if (!lms) return null;
   return { lms, agentos: await getViewer().catch(() => null) };
 }

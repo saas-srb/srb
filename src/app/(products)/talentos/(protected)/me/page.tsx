@@ -122,7 +122,7 @@ export default async function MeDashboard() {
         description={<>{employee.employeeCode} · {designation} · {department} · {tenure.label} at {brand.name}</>}
         actions={<><div className="flex flex-wrap gap-2">
           <Link href="/talentos/me/salary" className="text-xs font-medium text-primary hover:underline">Payslips →</Link>
-          <Link href="/talentos/me/leave" className="text-xs font-medium text-primary hover:underline">Apply leave →</Link>
+          <Link href="/talentos/leave" className="text-xs font-medium text-primary hover:underline">Apply leave →</Link>
         </div></>}
       />
 
@@ -209,7 +209,7 @@ export default async function MeDashboard() {
         <GlassCard interactive={false}>
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <CardTitle>{calendar.summary.workingDays}-day month</CardTitle>
-            <Link href="/talentos/me/attendance" className="text-xs text-primary hover:underline">Full history</Link>
+            <Link href="/talentos/attendance" className="text-xs text-primary hover:underline">Full history</Link>
           </CardHeader>
           <CardContent>
             <AttendanceCalendar month={monthStr} cells={calendar.cells} summary={calendar.summary} readOnly />
@@ -259,7 +259,7 @@ export default async function MeDashboard() {
           <GlassCard interactive={false}>
             <CardHeader className="flex-row items-center justify-between space-y-0">
               <CardTitle>Recent requests</CardTitle>
-              <Link href="/talentos/me/leave" className="text-xs text-primary hover:underline">Manage</Link>
+              <Link href="/talentos/leave" className="text-xs text-primary hover:underline">Manage</Link>
             </CardHeader>
             <CardContent className="space-y-2">
               {leaveHistory.length === 0 && <p className="text-sm text-muted-foreground">No requests yet.</p>}
@@ -417,8 +417,8 @@ export default async function MeDashboard() {
       <Section title="Quick links">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {[
-            { href: "/talentos/me/attendance", label: "Attendance", icon: CalendarClock },
-            { href: "/talentos/me/leave", label: "Apply leave", icon: CalendarDays },
+            { href: "/talentos/attendance", label: "Attendance", icon: CalendarClock },
+            { href: "/talentos/leave", label: "Apply leave", icon: CalendarDays },
             { href: "/talentos/me/salary", label: "Payslips", icon: Wallet },
             { href: "/talentos/me/documents", label: "Documents", icon: FileText },
             { href: "/talentos/me/profile", label: "My profile", icon: UserRound },

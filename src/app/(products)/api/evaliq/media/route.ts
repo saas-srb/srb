@@ -27,7 +27,7 @@ function sniff(b: Buffer): { ext: string; type: string; kind: "image" | "audio" 
 async function handlePOST(req: NextRequest) {
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!can(viewer, "CREATE_QUESTION") && !can(viewer, "EDIT_QUESTION")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!can(viewer, "questions.create") && !can(viewer, "questions.edit")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const form = await req.formData().catch(() => null);
   const file = form?.get("file");
   if (!(file instanceof File)) return NextResponse.json({ error: "Choose a file." }, { status: 400 });

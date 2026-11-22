@@ -35,7 +35,7 @@ export default async function PipelinePage({
 }: {
   params: Promise<{ category: string }>;
 }) {
-  await requireLmsPage("VIEW_LEADS");
+  await requireLmsPage("leads.view");
   const { category } = await params;
 
   if (!VALID_PIPELINES[category]) {

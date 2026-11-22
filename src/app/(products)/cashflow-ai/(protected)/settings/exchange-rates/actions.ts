@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageAccounts } from "@/lib/fms-roles";
+import { canManageAccounts } from "@/lib/fms-access";
 import { addExchangeRate, deleteExchangeRate } from "@/lib/products/cashflow-ai/exchange-rates";
 import { isSupportedCurrency } from "@/lib/products/cashflow-ai/constants";
 

@@ -26,7 +26,7 @@ export default function LegalPage({ doc, after }: { doc: { title: string; intro:
 
       <ScrollToTop pageKey={doc.title} />
       <section className="sr-section">
-        <div data-hop-target data-hop-offset="140" className="sr-container grid gap-12 lg:grid-cols-[220px_minmax(0,1fr)_200px] lg:gap-10">
+        <div data-hop-target data-hop-offset="140" className="sr-container grid gap-12 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-10">
 
           {/* Left: Other policies */}
           <aside className="lg:sticky lg:top-28 lg:self-start">
@@ -78,12 +78,6 @@ export default function LegalPage({ doc, after }: { doc: { title: string; intro:
               <Link href="/contact" className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-black shadow-xl transition-transform hover:scale-105">Contact us <ArrowRight className="h-4 w-4" /></Link>
             </div>
           </div>
-
-          {/* Right: On this page */}
-          <aside className="hidden lg:sticky lg:top-28 lg:block lg:self-start">
-            <p className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-primary">On this page</p>
-            <LegalToc items={toc} />
-          </aside>
 
         </div>
       </section>

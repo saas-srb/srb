@@ -17,7 +17,7 @@ export interface ExportFilterParams {
 }
 
 export default function ExportButton({ params, label = "Export CSV" }: { params: ExportFilterParams; label?: string }) {
-  const allowed = useLmsCan("EXPORT_DATA");
+  const allowed = useLmsCan("data.export");
   if (!allowed) return null;
   const query = new URLSearchParams();
   query.set("category", params.category ?? "all");

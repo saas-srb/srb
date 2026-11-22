@@ -1,3 +1,5 @@
+import { lockedUnless } from "@/lib/products/contractflow-ai/gate";
+import { can } from "@/lib/products/contractflow-ai/viewer";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -6,17 +8,17 @@ import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import { CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { getViewer } from "@/lib/products/contractflow-ai/viewer";
-import { lpmsCan } from "@/lib/lpms-roles";
 import { listMakerTypes } from "@/lib/products/contractflow-ai/makers";
 import { listTemplates } from "@/lib/products/contractflow-ai/templates";
 
 export default async function NewDocumentPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/contractflow-ai/login");
+  const locked = lockedUnless(viewer, "documents.create", "New document");
+  if (locked) return locked;
 
   const ctx = { roles: viewer.roles, permissionOverrides: viewer.overrides };
-  if (!lpmsCan(ctx, "CREATE")) redirect("/contractflow-ai/documents");
-
+  
   const makerTypes = await listMakerTypes(viewer);
 
   return (
@@ -38,7 +40,7 @@ export default async function NewDocumentPage() {
             <p className="text-sm text-muted-foreground">
               No document types have been configured yet.
             </p>
-            {lpmsCan(ctx, "MANAGE_MAKERS") && (
+            {can(viewer, "makers.manage") && (
               <Link
                 href="/contractflow-ai/makers"
                 className="text-sm font-medium text-primary underline"

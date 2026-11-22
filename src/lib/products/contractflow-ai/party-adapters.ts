@@ -4,7 +4,7 @@ import { getDb } from "@/lib/mongodb";
 import { canManageClients } from "@/lib/pms-roles";
 import { canManageFinance, canManageProcurement } from "@/lib/prms-roles";
 import { canViewAllEmployees } from "@/lib/hrms-roles";
-import { isLpmsAdmin } from "@/lib/lpms-roles";
+import { can } from "@/lib/products/contractflow-ai/viewer";
 import type { LpmsViewer } from "./types";
 import type { LinkedPartyType, PartyRecordRef } from "./party-types";
 
@@ -33,7 +33,7 @@ export interface PartyAdapter {
 export const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const ctx = (v: LpmsViewer) => ({ roles: v.roles, permissionOverrides: v.overrides });
 /** Legal / admin see every party type. Deliberately NOT "manager tier": HR implies that tier and must not gain clients and vendors. */
-const seesAll = (v: LpmsViewer) => isLpmsAdmin(ctx(v));
+const seesAll = (v: LpmsViewer) => can(v, "parties.all");
 const str = (x: unknown): string | null => (typeof x === "string" && x.trim() ? x.trim() : null);
 const cap = (n: number) => Math.min(Math.max(Math.floor(n) || 10, 1), 25);
 

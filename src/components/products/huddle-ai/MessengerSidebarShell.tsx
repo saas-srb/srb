@@ -8,6 +8,7 @@ import MessengerProfileMenu from "@/components/products/huddle-ai/MessengerProfi
 import { useSidebarCollapse, SidebarProfileSlot } from "@/components/products/dealflow-ai/SidebarCollapseContext";
 import { cn } from "@/lib/utils";
 import type { ChatRole } from "@/lib/messenger-roles";
+import type { AccessSubject } from "@/lib/access/can";
 
 const EXPANDED_WIDTH = 244;
 const COLLAPSED_WIDTH = 68;
@@ -17,6 +18,7 @@ export default function MessengerSidebarShell({
   displayName,
   roles,
   permissionOverrides,
+  subject,
   createdAt,
   lastLoginAt,
   unreadDms,
@@ -27,6 +29,7 @@ export default function MessengerSidebarShell({
   displayName: string;
   roles: ChatRole[];
   permissionOverrides?: Record<string, boolean>;
+  subject: AccessSubject;
   createdAt: string;
   lastLoginAt: string | null;
   unreadDms: number;
@@ -65,6 +68,7 @@ export default function MessengerSidebarShell({
         <MessengerSidebar
           roles={roles}
           permissionOverrides={permissionOverrides}
+          subject={subject}
           collapsed={collapsed}
           unreadDms={unreadDms}
           unreadChannels={unreadChannels}

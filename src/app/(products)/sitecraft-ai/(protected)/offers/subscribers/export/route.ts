@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireLmsOrCms } from "@/lib/lms-auth";
+import { requireGrowth, requireGrowthExport } from "@/lib/products/sitecraft-ai/growth";
 import { listSubscriptions } from "@/lib/offers/subscriptions";
 import { toCsv } from "@/lib/csv";
 
 /** Route handlers aren't covered by the (protected) layout's guard, so this checks the LMS session itself. */
 export async function GET(req: NextRequest) {
-  const user = await requireLmsOrCms("EXPORT_DATA");
+  const user = await requireGrowthExport();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const campaign = req.nextUrl.searchParams.get("campaign") || undefined;

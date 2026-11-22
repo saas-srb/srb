@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireLmsOrCms } from "@/lib/lms-auth";
+import { requireGrowth, requireGrowthExport } from "@/lib/products/sitecraft-ai/growth";
 import { validateUsageRuleInput, type UsageRuleWriteInput } from "@/lib/wallet/usage-rule-validation";
 import { createUsageRule, updateUsageRule, deleteUsageRule, getUsageRule } from "@/lib/wallet/usage-rules";
 
 async function requireLmsUser() {
-  const u = await requireLmsOrCms("MANAGE_WALLET");
+  const u = await requireGrowth("wallet");
   if (!u) throw new Error("Forbidden");
   return u;
 }

@@ -229,7 +229,7 @@ export function briefPrompt(c: CampaignBrief): string {
  * launch that is delivering is edited through `editLaunch`, not here.
  */
 export async function saveCampaignPaid(id: string, paid: unknown, viewer: SmmsViewer): Promise<CampaignDoc> {
-  if (!can(viewer, "EDIT_CAMPAIGNS")) throw new ForbiddenError("EDIT_CAMPAIGNS");
+  if (!can(viewer, "campaigns.edit")) throw new ForbiddenError("campaigns.edit");
   const c = await requireCampaign(id);
   if (c.status === "archived") throw new SmmsInputError("Restore the campaign before editing it.");
   const launches = await smmsCollection<{ _id: string; campaignId: string; active: boolean; state: string }>(AD_COLLECTIONS.launches);

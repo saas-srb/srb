@@ -35,9 +35,9 @@ async function main() {
   await t("header actions: only what the person can use, fixed order", () => {
     assert.deepEqual(core.headerActions(none), []);
     assert.deepEqual(core.headerActions(all).map((a) => a.key), ["post", "campaign", "image", "ugc"]);
-    assert.deepEqual(core.headerActions(only("MANAGE_POSTS")).map((a) => a.key), ["post"]);
-    assert.deepEqual(core.headerActions(only("GENERATE_AI_CONTENT")).map((a) => a.key), ["image", "ugc"]);
-    assert.deepEqual(core.headerActions(only("VIEW_CAMPAIGNS")).map((a) => a.key), []);
+    assert.deepEqual(core.headerActions(only("posts.manage")).map((a) => a.key), ["post"]);
+    assert.deepEqual(core.headerActions(only("posts.generate")).map((a) => a.key), ["image", "ugc"]);
+    assert.deepEqual(core.headerActions(only("campaigns.view")).map((a) => a.key), []);
   });
   await t("periods: month starts at midnight in the company zone, not UTC", () => {
     const p = core.periodsFor(NOW, "Asia/Kolkata");
@@ -70,12 +70,12 @@ async function main() {
     assert.equal(full.total, 7);
     assert.ok(full.allDone);
     assert.match(full.items[0].detail, /Instagram connected; not yet: YouTube/);
-    const emp = core.buildSetup({ ...facts, postCount: 0 }, only("MANAGE_POSTS"));
+    const emp = core.buildSetup({ ...facts, postCount: 0 }, only("posts.manage"));
     assert.deepEqual(emp.items.map((i) => i.key), ["post"]);
     assert.equal(emp.allDone, false);
-    assert.equal(core.buildSetup({ ...facts, aiModels: { state: "unknown", detail: "x" } }, only("MANAGE_INTEGRATIONS")).allDone, false);
+    assert.equal(core.buildSetup({ ...facts, aiModels: { state: "unknown", detail: "x" } }, only("integrations.manage")).allDone, false);
     assert.equal(core.buildSetup(facts, none).allDone, true); // nothing to do for this person
-    assert.equal(core.buildSetup({ ...facts, platforms: [{ label: "Instagram", count: 0 }] }, only("MANAGE_INTEGRATIONS")).items.find((i) => i.key === "accounts")!.done, false);
+    assert.equal(core.buildSetup({ ...facts, platforms: [{ label: "Instagram", count: 0 }] }, only("integrations.manage")).items.find((i) => i.key === "accounts")!.done, false);
   });
   await t("attention: critical first, then publishing, ads, accounts; stable", () => {
     const mk = (id: string, severity: "critical" | "warning", title = id) => ({ id, severity, title, detail: "", fixLabel: "", href: null });
@@ -169,18 +169,18 @@ async function main() {
     ]);
 
     await t("counts by period boundary in the company zone; deleted excluded; comparison window equal length", async () => {
-      const s = await dash.loadStats(ctxFor(only("MANAGE_POSTS")));
+      const s = await dash.loadStats(ctxFor(only("posts.manage")));
       assert.equal(s.posts!.publishedMonth, 2); // p-first (00:00 IST 1 Nov) and p-now; p-before is October
       assert.equal(s.posts!.deltaPct, 100 - 100 + (2 - 2) /* 2 vs p-before(Oct 31 is outside 1-3 Oct) + p-prev1 = 1 */ || s.posts!.deltaPct);
     });
     await t("posts delta is vs 1-3 October only", async () => {
-      const s = await dash.loadStats(ctxFor(only("MANAGE_POSTS")));
+      const s = await dash.loadStats(ctxFor(only("posts.manage")));
       assert.equal(s.posts!.deltaPct, 100); // 2 now vs 1 (p-prev1)
       assert.equal(s.posts!.scheduled, 3);
       assert.equal(s.posts!.awaitingApproval, 1);
     });
     await t("permission filtering: a posts-only viewer gets no ads or ugc cards and no analytics, activity or ads sections (image studio follows the sidebar rule)", async () => {
-      const c = ctxFor(only("MANAGE_POSTS"));
+      const c = ctxFor(only("posts.manage"));
       const s = await dash.loadStats(c);
       assert.equal(s.ads, null);
       assert.ok(s.images); // MANAGE_POSTS opens the Image Studio in the sidebar
@@ -190,7 +190,7 @@ async function main() {
       assert.equal(await dash.loadHighlights(c), null);
       assert.equal(await dash.loadActivity(c), null);
       assert.equal((await dash.loadStudios(c))!.videos, null);
-      assert.equal(await dash.loadStudios(ctxFor(only("VIEW_CAMPAIGNS"))), null);
+      assert.equal(await dash.loadStudios(ctxFor(only("campaigns.view"))), null);
       const none0 = ctxFor(none);
       assert.equal(await dash.loadSchedule(none0), null);
       assert.equal(await dash.loadRecentPublished(none0), null);
@@ -198,24 +198,24 @@ async function main() {
       assert.deepEqual(await dash.loadAttention(none0), []);
     });
     await t("schedule: soonest first, state per post, no invented account", async () => {
-      const r = (await dash.loadSchedule(ctxFor(only("MANAGE_POSTS"))))!;
+      const r = (await dash.loadSchedule(ctxFor(only("posts.manage"))))!;
       assert.deepEqual(r.rows.map((x) => x.id), ["s-over", "s-appr", "s-wait"]);
       assert.deepEqual(r.rows.map((x) => x.state), ["overdue", "approved", "awaiting_approval"]);
       assert.deepEqual(r.rows[1].targets, [{ platform: "instagram", account: null }]);
       assert.equal(r.total, 3);
     });
     await t("recently published: newest first; no metrics without analytics permission; nothing synced => null, not zero", async () => {
-      const noAn = (await dash.loadRecentPublished(ctxFor(only("MANAGE_POSTS"))))!;
+      const noAn = (await dash.loadRecentPublished(ctxFor(only("posts.manage"))))!;
       assert.equal(noAn.metrics, false);
       assert.deepEqual(noAn.rows.map((x) => x.id).slice(0, 2), ["p-now", "p-first"]);
       assert.ok(!noAn.rows.some((x) => x.id === "p-del"));
       assert.ok(noAn.rows.every((x) => x.reach === null && x.engagements === null && x.syncedAt === null));
-      const withAn = (await dash.loadRecentPublished(ctxFor(only("MANAGE_POSTS", "VIEW_ANALYTICS"))))!;
+      const withAn = (await dash.loadRecentPublished(ctxFor(only("posts.manage", "analytics.view"))))!;
       assert.equal(withAn.metrics, true);
       assert.ok(withAn.rows.every((x) => x.reach === null && x.engagements === null));
     });
     await t("attention: failed + overdue posts for a posts viewer, critical first", async () => {
-      const a = await dash.loadAttention(ctxFor(only("MANAGE_POSTS")));
+      const a = await dash.loadAttention(ctxFor(only("posts.manage")));
       assert.deepEqual(a.map((x) => x.id), ["posts.failed", "posts.overdue"]);
       assert.equal(a[0].severity, "critical");
     });
@@ -229,7 +229,7 @@ async function main() {
     await snaps.insertMany([S("a", "l1", "spend", "2026-11-02", 1200), S("b", "l1", "impressions", "2026-11-02", 5000), S("c", "l1", "clicks", "2026-11-02", 90), S("d", "l1", "inline_link_clicks", "2026-11-02", 70), S("e", "l3", "spend", "2026-11-01", 10), S("f", "l1", "spend", "2026-10-31", 9999) /* October */]);
 
     await t("spend: per currency, month to date only, link clicks preferred, synced time shown", async () => {
-      const s = await dash.loadStats(ctxFor(only("VIEW_CAMPAIGNS")));
+      const s = await dash.loadStats(ctxFor(only("campaigns.view")));
       assert.deepEqual(s.ads!.spend.byCurrency, [{ currency: "INR", value: 1200 }, { currency: "USD", value: 10 }]);
       assert.equal(s.ads!.spend.impressions, 5000);
       assert.equal(s.ads!.spend.clicks, 70);
@@ -239,31 +239,31 @@ async function main() {
     });
     await t("spend delta appears only when both periods have synced rows in one currency", async () => {
       await snaps.insertOne(S("g", "l1", "spend", "2026-10-02", 600));
-      let s = await dash.loadStats(ctxFor(only("VIEW_CAMPAIGNS")));
+      let s = await dash.loadStats(ctxFor(only("campaigns.view")));
       assert.equal(s.ads!.deltaPct, null); // this month has two currencies
       await snaps.deleteOne({ _id: "e" } as never);
-      s = await dash.loadStats(ctxFor(only("VIEW_CAMPAIGNS")));
+      s = await dash.loadStats(ctxFor(only("campaigns.view")));
       assert.equal(s.ads!.deltaPct, 100); // 1200 vs 600
     });
     await t("spend with unknown currency is never added to a currency total", async () => {
       await snaps.insertOne(S("h", "gone", "spend", "2026-11-01", 5));
-      const s = await dash.loadStats(ctxFor(only("VIEW_CAMPAIGNS")));
+      const s = await dash.loadStats(ctxFor(only("campaigns.view")));
       assert.deepEqual(s.ads!.spend.byCurrency, [{ currency: "INR", value: 1200 }]);
       assert.equal(s.ads!.spend.skippedUnknownCurrency, 1);
     });
     await t("ads snapshot: buckets, approvals only for approvers and never for your own launch above the second-approver rule", async () => {
-      const mgr = (await dash.loadAdsSnapshot(ctxFor(only("VIEW_CAMPAIGNS", "APPROVE_AD_SPEND"))))!;
+      const mgr = (await dash.loadAdsSnapshot(ctxFor(only("campaigns.view", "ads.approve"))))!;
       assert.equal(mgr.buckets.running, 2); // l1, l4
       assert.equal(mgr.buckets.paused, 1);
       assert.equal(mgr.buckets.issue, 1);
       assert.ok(mgr.approvals.some((a) => a.launchId === "l1"));
       assert.ok(mgr.approvals.every((a) => a.launchId !== "l4" || a.mine));
-      const viewer = (await dash.loadAdsSnapshot(ctxFor(only("VIEW_CAMPAIGNS"))))!;
+      const viewer = (await dash.loadAdsSnapshot(ctxFor(only("campaigns.view"))))!;
       assert.deepEqual(viewer.approvals, []);
       assert.equal(viewer.top.find((x) => x.launchId === "l1")!.spend, 1200);
     });
     await t("attention: rejected ad is critical and links to the campaign", async () => {
-      const a = await dash.loadAttention(ctxFor(only("VIEW_CAMPAIGNS")));
+      const a = await dash.loadAttention(ctxFor(only("campaigns.view")));
       const x = a.find((i) => i.id === "ads.issue.l3")!;
       assert.equal(x.severity, "critical");
       assert.equal(x.href, "/viralpulse-ai/campaigns/c-l3");
@@ -277,31 +277,31 @@ async function main() {
     const U = (id: string, status: string, over: Record<string, unknown> = {}) => ({ _id: id, title: id, status, deletedAt: null, updatedAt: new Date("2026-11-02T00:00:00Z"), plan: { scenes: [{}, {}, {}] }, sceneMedia: {}, render: null, ...over }) as never;
     await ugc.insertMany([U("v1", "ready", { render: { mediaId: "vm1", thumbnailId: "vt1" } }), U("v2", "generating", { sceneMedia: { "0": "a" } }), U("v3", "draft"), U("v4", "ready", { kind: "style-sample" }), U("v5", "ready", { deletedAt: new Date() })]);
     await t("images this month count only live AI images in the month; delta vs same days last month", async () => {
-      const s = await dash.loadStats(ctxFor(only("MANAGE_MEDIA")));
+      const s = await dash.loadStats(ctxFor(only("media.manage")));
       assert.equal(s.images!.month, 1);
       assert.equal(s.images!.deltaPct, 0); // 1 vs 1 (2 Oct)
       assert.equal(s.ugc, null);
     });
     await t("ugc counts exclude drafts, style samples and deleted; studio lists show progress from real clips", async () => {
-      const s = await dash.loadStats(ctxFor(only("GENERATE_AI_CONTENT")));
+      const s = await dash.loadStats(ctxFor(only("posts.generate")));
       assert.deepEqual(s.ugc, { ready: 1, generating: 1 });
-      const st = (await dash.loadStudios(ctxFor(only("GENERATE_AI_CONTENT"))))!;
+      const st = (await dash.loadStudios(ctxFor(only("posts.generate"))))!;
       assert.deepEqual(st.images!.map((i) => i.id).sort(), ["m1", "m2"]);
       const gen = st.videos!.find((v) => v.id === "v2")!;
       assert.deepEqual([gen.scenesDone, gen.scenesTotal, gen.mediaId], [1, 3, null]);
       assert.deepEqual(st.videos!.map((v) => v.id).sort(), ["v1", "v2"]);
-      const imgOnly = (await dash.loadStudios(ctxFor(only("MANAGE_MEDIA"))))!;
+      const imgOnly = (await dash.loadStudios(ctxFor(only("media.manage"))))!;
       assert.equal(imgOnly.videos, null);
     });
 
     // activity
     await (await smmsCollection<{ _id: string }>(COLLECTIONS.audit)).insertMany(Array.from({ length: 12 }, (_, i) => ({ _id: `au${i}`, actorId: "u", actorEmail: `u${i}@x.in`, action: "create", entity: "post", entityId: `p${i}`, entityLabel: `Post ${i}`, recordId: null, summary: null, metadata: null, createdAt: new Date(2026, 10, 1, 10, i) })) as never[]);
     await t("activity: last 10, newest first, only with audit permission", async () => {
-      const a = (await dash.loadActivity(ctxFor(only("VIEW_AUDIT_LOG"))))!;
+      const a = (await dash.loadActivity(ctxFor(only("activity.view"))))!;
       assert.equal(a.rows.length, 10);
       assert.equal(a.rows[0].id, "au11");
       assert.equal(a.rows[0].what, "Created");
-      assert.equal(await dash.loadActivity(ctxFor(only("VIEW_CAMPAIGNS"))), null);
+      assert.equal(await dash.loadActivity(ctxFor(only("campaigns.view"))), null);
     });
 
     await t("setup: limits and brand reflect stored data; ai item follows health", async () => {
@@ -328,7 +328,7 @@ async function main() {
         { id: "account.9", label: "Instagram: z", status: "attention" as const, detail: "The login expired on 2026-10-01; posts to it will fail.", fix: "Press Reconnect" },
         { id: "cron.viralpulse-publisher", label: "Scheduled posts", status: "attention" as const, detail: "Paused.", fix: "Resume" },
       ] }] });
-      const a = await dash.loadAttention(ctxFor(only("MANAGE_INTEGRATIONS"), { health }));
+      const a = await dash.loadAttention(ctxFor(only("integrations.manage"), { health }));
       assert.deepEqual(a.map((x) => x.id), ["account.9", "cron.viralpulse-publisher"]);
     });
   });

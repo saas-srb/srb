@@ -22,7 +22,7 @@ export interface AdminBarData {
 /** The public site's CMS admin toolbar: who's signed in and what they can edit on the page they're looking at. */
 async function handleGET(request: Request) {
   const [viewer, user] = await Promise.all([getViewer(), getCurrentCmsUser()]);
-  if (!viewer || !user || !can(viewer, "VIEW")) return new NextResponse(null, { status: 401 });
+  if (!viewer || !user || !can(viewer, "dashboard.view")) return new NextResponse(null, { status: 401 });
 
   const raw = new URL(request.url).searchParams.get("path") || "/";
   const path = raw.startsWith("/") ? raw.split("?")[0].replace(/\/+$/, "") || "/" : "/";
@@ -47,7 +47,7 @@ async function handleGET(request: Request) {
     theme: { key: activeKey, name: theme?.name ?? "Default" },
     page: page ? { id: page._id, title: page.title, status: page.status, pending: !!page.hasUnpublishedChanges } : null,
     record,
-    can: { editPages: can(viewer, "SECTIONS_EDIT"), createPages: can(viewer, "PAGES_CREATE"), customize: can(viewer, "THEME_UPDATE") },
+    can: { editPages: can(viewer, "sections.edit"), createPages: can(viewer, "pages.create"), customize: can(viewer, "theme.edit") },
   };
   return NextResponse.json(body, { headers: { "Cache-Control": "private, no-store" } });
 }

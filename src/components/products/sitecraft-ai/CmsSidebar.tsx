@@ -19,9 +19,11 @@ export interface CmsNavFlags {
   pendingPages?: number;
   /** Key of the active theme, for the Appearance → Customize shortcut. */
   activeTheme?: string;
+  /** Which modules the person may open (micro features): the menu hides the rest, and a section with nothing left disappears. */
+  see?: Record<string, boolean>;
 }
 
-type NavItem = { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean; count?: number };
+type NavItem = { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean; count?: number; feature?: string };
 
 function NavLink({
   href,
@@ -92,66 +94,67 @@ function SectionLabel({ children, collapsed }: { children: React.ReactNode; coll
 
 export default function CmsSidebar({ flags, onNavigate, collapsed = false }: { flags: CmsNavFlags; onNavigate?: () => void; collapsed?: boolean }) {
   const groups: { label: string | null; items: NavItem[] }[] = [
-    { label: null, items: [{ href: "/sitecraft-ai", label: "Dashboard", icon: LayoutDashboard, exact: true }] },
+    { label: null, items: [{ feature: "dashboard", href: "/sitecraft-ai", label: "Dashboard", icon: LayoutDashboard, exact: true }] },
     {
       label: "Content",
       items: [
-        { href: "/sitecraft-ai/pages", label: "Pages", icon: Files, count: flags.pendingPages },
-        { href: "/sitecraft-ai/pages?area=services", label: "Services", icon: Layers },
-        { href: "/sitecraft-ai/collections/blog", label: "Blog Posts", icon: Newspaper },
-        { href: "/sitecraft-ai/collections/jobs", label: "Careers", icon: Briefcase },
-        { href: "/sitecraft-ai/collections/engagement", label: "Hiring Models", icon: Users },
-        { href: "/sitecraft-ai/collections/products", label: "Products", icon: Boxes },
+        { feature: "pages", href: "/sitecraft-ai/pages", label: "Pages", icon: Files, count: flags.pendingPages },
+        { feature: "pages", href: "/sitecraft-ai/pages?area=services", label: "Services", icon: Layers },
+        { feature: "collections", href: "/sitecraft-ai/collections/blog", label: "Blog Posts", icon: Newspaper },
+        { feature: "collections", href: "/sitecraft-ai/collections/jobs", label: "Careers", icon: Briefcase },
+        { feature: "collections", href: "/sitecraft-ai/collections/engagement", label: "Hiring Models", icon: Users },
+        { feature: "collections", href: "/sitecraft-ai/collections/products", label: "Products", icon: Boxes },
       ],
     },
     {
       label: "Assets",
       items: [
-        { href: "/sitecraft-ai/media", label: "Media Library", icon: ImageIcon },
-        { href: "/sitecraft-ai/forms", label: "Forms", icon: ClipboardList },
+        { feature: "media", href: "/sitecraft-ai/media", label: "Media Library", icon: ImageIcon },
+        { feature: "forms", href: "/sitecraft-ai/forms", label: "Forms", icon: ClipboardList },
       ],
     },
     {
       label: "Appearance",
       items: [
-        { href: "/sitecraft-ai/ai-website", label: "AI Website", icon: Sparkles },
-        { href: "/sitecraft-ai/theme", label: "Themes", icon: Palette },
-        { href: `/sitecraft-ai/customize/${flags.activeTheme ?? "default"}`, label: "Customize", icon: Paintbrush },
-        { href: "/sitecraft-ai/navigation", label: "Menus", icon: MenuIcon },
-        { href: "/sitecraft-ai/footer", label: "Footer", icon: PanelBottom },
-        { href: "/sitecraft-ai/site-identity", label: "Site Identity", icon: BadgeInfo },
+        { feature: "aiwebsite", href: "/sitecraft-ai/ai-website", label: "AI Website", icon: Sparkles },
+        { feature: "theme", href: "/sitecraft-ai/theme", label: "Themes", icon: Palette },
+        { feature: "theme", href: `/sitecraft-ai/customize/${flags.activeTheme ?? "default"}`, label: "Customize", icon: Paintbrush },
+        { feature: "navigation", href: "/sitecraft-ai/navigation", label: "Menus", icon: MenuIcon },
+        { feature: "footer", href: "/sitecraft-ai/footer", label: "Footer", icon: PanelBottom },
+        { feature: "identity", href: "/sitecraft-ai/site-identity", label: "Site Identity", icon: BadgeInfo },
       ],
     },
     {
       label: "Festival Offers",
       items: [
-        { href: "/sitecraft-ai/offers", label: "Campaigns", icon: Gift },
-        { href: "/sitecraft-ai/offers/coupons", label: "Coupons", icon: TicketPercent },
-        { href: "/sitecraft-ai/offers/claims", label: "Claims", icon: ClipboardList },
-        { href: "/sitecraft-ai/offers/subscribers", label: "Subscribers", icon: BellRing },
+        { feature: "offers", href: "/sitecraft-ai/offers", label: "Campaigns", icon: Gift },
+        { feature: "offers", href: "/sitecraft-ai/offers/coupons", label: "Coupons", icon: TicketPercent },
+        { feature: "offers", href: "/sitecraft-ai/offers/claims", label: "Claims", icon: ClipboardList },
+        { feature: "offers", href: "/sitecraft-ai/offers/subscribers", label: "Subscribers", icon: BellRing },
       ],
     },
     {
       label: "Wallet & Credits",
       items: [
-        { href: "/sitecraft-ai/wallet", label: "Overview", icon: Coins, exact: true },
-        { href: "/sitecraft-ai/wallet/rules", label: "Reward Rules", icon: Sparkles },
-        { href: "/sitecraft-ai/wallet/referrals", label: "Referrals", icon: Share2 },
-        { href: "/sitecraft-ai/wallet/campaigns", label: "Referral Campaigns", icon: Megaphone },
-        { href: "/sitecraft-ai/wallet/usage-rules", label: "Usage Rules", icon: SlidersVertical },
-        { href: "/sitecraft-ai/wallet/wallets", label: "Balances", icon: WalletCards },
-        { href: "/sitecraft-ai/wallet/ledger", label: "Ledger", icon: BookText },
+        { feature: "wallet", href: "/sitecraft-ai/wallet", label: "Overview", icon: Coins, exact: true },
+        { feature: "wallet", href: "/sitecraft-ai/wallet/rules", label: "Reward Rules", icon: Sparkles },
+        { feature: "wallet", href: "/sitecraft-ai/wallet/referrals", label: "Referrals", icon: Share2 },
+        { feature: "wallet", href: "/sitecraft-ai/wallet/campaigns", label: "Referral Campaigns", icon: Megaphone },
+        { feature: "wallet", href: "/sitecraft-ai/wallet/usage-rules", label: "Usage Rules", icon: SlidersVertical },
+        { feature: "wallet", href: "/sitecraft-ai/wallet/wallets", label: "Balances", icon: WalletCards },
+        { feature: "wallet", href: "/sitecraft-ai/wallet/ledger", label: "Ledger", icon: BookText },
       ],
     },
     {
       label: "Search",
-      items: [{ href: "/sitecraft-ai/seo", label: "SEO Overview", icon: SearchCheck }],
+      items: [{ feature: "seo", href: "/sitecraft-ai/seo", label: "SEO Overview", icon: SearchCheck }],
     },
   ];
 
   return (
     <nav className="flex h-full flex-col gap-0.5 p-3" aria-label="CMS">
       {groups
+        .map((g) => ({ ...g, items: g.items.filter((i) => !i.feature || !flags.see || flags.see[i.feature] !== false) }))
         .filter((g) => g.items.length > 0)
         .map((g, i) => (
           <div key={g.label ?? i} className="flex flex-col gap-0.5">

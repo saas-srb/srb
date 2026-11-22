@@ -10,7 +10,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import AssetDisposalForm from "@/components/products/cashflow-ai/AssetDisposalForm";
 import AssetExpenseForm from "@/components/products/cashflow-ai/AssetExpenseForm";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageTransactions } from "@/lib/fms-roles";
+import { canManageTransactions } from "@/lib/fms-access";
 import { getAssetFinanceDetail } from "@/lib/products/cashflow-ai/asset-finance";
 import { serializeAssetDisposal } from "@/lib/products/cashflow-ai/asset-disposals";
 import { listAssetExpensesForAsset, serializeAssetExpense, ASSET_EXPENSE_CATEGORIES } from "@/lib/products/cashflow-ai/asset-expenses";

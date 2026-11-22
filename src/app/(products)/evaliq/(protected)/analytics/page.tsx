@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/evaliq/gate";
 import PanelTabs from "@/components/platform/panel/PanelTabs";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -15,7 +16,8 @@ import { cn } from "@/lib/utils";
 export default async function AnalyticsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/evaliq/login");
-  if (!can(viewer, "VIEW_REPORTS")) redirect("/evaliq");
+  const locked = lockedUnless(viewer, "reports.view", "Reports & analytics");
+  if (locked) return locked;
   const sp = await searchParams;
   const groupBy = (GROUP_BYS.some((g) => g.value === sp.groupBy) ? sp.groupBy : "department") as GroupBy;
   const f = { from: sp.from, to: sp.to, testId: sp.testId, kind: sp.kind, departmentId: sp.departmentId, designationId: sp.designationId };

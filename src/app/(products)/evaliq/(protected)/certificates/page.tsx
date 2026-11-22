@@ -1,3 +1,4 @@
+import ProductLocked from "@/components/products/common/ProductLocked";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Download, ShieldCheck, SearchCheck } from "lucide-react";
@@ -20,12 +21,12 @@ import { formatDate } from "@/lib/utils";
 export default async function CertificatesPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/evaliq/login");
-  const staff = can(viewer, "VIEW_REPORTS") || can(viewer, "REVOKE_CERTIFICATE") || can(viewer, "GENERATE_CERTIFICATE");
-  const verifier = staff || can(viewer, "VERIFY_CERTIFICATE");
-  if (!verifier && !can(viewer, "VIEW_CERTIFICATES")) redirect("/evaliq");
+  const staff = can(viewer, "reports.view") || can(viewer, "certificates.revoke") || can(viewer, "certificates.generate");
+  const verifier = staff || can(viewer, "certificates.verify");
+  if (!verifier && !can(viewer, "certificates.own")) return <ProductLocked product="evaliq" feature="Certificates" />;
   const sp = await searchParams;
   const page = Math.max(Number(sp.page) || 1, 1);
-  const taker = can(viewer, "VIEW_CERTIFICATES") ? await resolveTaker("staff") : null;
+  const taker = can(viewer, "certificates.own") ? await resolveTaker("staff") : null;
   const [mine, all, tests, lookup] = await Promise.all([
     taker ? candidateCertificates(taker) : Promise.resolve([]),
     staff ? listCertificates({ q: sp.q, testId: sp.testId, state: sp.state, page }) : Promise.resolve(null),
@@ -115,7 +116,7 @@ export default async function CertificatesPage({ searchParams }: { searchParams:
                               <Button size="xs" variant="ghost" nativeButton={false} render={<a href={`/api/evaliq/certificates/${c._id}/pdf`} />} aria-label="Download PDF">
                                 <Download className="size-3" />
                               </Button>
-                              {can(viewer, "REVOKE_CERTIFICATE") && <CertificateAdminActions id={c._id} number={c.certificateNumber} revoked={c.revoked} />}
+                              {can(viewer, "certificates.revoke") && <CertificateAdminActions id={c._id} number={c.certificateNumber} revoked={c.revoked} />}
                             </div>
                           </TableCell>
                         </TableRow>

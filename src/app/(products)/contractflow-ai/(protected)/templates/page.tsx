@@ -1,3 +1,5 @@
+import { lockedUnless } from "@/lib/products/contractflow-ai/gate";
+import { can } from "@/lib/products/contractflow-ai/viewer";
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { redirect } from "next/navigation";
@@ -8,17 +10,17 @@ import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getViewer } from "@/lib/products/contractflow-ai/viewer";
-import { lpmsCan } from "@/lib/lpms-roles";
 import { listTemplates } from "@/lib/products/contractflow-ai/templates";
 import { listMakerTypes } from "@/lib/products/contractflow-ai/makers";
 
 export default async function TemplatesPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/contractflow-ai/login");
+  const locked = lockedUnless(viewer, "templates.manage", "Templates");
+  if (locked) return locked;
 
   const ctx = { roles: viewer.roles, permissionOverrides: viewer.overrides };
-  if (!lpmsCan(ctx, "MANAGE_TEMPLATES")) redirect("/contractflow-ai");
-
+  
   const [templates, makerTypes] = await Promise.all([
     listTemplates({}, viewer),
     listMakerTypes(viewer),

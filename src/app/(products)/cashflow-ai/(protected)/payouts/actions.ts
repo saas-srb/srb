@@ -2,13 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canApproveTransactions } from "@/lib/fms-roles";
+import { canApproveTransactions } from "@/lib/fms-access";
 import { recordAudit } from "@/lib/products/cashflow-ai/audit";
 import { approvePayout, refreshPayout, rejectPayout, retryPayout, startPayout, type PayoutPurpose } from "@/lib/products/cashflow-ai/payments/payouts";
 import { paymentGate } from "@/lib/products/cashflow-ai/payment-guard";
 import { savePaymentControls, validateControls } from "@/lib/products/cashflow-ai/payment-controls";
 import { alertOwners } from "@/lib/products/cashflow-ai/payment-alerts";
-import { isFmsAdmin } from "@/lib/fms-roles";
+import { isFmsAdmin } from "@/lib/fms-access";
 
 export interface DeskResult {
   ok: boolean;

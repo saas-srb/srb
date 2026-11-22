@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageTaxConfig } from "@/lib/fms-roles";
+import { canManageTaxConfig } from "@/lib/fms-access";
 import { getTaxConfig, updateTaxConfig } from "@/lib/products/cashflow-ai/tax-config";
 
 function revalidate() {

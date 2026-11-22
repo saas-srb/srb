@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance } from "@/lib/fms-roles";
+import { canManageCompliance } from "@/lib/fms-access";
 import { saveItemState } from "@/lib/products/cashflow-ai/compliance/tracker";
 import { saveOwner } from "@/lib/products/cashflow-ai/compliance/owners";
 import { generateYearFilings, getComplianceProfile, refreshYearDates, saveComplianceProfile, createFiling, deleteFiling, markFiled, setFilingStatus, updateFiling } from "@/lib/products/cashflow-ai/compliance/filings";

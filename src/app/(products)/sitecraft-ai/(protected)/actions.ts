@@ -23,15 +23,19 @@ export interface CmsSearchEntry {
 
 /** Everything the CMS search (⌘K) can jump to: pages, collection records and CMS screens. */
 export async function cmsSearchIndexAction(): Promise<CmsSearchEntry[]> {
-  const { getViewer } = await import("@/lib/products/sitecraft-ai/viewer");
-  if (!(await getViewer())) return [];
+  const { getViewer, can } = await import("@/lib/products/sitecraft-ai/viewer");
+  const viewer = await getViewer();
+  if (!viewer) return [];
+  // The search index lists only what the person may open: pages with pages.view, collection records with collections.view.
+  const mayPages = can(viewer, "pages.view");
+  const mayRecords = can(viewer, "collections.view");
   const [{ listPages }, { listAdminRecords }, { COLLECTIONS }] = await Promise.all([
     import("@/lib/products/sitecraft-ai/pages"),
     import("@/lib/products/sitecraft-ai/collections/store"),
     import("@/lib/products/sitecraft-ai/collections/registry"),
   ]);
-  const pages = await listPages();
-  const keys = Object.keys(COLLECTIONS) as (keyof typeof COLLECTIONS)[];
+  const pages = mayPages ? await listPages() : [];
+  const keys = (mayRecords ? Object.keys(COLLECTIONS) : []) as (keyof typeof COLLECTIONS)[];
   const records = await Promise.all(keys.map(async (k) => [k, await listAdminRecords(k)] as const));
   return [
     ...pages.map((p) => ({ kind: "page" as const, title: displayTitle(p.title, p.path), subtitle: p.path, href: `/sitecraft-ai/pages/${p._id}`, status: p.status })),

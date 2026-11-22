@@ -5,6 +5,7 @@
  * and "no token anywhere it should not be". Database: a THROWAWAY MongoDB only (asserted, then dropped).
  * Run: MONGODB_URI=mongodb://127.0.0.1:27017/zz_throwaway_vpwp2 npx tsx --require ./scripts/lib/next-server-shims.cjs scripts/test-viralpulse-wp2.ts
  */
+import { rotateKey } from "../src/lib/platform/keyring/manage";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import { MongoClient } from "mongodb";
@@ -647,22 +648,22 @@ async function main() {
         assert.equal(calls["x.me"], 1, "X is verified at most every few hours (it bills per read)");
       });
 
-      await t("sweep re-seals tokens after a key rotation and they still open", async () => {
-        process.env.PLATFORM_ENCRYPTION_KEY = keyB;
-        process.env.PLATFORM_ENCRYPTION_KEY_PREVIOUS = keyA;
+      await t("sweep re-seals tokens after a key rotation and they still open (keyring rotation: the old version stays, decrypt-only)", async () => {
+        // Rotation is a keyring operation now (one-click `rotateKey`: a fresh root key becomes active, older versions stay for decrypting); the
+        // environment variable only seeds the keyring the first time, so swapping it mid-run no longer rotates anything.
         const before = (await (await stor.connectionsCol()).findOne({ _id: xConn }))!;
-        assert.equal(crypto.isSealedWithCurrentKey(before.accessEnc), false);
+        assert.equal(crypto.isSealedWithCurrentKey(before.accessEnc), true, "sealed with the current key to begin with");
+        const rotated = await rotateKey();
+        assert.ok(rotated.ok, JSON.stringify(rotated));
+        assert.equal(crypto.isSealedWithCurrentKey(before.accessEnc), false, "now sealed with an older keyring version");
+        assert.ok(crypto.decryptSecret(before.accessEnc, `conn:${xConn}:access`), "a token sealed with the older version is still readable");
+        assert.ok(await svc.withAccountToken(xAcct, async (tk) => tk), "and still usable by the product");
         const s = await svc.runAccountsSweep();
         assert.ok(s.resealed >= 1);
         const after = (await (await stor.connectionsCol()).findOne({ _id: xConn }))!;
-        assert.equal(crypto.isSealedWithCurrentKey(after.accessEnc), true);
-        delete process.env.PLATFORM_ENCRYPTION_KEY_PREVIOUS;
+        assert.equal(crypto.isSealedWithCurrentKey(after.accessEnc), true, "re-sealed with the active key");
+        assert.equal(crypto.decryptSecret(after.accessEnc, `conn:${xConn}:access`), crypto.decryptSecret(before.accessEnc, `conn:${xConn}:access`), "same secret");
         assert.ok(await svc.withAccountToken(xAcct, async (tk) => tk));
-        process.env.PLATFORM_ENCRYPTION_KEY = keyA;
-        process.env.PLATFORM_ENCRYPTION_KEY_PREVIOUS = keyB;
-        await (await stor.connectionsCol()).updateOne({ _id: xConn }, { $set: { accessEnc: after.accessEnc } });
-        delete process.env.PLATFORM_ENCRYPTION_KEY_PREVIOUS;
-        process.env.PLATFORM_ENCRYPTION_KEY = keyA;
       });
 
       await t("X disconnect revokes the refresh token at X", async () => {

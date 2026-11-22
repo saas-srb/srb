@@ -12,7 +12,7 @@ import ChequeActions from "@/components/products/cashflow-ai/ChequeActions";
 import ReceiptDocuments from "@/components/products/cashflow-ai/ReceiptDocuments";
 import VoidReceiptButton from "@/components/products/cashflow-ai/VoidReceiptButton";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageTransactions } from "@/lib/fms-roles";
+import { canManageTransactions } from "@/lib/fms-access";
 import { getReceipt, serializeReceipt } from "@/lib/products/cashflow-ai/receipts";
 import { listRefundsForReceipt, serializeRefund } from "@/lib/products/cashflow-ai/refunds";
 import { formatMoney } from "@/lib/products/cashflow-ai/constants";

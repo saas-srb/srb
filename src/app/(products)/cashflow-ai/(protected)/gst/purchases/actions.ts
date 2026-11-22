@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance, canViewFinancialStatements } from "@/lib/fms-roles";
+import { canManageCompliance, canViewFinancialStatements } from "@/lib/fms-access";
 import { isMonth } from "@/lib/products/cashflow-ai/gst/core";
 import { saveItcDecision } from "@/lib/products/cashflow-ai/gst/store";
 import { loadPurchasesView } from "@/lib/products/cashflow-ai/gst/purchases-data";

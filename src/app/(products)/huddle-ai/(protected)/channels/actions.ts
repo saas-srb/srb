@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getCurrentChatUser } from "@/lib/messenger-auth";
-import { canCreateTeamChannel, isChatAdmin } from "@/lib/messenger-roles";
+import { canCreateTeamChannel, canModerateAll, chatCan } from "@/lib/messenger-access";
 import {
   createChannel,
   getChannel,
@@ -56,9 +56,10 @@ export async function createChannelAction(input: {
 
 export async function joinChannelAction(slug: string): Promise<{ error: string } | never> {
   const user = await requireUser();
+  if (!chatCan(user, "messages.send")) return { error: "You don't have permission to do that." };
   const channel = await getChannelBySlug(slug);
   if (!channel) return { error: "Channel not found." };
-  if (channel.visibility === "private" && !isChatAdmin(user)) {
+  if (channel.visibility === "private" && !canModerateAll(user)) {
     return { error: "This channel is private — ask a member to add you." };
   }
   await joinChannel(channel._id, user.id);
@@ -69,10 +70,11 @@ export async function joinChannelAction(slug: string): Promise<{ error: string }
 
 export async function addChannelMembersAction(channelId: string, userIds: string[]): Promise<{ ok: boolean; error?: string }> {
   const user = await requireUser();
+  if (!chatCan(user, "messages.send")) return { ok: false, error: "You don't have permission to do that." };
   const channel = await getChannel(channelId);
   if (!channel) return { ok: false, error: "Channel not found." };
   const membership = await getMembership(channelId, user.id);
-  if (!isChatAdmin(user) && membership?.role !== "owner" && membership?.role !== "admin" && channel.visibility === "private") {
+  if (!canModerateAll(user) && membership?.role !== "owner" && membership?.role !== "admin" && channel.visibility === "private") {
     return { ok: false, error: "Only channel admins can add members to a private channel." };
   }
   await addMembers(channelId, userIds, user.id);
@@ -83,10 +85,11 @@ export async function addChannelMembersAction(channelId: string, userIds: string
 
 export async function removeChannelMemberAction(channelId: string, targetUserId: string): Promise<{ ok: boolean; error?: string }> {
   const user = await requireUser();
+  if (!chatCan(user, "messages.send")) return { ok: false, error: "You don't have permission to do that." };
   const channel = await getChannel(channelId);
   if (!channel) return { ok: false, error: "Channel not found." };
   const membership = await getMembership(channelId, user.id);
-  const canModerate = isChatAdmin(user) || membership?.role === "owner" || membership?.role === "admin";
+  const canModerate = canModerateAll(user) || membership?.role === "owner" || membership?.role === "admin";
   if (!canModerate && targetUserId !== user.id) return { ok: false, error: "You can only remove yourself." };
   await removeMember(channelId, targetUserId, user.id);
   await recordAudit({ actorId: user.id, actorEmail: user.email, action: "remove_member", entity: "channel_member", entityId: channelId, entityLabel: channel.name, metadata: { targetUserId } });
@@ -96,8 +99,9 @@ export async function removeChannelMemberAction(channelId: string, targetUserId:
 
 export async function setChannelMemberRoleAction(channelId: string, targetUserId: string, role: MemberRole): Promise<{ ok: boolean; error?: string }> {
   const user = await requireUser();
+  if (!chatCan(user, "messages.send")) return { ok: false, error: "You don't have permission to do that." };
   const membership = await getMembership(channelId, user.id);
-  if (!isChatAdmin(user) && membership?.role !== "owner") return { ok: false, error: "Only the channel owner can change roles." };
+  if (!canModerateAll(user) && membership?.role !== "owner") return { ok: false, error: "Only the channel owner can change roles." };
   await setMemberRole(channelId, targetUserId, role, user.id);
   revalidatePath("/huddle-ai/channels", "layout");
   return { ok: true };
@@ -108,10 +112,11 @@ export async function updateChannelAction(
   patch: { name?: string; description?: string; topic?: string; visibility?: ChannelVisibility }
 ): Promise<{ ok: boolean; error?: string }> {
   const user = await requireUser();
+  if (!chatCan(user, "messages.send")) return { ok: false, error: "You don't have permission to do that." };
   const channel = await getChannel(channelId);
   if (!channel) return { ok: false, error: "Channel not found." };
   const membership = await getMembership(channelId, user.id);
-  const canEdit = isChatAdmin(user) || membership?.role === "owner" || membership?.role === "admin";
+  const canEdit = canModerateAll(user) || membership?.role === "owner" || membership?.role === "admin";
   if (!canEdit) return { ok: false, error: "You don't have permission to edit this channel." };
   await updateChannel(channelId, patch, user.id);
   await recordAudit({ actorId: user.id, actorEmail: user.email, action: "update", entity: "channel", entityId: channelId, entityLabel: channel.name });
@@ -121,10 +126,11 @@ export async function updateChannelAction(
 
 export async function archiveChannelAction(channelId: string, archived: boolean): Promise<{ ok: boolean; error?: string }> {
   const user = await requireUser();
+  if (!chatCan(user, "messages.send")) return { ok: false, error: "You don't have permission to do that." };
   const channel = await getChannel(channelId);
   if (!channel) return { ok: false, error: "Channel not found." };
   const membership = await getMembership(channelId, user.id);
-  if (!isChatAdmin(user) && membership?.role !== "owner") return { ok: false, error: "Only the channel owner can archive it." };
+  if (!canModerateAll(user) && membership?.role !== "owner") return { ok: false, error: "Only the channel owner can archive it." };
   await archiveChannel(channelId, user.id, archived);
   await recordAudit({ actorId: user.id, actorEmail: user.email, action: archived ? "archive" : "unarchive", entity: "channel", entityId: channelId, entityLabel: channel.name });
   revalidatePath("/huddle-ai/channels", "layout");

@@ -1,7 +1,9 @@
 import "server-only";
 import { getPost } from "@/lib/products/viralpulse-ai/posts";
 import { PLATFORM_META, type PostPlatform } from "@/lib/products/viralpulse-ai/constants";
-import { smmsCan } from "@/lib/smms-roles";
+import { subjectFromRow } from "@/lib/access/server";
+import { can as accessCan } from "@/lib/access/can";
+import type { AccessMap } from "@/lib/access/types";
 import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/mongodb";
 import { logLine, type EngineDeps, type RunInput } from "./engine";
@@ -19,8 +21,8 @@ import type { PostDoc } from "@/lib/products/viralpulse-ai/posts";
 export async function approverStillAllowed(userId: string | null): Promise<boolean> {
   if (!userId || !ObjectId.isValid(userId)) return false;
   const db = await getDb();
-  const u = await db.collection<{ _id: ObjectId; roles?: string[]; permissionOverrides?: Record<string, boolean> }>("admin_users").findOne({ _id: new ObjectId(userId) }, { projection: { roles: 1, permissionOverrides: 1 } });
-  return Boolean(u && smmsCan({ roles: u.roles ?? [], permissionOverrides: u.permissionOverrides ?? {} }, "PUBLISH_CONTENT"));
+  const u = await db.collection<{ _id: ObjectId; roles?: string[]; permissionOverrides?: Record<string, boolean>; access?: AccessMap | null }>("admin_users").findOne({ _id: new ObjectId(userId) }, { projection: { roles: 1, permissionOverrides: 1, access: 1 } });
+  return Boolean(u && accessCan(subjectFromRow(u), "viralpulse-ai", "viralpulse-ai.posts.publish"));
 }
 
 /** Builds the provider-ready view of one platform's version of a post. Shared by the plan (UI checklist) and the engine so both see the same issues. */

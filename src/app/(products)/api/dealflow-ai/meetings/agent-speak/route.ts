@@ -30,7 +30,7 @@ async function handlePOST(req: NextRequest) {
     const body = await req.json().catch(() => null);
     const deps: AnswerDeps = {
       staff: async () => {
-        const u = await requireLms("VIEW_LEADS");
+        const u = await requireLms("meetings.view");
         return u ? { id: u.id } : null;
       },
       limit: async (userId) => {

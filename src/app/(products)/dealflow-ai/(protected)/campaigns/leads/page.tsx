@@ -18,7 +18,7 @@ export default async function AttributedLeadsPage({
 }: {
   searchParams: Promise<CampaignSearchParams & { page?: string; search?: string; leadStatus?: string }>;
 }) {
-  await requireLmsPage("VIEW_ANALYTICS");
+  await requireLmsPage("campaigns.view");
   const sp = await searchParams;
   const f = resolveCampaignFilters(sp);
   const page = Math.max(Number(sp.page) || 1, 1);

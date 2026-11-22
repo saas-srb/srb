@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/sitecraft-ai/gate";
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import { redirect } from "next/navigation";
 import { SearchCheck } from "lucide-react";
@@ -7,7 +8,10 @@ import CmsPageHeader from "@/components/products/sitecraft-ai/ui/CmsPageHeader";
 import SeoTable from "./SeoTable";
 
 export default async function CmsSeoOverviewPage() {
-  if (!(await getViewer())) redirect("/sitecraft-ai/login");
+  const viewer = await getViewer();
+  if (!viewer) redirect("/sitecraft-ai/login");
+  const locked = lockedUnless(viewer, "seo.view", "SEO");
+  if (locked) return locked;
   const pages = await listPages();
 
   return (

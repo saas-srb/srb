@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/sitecraft-ai/gate";
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -21,6 +22,8 @@ const USED_BY: Record<CollectionKey, string> = {
 export default async function CmsCollectionsPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/sitecraft-ai/login");
+  const locked = lockedUnless(viewer, "collections.view", "Collections");
+  if (locked) return locked;
   const keys = Object.keys(COLLECTIONS) as CollectionKey[];
   const counts = await Promise.all(keys.map(async (k) => {
     const rows = await listAdminRecords(k);

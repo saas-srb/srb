@@ -8,7 +8,7 @@ import StepChecklist from "@/components/products/cashflow-ai/work/StepChecklist"
 import WorkTabs from "@/components/products/cashflow-ai/work/WorkTabs";
 import { DueLine, WorkStateBadge, dmy } from "@/components/products/cashflow-ai/work/WorkItemCard";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance, canManageTransactions } from "@/lib/fms-roles";
+import { canManageCompliance, canManageTransactions } from "@/lib/fms-access";
 import { istToday } from "@/lib/products/cashflow-ai/accrual/core";
 import { autoTicks, loadAutoFacts } from "@/lib/products/cashflow-ai/work/auto";
 import { loadWorkLogMeta } from "@/lib/products/cashflow-ai/work/log-meta";

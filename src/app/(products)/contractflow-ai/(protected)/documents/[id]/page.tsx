@@ -1,3 +1,5 @@
+import { lockedUnless } from "@/lib/products/contractflow-ai/gate";
+import { can } from "@/lib/products/contractflow-ai/viewer";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
@@ -9,7 +11,6 @@ import { buttonVariants } from "@/components/ui/button";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import { CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { getViewer } from "@/lib/products/contractflow-ai/viewer";
-import { lpmsCan } from "@/lib/lpms-roles";
 import { getDocument } from "@/lib/products/contractflow-ai/documents";
 import { LPMS_STATUSES } from "@/lib/products/contractflow-ai/constants";
 
@@ -20,19 +21,21 @@ export default async function LpmsDocumentPage({
 }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/contractflow-ai/login");
+  const locked = lockedUnless(viewer, "documents.view", "Documents");
+  if (locked) return locked;
 
   const { id } = await params;
   const doc = await getDocument(id, viewer);
   if (!doc) notFound();
 
   const ctx = { roles: viewer.roles, permissionOverrides: viewer.overrides };
-  const canEdit = lpmsCan(ctx, "EDIT") && (doc.status === "draft" || doc.status === "review");
-  const canSubmit = lpmsCan(ctx, "EDIT") && doc.status === "draft";
-  const canApprove = lpmsCan(ctx, "APPROVE") && doc.status === "pending_approval";
-  const canPublish = lpmsCan(ctx, "PUBLISH") && doc.status === "approved";
-  const canArchive = lpmsCan(ctx, "ARCHIVE") && (doc.status === "active" || doc.status === "published");
-  const canDownload = lpmsCan(ctx, "DOWNLOAD");
-  const canDelete = lpmsCan(ctx, "DELETE") && doc.status === "draft";
+  const canEdit = can(viewer, "documents.edit") && (doc.status === "draft" || doc.status === "review");
+  const canSubmit = can(viewer, "documents.edit") && doc.status === "draft";
+  const canApprove = can(viewer, "documents.approve") && doc.status === "pending_approval";
+  const canPublish = can(viewer, "documents.publish") && doc.status === "approved";
+  const canArchive = can(viewer, "documents.archive") && (doc.status === "active" || doc.status === "published");
+  const canDownload = can(viewer, "documents.download");
+  const canDelete = can(viewer, "documents.delete") && doc.status === "draft";
 
   const statusMeta = LPMS_STATUSES.find((s) => s.value === (doc as any).status);
 

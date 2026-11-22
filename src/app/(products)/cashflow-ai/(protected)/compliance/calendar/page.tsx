@@ -4,7 +4,7 @@ import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AddFilingForm, CalendarSetupPanel, FilingRowActions } from "@/components/products/cashflow-ai/compliance/FilingActions";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance, canViewFinancialStatements } from "@/lib/fms-roles";
+import { canManageCompliance, canViewFinancialStatements } from "@/lib/fms-access";
 import { getComplianceProfile, listFilings } from "@/lib/products/cashflow-ai/compliance/filings";
 import { FILING_CATEGORIES, currentFilingYear, filingState, isFilingYear, type FilingDisplayState } from "@/lib/products/cashflow-ai/compliance/filings-core";
 import { loadRulebook } from "@/lib/products/cashflow-ai/rulebook/rules-store";

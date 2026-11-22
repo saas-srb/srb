@@ -1,9 +1,9 @@
-import { CATALOGUE, FILE_ROLES } from "./catalogue";
+import { CATALOGUE, FILE_ROLES, isAccessGate } from "./catalogue";
 import { completeWith, granted } from "./complete";
 import { legacyAnswer, legacyAnswers, type LegacyUser } from "./legacy";
 import type { AccessMap } from "./types";
 import { baselineMicros, legacyNeededBy, withMicros } from "./micro/derive";
-import { FINISHED_PRODUCTS, microOf } from "./micro";
+import { FINISHED_PRODUCTS, isFinished, microOf } from "./micro";
 
 /**
  * COMPATIBILITY ADAPTER between the access map (the new model) and the legacy role files.
@@ -65,6 +65,27 @@ const FIXED = new Set(CATALOGUE.filter((e) => e.kind === "tier" || !e.overrideKe
 const OVERRIDABLE = new Set(CATALOGUE.filter((e) => !FIXED.has(e.key)).map((e) => e.key));
 /** "Employee only" style gates are NOT monotone (adding a role can turn them off), so the union rule skips them; the repair search handles them. */
 const NON_MONOTONE = new Set(CATALOGUE.filter((e) => e.kind === "tier" && /Only$/.test(e.fn)).map((e) => e.key));
+
+/**
+ * A staff-style identity tier (TalentOS `hasStaffRole`) can only be given by a legacy ROLE, and the HR-style roles (hr, manager) are staff in several products at once.
+ * So holding the tier means holding the tiers that role bundles too: the cheapest role that gives it, and the identity tiers it carries in other products.
+ * They are written into the map (not hidden), and they open nothing by themselves: every capability is still its own overridable feature.
+ */
+const bundleMemo = new Map<string, string[]>();
+function tierBundle(tierKey: string): string[] {
+  const hit = bundleMemo.get(tierKey);
+  if (hit) return hit;
+  const V = vectors();
+  let best: string[] | null = null;
+  for (const r of ALL_ROLES) {
+    const v = V.get(r)!;
+    if (!v.has(tierKey)) continue;
+    const fixed = [...v].filter((k) => FIXED.has(k) && !NON_MONOTONE.has(k));
+    if (!best || fixed.length < best.length) best = fixed;
+  }
+  bundleMemo.set(tierKey, best ?? [tierKey]);
+  return best ?? [tierKey];
+}
 
 let disqualifiers: Map<string, Set<string>> | null = null;
 /** For each non-monotone gate: the roles that switch it OFF when added to a role that has it on ("employee only" is off once a staff role is added). */
@@ -190,7 +211,7 @@ export function baselineFeatures(product: string): string[] {
   if (hit) return hit;
   const V = vectors();
   const entries = CATALOGUE.filter((e) => e.product === product);
-  const gates = entries.filter((e) => e.kind === "tier" && /^has\w*Access$/.test(e.fn)).map((e) => e.key);
+  const gates = entries.filter((e) => e.kind === "tier" && isAccessGate(e.fn)).map((e) => e.key);
   let best: string[] | null = null;
   for (const r of ALL_ROLES) {
     const v = V.get(r)!;
@@ -216,22 +237,47 @@ export function completeAccess(input: AccessMap): AccessMap {
   for (const e of CATALOGUE) {
     const held = access[e.product]?.[e.key];
     if (!held) continue;
-    if (e.kind === "tier" && !/^has\w*Access$/.test(e.fn)) (carried[e.product] ??= {})[e.key] = held;
+    if (e.kind === "tier" && !isAccessGate(e.fn)) (carried[e.product] ??= {})[e.key] = held;
     else if (e.kind !== "tier") (real[e.product] ??= {})[e.key] = held;
   }
+  const needTiers = new Set<string>();
   // Finished products: the micro features picked need their legacy capabilities, which are then part of the product's picks.
   for (const product of FINISHED_PRODUCTS) {
     for (const m of microOf(product)) {
       if (!access[product]?.[m.key]) continue;
-      for (const k of m.legacy) { const e = CATALOGUE.find((x) => x.key === k); if (e && e.kind !== "tier") (real[e.product] ??= {})[e.key] = e.level; }
+      for (const k of m.legacy) {
+        const e = CATALOGUE.find((x) => x.key === k);
+        if (!e) continue;
+        if (e.kind !== "tier") (real[e.product] ??= {})[e.key] = e.level;
+        else needTiers.add(e.key); // an identity tier (hasStaffRole) or the product gate that a micro feature needs
+      }
     }
   }
   const out = completeWith(real, carried, baselineFeatures);
+  // A held identity tier (staff tier) brings the tiers its role bundles (see tierBundle).
+  for (const k of needTiers) { const e = CATALOGUE.find((x) => x.key === k); if (e) (out[e.product] ??= {})[k] ??= e.level; }
+  for (const k of [...Object.values(carried).flatMap((t) => Object.keys(t)), ...needTiers]) {
+    const e = CATALOGUE.find((x) => x.key === k);
+    if (!e || isAccessGate(e.fn) || /Only$/.test(e.fn)) continue;
+    if (!out[e.product]?.[k]) continue;
+    for (const b of tierBundle(k)) { const be = CATALOGUE.find((x) => x.key === b); if (be) (out[be.product] ??= {})[b] ??= be.level; }
+  }
   // The micro features themselves: the ones picked (any legacy requirement is now present), plus the product baseline once the product is opened.
   for (const product of FINISHED_PRODUCTS) {
-    const opened = Object.keys(out[product] ?? {}).length > 0;
+    // opened = some real feature or the product gate is present; an identity tier that another product's baseline implies (hrms.isEmployeeOnly) does not open it
+    const opened = Object.keys(out[product] ?? {}).some((k) => { const e = CATALOGUE.find((x) => x.key === k); return !e || e.kind !== "tier" || isAccessGate(e.fn); });
     for (const m of microOf(product)) { const held = access[product]?.[m.key]; if (held) (out[product] ??= {})[m.key] = m.level === "read" ? "read" : held; }
     if (opened) for (const m of baselineMicros(product)) (out[product] ??= {})[m.key] ??= m.level;
+  }
+  // "Employee only" gates are an identity, not an access: true exactly while the product is opened without its staff tier. Recomputed here for every product that has both.
+  for (const only of CATALOGUE.filter((e) => e.kind === "tier" && /Only$/.test(e.fn) && isFinished(e.product))) {
+    const staff = CATALOGUE.find((e) => e.product === only.product && e.kind === "tier" && /StaffRole$/.test(e.fn));
+    if (!staff) continue;
+    const cur = out[only.product];
+    if (!cur) continue;
+    const opened = Object.keys(cur).some((k) => { const e = CATALOGUE.find((x) => x.key === k); return !e || e.kind !== "tier" || isAccessGate(e.fn); });
+    if (!opened) continue; // only the implied baseline of another product: left as the legacy roles bundle it
+    if (cur[staff.key]) delete cur[only.key]; else cur[only.key] = "read";
   }
   return out;
 }

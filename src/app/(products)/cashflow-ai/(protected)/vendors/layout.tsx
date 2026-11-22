@@ -1,8 +1,8 @@
 import { requireFmsPage } from "@/lib/fms-auth";
-import { canViewCommercialFinance } from "@/lib/fms-roles";
+import { fmsCan } from "@/lib/fms-access";
 
-// The sidebar is not the boundary: this section is only for roles that may see it, whatever URL is typed.
+// The sidebar is not the boundary: this section is only for people who hold its feature, whatever URL is typed.
 export default async function Layout({ children }: { children: React.ReactNode }) {
-  await requireFmsPage(canViewCommercialFinance);
+  await requireFmsPage((u) => fmsCan(u, "vendors.view"));
   return children;
 }

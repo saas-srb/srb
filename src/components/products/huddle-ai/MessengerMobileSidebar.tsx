@@ -9,14 +9,17 @@ import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/
 import MessengerSidebar from "@/components/products/huddle-ai/MessengerSidebar";
 import SidebarBrand from "@/components/SidebarBrand";
 import type { ChatRole } from "@/lib/messenger-roles";
+import type { AccessSubject } from "@/lib/access/can";
 
 export default function MessengerMobileSidebar({
   roles,
+  subject,
   unreadDms,
   unreadChannels,
   unreadNotifications,
 }: {
   roles: ChatRole[];
+  subject: AccessSubject;
   unreadDms: number;
   unreadChannels: number;
   unreadNotifications: number;
@@ -38,6 +41,7 @@ export default function MessengerMobileSidebar({
           <div className="min-h-0 flex-1 overflow-y-auto">
             <MessengerSidebar
               roles={roles}
+              subject={subject}
               onNavigate={() => setOpen(false)}
               unreadDms={unreadDms}
               unreadChannels={unreadChannels}

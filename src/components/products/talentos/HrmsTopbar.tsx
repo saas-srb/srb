@@ -9,10 +9,12 @@ import PanelSearch from "@/components/platform/PanelSearch";
 import { useAskAiOpen } from "@/lib/ai/use-ask-ai-open";
 import AskAiDrawer from "@/components/platform/AskAiDrawer";
 import type { HrmsRole } from "@/lib/hrms-roles";
+import type { AccessSubject } from "@/lib/access/can";
 
 export default function HrmsTopbar({
   roles,
   permissionOverrides,
+  subject,
   employeeId,
   notifications,
   unread = 0,
@@ -20,6 +22,7 @@ export default function HrmsTopbar({
   roles: HrmsRole[];
   allRoles: string[];
   permissionOverrides?: Record<string, boolean>;
+  subject: AccessSubject;
   employeeId: string | null;
   notifications: BellItem[];
   unread: number;
@@ -27,7 +30,7 @@ export default function HrmsTopbar({
   const [aiOpen, setAiOpen] = useAskAiOpen();
   return (
     <header className="flex h-14 shrink-0 items-center gap-2 px-3 sm:gap-3 sm:px-4">
-      <HrmsMobileSidebar roles={roles} permissionOverrides={permissionOverrides} employeeId={employeeId} />
+      <HrmsMobileSidebar roles={roles} permissionOverrides={permissionOverrides} subject={subject} employeeId={employeeId} />
       <PanelHeading panel="hrms" fallbackTitle="Human Resources" fallbackDescription="Manage employees, attendance & payroll" />
       <div className="flex min-w-0 shrink-0 justify-end md:flex-1 md:shrink md:justify-center">
         <PanelSearch />

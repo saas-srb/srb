@@ -107,7 +107,7 @@ function parseMeta(v: unknown): BrochureDoc["meta"] {
 // ── API ───────────────────────────────────────────────────────────────────────
 
 export async function createBrochureProject(input: { title: unknown; category: unknown; customCategory?: unknown }) {
-  return run(["MANAGE_POSTS"], async (v) => {
+  return run(["brochures.use"], async (v) => {
     const title = parseTitle(input.title);
     const category = parseCategory(input.category);
     const customCategory = category === "custom" && typeof input.customCategory === "string" ? input.customCategory.trim().slice(0, 100) : null;
@@ -120,21 +120,21 @@ export async function createBrochureProject(input: { title: unknown; category: u
 }
 
 export async function listBrochureProjects(opts: { q?: string; category?: string; status?: string; page?: number }) {
-  return run(["MANAGE_POSTS"], async () => {
+  return run(["brochures.use"], async () => {
     const r = await listBrochures({ q: opts.q, category: opts.category, status: opts.status, page: opts.page, pageSize: 20 });
     return { items: r.items.map(toListItem), total: r.total, totalPages: r.totalPages };
   }, { revalidate: false });
 }
 
 export async function getBrochureProject(id: string) {
-  return run(["MANAGE_POSTS"], async () => {
+  return run(["brochures.use"], async () => {
     const b = await requireBrochure(id);
     return { brochure: toDetail(b) };
   }, { revalidate: false });
 }
 
 export async function saveBrochureSections(id: string, sections: unknown[]) {
-  return run(["MANAGE_POSTS"], async (v) => {
+  return run(["brochures.use"], async (v) => {
     await requireBrochure(id);
     await updateBrochure(id, { sections: parseSections(sections) }, v.userId);
     return {};
@@ -142,7 +142,7 @@ export async function saveBrochureSections(id: string, sections: unknown[]) {
 }
 
 export async function saveBrochureTheme(id: string, theme: unknown) {
-  return run(["MANAGE_POSTS"], async (v) => {
+  return run(["brochures.use"], async (v) => {
     await requireBrochure(id);
     await updateBrochure(id, { theme: parseTheme(theme) }, v.userId);
     return {};
@@ -150,7 +150,7 @@ export async function saveBrochureTheme(id: string, theme: unknown) {
 }
 
 export async function saveBrochureMeta(id: string, meta: unknown) {
-  return run(["MANAGE_POSTS"], async (v) => {
+  return run(["brochures.use"], async (v) => {
     const b = await requireBrochure(id);
     const parsed = parseMeta(meta);
     if (typeof (meta as Record<string, unknown>)?.title === "string") {
@@ -163,7 +163,7 @@ export async function saveBrochureMeta(id: string, meta: unknown) {
 }
 
 export async function publishBrochureProject(id: string) {
-  return run(["MANAGE_POSTS"], async (v) => {
+  return run(["brochures.use"], async (v) => {
     const b = await requireBrochure(id);
     if (b.status === "published") return { slug: b.slug };
     await publishBrochure(id, v.userId);
@@ -172,7 +172,7 @@ export async function publishBrochureProject(id: string) {
 }
 
 export async function unpublishBrochureProject(id: string) {
-  return run(["MANAGE_POSTS"], async (v) => {
+  return run(["brochures.use"], async (v) => {
     await requireBrochure(id);
     await unpublishBrochure(id, v.userId);
     return {};
@@ -180,7 +180,7 @@ export async function unpublishBrochureProject(id: string) {
 }
 
 export async function duplicateBrochureProject(id: string) {
-  return run(["MANAGE_POSTS"], async (v) => {
+  return run(["brochures.use"], async (v) => {
     const source = await requireBrochure(id);
     const copy = await duplicateBrochure(source, v.userId);
     return { id: copy._id };
@@ -188,7 +188,7 @@ export async function duplicateBrochureProject(id: string) {
 }
 
 export async function deleteBrochureProject(id: string) {
-  return run(["MANAGE_POSTS"], async (v) => {
+  return run(["brochures.use"], async (v) => {
     await requireBrochure(id);
     await softDeleteBrochure(id, v.userId);
     return {};
@@ -196,7 +196,7 @@ export async function deleteBrochureProject(id: string) {
 }
 
 export async function getBrochureLeadsAndAnalytics(id: string) {
-  return run(["VIEW_ANALYTICS"], async () => {
+  return run(["analytics.view"], async () => {
     await requireBrochure(id);
     const [leads, summary] = await Promise.all([listBrochureLeads(id, 50), brochureAnalyticsSummary(id)]);
     return {
@@ -211,7 +211,7 @@ export async function getBrochureLeadsAndAnalytics(id: string) {
 }
 
 export async function renameBrochureSlugProject(id: string, newTitle: string) {
-  return run(["MANAGE_POSTS"], async (v) => {
+  return run(["brochures.use"], async (v) => {
     if (!newTitle?.trim()) throw new SmmsInputError("Title is required.");
     const slug = await renameBrochureSlug(id, newTitle.trim(), v.userId);
     return { slug };

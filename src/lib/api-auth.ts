@@ -2,7 +2,6 @@ import { NextRequest } from "next/server";
 import { requireLms } from "@/lib/lms-auth";
 import { hasBearer } from "@/lib/security/bearer";
 import { hasPlanFlag } from "@/lib/platform/billing/enforce";
-import type { LmsPermission } from "@/lib/lms-roles";
 
 /**
  * Guards LMS-only endpoints (reading/editing/deleting stored lead PII) with
@@ -11,7 +10,7 @@ import type { LmsPermission } from "@/lib/lms-roles";
  * (for external tooling/scripts). Public submission endpoints (POST) intentionally
  * skip this.
  */
-export async function isAuthorizedLmsRequest(req: NextRequest, permission: LmsPermission = "VIEW_LEADS"): Promise<boolean> {
+export async function isAuthorizedLmsRequest(req: NextRequest, permission: string = "leads.view"): Promise<boolean> {
   // Machine access with the shared secret is the plan's "API access" feature.
   if (hasBearer(req, process.env.LEADS_API_SECRET) && (await hasPlanFlag("apiAccess"))) return true;
 

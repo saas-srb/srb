@@ -10,9 +10,11 @@ import PanelSearch from "@/components/platform/PanelSearch";
 import { useAskAiOpen } from "@/lib/ai/use-ask-ai-open";
 import AskAiDrawer from "@/components/platform/AskAiDrawer";
 import type { ChatRole } from "@/lib/messenger-roles";
+import type { AccessSubject } from "@/lib/access/can";
 
 export default function MessengerTopbar({
   roles,
+  subject,
   notifications,
   unread,
   unreadDms,
@@ -20,6 +22,7 @@ export default function MessengerTopbar({
 }: {
   roles: ChatRole[];
   allRoles: string[];
+  subject: AccessSubject;
   notifications: BellItem[];
   unread: number;
   unreadDms: number;
@@ -30,6 +33,7 @@ export default function MessengerTopbar({
     <header className="flex h-14 shrink-0 items-center gap-2 px-3 sm:gap-3 sm:px-4">
       <MessengerMobileSidebar
         roles={roles}
+        subject={subject}
         unreadDms={unreadDms}
         unreadChannels={unreadChannels}
         unreadNotifications={unread}

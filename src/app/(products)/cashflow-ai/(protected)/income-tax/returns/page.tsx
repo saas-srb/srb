@@ -5,7 +5,7 @@ import ReturnStatusEditor from "@/components/products/cashflow-ai/income-tax/Ret
 import NoticesManager from "@/components/products/cashflow-ai/income-tax/NoticesManager";
 import ReturnFyPicker from "@/components/products/cashflow-ai/income-tax/ReturnFyPicker";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance } from "@/lib/fms-roles";
+import { canManageCompliance } from "@/lib/fms-access";
 import { financialYearOf, isFinancialYear } from "@/lib/products/cashflow-ai/tds/core";
 import { todayIst } from "@/lib/products/cashflow-ai/month-close/core";
 import { getReturn } from "@/lib/products/cashflow-ai/income-tax/returns-store";

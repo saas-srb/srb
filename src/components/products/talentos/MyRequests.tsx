@@ -14,7 +14,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EXPENSE_CATEGORIES } from "@/lib/products/talentos/work-request-rules";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { requestExpenseAction, requestOvertimeAction, requestShortLeaveAction, withdrawMyRequestAction, type RequestResult } from "@/app/(products)/talentos/(protected)/me/requests/actions";
+import { requestExpenseAction, requestOvertimeAction, requestShortLeaveAction, withdrawMyRequestAction, type RequestResult } from "@/app/(products)/talentos/(protected)/requests/actions";
 
 export interface MyRequestRow {
   _id: string;
@@ -50,11 +50,14 @@ export default function MyRequests({
   limits,
   usage,
   month,
+  canSubmit = true,
 }: {
   rows: MyRequestRow[];
   limits: { overtimeEnabled: boolean; overtimeMaxMinutesPerDay: number; overtimeMaxMinutesPerMonth: number; shortLeavesPerMonth: number; shortLeaveMaxMinutes: number; expenseMaxAgeDays: number };
   usage: { overtimeMinutes: number; shortLeaves: number };
   month: string;
+  /** Only people who hold requests.submit may raise or withdraw requests. */
+  canSubmit?: boolean;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -108,7 +111,7 @@ export default function MyRequests({
             </div>
             <div className="flex items-center gap-2">
               <Badge className={statusClass[r.status]}>{r.status}</Badge>
-              {(r.status === "pending" || r.status === "approved") && (
+              {canSubmit && (r.status === "pending" || r.status === "approved") && (
                 <Button size="sm" variant="ghost" disabled={pending} onClick={() => withdraw(r._id)}>Withdraw</Button>
               )}
             </div>
@@ -144,7 +147,7 @@ export default function MyRequests({
                     ? `Worked beyond your hours or on a day off? Ask for it once the work is done. Used this month (${month}): ${hours(usage.overtimeMinutes)} of ${hours(limits.overtimeMaxMinutesPerMonth)}.`
                     : "Your company does not pay overtime."}
                 </p>
-                {limits.overtimeEnabled && <Button size="sm" onClick={() => { setError(null); setSheet("overtime"); }}><Plus className="size-3.5" data-icon="inline-start" />Request overtime</Button>}
+                {canSubmit && limits.overtimeEnabled && <Button size="sm" onClick={() => { setError(null); setSheet("overtime"); }}><Plus className="size-3.5" data-icon="inline-start" />Request overtime</Button>}
               </div>
               {list("overtime", "No overtime requests.")}
             </CardContent>
@@ -160,7 +163,7 @@ export default function MyRequests({
                     ? `A few hours off in a day (up to ${hours(limits.shortLeaveMaxMinutes)}). It is paid and uses no leave balance. This month: ${usage.shortLeaves} of ${limits.shortLeavesPerMonth} used.`
                     : "Your company does not offer partial leave."}
                 </p>
-                {limits.shortLeavesPerMonth > 0 && <Button size="sm" disabled={usage.shortLeaves >= limits.shortLeavesPerMonth} onClick={() => { setError(null); setSheet("short"); }}><Plus className="size-3.5" data-icon="inline-start" />Apply</Button>}
+                {canSubmit && limits.shortLeavesPerMonth > 0 && <Button size="sm" disabled={usage.shortLeaves >= limits.shortLeavesPerMonth} onClick={() => { setError(null); setSheet("short"); }}><Plus className="size-3.5" data-icon="inline-start" />Apply</Button>}
               </div>
               {list("short_leave", "No partial leaves.")}
             </CardContent>
@@ -172,7 +175,7 @@ export default function MyRequests({
             <CardContent className="space-y-2 py-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm text-muted-foreground">Paid for something you needed for work (equipment, a subscription, internet, travel)? Claim it back against the bill within {limits.expenseMaxAgeDays} days. Keep the bill: HR may ask for it.</p>
-                <Button size="sm" onClick={() => { setError(null); setSheet("expense"); }}><Plus className="size-3.5" data-icon="inline-start" />New claim</Button>
+                {canSubmit && <Button size="sm" onClick={() => { setError(null); setSheet("expense"); }}><Plus className="size-3.5" data-icon="inline-start" />New claim</Button>}
               </div>
               {list("expense", "No claims.")}
             </CardContent>

@@ -1,0 +1,91 @@
+import type { Guard } from "../types";
+
+/** Huddle coverage: see `coverage/cybervault.ts` for the rules. Keys are paths under src/app/(products), `#function` for server actions. Section pages are checked by their folder's layout (`viaLayout`); conversation routes by `resolveScope` (view feature of that kind of conversation, plus `messages.send` to write). */
+const P = "huddle-ai/(protected)";
+const open = (open: "self-service" | "session" | "public" | "redirect", reason: string): Guard => ({ open, reason });
+const layout = (...any: string[]): Guard => ({ any, viaLayout: true, via: "requireChatPage" });
+const SCOPE_READ: Guard = { any: ["dm.view", "channels.view", "groups.view", "projects.view"], via: "resolveScope" };
+const SCOPE_SEND: Guard = { any: ["messages.send"], via: "resolveScope" };
+
+export const HUDDLE_ROOTS = ["src/app/(products)/huddle-ai", "src/app/(products)/api/huddle-ai"];
+
+export const HUDDLE_COVERAGE: Record<string, Guard> = {
+  [`${P}/[...notFound]/page.tsx`]: open("public", "A placeholder page inside the product."),
+  [`${P}/actions.ts#messengerLogoutAction`]: open("self-service", "Signs the person out."),
+  [`${P}/actions.ts#markNotificationsReadAction`]: { any: ["notifications.view"] },
+  [`${P}/actions.ts#markAllNotificationsReadAction`]: { any: ["notifications.view"] },
+  [`${P}/announcements/[id]/edit/page.tsx`]: { any: ["announcements.post"], via: "canPostAnnouncements" },
+  [`${P}/announcements/[id]/page.tsx`]: layout("announcements.view"),
+  [`${P}/announcements/actions.ts#saveAnnouncementAction`]: { any: ["announcements.post"], via: "requireAuthor" },
+  [`${P}/announcements/actions.ts#publishAnnouncementAction`]: { any: ["announcements.post"], via: "requireAuthor" },
+  [`${P}/announcements/actions.ts#deleteAnnouncementAction`]: { any: ["announcements.post"], via: "requireAuthor" },
+  [`${P}/announcements/actions.ts#archiveAnnouncementAction`]: { any: ["announcements.post"], via: "requireAuthor" },
+  [`${P}/announcements/actions.ts#acknowledgeAnnouncementAction`]: { any: ["messages.send"] },
+  [`${P}/announcements/new/page.tsx`]: { any: ["announcements.post"], via: "canPostAnnouncements" },
+  [`${P}/announcements/page.tsx`]: layout("announcements.view"),
+  [`${P}/call/[id]/page.tsx`]: { any: ["calls.use"] },
+  [`${P}/channels/[slug]/page.tsx`]: layout("channels.view"),
+  [`${P}/channels/actions.ts#createChannelAction`]: { any: ["channels.create"], via: "canCreateTeamChannel" },
+  [`${P}/channels/actions.ts#joinChannelAction`]: { any: ["messages.send"] },
+  [`${P}/channels/actions.ts#addChannelMembersAction`]: { any: ["messages.send"] },
+  [`${P}/channels/actions.ts#removeChannelMemberAction`]: { any: ["messages.send"] },
+  [`${P}/channels/actions.ts#setChannelMemberRoleAction`]: { any: ["messages.send"] },
+  [`${P}/channels/actions.ts#updateChannelAction`]: { any: ["messages.send"] },
+  [`${P}/channels/actions.ts#archiveChannelAction`]: { any: ["messages.send"] },
+  [`${P}/channels/page.tsx`]: layout("channels.view"),
+  [`${P}/dm/[conversationId]/page.tsx`]: layout("dm.view"),
+  [`${P}/dm/actions.ts#startDirectMessageAction`]: { any: ["messages.send"] },
+  [`${P}/dm/actions.ts#togglePinConversationAction`]: { any: ["dm.view"] },
+  [`${P}/dm/page.tsx`]: layout("dm.view"),
+  [`${P}/files/page.tsx`]: layout("files.view"),
+  [`${P}/groups/[slug]/page.tsx`]: layout("groups.view"),
+  [`${P}/groups/actions.ts#createGroupAction`]: { any: ["groups.create"] },
+  [`${P}/groups/page.tsx`]: layout("groups.view"),
+  [`${P}/meetings/[id]/page.tsx`]: layout("meetings.view"),
+  [`${P}/meetings/[id]/room/page.tsx`]: open("redirect", "The old meeting room address only sends the person to the meeting page, which checks meetings.view."),
+  [`${P}/meetings/actions.ts#createMeetingAction`]: { any: ["meetings.manage"] },
+  [`${P}/meetings/actions.ts#updateMeetingAction`]: { any: ["meetings.manage"] },
+  [`${P}/meetings/actions.ts#addMeetingInviteesAction`]: { any: ["meetings.manage"] },
+  [`${P}/meetings/actions.ts#cancelMeetingAction`]: { any: ["meetings.manage"] },
+  [`${P}/meetings/actions.ts#setRsvpAction`]: { any: ["calls.use"], via: "requireUser(" },
+  [`${P}/meetings/actions.ts#joinMeetingAction`]: { any: ["calls.use"], via: "requireUser(" },
+  [`${P}/meetings/actions.ts#leaveMeetingAction`]: { any: ["calls.use"], via: "requireUser(" },
+  [`${P}/meetings/actions.ts#endMeetingAction`]: { any: ["meetings.manage"] },
+  [`${P}/meetings/page.tsx`]: layout("meetings.view"),
+  [`${P}/notifications/page.tsx`]: layout("notifications.view"),
+  [`${P}/page.tsx`]: { any: ["dashboard.view", "analytics.workspace"] },
+  [`${P}/projects/[slug]/page.tsx`]: layout("projects.view"),
+  [`${P}/projects/page.tsx`]: layout("projects.view"),
+  [`${P}/search/page.tsx`]: layout("search.view"),
+  [`${P}/settings/actions.ts#saveMessengerSettingsAction`]: { any: ["settings.view"] },
+  [`${P}/settings/page.tsx`]: layout("settings.view"),
+  "huddle-ai/change-password/actions.ts#changeMessengerPasswordAction": open("self-service", "Changes the person's own password."),
+  "huddle-ai/change-password/page.tsx": open("self-service", "The person's own password change."),
+  "huddle-ai/login/page.tsx": open("public", "The sign-in page."),
+  "api/huddle-ai/announcements/upload/route.ts": { any: ["announcements.post"], via: "canPostAnnouncements" },
+  "api/huddle-ai/calls/[id]/route.ts": { any: ["calls.use"], via: "requireCallAccess" },
+  "api/huddle-ai/calls/[id]/signal/route.ts": { any: ["calls.use"], via: "requireCallAccess" },
+  "api/huddle-ai/calls/[id]/signal-stream/route.ts": { any: ["calls.use"], via: "requireCallAccess" },
+  "api/huddle-ai/calls/route.ts": { any: ["calls.use"] },
+  "api/huddle-ai/conversations/route.ts": { any: ["dm.view"] },
+  "api/huddle-ai/files/[key]/route.ts": { any: ["dm.view", "channels.view", "projects.view", "groups.view", "announcements.view", "files.view"] },
+  "api/huddle-ai/files/route.ts": { any: ["files.view"] },
+  "api/huddle-ai/messages/[id]/forward/route.ts": SCOPE_SEND,
+  "api/huddle-ai/messages/[id]/reactions/route.ts": SCOPE_SEND,
+  "api/huddle-ai/messages/route.ts": { any: ["dm.view", "channels.view", "groups.view", "projects.view", "messages.send"], via: "resolveScope" },
+  "api/huddle-ai/pin/route.ts": SCOPE_SEND,
+  "api/huddle-ai/presence/route.ts": open("session", "The person's own online status heartbeat; carries no conversation data."),
+  "api/huddle-ai/read/route.ts": SCOPE_READ,
+  "api/huddle-ai/search/route.ts": { any: ["search.view"] },
+  "api/huddle-ai/star/route.ts": { any: ["messages.send"] },
+  "api/huddle-ai/stream/route.ts": open("session", "The realtime event stream; every event is filtered to the conversations the person may see (resolveVisibleScopes)."),
+  "api/huddle-ai/typing/route.ts": SCOPE_SEND,
+  "api/huddle-ai/upload/route.ts": SCOPE_SEND,
+};
+
+/** Features that guard something without a mapped page or route: where they are enforced. */
+export const HUDDLE_EXTRA: Record<string, string> = {
+  "moderation.all": "Library: canAccessChannel / resolveVisibleScopes / search / moderator checks use canModerateAll; channel actions use it for private channels and roles.",
+  "analytics.workspace": "The dashboard shows workspace-wide numbers only to people who hold it.",
+  "audit.view": "The Ask AI activity-log entity (the only reader of the Huddle audit trail).",
+};

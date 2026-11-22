@@ -16,7 +16,7 @@ const scheduled = cronRoute("wallet-expiry", { extraSecrets: [process.env.WALLET
 
 export async function POST(req: NextRequest) {
   if (req.headers.get("authorization")?.startsWith("Bearer ")) return scheduled(req);
-  if (!(await requireLms("MANAGE_WALLET"))) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await requireLms("wallet.manage"))) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   return NextResponse.json(await runExpirySweep());
 }
 export const GET = POST;

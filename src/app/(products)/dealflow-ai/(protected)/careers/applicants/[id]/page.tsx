@@ -82,7 +82,7 @@ function Section({ title, description, icon, action, children }: { title: string
 
 /** Complete applicant profile: every piece of data the platform holds about this applicant, read live from its owner. */
 export default async function ApplicantDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> }) {
-  await requireLmsPage("VIEW_CAREERS");
+  await requireLmsPage("careers.view");
   const { id } = await params;
   const { tab } = await searchParams;
   const [profile, viewer] = await Promise.all([getApplicantProfile(id), getCurrentLmsUser()]);

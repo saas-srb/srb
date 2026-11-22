@@ -1,3 +1,4 @@
+import { OwnAssignments } from "@/components/products/evaliq/OwnViews";
 import Link from "next/link";
 import PanelDashboardHeader from "@/components/platform/panel/PanelDashboardHeader";
 import { redirect } from "next/navigation";
@@ -51,7 +52,7 @@ import { formatDateTime } from "@/lib/utils";
 export default async function OtsDashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/evaliq/login");
-  if (!can(viewer, "VIEW_REPORTS") && !can(viewer, "VIEW_TESTS")) redirect("/evaliq/my-tests");
+  if (!can(viewer, "reports.view") && !can(viewer, "tests.view")) return <OwnAssignments viewer={viewer} />;
   const sp = await searchParams;
   const f = { from: sp.from, to: sp.to, testId: sp.testId, categoryId: sp.categoryId, kind: sp.kind, departmentId: sp.departmentId, designationId: sp.designationId, status: sp.status };
   const [d, dir, tests, cats, counts] = await Promise.all([getDashboard(f), getDirectory(), listTestOptions(), listCategories("test"), navCounts(viewer)]);
@@ -59,7 +60,7 @@ export default async function OtsDashboardPage({ searchParams }: { searchParams:
   const a = d.assignments;
   const p = d.performance;
   const u = d.users;
-  const reports = can(viewer, "VIEW_REPORTS");
+  const reports = can(viewer, "reports.view");
 
   return (
     <div className="space-y-4">
@@ -84,12 +85,12 @@ export default async function OtsDashboardPage({ searchParams }: { searchParams:
         )}
         actions={
           <>
-            {can(viewer, "CREATE_TEST") && (
+            {can(viewer, "tests.create") && (
               <Button nativeButton={false} render={<Link href="/evaliq/tests/new" />}>
                 <Plus className="size-4" /> New test
               </Button>
             )}
-            {can(viewer, "ASSIGN_TEST") && (
+            {can(viewer, "assignments.assign") && (
               <Button variant="outline" nativeButton={false} render={<Link href="/evaliq/assignments/new" />}>
                 <Send className="size-4" /> Assign test
               </Button>
@@ -101,13 +102,13 @@ export default async function OtsDashboardPage({ searchParams }: { searchParams:
       {(counts.myOpen > 0 || counts.toEvaluate > 0) && (
         <div className="grid gap-3 md:grid-cols-2">
           {counts.myOpen > 0 && (
-            <Link href="/evaliq/my-tests" className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm transition-colors hover:bg-primary/10">
+            <Link href="/evaliq/assignments?mine=1" className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm transition-colors hover:bg-primary/10">
               <ClipboardList className="size-5 shrink-0 text-primary" />
               <span className="min-w-0 flex-1 font-semibold text-foreground">{`${counts.myOpen} test${counts.myOpen === 1 ? "" : "s"} assigned to you`}</span>
               <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
             </Link>
           )}
-          {counts.toEvaluate > 0 && can(viewer, "EVALUATE_ANSWERS") && (
+          {counts.toEvaluate > 0 && can(viewer, "answers.evaluate") && (
             <Link href="/evaliq/results?status=pending_evaluation" className="flex items-center gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm transition-colors hover:bg-amber-500/15">
               <Hourglass className="size-5 shrink-0 text-amber-600" />
               <span className="min-w-0 flex-1 font-semibold text-foreground">{`${counts.toEvaluate} attempt${counts.toEvaluate === 1 ? "" : "s"} waiting for manual evaluation`}</span>

@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/evaliq/gate";
 import { redirect } from "next/navigation";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,8 @@ import { IMPORT_HELP, IO_COLUMNS } from "@/lib/products/evaliq/questions";
 export default async function ImportQuestionsPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/evaliq/login");
-  if (!can(viewer, "IMPORT_QUESTIONS")) redirect("/evaliq/questions");
+  const locked = lockedUnless(viewer, "questions.import", "Import questions");
+  if (locked) return locked;
   return (
     <div className="space-y-4">
       <PageHeader

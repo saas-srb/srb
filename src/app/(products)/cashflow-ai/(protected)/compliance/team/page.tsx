@@ -3,7 +3,7 @@ import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import { CardContent } from "@/components/ui/card";
 import OwnerRow from "@/components/products/cashflow-ai/compliance/OwnerRow";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance } from "@/lib/fms-roles";
+import { canManageCompliance } from "@/lib/fms-access";
 import { WORKSTREAMS } from "@/lib/products/cashflow-ai/compliance/owners-core";
 import { listOwners } from "@/lib/products/cashflow-ai/compliance/owners";
 

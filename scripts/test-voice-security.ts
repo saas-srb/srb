@@ -1,3 +1,4 @@
+import { legacyToAccess } from "../src/lib/access/adapter";
 import assert from "node:assert/strict";
 
 // Security regressions of the voice calling system. Throwaway database only (MONGODB_URI=…/zz_throwaway_*); no network, no real call.
@@ -162,7 +163,7 @@ const t = async (name: string, fn: () => Promise<void> | void) => { await fn(); 
   const CO = "co_sec";
   await pdb.collection("companies").insertOne({ _id: CO as never, slug: CO, name: "Sec Works", status: "active", isPlatformOwner: false, timezone: "Asia/Kolkata", createdAt: new Date(), updatedAt: new Date() });
 
-  const viewer = (userId: string, roles: string[]): Viewer => ({ userId, email: `${userId}@x.test`, roles, ctx: { roles, permissionOverrides: undefined } as Viewer["ctx"], seesAll: false });
+  const viewer = (userId: string, roles: string[]): Viewer => ({ userId, email: `${userId}@x.test`, roles, ctx: { roles, permissionOverrides: undefined } as Viewer["ctx"], subject: legacyToAccess({ roles, permissionOverrides: null }), seesAll: false });
   const caller = viewer("caller", ["aibots_user"]); // may place calls (VOICE_CALL) and nothing else
   const hr = viewer("hr", ["aibots_user", "hr"]);
   const pmsManager = viewer("pm", ["aibots_user", "pms_manager"]);

@@ -1,7 +1,7 @@
 import { withTransport } from "@/lib/security/transport";
 import type { NextRequest } from "next/server";
 import { requireSession, jsonError, HttpError } from "@/lib/products/huddle-ai/route-helpers";
-import { canPostAnnouncements } from "@/lib/messenger-roles";
+import { canPostAnnouncements } from "@/lib/messenger-access";
 import { saveAttachment } from "@/lib/products/huddle-ai/attachments";
 
 export const dynamic = "force-dynamic";

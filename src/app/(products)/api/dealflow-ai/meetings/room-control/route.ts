@@ -25,7 +25,7 @@ async function roomService(): Promise<RoomServiceClient | null> {
 }
 
 async function actorOf(userId: string): Promise<Actor> {
-  const user = await requireLms();
+  const user = await requireLms("meetings.view");
   return user && user.id === userId ? staffActor(user) : { id: userId, name: "Host" };
 }
 
@@ -33,7 +33,7 @@ const failed = (r: { ok: boolean; error?: string }) => (r.ok ? null : r.error ??
 
 const deps: ControlDeps = {
   staff: async () => {
-    const u = await requireLms();
+    const u = await requireLms("meetings.view");
     return u ? { id: u.id } : null;
   },
   verifyToken: async (token) => {
@@ -43,7 +43,7 @@ const deps: ControlDeps = {
   },
   getMeeting: async (roomId) => (await getMeeting(roomId)) as unknown as MeetingDoc | null,
   canHost: async (_userId, m) => {
-    const u = await requireLms();
+    const u = await requireLms("meetings.view");
     return !!u && canHostMeeting(u, m);
   },
   resolveAgents: async (m) => {

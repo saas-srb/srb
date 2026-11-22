@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import ConfirmationForm from "@/components/products/cashflow-ai/party-recon/ConfirmationForm";
 import { ProposeWriteOffForm, WriteOffRowActions } from "@/components/products/cashflow-ai/party-recon/WriteOffPanel";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canApproveTransactions, canReconcile } from "@/lib/fms-roles";
+import { canApproveTransactions, canReconcile } from "@/lib/fms-access";
 import { formatMoney } from "@/lib/products/cashflow-ai/constants";
 import { AGEING_EDGES, AGEING_LABELS, DOC_LABEL, OLD_ITEM_DAYS, isYmd } from "@/lib/products/cashflow-ai/party-recon/core";
 import { CONFIRMATION_STATUSES, analysePartyById, defaultFrom, getParty, listConfirmations, listWriteOffs } from "@/lib/products/cashflow-ai/party-recon/store";

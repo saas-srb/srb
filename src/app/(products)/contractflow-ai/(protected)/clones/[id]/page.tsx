@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/contractflow-ai/gate";
 import { notFound, redirect } from "next/navigation";
 import CloneActions from "@/components/products/contractflow-ai/CloneActions";
 import CloneEditor from "@/components/products/contractflow-ai/CloneEditor";
@@ -26,6 +27,8 @@ export default async function CloneEditorPage({ params, searchParams }: { params
   const { id } = await params;
   const viewer = await getViewer();
   if (!viewer) redirect("/contractflow-ai/login");
+  const locked = lockedUnless(viewer, "signatures.view", "Signatures");
+  if (locked) return locked;
   const r = await getClone(viewer, id);
   if (!r.ok) {
     if (r.error.code === "forbidden") redirect("/contractflow-ai/documents");

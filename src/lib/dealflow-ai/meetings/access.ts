@@ -1,8 +1,7 @@
 import "server-only";
 import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/mongodb";
-import { isLmsAdmin } from "@/lib/lms-roles";
-import type { CurrentLmsUser } from "@/lib/lms-auth";
+import { lmsCan, type CurrentLmsUser } from "@/lib/lms-auth";
 import { resolveMeetingAgents } from "@/lib/dealflow-ai/meeting-agents";
 import { addStaffToRoster, findGuestByToken, markJoined, setWaiting, toMeetingView, transitionMeeting, type Actor, type MeetingRoom } from "@/lib/dealflow-ai/db-meetings";
 import { getLiveKitCredentials, issueRoomToken, type LiveKitCredentials } from "@/lib/dealflow-ai/meetings/livekit";
@@ -16,11 +15,11 @@ import type { MeetingRoomProps } from "@/lib/dealflow-ai/meetings/room-props";
  * from a staff member's browser.
  */
 
-type StaffUser = Pick<CurrentLmsUser, "id" | "email" | "roles" | "permissionOverrides">;
+type StaffUser = Pick<CurrentLmsUser, "id" | "email" | "roles" | "permissionOverrides" | "subject">;
 
 /** Directors and CRM managers see and host every meeting of the company. */
 export function isMeetingManager(user: StaffUser): boolean {
-  return isLmsAdmin(user) || user.roles.includes("lms_manager");
+  return lmsCan(user, "meetings.all");
 }
 
 export function listedStaff(m: Pick<MeetingRoom, "participants">, userId: string): MeetingParticipant | null {

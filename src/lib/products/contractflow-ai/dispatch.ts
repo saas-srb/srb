@@ -1,5 +1,5 @@
 import "server-only";
-import { lpmsCan } from "@/lib/lpms-roles";
+import { can } from "@/lib/products/contractflow-ai/viewer";
 import { sendEmail } from "@/lib/platform/email";
 import { escapeHtml } from "@/lib/platform/email/template";
 import { appUrlForCompany } from "@/lib/platform/tenancy/site-url";
@@ -40,7 +40,7 @@ export interface SendResult {
 
 export async function sendCloneToSigners(v: LpmsViewer, cloneId: string, opts: { baseUrl?: string; now?: Date } = {}): Promise<CloneResult<{ result: SendResult; clone: CloneDoc }>> {
   const ctx = { roles: v.roles, permissionOverrides: v.overrides };
-  if (!lpmsCan(ctx, "SIGN") && !lpmsCan(ctx, "MANAGE_DOCUMENTS")) return { ok: false, error: { code: "forbidden", message: "You may not send documents for signature." } };
+  if (!can(v, "signatures.sign") && !can(v, "signatures.manage")) return { ok: false, error: { code: "forbidden", message: "You may not send documents for signature." } };
   const clone = await (await cfClones()).findOne({ _id: cloneId });
   if (!clone) return { ok: false, error: { code: "not_found", message: "That document was not found." } };
   if (clone.status !== "ready") return { ok: false, error: { code: "bad_status", message: clone.status === "clone_draft" ? "Mark the document ready before sending it." : "This document is not waiting to be sent." } };
@@ -87,7 +87,7 @@ export async function sendCloneToSigners(v: LpmsViewer, cloneId: string, opts: {
 /** Replaces one signer's link (the old one stops working) and emails the new one. For a signer who lost or never received the email. */
 export async function resendToSigner(v: LpmsViewer, cloneId: string, signerId: string, opts: { baseUrl?: string } = {}): Promise<CloneResult<{ delivered: boolean; email: string }>> {
   const ctx = { roles: v.roles, permissionOverrides: v.overrides };
-  if (!lpmsCan(ctx, "SIGN") && !lpmsCan(ctx, "MANAGE_DOCUMENTS")) return { ok: false, error: { code: "forbidden", message: "You may not send documents for signature." } };
+  if (!can(v, "signatures.sign") && !can(v, "signatures.manage")) return { ok: false, error: { code: "forbidden", message: "You may not send documents for signature." } };
   const clone = await (await cfClones()).findOne({ _id: cloneId });
   if (!clone || !clone.requestId) return { ok: false, error: { code: "not_found", message: "This document has not been sent." } };
   let link: IssuedLink;

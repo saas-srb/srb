@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/viralpulse-ai/gate";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/products/viralpulse-ai/SmmsUi";
 import { getViewer, can } from "@/lib/products/viralpulse-ai/viewer";
@@ -8,7 +9,9 @@ export const metadata = { title: "Create AI Brochure" };
 export default async function NewBrochurePage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/viralpulse-ai/login");
-  if (!can(viewer, "MANAGE_POSTS") && !can(viewer, "MANAGE_MEDIA") && !can(viewer, "GENERATE_AI_CONTENT")) {
+  const locked = lockedUnless(viewer, "brochures.use", "Brochures");
+  if (locked) return locked;
+  if (!can(viewer, "posts.manage") && !can(viewer, "media.manage") && !can(viewer, "brochures.use")) {
     redirect("/viralpulse-ai");
   }
 

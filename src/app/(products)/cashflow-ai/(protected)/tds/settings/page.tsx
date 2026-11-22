@@ -2,7 +2,7 @@ import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import SectionsManager, { type SectionRow } from "@/components/products/cashflow-ai/tds/SectionsManager";
 import RulebookSections, { type RulebookCard } from "@/components/products/cashflow-ai/tds/RulebookSections";
 import { requireFmsPage } from "@/lib/fms-auth";
-import { canManageCompliance, canViewFinancialStatements } from "@/lib/fms-roles";
+import { canManageCompliance, canViewFinancialStatements } from "@/lib/fms-access";
 import { listSections, sectionMap } from "@/lib/products/cashflow-ai/tds/store";
 import { SECTION_CATALOG, financialYearOf } from "@/lib/products/cashflow-ai/tds/core";
 import { loadRulebook } from "@/lib/products/cashflow-ai/rulebook/rules-store";

@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/viralpulse-ai/gate";
 import Link from "next/link";
 import { permanentRedirect, redirect } from "next/navigation";
 import { FolderKanban, Images, Loader2, Plus, Sparkles, Wallet, Wand2 } from "lucide-react";
@@ -32,7 +33,9 @@ export const metadata = { title: "AI Image Studio" };
 export default async function ImageStudioPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/viralpulse-ai/login");
-  const canLibrary = can(viewer, "MANAGE_MEDIA") || can(viewer, "MANAGE_POSTS") || can(viewer, "CREATE_ADS");
+  const locked = lockedUnless(viewer, "studio.use", "Image studio");
+  if (locked) return locked;
+  const canLibrary = can(viewer, "studio.use") || can(viewer, "posts.manage") || can(viewer, "ads.create");
   const canGenerate = canGenerateImages(viewer);
   const sp = await searchParams;
 
@@ -41,7 +44,7 @@ export default async function ImageStudioPage({ searchParams }: { searchParams: 
   if (sp.tab === "brand" || sp.tab === "kit") permanentRedirect("/viralpulse-ai/brand-kit");
   if (sp.tab === "quick" || sp.tab === "generate") permanentRedirect("/viralpulse-ai/generate-image");
   if (!canLibrary && !canGenerate) redirect("/viralpulse-ai");
-  if (!canGenerate && can(viewer, "MANAGE_MEDIA") === false) redirect("/viralpulse-ai/library");
+  if (!canGenerate && can(viewer, "studio.use") === false) redirect("/viralpulse-ai/library");
 
   const tab = sp.tab === "projects" || !canGenerate ? "projects" : "create";
   const tabs = [
@@ -70,7 +73,7 @@ export default async function ImageStudioPage({ searchParams }: { searchParams: 
       <div className="space-y-4">
         {header}
         <PanelTabs label="Image Studio" active="create" tabs={tabs} />
-        <ConnectionGate requires={[{ name: "OpenAI or Gemini", connected: config.providers.openai || config.providers.gemini, why: "to generate images" }]} canManage={can(viewer, "MANAGE_INTEGRATIONS")}>
+        <ConnectionGate requires={[{ name: "OpenAI or Gemini", connected: config.providers.openai || config.providers.gemini, why: "to generate images" }]} canManage={can(viewer, "integrations.manage")}>
           <ImageWizard key={doc?._id ?? "new"} mode="create" config={config} initialProject={doc ? toProjectView(doc) : null} canGenerate />
         </ConnectionGate>
       </div>

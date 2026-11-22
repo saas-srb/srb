@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/mongodb";
 import { createPaymentLink, CreatePaymentLinkInput } from "@/lib/products/cashflow-ai/payments/links";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManagePaymentLinks } from "@/lib/fms-roles";
+import { canManagePaymentLinks } from "@/lib/fms-access";
 import { emailPaymentLink } from "@/lib/products/cashflow-ai/payments/link-email";
 import { readSafeJson, UnsafeBodyError } from "@/lib/security/safe-json";
 

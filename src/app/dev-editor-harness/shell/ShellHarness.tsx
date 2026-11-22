@@ -13,7 +13,7 @@ export default function ShellHarness({ view, nav, title }: { view: string; nav: 
       <div className="mx-auto flex max-w-5xl gap-4 p-4">
         <aside className="w-64 shrink-0 rounded-3xl border border-border/50 bg-card/90">
           {view === "product" ? (
-            <HrmsSidebar roles={["employee"]} employeeId="e1" />
+            <HrmsSidebar roles={["employee"]} subject={{ isDirector: true }} employeeId="e1" />
           ) : (
             <HubSidebar nav={nav} />
           )}

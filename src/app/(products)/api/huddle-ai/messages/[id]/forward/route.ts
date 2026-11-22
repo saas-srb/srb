@@ -24,7 +24,7 @@ async function handlePOST(request: NextRequest, ctx: RouteContext<"/api/huddle-a
       toScopeId?: string;
     };
 
-    const from = await resolveScope(data.fromScopeType, data.fromScopeId, user);
+    const from = await resolveScope(data.fromScopeType, data.fromScopeId, user, "read");
     const to = await resolveScope(data.toScopeType, data.toScopeId, user);
     if (!from.canRead) throw new HttpError(403, "You can't read the original message.");
     if (!to.canPost) throw new HttpError(403, "You can't post in the target conversation.");

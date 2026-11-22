@@ -36,7 +36,18 @@ import {
   isValidTransactionType, isValidPaymentMethod, isValidSourceModule, isValidTransactionStatus, isValidFundAccountType, isValidInvoiceStatus, isValidRefundStatus, isValidAdvanceStatus, isValidAccountType, isValidFundAccountStatus, isValidAssetExpenseCategory, isValidStatementLineStatus,
   TRANSACTION_TYPES, TRANSACTION_STATUSES, PAYMENT_METHODS, SOURCE_MODULES, REFUND_STATUSES, ADVANCE_STATUSES, ACCOUNT_TYPES, FUND_ACCOUNT_TYPES, FUND_ACCOUNT_STATUSES, ASSET_EXPENSE_CATEGORIES, SUPPORTED_CURRENCIES, DEFAULT_CURRENCY,
 } from "@/lib/products/cashflow-ai/constants";
-import { canManageTransactions, canApproveTransactions, canManageAccounts, canManageBanking, canManageFiscalPeriods, canManageTaxConfig, canReconcile, canViewReports, canViewAuditLog } from "@/lib/fms-roles";
+import { microAny } from "@/lib/ai/agent/micro-gate";
+
+/** The old capability names, as gates on the person's own CashFlow features (the engine refuses any other kind of gate for this panel). */
+const canManageTransactions = microAny("cashflow-ai.transactions.manage");
+const canApproveTransactions = microAny("cashflow-ai.transactions.approve");
+const canManageAccounts = microAny("cashflow-ai.accounts.manage");
+const canManageBanking = microAny("cashflow-ai.banking.manage");
+const canManageFiscalPeriods = microAny("cashflow-ai.periods.manage");
+const canManageTaxConfig = microAny("cashflow-ai.tax.manage");
+const canReconcile = microAny("cashflow-ai.banking.reconcile");
+const canViewAuditLog = microAny("cashflow-ai.audit.view");
+const canViewReports = microAny("cashflow-ai.reports.export");
 import { fail, str } from "@/lib/ai/agent/entities/helpers";
 import { hsnSacError } from "@/lib/products/cashflow-ai/gst/hsn";
 import type { ActionDef, AgentUser, EntityDef, FieldDef, Json, ReportDef } from "@/lib/ai/agent/types";
@@ -66,7 +77,7 @@ const fundKey = (v: Json): { fundAccountId: string | null; fundAccountType: "ban
   return { fundAccountId: null, fundAccountType: null };
 };
 const FUND: FieldDef = { key: "fundAccountKey", label: "Paid from / into account, as bank:<id> or cash:<id> (fms.bank_account / fms.cash_account)", type: "string" };
-const needMoney = (u: AgentUser) => canManageTransactions(u);
+const needMoney = canManageTransactions;
 
 interface RawLine { description?: unknown; quantity?: unknown; unitPrice?: unknown; taxRate?: unknown; hsnSac?: unknown }
 function lineItems(v: unknown): { ok: true; items: { description: string; quantity: number; unitPrice: number; taxRate: number; hsnSac: string | null }[] } | { ok: false; error: Json } {
@@ -129,7 +140,7 @@ const txnCurrent = (t: Json): Json => ({ ...t, transactionDate: t.transactionDat
 export const FMS_ENTITIES: EntityDef[] = [
   {
     key: "fms.invoice", panel: "fms", label: "Invoice", description: "Customer invoices (draft → sent → partially_paid → paid / overdue / cancelled / void). Customers are SprintOS clients.", collection: "fms_invoices", idType: "string", baseFilter: soft,
-    titleField: "invoiceNumber", search: ["invoiceNumber", "customerName", "poNumber"], read: "staff", write: "staff", allow: canManageTransactions, canDelete: true,
+    titleField: "invoiceNumber", search: ["invoiceNumber", "customerName", "poNumber"], allowRead: microAny("cashflow-ai.invoices.view"), read: "staff", write: "staff", allow: canManageTransactions, canDelete: true,
     fields: [
       { key: "customerId", label: "Customer (pms.client id)", type: "ref", ref: "pms.client", required: true, createOnly: true },
       { key: "invoiceDate", label: "Invoice date", type: "dateString", required: true },
@@ -169,7 +180,7 @@ export const FMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "fms.transaction", panel: "fms", label: "Transaction", description: "Income, expense and other money transactions with status (draft → submitted → approved → completed …), amount, parties and account.", collection: "fms_transactions", idType: "string", baseFilter: soft,
-    titleField: "referenceNumber", search: ["referenceNumber", "description", "transactionNumber"], read: "staff", write: "staff", allow: canManageTransactions, canDelete: true,
+    titleField: "referenceNumber", search: ["referenceNumber", "description", "transactionNumber"], allowRead: microAny("cashflow-ai.transactions.view"), read: "staff", write: "staff", allow: canManageTransactions, canDelete: true,
     fields: [
       { key: "type", label: "Type", type: "enum", options: TXN_TYPES, required: true },
       { key: "transactionDate", label: "Transaction date", type: "dateString", required: true },
@@ -208,7 +219,7 @@ export const FMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "fms.bank_account", panel: "fms", label: "Bank account", description: "Company bank accounts and their balances (account numbers are never shown here).", collection: "fms_bank_accounts", idType: "string", baseFilter: soft, titleField: "accountName", search: ["accountName", "bankName"],
-    read: "staff", write: "staff", allow: canManageBanking, canDelete: true, hide: ["accountNumber", "accountNumberEncrypted", "accountNumberLast4"],
+    allowRead: microAny("cashflow-ai.bankaccounts.view"), read: "staff", write: "staff", allow: canManageBanking, canDelete: true, hide: ["accountNumber", "accountNumberEncrypted", "accountNumberLast4"],
     fields: [
       { key: "accountName", label: "Account name", type: "string", required: true }, { key: "bankName", label: "Bank name", type: "string", required: true },
       { key: "accountNumber", label: "Account number", type: "string" }, { key: "ifsc", label: "IFSC", type: "string" }, { key: "branch", label: "Branch", type: "string" },
@@ -241,7 +252,7 @@ export const FMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "fms.cash_account", panel: "fms", label: "Cash account", description: "Cash-in-hand accounts (petty cash, tills) and balances.", collection: "fms_cash_accounts", idType: "string", baseFilter: soft, titleField: "accountName", search: ["accountName", "location"],
-    read: "staff", write: "staff", allow: canManageBanking, canDelete: true,
+    allowRead: microAny("cashflow-ai.cashaccounts.view"), read: "staff", write: "staff", allow: canManageBanking, canDelete: true,
     fields: [
       { key: "accountName", label: "Account name", type: "string", required: true }, { key: "location", label: "Location", type: "string" }, { key: "department", label: "Department", type: "string" },
       { key: "currency", label: "Currency", type: "enum", options: CURRENCIES }, { key: "status", label: "Status", type: "enum", options: FUND_STATUS }, { key: "notes", label: "Notes", type: "text" },
@@ -272,7 +283,7 @@ export const FMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "fms.account", panel: "fms", label: "Ledger account", description: "Chart of accounts (code, name, type asset/liability/equity/income/expense, parent).", collection: "fms_accounts", idType: "string", baseFilter: soft, titleField: "name", search: ["name", "code"],
-    read: "staff", write: "staff", allow: canManageAccounts, canDelete: true,
+    allowRead: microAny("cashflow-ai.transactions.view"), read: "staff", write: "staff", allow: canManageAccounts, canDelete: true,
     fields: [
       { key: "code", label: "Code", type: "string", required: true }, { key: "name", label: "Name", type: "string", required: true },
       { key: "type", label: "Type", type: "enum", options: ACCT_TYPES, required: true }, { key: "parentId", label: "Parent (fms.account id)", type: "ref", ref: "fms.account" },
@@ -303,21 +314,21 @@ export const FMS_ENTITIES: EntityDef[] = [
       },
     },
   },
-  { key: "fms.receipt", panel: "fms", label: "Receipt", description: "Payments received from customers, with the invoices each paid.", collection: "fms_receipts", idType: "string", baseFilter: soft, titleField: "receiptNumber", search: ["receiptNumber", "customerName", "transactionReference"], read: "staff" },
-  { key: "fms.credit_note", panel: "fms", label: "Credit note", description: "Credit notes issued against customer invoices.", collection: "fms_credit_notes", idType: "string", baseFilter: soft, titleField: "creditNoteNumber", search: ["creditNoteNumber", "invoiceNumber"], read: "staff" },
-  { key: "fms.debit_note", panel: "fms", label: "Debit note", description: "Debit notes against vendor bills.", collection: "fms_debit_notes", idType: "string", baseFilter: soft, titleField: "debitNoteNumber", search: ["debitNoteNumber", "billNumber"], read: "staff" },
-  { key: "fms.refund", panel: "fms", label: "Refund", description: "Refunds of receipts (requested → approved → completed / failed).", collection: "fms_refunds", idType: "string", baseFilter: soft, titleField: "refundNumber", read: "staff" },
-  { key: "fms.reimbursement", panel: "fms", label: "Reimbursement", description: "Employee expense reimbursements paid.", collection: "fms_reimbursements", idType: "string", baseFilter: soft, read: "staff" },
-  { key: "fms.employee_advance", panel: "fms", label: "Employee advance", description: "Advances to employees (requested → approved → paid → repaid).", collection: "fms_employee_advances", idType: "string", baseFilter: soft, titleField: "advanceNumber", search: ["advanceNumber", "employeeName"], read: "staff" },
-  { key: "fms.fund_transfer", panel: "fms", label: "Fund transfer", description: "Transfers between bank and cash accounts.", collection: "fms_fund_transfers", idType: "string", baseFilter: soft, titleField: "transferNumber", read: "staff" },
+  { key: "fms.receipt", panel: "fms", label: "Receipt", description: "Payments received from customers, with the invoices each paid.", collection: "fms_receipts", idType: "string", baseFilter: soft, titleField: "receiptNumber", search: ["receiptNumber", "customerName", "transactionReference"], allowRead: microAny("cashflow-ai.receipts.view"), read: "staff" },
+  { key: "fms.credit_note", panel: "fms", label: "Credit note", description: "Credit notes issued against customer invoices.", collection: "fms_credit_notes", idType: "string", baseFilter: soft, titleField: "creditNoteNumber", search: ["creditNoteNumber", "invoiceNumber"], allowRead: microAny("cashflow-ai.creditnotes.view"), read: "staff" },
+  { key: "fms.debit_note", panel: "fms", label: "Debit note", description: "Debit notes against vendor bills.", collection: "fms_debit_notes", idType: "string", baseFilter: soft, titleField: "debitNoteNumber", search: ["debitNoteNumber", "billNumber"], allowRead: microAny("cashflow-ai.debitnotes.view"), read: "staff" },
+  { key: "fms.refund", panel: "fms", label: "Refund", description: "Refunds of receipts (requested → approved → completed / failed).", collection: "fms_refunds", idType: "string", baseFilter: soft, titleField: "refundNumber", allowRead: microAny("cashflow-ai.refunds.view"), read: "staff" },
+  { key: "fms.reimbursement", panel: "fms", label: "Reimbursement", description: "Employee expense reimbursements paid.", collection: "fms_reimbursements", idType: "string", baseFilter: soft, allowRead: microAny("cashflow-ai.reimbursements.view"), read: "staff" },
+  { key: "fms.employee_advance", panel: "fms", label: "Employee advance", description: "Advances to employees (requested → approved → paid → repaid).", collection: "fms_employee_advances", idType: "string", baseFilter: soft, titleField: "advanceNumber", search: ["advanceNumber", "employeeName"], allowRead: microAny("cashflow-ai.advances.view"), read: "staff" },
+  { key: "fms.fund_transfer", panel: "fms", label: "Fund transfer", description: "Transfers between bank and cash accounts.", collection: "fms_fund_transfers", idType: "string", baseFilter: soft, titleField: "transferNumber", allowRead: microAny("cashflow-ai.transfers.view"), read: "staff" },
   { key: "fms.journal_entry", panel: "fms", label: "Journal entry", description: "Accounting journal entries.", collection: "fms_journal_entries", idType: "string", baseFilter: soft, read: "staff", allowRead: canViewReports },
   { key: "fms.statement_line", panel: "fms", label: "Bank statement line", description: "Bank statement lines for reconciliation (unmatched / matched / needs review).", collection: "fms_bank_statement_lines", idType: "string", baseFilter: soft, read: "staff", allowRead: canReconcile, search: ["description"] },
   { key: "fms.cash_count", panel: "fms", label: "Cash count", description: "Physical cash counts and differences.", collection: "fms_cash_counts", idType: "string", baseFilter: soft, read: "staff", allowRead: canReconcile },
-  { key: "fms.fiscal_period", panel: "fms", label: "Fiscal period", description: "Accounting periods (open / closed).", collection: "fms_fiscal_periods", idType: "string", read: "staff" },
-  { key: "fms.exchange_rate", panel: "fms", label: "Exchange rate", description: "Currency rates to the base currency.", collection: "fms_exchange_rates", idType: "string", read: "staff" },
-  { key: "fms.payment_link", panel: "fms", label: "Payment link", description: "Online payment links sent to customers.", collection: "fms_payment_links", idType: "string", read: "staff" },
-  { key: "fms.asset_expense", panel: "fms", label: "Asset expense", description: "Maintenance, insurance and AMC costs of assets.", collection: "fms_asset_expenses", idType: "string", baseFilter: soft, read: "staff" },
-  { key: "fms.asset_disposal", panel: "fms", label: "Asset disposal", description: "Assets sold or written off, with gain/loss.", collection: "fms_asset_disposals", idType: "string", baseFilter: soft, read: "staff" },
+  { key: "fms.fiscal_period", panel: "fms", label: "Fiscal period", description: "Accounting periods (open / closed).", collection: "fms_fiscal_periods", idType: "string", allowRead: microAny("cashflow-ai.reports.view"), read: "staff" },
+  { key: "fms.exchange_rate", panel: "fms", label: "Exchange rate", description: "Currency rates to the base currency.", collection: "fms_exchange_rates", idType: "string", allowRead: microAny("cashflow-ai.transactions.view"), read: "staff" },
+  { key: "fms.payment_link", panel: "fms", label: "Payment link", description: "Online payment links sent to customers.", collection: "fms_payment_links", idType: "string", allowRead: microAny("cashflow-ai.paymentlinks.view"), read: "staff" },
+  { key: "fms.asset_expense", panel: "fms", label: "Asset expense", description: "Maintenance, insurance and AMC costs of assets.", collection: "fms_asset_expenses", idType: "string", baseFilter: soft, allowRead: microAny("cashflow-ai.assets.view"), read: "staff" },
+  { key: "fms.asset_disposal", panel: "fms", label: "Asset disposal", description: "Assets sold or written off, with gain/loss.", collection: "fms_asset_disposals", idType: "string", baseFilter: soft, allowRead: microAny("cashflow-ai.assets.view"), read: "staff" },
   { key: "fms.activity", panel: "fms", label: "Audit log", description: "Who changed what in CashFlow.", collection: "fms_activity_logs", idType: "string", search: ["entityLabel", "summary", "actorEmail"], read: "admin", allowRead: canViewAuditLog },
 ];
 

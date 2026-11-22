@@ -1,16 +1,22 @@
 import "server-only";
 import { cache } from "react";
 import { getCurrentCmsUser } from "@/lib/cms-auth";
-import { cmsCan, type CmsPermission } from "@/lib/cms-roles";
+import { can as accessCan, type AccessSubject } from "@/lib/access/can";
+import { loadAccessSubject } from "@/lib/access/server";
+import { microByKey } from "@/lib/access/micro";
+import type { Level } from "@/lib/access/types";
 import type { RoleContext } from "@/lib/permission-overrides";
+
+const PRODUCT = "sitecraft-ai";
 
 export interface CmsViewer {
   userId: string;
   email: string;
   roles: string[];
   overrides: Record<string, boolean>;
-  /** Pass to `cmsCan`. */
   ctx: RoleContext;
+  /** The person's access (micro features of SiteCraft). Every check goes through `can(viewer, "<module>.<feature>")`. */
+  subject: AccessSubject;
 }
 
 /** Request-scoped current viewer (null when signed out). Pages, layouts and components share one resolution. */
@@ -18,17 +24,23 @@ export const getViewer = cache(async (): Promise<CmsViewer | null> => {
   const user = await getCurrentCmsUser();
   if (!user) return null;
   const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides };
+  const subject = (await loadAccessSubject(user.id)) ?? { isDirector: false, access: {} };
   return {
     userId: user.id,
     email: user.email,
     roles: user.roles,
     overrides: user.permissionOverrides,
     ctx,
+    subject,
   };
 });
 
-export function can(viewer: CmsViewer, permission: CmsPermission): boolean {
-  return cmsCan(viewer.ctx, permission);
+/** The one check. `key` is `<module>.<feature>` without the product, e.g. "pages.publish". An unknown key is never allowed (the coverage test also fails on it). */
+export function can(viewer: Pick<CmsViewer, "subject">, key: string, level?: Level): boolean {
+  const full = `${PRODUCT}.${key}`;
+  const m = microByKey(full);
+  if (!m) return false;
+  return accessCan(viewer.subject, PRODUCT, full, level ?? m.level);
 }
 
 /** For server actions / route handlers: throws `Unauthorized` when signed out. */
@@ -39,12 +51,12 @@ export async function requireViewer(): Promise<CmsViewer> {
 }
 
 /** Throws `Forbidden` unless the viewer holds the permission. */
-export function assertCan(viewer: CmsViewer, permission: CmsPermission): void {
-  if (!cmsCan(viewer.ctx, permission)) throw new ForbiddenError(permission);
+export function assertCan(viewer: Pick<CmsViewer, "subject">, permission: string): void {
+  if (!can(viewer, permission)) throw new ForbiddenError(permission);
 }
 
 export class ForbiddenError extends Error {
-  constructor(public permission: CmsPermission) {
+  constructor(public permission: string) {
     super("Forbidden");
     this.name = "ForbiddenError";
   }
@@ -69,7 +81,7 @@ const SESSION_EXPIRED: Fail = { ok: false, error: "Your session has expired — 
  * the message — mirrors `run()` in `src/app/rankmax-ai/(protected)/actions.ts`.
  */
 export async function runCmsAction<T extends object>(
-  permission: CmsPermission | CmsPermission[],
+  permission: string | string[],
   fn: (v: CmsViewer) => Promise<T>
 ): Promise<Ok<T> | Fail> {
   let v: CmsViewer;

@@ -8,7 +8,7 @@ import NewLeadForm from "./NewLeadForm";
 export const metadata = { title: "New lead · Lead Management" };
 
 export default async function NewLeadPage() {
-  await requireLmsPage("CREATE_LEADS");
+  await requireLmsPage("leads.create");
   return (
     <div className="space-y-4">
 <PanelPageHeader

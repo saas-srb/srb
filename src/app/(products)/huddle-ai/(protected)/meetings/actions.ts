@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getCurrentChatUser } from "@/lib/messenger-auth";
+import { chatCan } from "@/lib/messenger-access";
 import {
   createMeeting,
   updateMeeting,
@@ -18,9 +19,11 @@ import {
   type Rsvp,
 } from "@/lib/products/huddle-ai/meetings";
 
-async function requireUser() {
+async function requireUser(key: "meetings.manage" | "calls.use" = "calls.use") {
   const user = await getCurrentChatUser();
   if (!user) redirect("/huddle-ai/login");
+  // refused people get the same plain error every action here already returns for "not allowed"
+  if (!chatCan(user, key)) throw new Error("Forbidden");
   return user;
 }
 
@@ -36,7 +39,7 @@ export interface MeetingFormInput {
 }
 
 export async function createMeetingAction(input: MeetingFormInput): Promise<{ error: string } | never> {
-  const user = await requireUser();
+  const user = await requireUser("meetings.manage");
   const title = input.title?.trim() ?? "";
   if (title.length < 2) return { error: "Give the meeting a title." };
 
@@ -69,7 +72,7 @@ export async function updateMeetingAction(
   id: string,
   patch: { title?: string; description?: string; startAt?: string; durationMins?: number; recordingEnabled?: boolean; screenShareEnabled?: boolean }
 ): Promise<{ ok: boolean; error?: string }> {
-  const user = await requireUser();
+  const user = await requireUser("meetings.manage");
   try {
     await updateMeeting(
       id,
@@ -91,7 +94,7 @@ export async function updateMeetingAction(
 }
 
 export async function addMeetingInviteesAction(id: string, userIds: string[]): Promise<{ ok: boolean; error?: string }> {
-  const user = await requireUser();
+  const user = await requireUser("meetings.manage");
   try {
     await addInvitees(id, userIds, user.id);
     revalidatePath(`/huddle-ai/meetings/${id}`);
@@ -102,7 +105,7 @@ export async function addMeetingInviteesAction(id: string, userIds: string[]): P
 }
 
 export async function cancelMeetingAction(id: string): Promise<{ ok: boolean; error?: string }> {
-  const user = await requireUser();
+  const user = await requireUser("meetings.manage");
   try {
     await cancelMeeting(id, user.id);
     revalidatePath("/huddle-ai/meetings");
@@ -151,7 +154,7 @@ export async function leaveMeetingAction(id: string): Promise<{ ok: boolean }> {
 }
 
 export async function endMeetingAction(id: string): Promise<{ ok: boolean; error?: string }> {
-  const user = await requireUser();
+  const user = await requireUser("meetings.manage");
   try {
     await endMeeting(id, user.id);
     revalidatePath(`/huddle-ai/meetings/${id}`);

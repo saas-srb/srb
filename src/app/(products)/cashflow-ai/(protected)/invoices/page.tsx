@@ -8,7 +8,7 @@ import FmsDataTable from "@/components/products/cashflow-ai/FmsDataTable";
 import InvoiceForm from "@/components/products/cashflow-ai/InvoiceForm";
 import { InvoiceStatusBadge } from "@/components/products/cashflow-ai/StatusBadges";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageTransactions } from "@/lib/fms-roles";
+import { canManageTransactions } from "@/lib/fms-access";
 import { searchInvoices, serializeInvoice, invoiceBalance, countInvoices } from "@/lib/products/cashflow-ai/invoices";
 import { totalOutstandingInvoices, overdueInvoices } from "@/lib/products/cashflow-ai/receivables";
 import { listClientOptions } from "@/lib/products/sprintos/clients";

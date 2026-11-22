@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/viralpulse-ai/gate";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Clapperboard, Film, Loader2, Plus, Settings2, Wallet } from "lucide-react";
@@ -23,11 +24,13 @@ export const metadata = { title: "AI UGC Studio" };
 export default async function UgcListPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/viralpulse-ai/login");
-  if (!can(viewer, "GENERATE_AI_CONTENT")) redirect("/viralpulse-ai");
+  const locked = lockedUnless(viewer, "ugc.use", "UGC videos");
+  if (locked) return locked;
+  if (!can(viewer, "ugc.use")) redirect("/viralpulse-ai");
   const sp = await searchParams;
   const tab = parseTab(sp.status);
   const [ov, list, conn] = await Promise.all([api.overview(), api.listProjects(), api.connections()]);
-  const canManage = can(viewer, "MANAGE_INTEGRATIONS");
+  const canManage = can(viewer, "ugc.settings");
 
   const header = (
     <PageHeader

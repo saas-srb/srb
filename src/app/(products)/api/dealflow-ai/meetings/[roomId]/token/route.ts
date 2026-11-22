@@ -33,7 +33,7 @@ async function handlePOST(req: NextRequest, { params }: { params: Promise<{ room
       return NextResponse.json({ ok: true, ...r.props });
     }
 
-    const user = await requireLms("VIEW_LEADS");
+    const user = await requireLms("meetings.view");
     if (!user) return NextResponse.json({ ok: false, code: "denied", error: "Sign in to join this meeting." }, { status: 401 });
     const m = await getMeeting(roomId);
     if (!m) return NextResponse.json({ ok: false, code: "not_found", error: "Meeting not found" }, { status: 404 });

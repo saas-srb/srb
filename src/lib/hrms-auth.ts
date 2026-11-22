@@ -6,6 +6,8 @@ import { cookies } from "next/headers";
 import { ObjectId } from "mongodb";
 import { WORKSPACE_SESSION_COOKIE, workspaceSessionAccountId } from "@/lib/workspace-session";
 import { getDb } from "@/lib/mongodb";
+import { subjectFromRow } from "@/lib/access/server";
+import type { AccessSubject } from "@/lib/access/can";
 import { verifyPassword, hashPassword } from "@/lib/lms-auth";
 import { HRMS_ROLES, normalizeRoles, type HrmsRole } from "@/lib/hrms-roles";
 
@@ -53,6 +55,8 @@ export interface CurrentHrmsUser {
   allRoles: string[];
   /** Per-capability overrides from the Director — see `permission-overrides.ts`. */
   permissionOverrides: Record<string, boolean>;
+  /** The person's access (micro features): what every TalentOS check reads. */
+  subject: AccessSubject;
   employeeId: string | null;
   mustChangePassword: boolean;
   createdAt: Date;
@@ -170,6 +174,7 @@ export async function getHrmsUserForAccount(adminId: ObjectId): Promise<CurrentH
     roles,
     allRoles: user.roles ?? [],
     permissionOverrides: user.permissionOverrides ?? {},
+    subject: subjectFromRow(user as never),
     employeeId: user.employeeId ?? null,
     mustChangePassword: user.mustChangePassword === true,
     createdAt: user.createdAt,

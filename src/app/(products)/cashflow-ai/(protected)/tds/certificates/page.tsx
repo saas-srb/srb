@@ -5,7 +5,7 @@ import CertificateTracker from "@/components/products/cashflow-ai/tds/Certificat
 import LowerCertsManager from "@/components/products/cashflow-ai/tds/LowerCertsManager";
 import TdsPeriodPicker from "@/components/products/cashflow-ai/tds/TdsPeriodPicker";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance } from "@/lib/fms-roles";
+import { canManageCompliance } from "@/lib/fms-access";
 import { financialYearOf, isFinancialYear, isQuarter, quarterOf, type Quarter } from "@/lib/products/cashflow-ai/tds/core";
 import { listLowerCerts, listVendorChoices, loadCertificateTasks } from "@/lib/products/cashflow-ai/tds/certificates-store";
 import { QUARTER_LABEL } from "@/lib/products/cashflow-ai/tds/statement";

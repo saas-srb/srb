@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance, canManageFiscalPeriods } from "@/lib/fms-roles";
+import { canManageCompliance, canManageFiscalPeriods } from "@/lib/fms-access";
 import { postProvision, removeProvision } from "@/lib/products/cashflow-ai/income-tax/provision";
 import { addAdjustment, removeAdjustment, saveNote, saveRates, saveSetOffs, setRegime } from "@/lib/products/cashflow-ai/income-tax/store";
 import type { TaxRates } from "@/lib/products/cashflow-ai/income-tax/core";

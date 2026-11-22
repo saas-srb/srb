@@ -109,7 +109,7 @@ export async function loadWizardInit(postId: string | null, handoff: Handoff, vi
   return {
     state, postStatus: post?.status ?? null, lockedReason, accounts, media, campaigns, offers: pickers.offers, clients: pickers.clients, services: pickers.services, caps,
     settings: { timezone: settings.timezone, aiDisclosureOff: settings.aiDisclosureOff, gbpEnabled: settings.gbpEnabled },
-    can: { publish: can(viewer, "PUBLISH_CONTENT"), schedule: can(viewer, "SCHEDULE_POSTS") || can(viewer, "PUBLISH_CONTENT"), generate: can(viewer, "GENERATE_AI_CONTENT") && aiReady, upload: can(viewer, "MANAGE_MEDIA"), settings: can(viewer, "MANAGE_INTEGRATIONS"), metrics: can(viewer, "VIEW_ANALYTICS") },
+    can: { publish: can(viewer, "posts.publish"), schedule: can(viewer, "posts.schedule") || can(viewer, "posts.publish"), generate: can(viewer, "posts.generate") && aiReady, upload: can(viewer, "media.manage"), settings: can(viewer, "integrations.manage"), metrics: can(viewer, "analytics.view") },
     aiReady, brandName: brand.companyName, versionCount: 0, nowIso: new Date().toISOString(),
   };
 }

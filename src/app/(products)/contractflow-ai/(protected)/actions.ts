@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireLpmsUser } from "@/lib/lpms-auth";
-import { getViewer } from "@/lib/products/contractflow-ai/viewer";
-import { lpmsCan } from "@/lib/lpms-roles";
+import { lpmsAllow, getViewer } from "@/lib/products/contractflow-ai/viewer";
 import {
   createDocument,
   updateDocument,
@@ -47,7 +46,7 @@ export async function createDocumentAction(data: {
 }): Promise<ActionResult> {
   const user = await requireLpmsUser();
   const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides };
-  if (!lpmsCan(ctx, "CREATE")) return { ok: false, error: "Permission denied" };
+  if (!(await lpmsAllow(user.id, "documents.create"))) return { ok: false, error: "Permission denied" };
   const viewer = await getViewer();
   if (!viewer) return { ok: false, error: "Unauthorized" };
   const result = await createDocument(data, viewer);
@@ -68,7 +67,7 @@ export async function updateDocumentAction(
 ): Promise<ActionResult> {
   const user = await requireLpmsUser();
   const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides };
-  if (!lpmsCan(ctx, "EDIT")) return { ok: false, error: "Permission denied" };
+  if (!(await lpmsAllow(user.id, "documents.edit"))) return { ok: false, error: "Permission denied" };
   const viewer = await getViewer();
   if (!viewer) return { ok: false, error: "Unauthorized" };
   const result = await updateDocument(id, data, viewer);
@@ -79,7 +78,7 @@ export async function updateDocumentAction(
 export async function submitForApprovalAction(id: string): Promise<ActionResult> {
   const user = await requireLpmsUser();
   const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides };
-  if (!lpmsCan(ctx, "EDIT")) return { ok: false, error: "Permission denied" };
+  if (!(await lpmsAllow(user.id, "documents.edit"))) return { ok: false, error: "Permission denied" };
   const viewer = await getViewer();
   if (!viewer) return { ok: false, error: "Unauthorized" };
   const result = await submitForApproval(id, viewer);
@@ -97,7 +96,7 @@ export async function approveDocumentAction(
 ): Promise<ActionResult> {
   const user = await requireLpmsUser();
   const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides };
-  if (!lpmsCan(ctx, "APPROVE")) return { ok: false, error: "Permission denied" };
+  if (!(await lpmsAllow(user.id, "documents.approve"))) return { ok: false, error: "Permission denied" };
   const viewer = await getViewer();
   if (!viewer) return { ok: false, error: "Unauthorized" };
   const result = await approveDocument(documentId, approvalId, notes, viewer);
@@ -115,7 +114,7 @@ export async function rejectDocumentAction(
 ): Promise<ActionResult> {
   const user = await requireLpmsUser();
   const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides };
-  if (!lpmsCan(ctx, "APPROVE")) return { ok: false, error: "Permission denied" };
+  if (!(await lpmsAllow(user.id, "documents.approve"))) return { ok: false, error: "Permission denied" };
   const viewer = await getViewer();
   if (!viewer) return { ok: false, error: "Unauthorized" };
   const result = await rejectDocument(documentId, approvalId, notes, viewer);
@@ -129,7 +128,7 @@ export async function rejectDocumentAction(
 export async function publishDocumentAction(id: string): Promise<ActionResult> {
   const user = await requireLpmsUser();
   const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides };
-  if (!lpmsCan(ctx, "PUBLISH")) return { ok: false, error: "Permission denied" };
+  if (!(await lpmsAllow(user.id, "documents.publish"))) return { ok: false, error: "Permission denied" };
   const viewer = await getViewer();
   if (!viewer) return { ok: false, error: "Unauthorized" };
   const result = await publishDocument(id, viewer);
@@ -140,7 +139,7 @@ export async function publishDocumentAction(id: string): Promise<ActionResult> {
 export async function archiveDocumentAction(id: string): Promise<ActionResult> {
   const user = await requireLpmsUser();
   const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides };
-  if (!lpmsCan(ctx, "ARCHIVE")) return { ok: false, error: "Permission denied" };
+  if (!(await lpmsAllow(user.id, "documents.archive"))) return { ok: false, error: "Permission denied" };
   const viewer = await getViewer();
   if (!viewer) return { ok: false, error: "Unauthorized" };
   const result = await archiveDocument(id, viewer);
@@ -151,7 +150,7 @@ export async function archiveDocumentAction(id: string): Promise<ActionResult> {
 export async function deleteDocumentAction(id: string): Promise<ActionResult> {
   const user = await requireLpmsUser();
   const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides };
-  if (!lpmsCan(ctx, "DELETE")) return { ok: false, error: "Permission denied" };
+  if (!(await lpmsAllow(user.id, "documents.delete"))) return { ok: false, error: "Permission denied" };
   const viewer = await getViewer();
   if (!viewer) return { ok: false, error: "Unauthorized" };
   const result = await deleteDocument(id, viewer);
@@ -173,7 +172,7 @@ export async function createMakerTypeAction(data: {
 }): Promise<ActionResult> {
   const user = await requireLpmsUser();
   const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides };
-  if (!lpmsCan(ctx, "MANAGE_MAKERS")) return { ok: false, error: "Permission denied" };
+  if (!(await lpmsAllow(user.id, "makers.manage"))) return { ok: false, error: "Permission denied" };
   const viewer = await getViewer();
   if (!viewer) return { ok: false, error: "Unauthorized" };
   const result = await createMakerType(data, viewer);
@@ -184,7 +183,7 @@ export async function createMakerTypeAction(data: {
 export async function updateMakerTypeAction(id: string, data: unknown): Promise<ActionResult> {
   const user = await requireLpmsUser();
   const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides };
-  if (!lpmsCan(ctx, "MANAGE_MAKERS")) return { ok: false, error: "Permission denied" };
+  if (!(await lpmsAllow(user.id, "makers.manage"))) return { ok: false, error: "Permission denied" };
   const viewer = await getViewer();
   if (!viewer) return { ok: false, error: "Unauthorized" };
   const result = await updateMakerType(id, data, viewer);
@@ -198,7 +197,7 @@ export async function updateMakerTypeAction(id: string, data: unknown): Promise<
 export async function archiveMakerTypeAction(id: string): Promise<ActionResult> {
   const user = await requireLpmsUser();
   const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides };
-  if (!lpmsCan(ctx, "MANAGE_MAKERS")) return { ok: false, error: "Permission denied" };
+  if (!(await lpmsAllow(user.id, "makers.manage"))) return { ok: false, error: "Permission denied" };
   const viewer = await getViewer();
   if (!viewer) return { ok: false, error: "Unauthorized" };
   const result = await archiveMakerType(id, viewer);
@@ -216,7 +215,7 @@ export async function createTemplateAction(data: {
 }): Promise<ActionResult> {
   const user = await requireLpmsUser();
   const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides };
-  if (!lpmsCan(ctx, "MANAGE_TEMPLATES")) return { ok: false, error: "Permission denied" };
+  if (!(await lpmsAllow(user.id, "templates.manage"))) return { ok: false, error: "Permission denied" };
   const viewer = await getViewer();
   if (!viewer) return { ok: false, error: "Unauthorized" };
   const result = await createTemplate(data, viewer);
@@ -227,7 +226,7 @@ export async function createTemplateAction(data: {
 export async function updateTemplateAction(id: string, data: unknown): Promise<ActionResult> {
   const user = await requireLpmsUser();
   const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides };
-  if (!lpmsCan(ctx, "MANAGE_TEMPLATES")) return { ok: false, error: "Permission denied" };
+  if (!(await lpmsAllow(user.id, "templates.manage"))) return { ok: false, error: "Permission denied" };
   const viewer = await getViewer();
   if (!viewer) return { ok: false, error: "Unauthorized" };
   const result = await updateTemplate(id, data, viewer);
@@ -241,7 +240,7 @@ export async function updateTemplateAction(id: string, data: unknown): Promise<A
 export async function deleteTemplateAction(id: string): Promise<ActionResult> {
   const user = await requireLpmsUser();
   const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides };
-  if (!lpmsCan(ctx, "MANAGE_TEMPLATES")) return { ok: false, error: "Permission denied" };
+  if (!(await lpmsAllow(user.id, "templates.manage"))) return { ok: false, error: "Permission denied" };
   const viewer = await getViewer();
   if (!viewer) return { ok: false, error: "Unauthorized" };
   const result = await archiveTemplate(id, viewer);
@@ -260,7 +259,7 @@ export async function createCategoryAction(data: {
 }): Promise<ActionResult> {
   const user = await requireLpmsUser();
   const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides };
-  if (!lpmsCan(ctx, "MANAGE_POLICIES")) return { ok: false, error: "Permission denied" };
+  if (!(await lpmsAllow(user.id, "policies.manage"))) return { ok: false, error: "Permission denied" };
   const viewer = await getViewer();
   if (!viewer) return { ok: false, error: "Unauthorized" };
   const result = await createCategory(data, viewer);
@@ -271,7 +270,7 @@ export async function createCategoryAction(data: {
 export async function updateCategoryAction(id: string, data: unknown): Promise<ActionResult> {
   const user = await requireLpmsUser();
   const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides };
-  if (!lpmsCan(ctx, "MANAGE_POLICIES")) return { ok: false, error: "Permission denied" };
+  if (!(await lpmsAllow(user.id, "policies.manage"))) return { ok: false, error: "Permission denied" };
   const viewer = await getViewer();
   if (!viewer) return { ok: false, error: "Unauthorized" };
   const result = await updateCategory(id, data, viewer);
@@ -282,7 +281,7 @@ export async function updateCategoryAction(id: string, data: unknown): Promise<A
 export async function deleteCategoryAction(id: string): Promise<ActionResult> {
   const user = await requireLpmsUser();
   const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides };
-  if (!lpmsCan(ctx, "MANAGE_POLICIES")) return { ok: false, error: "Permission denied" };
+  if (!(await lpmsAllow(user.id, "policies.manage"))) return { ok: false, error: "Permission denied" };
   const viewer = await getViewer();
   if (!viewer) return { ok: false, error: "Unauthorized" };
   const result = await archiveCategory(id, viewer);
@@ -300,7 +299,7 @@ export async function createWorkflowAction(data: {
 }): Promise<ActionResult> {
   const user = await requireLpmsUser();
   const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides };
-  if (!lpmsCan(ctx, "MANAGE_POLICIES")) return { ok: false, error: "Permission denied" };
+  if (!(await lpmsAllow(user.id, "policies.manage"))) return { ok: false, error: "Permission denied" };
   const viewer = await getViewer();
   if (!viewer) return { ok: false, error: "Unauthorized" };
   const result = await createWorkflow(data, viewer);
@@ -311,7 +310,7 @@ export async function createWorkflowAction(data: {
 export async function updateWorkflowAction(id: string, data: unknown): Promise<ActionResult> {
   const user = await requireLpmsUser();
   const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides };
-  if (!lpmsCan(ctx, "MANAGE_POLICIES")) return { ok: false, error: "Permission denied" };
+  if (!(await lpmsAllow(user.id, "policies.manage"))) return { ok: false, error: "Permission denied" };
   const viewer = await getViewer();
   if (!viewer) return { ok: false, error: "Unauthorized" };
   const result = await updateWorkflow(id, data, viewer);

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageAccounts } from "@/lib/fms-roles";
+import { canManageAccounts } from "@/lib/fms-access";
 import { createAccount, updateAccount, deleteAccount, seedDefaultAccounts, type AccountWriteData } from "@/lib/products/cashflow-ai/accounts";
 import { isValidAccountType } from "@/lib/products/cashflow-ai/constants";
 import { recordAudit } from "@/lib/products/cashflow-ai/audit";

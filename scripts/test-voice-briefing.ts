@@ -1,3 +1,4 @@
+import { legacyToAccess } from "../src/lib/access/adapter";
 import assert from "node:assert/strict";
 
 // Throwaway database only. ElevenLabs is a fake fetch, the condenser is a fake function: no network, no real call, no OpenAI.
@@ -35,7 +36,7 @@ const t = async (name: string, fn: () => Promise<void> | void) => { await fn(); 
   type CallDoc = import("../src/lib/products/agentos/calls/types").CallDoc;
   type Section = import("../src/lib/products/agentos/calls/briefing-core").BriefingSection;
 
-  const viewer = (userId: string, roles: string[], overrides?: Record<string, boolean>): Viewer => ({ userId, email: `${userId}@x.test`, roles, ctx: { roles, permissionOverrides: overrides } as Viewer["ctx"], seesAll: false });
+  const viewer = (userId: string, roles: string[], overrides?: Record<string, boolean>): Viewer => ({ userId, email: `${userId}@x.test`, roles, ctx: { roles, permissionOverrides: overrides } as Viewer["ctx"], subject: legacyToAccess({ roles, permissionOverrides: overrides ?? null }), seesAll: false });
 
   // ── Pure: cleaning untrusted text ───────────────────────────────────────
   await t("untrusted text: one line, no delimiters, braces or control characters; secrets and ID numbers removed", () => {

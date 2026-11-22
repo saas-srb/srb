@@ -1,7 +1,7 @@
 import "server-only";
 import { registerCallSettledHandler } from "@/lib/products/agentos/calls/engine";
 import { registerTargetAuthorizer } from "@/lib/products/agentos/calls/integrations";
-import { lmsCan } from "@/lib/lms-roles";
+import { lmsCan } from "@/lib/lms-auth";
 import type { AibotsViewer } from "@/lib/products/agentos/viewer";
 import type { CallTarget } from "@/lib/products/agentos/calls/types";
 import { registerDoNotContactProvider } from "@/lib/products/agentos/calls/dnc";
@@ -17,8 +17,8 @@ import { dealflowCallerLookup, dealflowDoNotContact, dealflowEntityExists, recor
  */
 export async function authorizeDealflowTarget(viewer: AibotsViewer, target: CallTarget): Promise<boolean> {
   if (target.product !== DEALFLOW_PRODUCT) return false;
-  const needed = target.entityType === "lead" || target.entityType === "submission" ? "VIEW_LEADS" : target.entityType === "applicant" ? "VIEW_CAREERS" : null;
-  if (!needed || !lmsCan(viewer.ctx, needed)) return false;
+  const needed = target.entityType === "lead" || target.entityType === "submission" ? "leads.view" : target.entityType === "applicant" ? "careers.view" : null;
+  if (!needed || !lmsCan(viewer, needed)) return false;
   return dealflowEntityExists(target);
 }
 

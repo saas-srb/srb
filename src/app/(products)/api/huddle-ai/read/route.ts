@@ -11,7 +11,7 @@ async function handlePOST(request: NextRequest) {
   try {
     const user = await requireSession();
     const data = (await request.json()) as { scopeType?: string; scopeId?: string; seq?: number };
-    const resolved = await resolveScope(data.scopeType, data.scopeId, user);
+    const resolved = await resolveScope(data.scopeType, data.scopeId, user, "read");
     const seq = Number(data.seq);
     if (!Number.isFinite(seq) || seq < 0) throw new HttpError(400, "Invalid position.");
 

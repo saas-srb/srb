@@ -13,7 +13,7 @@ import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import CashAccountForm from "@/components/products/cashflow-ai/CashAccountForm";
 import { FundAccountStatusBadge } from "@/components/products/cashflow-ai/StatusBadges";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageBanking } from "@/lib/fms-roles";
+import { canManageBanking } from "@/lib/fms-access";
 import { listCashAccounts, serializeCashAccount, totalCashBalance } from "@/lib/products/cashflow-ai/cash-accounts";
 import { formatMoney } from "@/lib/products/cashflow-ai/constants";
 

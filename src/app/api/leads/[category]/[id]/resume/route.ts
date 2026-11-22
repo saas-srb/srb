@@ -6,7 +6,7 @@ import { getLead, isValidCategory, openResumeDownloadStream } from "@/lib/leads"
 type Context = { params: Promise<{ category: string; id: string }> };
 
 async function handleGET(req: NextRequest, { params }: Context) {
-  if (!(await isAuthorizedLmsRequest(req, "VIEW_LEADS"))) {
+  if (!(await isAuthorizedLmsRequest(req, "leads.view"))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

@@ -1,4 +1,4 @@
-import { getCurrentChatUser } from "@/lib/messenger-auth";
+import { getCurrentChatUser, requireChatPage } from "@/lib/messenger-auth";
 import { listMemberChannels, serializeChannel } from "@/lib/products/huddle-ai/channels";
 import { listDirectoryUsers } from "@/lib/products/huddle-ai/users";
 import ConversationList, { type ConversationRow } from "@/components/products/huddle-ai/ConversationList";
@@ -7,6 +7,8 @@ import CreateGroupButton from "@/components/products/huddle-ai/CreateGroupButton
 export const dynamic = "force-dynamic";
 
 export default async function GroupsLayout({ children }: { children: React.ReactNode }) {
+  // The menu hides this section from people without it; a typed address goes back to the Huddle home.
+  await requireChatPage("groups.view");
   const user = await getCurrentChatUser();
   if (!user) return null;
 

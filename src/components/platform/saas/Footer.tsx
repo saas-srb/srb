@@ -8,8 +8,8 @@ import { productPath } from "@/lib/platform/saas/product-routes";
 /** The legal and trust links, grouped by what a reader is looking for. */
 const LEGAL_GROUPS: { title: string; note: string; icon: typeof Scale; hrefs: string[] }[] = [
   { title: "Legal", note: "The agreements and policies for using the service.", icon: Scale, hrefs: ["/terms", "/privacy", "/cookies", "/refund-policy"] },
-  { title: "Your data", note: "How your information is handled, and your rights over it.", icon: Lock, hrefs: ["/data-policy", "/data-requests", "/dpa", "/subprocessors"] },
-  { title: "Trust and security", note: "How the service is protected and kept running.", icon: ShieldCheck, hrefs: ["/security", "/sla", "/status", "/vulnerability-disclosure"] },
+  { title: "Your data", note: "How your information is handled, and your rights over it.", icon: Lock, hrefs: ["/data-policy", "/data-requests", "/dpa"] },
+  { title: "Trust and security", note: "How the service is protected and kept running.", icon: ShieldCheck, hrefs: ["/security", "/sla", "/status"] },
 ];
 
 /** The footer: what the platform is, every product, the way in, the docs — and the legal pages beside the copyright line. */
@@ -133,7 +133,6 @@ export default async function Footer({}: { host?: string }) {
           <p className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
             <Link href="/status" className="inline-flex items-center gap-1.5 font-semibold transition-colors hover:text-primary"><span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden />System status</Link>
             <Link href="/data-requests" className="font-semibold transition-colors hover:text-primary">Privacy requests</Link>
-            <Link href="/vulnerability-disclosure" className="font-semibold transition-colors hover:text-primary">Report a security issue</Link>
             <a href="#top" className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 py-1 font-bold text-foreground transition-colors hover:border-primary/40 hover:text-primary">Back to top <ArrowUp className="h-3 w-3" /></a>
           </p>
         </div>

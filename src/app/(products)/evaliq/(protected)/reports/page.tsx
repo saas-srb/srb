@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/evaliq/gate";
 import PanelTabs from "@/components/platform/panel/PanelTabs";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -17,7 +18,8 @@ import { cn } from "@/lib/utils";
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/evaliq/login");
-  if (!can(viewer, "VIEW_REPORTS")) redirect("/evaliq");
+  const locked = lockedUnless(viewer, "reports.view", "Reports & analytics");
+  if (locked) return locked;
   const sp = await searchParams;
   const type = (REPORT_TYPES.some((r) => r.value === sp.type) ? sp.type : "tests") as ReportType;
   const f = { from: sp.from, to: sp.to, testId: sp.testId, categoryId: sp.categoryId, kind: sp.kind, departmentId: sp.departmentId, designationId: sp.designationId };
@@ -32,7 +34,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         crumbs={[{ label: "Test Reports" }]}
         description="Performance by test, person, department, role, applicant, student, question and section; attempts, pass/fail, time and difficulty."
         actions={
-          can(viewer, "EXPORT_REPORTS") && (
+          can(viewer, "reports.export") && (
             <>
               <Button variant="outline" size="sm" nativeButton={false} render={<a href={`/api/evaliq/export/report-${type}?format=csv${qs ? `&${qs}` : ""}`} />}>
                 <Download className="size-3.5" /> CSV

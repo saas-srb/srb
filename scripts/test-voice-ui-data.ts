@@ -1,3 +1,4 @@
+import { legacyToAccess } from "../src/lib/access/adapter";
 import assert from "node:assert/strict";
 
 // Throwaway database only. Nothing here reaches ElevenLabs or Twilio: guards run with injected deps and no call is ever dialed
@@ -39,7 +40,7 @@ const t = async (name: string, fn: () => Promise<void> | void) => { await fn(); 
   assert.ok(/zz_throwaway_/.test(pdb.databaseName), "refusing to run on a non-throwaway database");
   await pdb.dropDatabase();
 
-  const viewer = (userId: string, roles: string[]): Viewer => ({ userId, email: `${userId}@x.test`, roles, ctx: { roles, permissionOverrides: undefined } as Viewer["ctx"], seesAll: false });
+  const viewer = (userId: string, roles: string[]): Viewer => ({ userId, email: `${userId}@x.test`, roles, ctx: { roles, permissionOverrides: undefined } as Viewer["ctx"], subject: legacyToAccess({ roles, permissionOverrides: null }), seesAll: false });
   const admin = viewer("admin", ["aibots_admin"]);
   const manager = viewer("mgr", ["aibots_admin"]);
   const alice = viewer("alice", ["aibots_user"]);

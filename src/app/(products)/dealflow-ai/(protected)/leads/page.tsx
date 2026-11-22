@@ -24,7 +24,7 @@ const TYPE_LABEL: Record<LeadType, string> = {
 };
 
 export default async function LeadsDashboardPage() {
-  await requireLmsPage("VIEW_LEADS");
+  await requireLmsPage("leads.view");
   const [stats, recent] = await Promise.all([getLeadStats(), listLeadRecords({ limit: 12 })]);
 
   return (

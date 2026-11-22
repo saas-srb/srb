@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/viralpulse-ai/gate";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/products/viralpulse-ai/SmmsUi";
 import ImageWizard from "@/components/products/viralpulse-ai/studio/ImageWizard";
@@ -14,6 +15,8 @@ export const metadata = { title: "Generate Image" };
 export default async function GenerateImagePage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/viralpulse-ai/login");
+  const locked = lockedUnless(viewer, "studio.generate", "Image generator");
+  if (locked) return locked;
   if (!canGenerateImages(viewer)) redirect("/viralpulse-ai");
   const sp = await searchParams;
   const config = await loadStudioConfig(viewer);
@@ -22,7 +25,7 @@ export default async function GenerateImagePage({ searchParams }: { searchParams
   return (
     <div className="space-y-4">
       <PageHeader title="Generate Image" crumbs={[{ label: "Generate Image" }]} description="Describe a picture, choose how many options, check the cost and generate. Three short steps; your work is saved as a draft as you go." />
-      <ConnectionGate requires={[{ name: "OpenAI or Gemini", connected: config.providers.openai || config.providers.gemini, why: "to generate images" }]} canManage={can(viewer, "MANAGE_INTEGRATIONS")}>
+      <ConnectionGate requires={[{ name: "OpenAI or Gemini", connected: config.providers.openai || config.providers.gemini, why: "to generate images" }]} canManage={can(viewer, "integrations.manage")}>
         <ImageWizard key={doc?._id ?? "new"} mode="quick" config={config} initialProject={doc ? toProjectView(doc) : null} canGenerate />
       </ConnectionGate>
     </div>

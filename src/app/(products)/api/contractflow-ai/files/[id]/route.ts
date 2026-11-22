@@ -1,16 +1,16 @@
+import { can, getViewer } from "@/lib/products/contractflow-ai/viewer";
 import { withTransport } from "@/lib/security/transport";
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentLpmsUser } from '@/lib/lpms-auth';
 import { getDb } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
-import { lpmsCan } from '@/lib/lpms-roles';
 
 async function handleGET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentLpmsUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides };
-  if (!lpmsCan(ctx, 'DOWNLOAD')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const viewer = await getViewer();
+  if (!viewer || !can(viewer, "documents.download")) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { id } = await params;
   if (!ObjectId.isValid(id)) return NextResponse.json({ error: 'Not found' }, { status: 404 });

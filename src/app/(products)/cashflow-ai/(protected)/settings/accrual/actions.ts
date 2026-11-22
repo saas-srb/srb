@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageFiscalPeriods } from "@/lib/fms-roles";
+import { canManageFiscalPeriods } from "@/lib/fms-access";
 import { activateAccrual, postMissingAccruals } from "@/lib/products/cashflow-ai/accrual/engine";
 
 async function admin() {

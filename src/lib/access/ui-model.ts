@@ -1,6 +1,6 @@
 import "server-only";
 import { PERMISSION_GROUPS } from "@/lib/products/commandos/permission-catalog";
-import { CATALOGUE, PRODUCTS, productName } from "./catalogue";
+import { CATALOGUE, PRODUCTS, productName, isAccessGate } from "./catalogue";
 import { areaOf } from "./areas";
 import { accessToLegacy, baselineFeatures, completeAccess } from "./adapter";
 import { legacyAnswers } from "./legacy";
@@ -10,7 +10,7 @@ import { isFinished, microOf } from "./micro";
 import { baselineMicros } from "./micro/derive";
 
 /** What the People & Access screen needs about the catalogue, as plain JSON (the legacy role files stay on the server). */
-export interface UiFeature { key: string; label: string; description: string; needs: Level; area: string; /** micro level: what kind of thing it guards, and the scope variant (all = everyone's) */ kind?: string; scope?: "all" }
+export interface UiFeature { key: string; label: string; description: string; needs: Level; area: string; /** micro level: what kind of thing it guards, and the scope variant (all = everyone's) */ kind?: string; scope?: "all" | "team" }
 export interface UiProduct { key: string; name: string; features: UiFeature[]; baseline: string[] }
 /** What the quick buttons of a product pick. `read` is every view feature; for a product whose lowest role carries more, it is the next level up (`extras`). */
 export interface UiPreset { read: string[]; readLabel: string; readExtras: string[]; readCarried: string[]; write: string[] }
@@ -34,7 +34,7 @@ const exact = (product: string, picks: string[], carried: string[]) => {
 function presetFor(product: string): UiPreset {
   if (isFinished(product)) {
     const m = microOf(product);
-    return { read: m.filter((x) => x.level === "read" && x.scope !== "all").map((x) => x.key), readLabel: "Read only", readExtras: [], readCarried: [], write: m.map((x) => x.key) };
+    return { read: m.filter((x) => x.level === "read" && !x.scope).map((x) => x.key), readLabel: "Read only", readExtras: [], readCarried: [], write: m.map((x) => x.key) };
   }
   const entries = CATALOGUE.filter((e) => e.product === product && e.kind !== "tier");
   const write = entries.map((e) => e.key);
@@ -47,7 +47,7 @@ function presetFor(product: string): UiPreset {
     .sort((x, y) => x.keys.length - y.keys.length);
   for (const { keys } of ranked) {
     const picks = keys.filter((e) => e.kind !== "tier").map((e) => e.key);
-    const carried = keys.filter((e) => e.kind === "tier" && !/^has\w*Access$/.test(e.fn)).map((e) => e.key);
+    const carried = keys.filter((e) => e.kind === "tier" && !isAccessGate(e.fn)).map((e) => e.key);
     if (read.every((k) => picks.includes(k)) && exact(product, picks, carried)) {
       return { read: picks, readLabel: "Read only (view and reports)", readExtras: picks.filter((k) => !read.includes(k)).map((k) => CATALOGUE.find((e) => e.key === k)!.label), readCarried: carried, write };
     }

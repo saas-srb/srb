@@ -9,7 +9,7 @@ import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import { TransactionStatusBadge, TransactionTypeBadge } from "@/components/products/cashflow-ai/StatusBadges";
 import TransactionStatusActions from "@/components/products/cashflow-ai/TransactionStatusActions";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageTransactions, canApproveTransactions } from "@/lib/fms-roles";
+import { canManageTransactions, canApproveTransactions } from "@/lib/fms-access";
 import { getTransaction, serializeTransaction } from "@/lib/products/cashflow-ai/transactions";
 import { getAccount } from "@/lib/products/cashflow-ai/accounts";
 import { getFundAccountLabel } from "@/lib/products/cashflow-ai/fund-accounts";

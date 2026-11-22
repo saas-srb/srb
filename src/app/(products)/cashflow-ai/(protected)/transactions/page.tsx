@@ -9,7 +9,7 @@ import FmsDataTable from "@/components/products/cashflow-ai/FmsDataTable";
 import TransactionForm from "@/components/products/cashflow-ai/TransactionForm";
 import { TransactionStatusBadge, TransactionTypeBadge } from "@/components/products/cashflow-ai/StatusBadges";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageTransactions } from "@/lib/fms-roles";
+import { canManageTransactions } from "@/lib/fms-access";
 import { searchTransactions, serializeTransaction } from "@/lib/products/cashflow-ai/transactions";
 import { listClientOptions } from "@/lib/products/sprintos/clients";
 import { listVendorOptions } from "@/lib/products/spendiq/vendors";

@@ -22,7 +22,7 @@ export default function VoiceExportButton({
   label?: string;
   endpoint?: string;
 }) {
-  const allowed = useLmsCan("EXPORT_DATA");
+  const allowed = useLmsCan("data.export");
   if (!allowed) return null;
   const query = new URLSearchParams();
   if (params.search) query.set("search", params.search);

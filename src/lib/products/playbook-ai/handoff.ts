@@ -1,3 +1,4 @@
+import { legacyToAccess } from "@/lib/access/adapter";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { getDb } from "@/lib/mongodb";
@@ -29,7 +30,7 @@ const ctxOf = (a: PbActor) => ({ roles: a.roles, permissionOverrides: a.permissi
 
 /** The ContractFlow-side viewer for a Playbook user who holds SEND_FOR_SIGNATURE (lets them pick or add the other party). */
 export function senderViewer(actor: PbActor): LpmsViewer {
-  return { userId: actor.id, email: actor.email ?? "", roles: [...actor.roles], overrides: (actor.permissionOverrides ?? {}) as Record<string, boolean>, lpmsRoles: [], employeeId: null, companyId: "", sendForSignature: true };
+  return { userId: actor.id, email: actor.email ?? "", roles: [...actor.roles], overrides: (actor.permissionOverrides ?? {}) as Record<string, boolean>, lpmsRoles: [], employeeId: null, companyId: "", subject: legacyToAccess({ roles: [...actor.roles], permissionOverrides: actor.permissionOverrides ?? null }), sendForSignature: true };
 }
 
 /** Whether (and why not) a document's version can be sent. All problems are listed, not just the first. */

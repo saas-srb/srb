@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/viralpulse-ai/gate";
 import PanelTabs from "@/components/platform/panel/PanelTabs";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -37,7 +38,9 @@ const dot = (p: PostDoc) => (p.status === "published" ? "bg-emerald-500" : p.sta
 export default async function PostsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/viralpulse-ai/login");
-  if (!can(viewer, "MANAGE_POSTS") && !can(viewer, "VIEW_CAMPAIGNS")) redirect("/viralpulse-ai");
+  const locked = lockedUnless(viewer, "posts.view", "Posts");
+  if (locked) return locked;
+  if (!can(viewer, "posts.manage") && !can(viewer, "campaigns.view")) redirect("/viralpulse-ai");
   const sp = await searchParams;
   const view = sp.view === "week" || sp.view === "month" ? sp.view : "list";
   const page = Math.max(Number(sp.page) || 1, 1);
@@ -48,7 +51,7 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
   const monthStart = zonedToUtc(`${nowKey.slice(0, 7)}-01T00:00`, tz);
   const [campaigns, stats, accounts] = await Promise.all([listCampaignOptions(), postStats(monthStart), wizardAccounts()]);
   const accountName = new Map(accounts.map((a) => [a.id, a.name]));
-  const canManage = can(viewer, "MANAGE_POSTS");
+  const canManage = can(viewer, "posts.manage");
 
   const qs = (patch: Record<string, string | null>) => {
     const q = new URLSearchParams(Object.entries(sp).filter((e): e is [string, string] => !!e[1]));
@@ -161,7 +164,7 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
         actions={
           <>
             <Button variant="outline" nativeButton={false} render={<Link href={qs({ view: view === "list" ? "month" : null, page: null })} />}>{view === "list" ? <CalendarDays className="size-4" /> : <List className="size-4" />} {view === "list" ? "Calendar" : "List"}</Button>
-            {can(viewer, "GENERATE_AI_CONTENT") && <Button variant="outline" nativeButton={false} render={<Link href="/viralpulse-ai/posts/generator" />}><Sparkles className="size-4" /> Copy generator</Button>}
+            {can(viewer, "posts.generate") && <Button variant="outline" nativeButton={false} render={<Link href="/viralpulse-ai/posts/generator" />}><Sparkles className="size-4" /> Copy generator</Button>}
             {canManage && <Button nativeButton={false} render={<Link href="/viralpulse-ai/posts/new" />}><Plus className="size-4" /> New post</Button>}
           </>
         }
@@ -192,7 +195,7 @@ export default async function PostsPage({ searchParams }: { searchParams: Promis
           { key: "month", label: "Month", icon: <CalendarDays className="size-3.5" />, href: qs({ view: "month", page: null }) },
         ]} />
       </div>
-      {stats.awaitingApproval > 0 && can(viewer, "PUBLISH_CONTENT") && <p className="text-xs text-amber-700 dark:text-amber-300">{`${stats.awaitingApproval} scheduled post${stats.awaitingApproval === 1 ? " is" : "s are"} waiting for approval.`}</p>}
+      {stats.awaitingApproval > 0 && can(viewer, "posts.publish") && <p className="text-xs text-amber-700 dark:text-amber-300">{`${stats.awaitingApproval} scheduled post${stats.awaitingApproval === 1 ? " is" : "s are"} waiting for approval.`}</p>}
       {body}
     </div>
   );

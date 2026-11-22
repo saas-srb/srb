@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance, canManageTransactions, canViewCommercialFinance, canViewFinancialStatements } from "@/lib/fms-roles";
+import { canManageCompliance, canManageTransactions, canViewCommercialFinance, canViewFinancialStatements } from "@/lib/fms-access";
 import { istToday } from "@/lib/products/cashflow-ai/accrual/core";
 import { saveComplianceProfile } from "@/lib/products/cashflow-ai/compliance/filings";
 import { EMPTY_PROFILE, type ComplianceProfile } from "@/lib/products/cashflow-ai/compliance/filings-core";

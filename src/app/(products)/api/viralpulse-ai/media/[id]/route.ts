@@ -15,7 +15,7 @@ async function handleGET(req: NextRequest, { params }: Context) {
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   // The same rule as the pages that show media: the library, posts, ads or the campaigns that use it. A signed-in person with none of these gets nothing.
-  if (!(can(viewer, "MANAGE_MEDIA") || can(viewer, "MANAGE_POSTS") || can(viewer, "CREATE_ADS") || can(viewer, "VIEW_CAMPAIGNS"))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!(can(viewer, "media.manage") || can(viewer, "posts.manage") || can(viewer, "ads.create") || can(viewer, "campaigns.view"))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await params;
   const media = await getMedia(id);
   if (!media || !(await keyBelongsToCompany(media.storageKey))) return NextResponse.json({ error: "Not found" }, { status: 404 });

@@ -3,7 +3,6 @@
  * when both periods have data), the setup checklist, how health findings are ranked and where each one is fixed, and how a launch is
  * bucketed. No server imports, so it is tested without a database.
  */
-import type { SmmsPermission } from "@/lib/smms-roles";
 import { addDays, dayKeyIn, shiftMonth } from "@/lib/products/viralpulse-ai/post-wizard/calendar";
 import { zonedToUtc } from "@/lib/products/viralpulse-ai/publishers/schedule";
 
@@ -28,23 +27,23 @@ export interface DashPerms {
   manageMedia: boolean;
 }
 
-export function dashPerms(can: (p: SmmsPermission) => boolean): DashPerms {
+export function dashPerms(can: (p: string) => boolean): DashPerms {
   return {
-    newPost: can("MANAGE_POSTS"),
-    newCampaign: can("CREATE_CAMPAIGNS"),
-    createImage: can("GENERATE_AI_CONTENT"),
-    createUgc: can("GENERATE_AI_CONTENT"),
-    viewPosts: can("MANAGE_POSTS") || can("VIEW_CAMPAIGNS"),
-    viewCampaigns: can("VIEW_CAMPAIGNS"),
-    viewAnalytics: can("VIEW_ANALYTICS"),
-    viewStudios: can("MANAGE_MEDIA") || can("MANAGE_POSTS") || can("CREATE_ADS") || can("GENERATE_AI_CONTENT"),
-    viewUgc: can("GENERATE_AI_CONTENT"),
-    settings: can("MANAGE_INTEGRATIONS"),
-    audit: can("VIEW_AUDIT_LOG"),
-    approveSpend: can("APPROVE_AD_SPEND"),
-    manageLimits: can("MANAGE_AD_LIMITS"),
-    createAds: can("CREATE_ADS"),
-    manageMedia: can("MANAGE_MEDIA"),
+    newPost: can("posts.manage"),
+    newCampaign: can("campaigns.create"),
+    createImage: can("posts.generate"),
+    createUgc: can("posts.generate"),
+    viewPosts: can("posts.manage") || can("campaigns.view"),
+    viewCampaigns: can("campaigns.view"),
+    viewAnalytics: can("analytics.view"),
+    viewStudios: can("media.manage") || can("posts.manage") || can("ads.create") || can("posts.generate"),
+    viewUgc: can("posts.generate"),
+    settings: can("integrations.manage"),
+    audit: can("activity.view"),
+    approveSpend: can("ads.approve"),
+    manageLimits: can("ads.limits"),
+    createAds: can("ads.create"),
+    manageMedia: can("media.manage"),
   };
 }
 

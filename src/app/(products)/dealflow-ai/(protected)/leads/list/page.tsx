@@ -38,7 +38,7 @@ export default async function LeadsListPage({
 }: {
   searchParams: Promise<{ type?: string; status?: string; search?: string; source?: string }>;
 }) {
-  await requireLmsPage("VIEW_LEADS");
+  await requireLmsPage("leads.view");
   const sp = await searchParams;
   const type = sp.type && isPortalRole(sp.type) ? (sp.type as LeadType) : undefined;
   const status = sp.status === "open" || sp.status === "won" || sp.status === "lost" ? sp.status : undefined;

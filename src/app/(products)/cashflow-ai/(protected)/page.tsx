@@ -1,3 +1,5 @@
+import ProductLocked from "@/components/products/common/ProductLocked";
+import { fmsCan } from "@/lib/fms-access";
 import { panelNameMap } from "@/lib/platform/panels/store";
 import DashboardSection from "@/components/platform/panel/DashboardSection";
 import PanelDashboardHeader from "@/components/platform/panel/PanelDashboardHeader";
@@ -101,7 +103,7 @@ function SectionHeader({
 
 import { AttentionCard, GetStartedCard } from "@/components/products/cashflow-ai/home/HomeCards";
 import { loadAttention, loadSetupSteps } from "@/lib/products/cashflow-ai/home/home";
-import { canViewFinancialStatements as canSeeBooks } from "@/lib/fms-roles";
+import { canViewFinancialStatements as canSeeBooks } from "@/lib/fms-access";
 import { istToday } from "@/lib/products/cashflow-ai/accrual/core";
 import TodayWorkCard from "@/components/products/cashflow-ai/home/TodayWorkCard";
 import { loadTodayWork } from "@/lib/products/cashflow-ai/home/today-work";
@@ -113,6 +115,8 @@ export default async function FmsDashboardPage({
 }) {
   const sp = await searchParams;
   const user = await getCurrentFmsUser();
+  // The dashboard is the baseline feature: a person without it gets the polite locked page.
+  if (user && !fmsCan(user, "dashboard.view")) return <ProductLocked product="cashflow-ai" feature="Dashboard" />;
   // What needs doing, for people who can see the books (the same checks as CA & Compliance, so a number is never different here)
   const showTodo = !!user && canSeeBooks(user);
   const [attention, setupSteps] = showTodo ? await Promise.all([loadAttention(istToday()), loadSetupSteps()]) : [null, null];

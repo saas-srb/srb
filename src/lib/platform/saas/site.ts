@@ -32,9 +32,7 @@ export const LEGAL_LINKS: NavLink[] = [
   { href: "/data-policy", label: "Data Policy", hint: "Ownership, isolation, AI and export" },
   { href: "/refund-policy", label: "Refund & Cancellation Policy", hint: "The free plan, cancelling and billing issues" },
   { href: "/dpa", label: "Data Processing Addendum", hint: "How we process personal data for our customers" },
-  { href: "/subprocessors", label: "Sub-processors and International Transfers", hint: "The providers we use and how data crosses borders" },
   { href: "/data-requests", label: "Your Data Rights and Requests", hint: "Access, correct, delete or export your information" },
-  { href: "/vulnerability-disclosure", label: "Vulnerability Disclosure Policy", hint: "Report a security issue to us privately" },
 ];
 
 /** The feature groups of the Features page: each lists the module keys (Product Registry keys) it holds. */

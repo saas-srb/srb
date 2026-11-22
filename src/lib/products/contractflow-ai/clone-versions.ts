@@ -1,6 +1,6 @@
 import "server-only";
+import { can } from "@/lib/products/contractflow-ai/viewer";
 import { randomUUID } from "node:crypto";
-import { lpmsCan } from "@/lib/lpms-roles";
 import { diffDocs, summarizeDiff, type DocDiff } from "@/lib/products/playbook-ai/diff";
 import type { PBDoc } from "@/lib/products/playbook-ai/doc/types";
 import { cfCloneVersions, cfClones } from "./cf-db";
@@ -30,7 +30,7 @@ export async function markVersionStatus(cloneId: string, number: number, status:
 async function viewable(v: LpmsViewer, cloneId: string): Promise<CloneResult<{ clone: Pick<CloneDoc, "_id" | "rev" | "party" | "title"> }>> {
   const clone = typeof cloneId === "string" && cloneId.length <= 64 ? await (await cfClones()).findOne({ _id: cloneId }, { projection: { rev: 1, party: 1, title: 1 } }) : null;
   if (!clone) return { ok: false, error: { code: "not_found", message: "That document was not found." } };
-  if (!lpmsCan({ roles: v.roles, permissionOverrides: v.overrides }, "VIEW") || (clone.party.partyId && !canAccessPartyType(v, clone.party.type))) return { ok: false, error: { code: "forbidden", message: "You do not have access to this document." } };
+  if (!can(v, "documents.view") || (clone.party.partyId && !canAccessPartyType(v, clone.party.type))) return { ok: false, error: { code: "forbidden", message: "You do not have access to this document." } };
   return { ok: true, clone };
 }
 

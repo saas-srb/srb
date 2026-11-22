@@ -17,9 +17,9 @@ import { notDeleted, str } from "@/lib/products/viralpulse-ai/db";
 import { isPostPlatform, POST_PLATFORMS } from "@/lib/products/viralpulse-ai/constants";
 import { fitsFor, goalById, GROUP_TO_POST_PLATFORM } from "@/lib/products/viralpulse-ai/images/specs";
 
-const actorOf = (v: SmmsViewer): Actor => ({ userId: v.userId, email: v.email, canApprove: can(v, "PUBLISH_CONTENT") });
+const actorOf = (v: SmmsViewer): Actor => ({ userId: v.userId, email: v.email, canApprove: can(v, "studio.approve") });
 const engine = () => createEngine(defaultImageDeps());
-const GEN = ["MANAGE_MEDIA", "GENERATE_AI_CONTENT"] as const;
+const GEN = ["studio.use", "studio.generate"] as const;
 
 type Bag = Record<string, unknown>;
 const bag = (v: unknown): Bag => (v && typeof v === "object" && !Array.isArray(v) ? (v as Bag) : {});
@@ -65,11 +65,11 @@ export async function editVariantAction(id: string, variantId: string, instructi
 }
 
 export async function approveAction(id: string) {
-  return run(["PUBLISH_CONTENT", "MANAGE_MEDIA"], async (v) => withDefer(async (defer) => outcome(await engine().approve(actorOf(v), String(id), { defer }))), { revalidate: false });
+  return run(["studio.approve", "studio.use"], async (v) => withDefer(async (defer) => outcome(await engine().approve(actorOf(v), String(id), { defer }))), { revalidate: false });
 }
 
 export async function rejectAction(id: string) {
-  return run(["PUBLISH_CONTENT"], async (v) => {
+  return run(["studio.approve"], async (v) => {
     await engine().reject(actorOf(v), String(id));
     return {};
   }, { revalidate: false });
@@ -80,7 +80,7 @@ export async function chooseAction(id: string, ids: string[]) {
 }
 
 export async function finishAction(id: string, input: Bag) {
-  return run(["MANAGE_MEDIA"], async (v) => {
+  return run(["studio.use"], async (v) => {
     const r = await engine().finish(actorOf(v), String(id), {
       name: str(input.name, 160),
       tags: strs(input.tags, 20).map((t) => str(t, 40)).filter(Boolean),
@@ -96,13 +96,13 @@ export async function finishAction(id: string, input: Bag) {
 }
 
 export async function getProjectAction(id: string) {
-  return run(["MANAGE_MEDIA"], async (v) => ({ project: toProjectView(await engine().reconcile(String(id))), canApprove: can(v, "PUBLISH_CONTENT") }), { revalidate: false });
+  return run(["studio.use"], async (v) => ({ project: toProjectView(await engine().reconcile(String(id))), canApprove: can(v, "studio.approve") }), { revalidate: false });
 }
 
 // ── brand kit and limits ────────────────────────────────────────────────────
 
 export async function saveKitAction(input: Partial<BrandKit>) {
-  return run(["MANAGE_INTEGRATIONS"], async (v) => {
+  return run(["integrations.manage"], async (v) => {
     const kit = await saveBrandKit(bag(input) as Partial<BrandKit>, v.userId);
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "settings", entity: "settings", entityId: "image-kit", entityLabel: "Image brand kit", summary: "Updated the Image Studio brand kit" });
     return { kit };
@@ -110,7 +110,7 @@ export async function saveKitAction(input: Partial<BrandKit>) {
 }
 
 export async function saveImageSettingsAction(input: Partial<ImageSettings>) {
-  return run(["MANAGE_INTEGRATIONS"], async (v) => {
+  return run(["integrations.manage"], async (v) => {
     const settings = await saveImageSettings(bag(input) as Partial<ImageSettings>, v.userId);
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "settings", entity: "settings", entityId: "image-limits", entityLabel: "Image Studio limits", summary: "Updated Image Studio limits", metadata: { dailySpendCapUsd: settings.dailySpendCapUsd, approvalThresholdUsd: settings.approvalThresholdUsd, perUserPerMinute: settings.perUserPerMinute } });
     return { settings };
@@ -118,21 +118,21 @@ export async function saveImageSettingsAction(input: Partial<ImageSettings>) {
 }
 
 export async function loadStudioConfigAction() {
-  return run(["MANAGE_MEDIA"], async () => ({ kit: await getBrandKit(), settings: await getImageSettings() }), { revalidate: false });
+  return run(["studio.use"], async () => ({ kit: await getBrandKit(), settings: await getImageSettings() }), { revalidate: false });
 }
 
 // ── library ─────────────────────────────────────────────────────────────────
 
 /** A company-prefixed storage path for a browser upload. */
 export async function newUploadPathAction(ext: string) {
-  return run(["MANAGE_MEDIA"], async () => {
+  return run(["studio.use"], async () => {
     if (!/^(jpg|png|webp|gif|mp4|mov|webm)$/.test(String(ext))) throw new SmmsInputError("That file type isn't supported.");
     return { path: await newUploadPath(String(ext)) };
   }, { revalidate: false });
 }
 
 export async function bulkDeleteMediaAction(ids: string[]) {
-  return run(["MANAGE_MEDIA"], async (v) => {
+  return run(["studio.use"], async (v) => {
     const list = strs(ids, 100);
     let deleted = 0;
     const refused: { id: string; reason: string }[] = [];
@@ -150,7 +150,7 @@ export async function bulkDeleteMediaAction(ids: string[]) {
 }
 
 export async function bulkFolderTagsAction(ids: string[], folder: string | null | undefined, addTags: string[]) {
-  return run(["MANAGE_MEDIA"], async (v) => {
+  return run(["studio.use"], async (v) => {
     const col = await mediaCollection();
     const list = strs(ids, 100);
     const tags = addTags.map((t) => str(t, 40)).filter(Boolean).slice(0, 10);
@@ -162,12 +162,12 @@ export async function bulkFolderTagsAction(ids: string[], folder: string | null 
 }
 
 export async function mediaUsageAction(id: string) {
-  return run(["MANAGE_MEDIA"], async () => ({ usage: await mediaUsage(String(id)) }), { revalidate: false });
+  return run(["studio.use"], async () => ({ usage: await mediaUsage(String(id)) }), { revalidate: false });
 }
 
 /** Creates a draft post with the picture attached, on the platforms the picture's shape fits. Returns where to edit it. */
 export async function startPostFromMediaAction(mediaId: string) {
-  return run(["MANAGE_POSTS"], async (v) => {
+  return run(["posts.manage"], async (v) => {
     const m = await getMedia(String(mediaId));
     if (!m || m.kind !== "image") throw new SmmsInputError("Choose an image from the library.");
     const fit = fitsFor(m.width, m.height).map((s) => GROUP_TO_POST_PLATFORM[s.group]).filter((p): p is (typeof POST_PLATFORMS)[number] => !!p && isPostPlatform(p));
@@ -180,7 +180,7 @@ export async function startPostFromMediaAction(mediaId: string) {
 }
 
 export async function listAdsForPickerAction() {
-  return run(["CREATE_ADS"], async () => {
+  return run(["ads.create"], async () => {
     const col = await adsCollection();
     const rows = await col.find({ ...notDeleted, format: "image", status: { $in: ["draft", "edited"] } }, { projection: { name: 1, campaignId: 1, platform: 1 } }).sort({ updatedAt: -1 }).limit(40).toArray();
     return { ads: rows.map((a) => ({ id: a._id, name: a.name, campaignId: a.campaignId, platform: a.platform })) };
@@ -188,7 +188,7 @@ export async function listAdsForPickerAction() {
 }
 
 export async function attachMediaToAdAction(mediaId: string, adId: string) {
-  return run(["CREATE_ADS"], async (v) => {
+  return run(["ads.create"], async (v) => {
     const m = await getMedia(String(mediaId));
     if (!m || m.kind !== "image") throw new SmmsInputError("Choose an image from the library.");
     const col = await adsCollection();
@@ -223,7 +223,7 @@ export async function estimateBriefAction(input: Bag) {
     const goal = goalById(brief.goalId);
     const images = goal?.slides ? brief.overlayText.length : brief.variants;
     const total = Math.round(est.perImageUsd * images * 1e6) / 1e6;
-    return { estimate: { perImageUsd: est.perImageUsd, totalUsd: total, images, basis: est.basis, model: est.model }, spentTodayUsd: await spentToday(new Date()), canApprove: can(v, "PUBLISH_CONTENT") };
+    return { estimate: { perImageUsd: est.perImageUsd, totalUsd: total, images, basis: est.basis, model: est.model }, spentTodayUsd: await spentToday(new Date()), canApprove: can(v, "studio.approve") };
   }, { revalidate: false });
 }
 
@@ -237,7 +237,7 @@ export async function deleteProjectAction(id: string) {
 
 /** Who did what to a project, newest first (from the audit log). */
 export async function projectTrailAction(id: string) {
-  return run(["MANAGE_MEDIA"], async () => {
+  return run(["studio.use"], async () => {
     await engine().getProject(String(id));
     const r = await listAudit({ entity: "media", recordId: String(id), pageSize: 50 });
     return { items: r.items.map((a) => ({ id: a._id, at: a.createdAt.toISOString(), by: a.actorEmail, action: String(a.action), summary: a.summary ?? "" })) };

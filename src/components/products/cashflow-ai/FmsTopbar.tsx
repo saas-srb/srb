@@ -1,3 +1,4 @@
+import type { AccessSubject } from "@/lib/access/can";
 "use client";
 
 import PanelBellLink from "@/components/platform/PanelBellLink";
@@ -14,16 +15,18 @@ import type { FmsRole } from "@/lib/fms-roles";
 export default function FmsTopbar({
   roles,
   permissionOverrides,
+  subject,
   unread = 0,
 }: {
   roles: FmsRole[];
   permissionOverrides?: Record<string, boolean>;
+  subject: AccessSubject;
   unread?: number;
 }) {
   const [aiOpen, setAiOpen] = useAskAiOpen();
   return (
     <header className="flex h-14 shrink-0 items-center gap-2 px-3 sm:gap-3 sm:px-4">
-      <FmsMobileSidebar roles={roles} permissionOverrides={permissionOverrides} />
+      <FmsMobileSidebar roles={roles} permissionOverrides={permissionOverrides} subject={subject} />
       <PanelHeading panel="fms" fallbackTitle="Finance Management" fallbackDescription="Budgets, invoices, expenses & financial reports" />
       <div className="flex min-w-0 shrink-0 justify-end md:flex-1 md:shrink md:justify-center">
         <PanelSearch />

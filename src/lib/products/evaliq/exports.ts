@@ -8,7 +8,6 @@ import { describeCandidates } from "@/lib/products/evaliq/people";
 import { testNames } from "@/lib/products/evaliq/tests";
 import { certificatesForAssignments } from "@/lib/products/evaliq/certificates";
 import { labelOf, ASSIGNMENT_STATUSES, CANDIDATE_KINDS, PRIORITIES } from "@/lib/products/evaliq/constants";
-import type { OtsPermission } from "@/lib/ots-roles";
 
 /** Tabular exports (CSV / XLSX). Each dataset maps to the permission that gates it. */
 
@@ -18,12 +17,12 @@ export interface ExportSet {
   rows: Record<string, unknown>[];
 }
 
-export const EXPORT_KINDS: Record<string, OtsPermission> = {
-  questions: "EXPORT_QUESTIONS",
-  "question-template": "IMPORT_QUESTIONS",
-  results: "EXPORT_REPORTS",
-  audit: "VIEW_AUDIT_LOG",
-  ...Object.fromEntries(REPORT_TYPES.map((r) => [`report-${r.value}`, "EXPORT_REPORTS" as OtsPermission])),
+export const EXPORT_KINDS: Record<string, string> = {
+  questions: "questions.export",
+  "question-template": "questions.import",
+  results: "reports.export",
+  audit: "activity.view",
+  ...Object.fromEntries(REPORT_TYPES.map((r) => [`report-${r.value}`, "reports.export"])),
 };
 
 const iso = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 16).replace("T", " ") : "");

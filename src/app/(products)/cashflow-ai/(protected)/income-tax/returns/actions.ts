@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance } from "@/lib/fms-roles";
+import { canManageCompliance } from "@/lib/fms-access";
 import { saveReturn } from "@/lib/products/cashflow-ai/income-tax/returns-store";
 import { addNoticeEvent, saveNotice, setNoticeStatus } from "@/lib/products/cashflow-ai/income-tax/notices-store";
 import type { NoticeStatus } from "@/lib/products/cashflow-ai/income-tax/registers-core";

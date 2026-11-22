@@ -22,6 +22,7 @@ import { listRewardRules } from "@/lib/wallet/reward-rules";
 import { listUsageRules } from "@/lib/wallet/usage-rules";
 import { listCampaigns as listReferralCampaigns } from "@/lib/wallet/campaigns";
 import { getContactFormFields } from "@/lib/products/sitecraft-ai/forms";
+import { microAny } from "@/lib/ai/agent/micro-gate";
 import { f, str, viaAction } from "@/lib/ai/agent/entities/helpers";
 import type { ActionDef, AgentUser, EntityDef, FieldDef, Json, ReportDef } from "@/lib/ai/agent/types";
 
@@ -31,7 +32,8 @@ import type { ActionDef, AgentUser, EntityDef, FieldDef, Json, ReportDef } from 
  * their own sign-in and permission checks apply; company-wide settings need a CMS admin.
  */
 
-const cmsAdmin = (u: AgentUser) => u.roles.includes("super_admin") || u.roles.includes("cms_admin");
+/** The site-wide settings door (the old "CMS administrator"): decided from the person's own access. */
+const cmsAdmin = microAny("sitecraft-ai.settings.manage");
 const json = (v: unknown) => JSON.parse(JSON.stringify(v ?? null)) as Json;
 const ro = (key: string, label: string, description: string, collection: string, extra: Partial<EntityDef> = {}): EntityDef => ({ key, panel: "cms", label, description, collection, idType: "string", read: "any", allowRead: cmsAdmin, ...extra });
 

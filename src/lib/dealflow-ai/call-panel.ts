@@ -1,7 +1,7 @@
 import "server-only";
 import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/mongodb";
-import { lmsCan } from "@/lib/lms-roles";
+import { lmsCan } from "@/lib/lms-auth";
 import { getLead, isValidCategory } from "@/lib/leads";
 import { getBot, toSummary } from "@/lib/products/agentos/bots";
 import { callsCollection } from "@/lib/products/agentos/calls/store";
@@ -38,7 +38,7 @@ import {
  */
 
 export interface PanelViewerCtx {
-  lms: Parameters<typeof lmsCan>[0];
+  lms: { subject: import("@/lib/access/can").AccessSubject };
   /** The AgentOS identity of the same person, or null when they have no AgentOS account. */
   agentos: AibotsViewer | null;
 }
@@ -68,8 +68,8 @@ function categoryOfLeadType(type: unknown): PanelCategory {
 
 /** Whether this viewer may point at / see calls about this kind of record. */
 export function canSeeEntityType(ctx: PanelViewerCtx, entityType: string): boolean {
-  if (!lmsCan(ctx.lms, "VIEW_LEADS")) return false;
-  if (entityType === "applicant") return lmsCan(ctx.lms, "VIEW_CAREERS");
+  if (!lmsCan(ctx.lms, "leads.view")) return false;
+  if (entityType === "applicant") return lmsCan(ctx.lms, "careers.view");
   return entityType === "lead" || entityType === "submission";
 }
 
@@ -127,7 +127,7 @@ export interface PeopleQuery { q?: string; filter?: PanelFilter; page?: number }
  */
 export async function listCallPeople(ctx: PanelViewerCtx, query: PeopleQuery = {}): Promise<PanelPeoplePage> {
   const empty: PanelPeoplePage = { people: [], total: 0, page: 1, pageSize: PEOPLE_PAGE_SIZE };
-  if (!lmsCan(ctx.lms, "VIEW_LEADS")) return empty;
+  if (!lmsCan(ctx.lms, "leads.view")) return empty;
   const filter: PanelFilter = query.filter ?? "all";
   const page = Math.max(1, Math.floor(query.page ?? 1));
   const q = (query.q ?? "").trim().slice(0, 80).toLowerCase();
@@ -310,7 +310,7 @@ const RECONCILE_EVERY_MS = 30_000;
 
 /** Calls ringing or in progress right now about DealFlow records. Stuck ones are checked with the provider (at most every 30 s). */
 export async function listActiveDealflowCalls(ctx: PanelViewerCtx): Promise<PanelActiveCall[]> {
-  if (!lmsCan(ctx.lms, "VIEW_LEADS")) return [];
+  if (!lmsCan(ctx.lms, "leads.view")) return [];
   if (ctx.agentos && Date.now() - lastReconcile > RECONCILE_EVERY_MS) {
     lastReconcile = Date.now();
     await reconcileStaleCalls(overseesLive(ctx.agentos) ? {} : { initiatorId: ctx.agentos.userId }).catch(() => 0);
@@ -344,7 +344,7 @@ export async function isVisibleDealflowCall(ctx: PanelViewerCtx, callId: string)
 }
 
 export async function countActiveDealflowCalls(ctx: PanelViewerCtx): Promise<number> {
-  if (!lmsCan(ctx.lms, "VIEW_LEADS")) return 0;
+  if (!lmsCan(ctx.lms, "leads.view")) return 0;
   const types = (["lead", "applicant", "submission"] as const).filter((t) => canSeeEntityType(ctx, t));
   return (await callsCollection()).countDocuments({ "target.product": DEALFLOW_PRODUCT, "target.entityType": { $in: types }, status: { $in: LIVE } });
 }

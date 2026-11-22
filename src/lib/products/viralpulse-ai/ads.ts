@@ -155,7 +155,7 @@ export function parseSchedule(v: unknown): Date {
 
 /** Saves the Meta creative fields. Refused while the ad is part of a launch that exists in Meta (use `editLaunch`). */
 export async function saveAdPaid(id: string, paid: unknown, viewer: SmmsViewer): Promise<AdDoc> {
-  if (!can(viewer, "CREATE_ADS")) throw new ForbiddenError("CREATE_ADS");
+  if (!can(viewer, "ads.create")) throw new ForbiddenError("ads.create");
   const ad = await getAd(id);
   if (!ad) throw new NotFoundError();
   const launches = await smmsCollection<{ _id: string; campaignId: string; active: boolean; state: string }>(AD_COLLECTIONS.launches);
@@ -170,7 +170,7 @@ export async function saveAdPaid(id: string, paid: unknown, viewer: SmmsViewer):
  * launch through the API), requires a reason, and the ad is labelled "manually tracked" so reports never present it as verified.
  */
 export async function markAdManuallyTracked(ad: AdDoc, input: { reason: string; externalRef: string }, viewer: SmmsViewer): Promise<AdDoc> {
-  if (!can(viewer, "PUBLISH_CONTENT")) throw new ForbiddenError("PUBLISH_CONTENT");
+  if (!can(viewer, "posts.publish")) throw new ForbiddenError("posts.publish");
   const key = adsPlatformFor(ad.platform);
   if (key && CAPABILITIES[key].realLaunch) throw new SmmsInputError("This platform launches from the app. Use Launch instead of marking it live by hand.");
   const reason = str(input.reason, 300);

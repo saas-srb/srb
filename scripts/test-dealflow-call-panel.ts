@@ -1,3 +1,4 @@
+import { legacyToAccess } from "../src/lib/access/adapter";
 import assert from "node:assert/strict";
 import { getDb, getPlatformDb } from "../src/lib/mongodb";
 import { runAsCompany } from "../src/lib/platform/tenancy/context";
@@ -21,7 +22,7 @@ const call = (over: Partial<CallDoc> & { _id: string }): CallDoc => ({
   terminationReason: null, meteredAt: null, meterLeaseUntil: null, chatId: null, cancelledBy: null, control: { mode: "ai", handler: null, canHandBack: true, history: [] } as never, eventSeq: 0, createdAt: new Date(), updatedAt: new Date(), ...over,
 }) as CallDoc;
 const tgt = (entityType: string, entityId: string, label: string) => ({ product: "dealflow-ai", entityType, entityId, label });
-const viewer = (userId: string, roles: string[]): AibotsViewer => ({ userId, email: `${userId}@x.test`, roles, ctx: { roles, permissionOverrides: null }, seesAll: false });
+const viewer = (userId: string, roles: string[]): AibotsViewer => ({ userId, email: `${userId}@x.test`, roles, ctx: { roles, permissionOverrides: null }, subject: legacyToAccess({ roles, permissionOverrides: null }), seesAll: false });
 
 (async () => {
   await t("pure helpers: IST time, timer, duration, transcript search, thread notes", async () => {
@@ -91,9 +92,9 @@ const viewer = (userId: string, roles: string[]): AibotsViewer => ({ userId, ema
       { _id: "c4", entityType: "lead", entityId: "lead2", label: "Dev Patel", status: "completed", outcome: "success", purpose: "screening", agentId: "bot1", summary: "Stored summary for Dev.", collected: [{ key: "budget", label: "Budget range", value: "2 lakh" }], durationSecs: 60, endedAt: now, createdAt: now },
     ] as never[]);
 
-    const lms = { roles: ["lms_admin"], permissionOverrides: null };
-    const lmsNoCareers = { roles: ["lms_admin"], permissionOverrides: { "lms.canViewCareers": false } };
-    const lmsNone = { roles: ["lms_admin"], permissionOverrides: { "lms.canViewLeads": false } };
+    const lms = { subject: legacyToAccess({ roles: ["lms_admin"], permissionOverrides: null }) };
+    const lmsNoCareers = { subject: legacyToAccess({ roles: ["lms_admin"], permissionOverrides: { "lms.canViewCareers": false } }) };
+    const lmsNone = { subject: legacyToAccess({ roles: ["lms_admin"], permissionOverrides: { "lms.canViewLeads": false } }) };
     const owner: PanelViewerCtx = { lms, agentos: viewer("u1", ["aibots_user"]) };
     const manager: PanelViewerCtx = { lms, agentos: viewer("u9", ["aibots_manager"]) };
     const noAccount: PanelViewerCtx = { lms, agentos: null };

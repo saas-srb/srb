@@ -51,7 +51,7 @@ const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice
  * browser can replace its local ad keys. Refused (with a plain message) while a launch exists in Meta: that is edited through the launch controls.
  */
 export async function saveWizardAction(input: unknown) {
-  return run(["CREATE_ADS"], async (v) => {
+  return run(["ads.create"], async (v) => {
     const s = rec(input);
     const brief = rec(s.brief);
     const metaDraft = normalizeMetaCampaign(s.meta);
@@ -65,13 +65,13 @@ export async function saveWizardAction(input: unknown) {
     };
     let campaignId: string;
     if (existingId) {
-      need(v, "EDIT_CAMPAIGNS");
+      need(v, "campaigns.edit");
       const c = await requireCampaign(existingId);
       const merged: CampaignBrief = parseBrief({ ...c, ...base, budget: c.budget, platforms: c.platforms.length ? c.platforms : base.platforms, offerId: c.offerId, clientId: c.clientId, keywords: c.keywords, cta: c.cta, currency: base.currency || c.currency });
       await updateBrief(existingId, merged, v.userId);
       campaignId = existingId;
     } else {
-      need(v, "CREATE_CAMPAIGNS");
+      need(v, "campaigns.create");
       const c = await createCampaign(parseBrief(base), v.userId);
       await recordAudit({ ...who(v), action: "create", entity: "campaign", entityId: c._id, entityLabel: c.name, recordId: c._id, summary: "Created in the Campaigns & Ads wizard" });
       campaignId = c._id;
@@ -118,7 +118,7 @@ async function requireAdAccount(accountId: unknown) {
 }
 
 export async function accountContextAction(adAccountId: string) {
-  return run(["VIEW_CAMPAIGNS"], async () => {
+  return run(["campaigns.view"], async () => {
     const acct = await requireAdAccount(adAccountId);
     return meta(async () =>
       defaultDeps.withMeta(acct.id, async (c) => {
@@ -144,7 +144,7 @@ export async function accountContextAction(adAccountId: string) {
 }
 
 export async function leadFormsAction(pageAccountId: string) {
-  return run(["VIEW_CAMPAIGNS"], async () => {
+  return run(["campaigns.view"], async () => {
     const page = await defaultDeps.getAccount(id(pageAccountId, "Page"));
     if (!page || page.provider !== "facebook_page") throw new SmmsInputError("Choose one of the connected Facebook Pages.");
     const forms = await meta(() => defaultDeps.withMeta(page.id, (c, a) => listLeadForms(c, a.externalId)));
@@ -154,7 +154,7 @@ export async function leadFormsAction(pageAccountId: string) {
 
 const CLASSES = ["interests", "behaviors", "life_events", "industries", "income", "family_statuses"] as const;
 export async function searchTargetingAction(adAccountId: string, kind: string, q: string) {
-  return run(["VIEW_CAMPAIGNS"], async () => {
+  return run(["campaigns.view"], async () => {
     const acct = await requireAdAccount(adAccountId);
     const cls = CLASSES.find((c) => c === kind) as TargetingClass | undefined;
     if (!cls) throw new SmmsInputError("Choose what to search: interests, behaviours or demographics.");
@@ -167,7 +167,7 @@ export async function searchTargetingAction(adAccountId: string, kind: string, q
 }
 
 export async function searchGeoAction(adAccountId: string, q: string, types: string[]) {
-  return run(["VIEW_CAMPAIGNS"], async () => {
+  return run(["campaigns.view"], async () => {
     const acct = await requireAdAccount(adAccountId);
     const allowed = (Array.isArray(types) ? types : []).filter((t): t is "country" | "region" | "city" | "zip" => ["country", "region", "city", "zip"].includes(t));
     const options = await meta(() => defaultDeps.withMeta(acct.id, (c) => searchGeo(c, acct.id, str(q, 100), allowed.length ? allowed : undefined)));
@@ -176,7 +176,7 @@ export async function searchGeoAction(adAccountId: string, q: string, types: str
 }
 
 export async function searchLocalesAction(adAccountId: string, q: string) {
-  return run(["VIEW_CAMPAIGNS"], async () => {
+  return run(["campaigns.view"], async () => {
     const acct = await requireAdAccount(adAccountId);
     return { options: await meta(() => defaultDeps.withMeta(acct.id, (c) => searchLocales(c, acct.id, str(q, 100)))) };
   }, { revalidate: false });
@@ -184,7 +184,7 @@ export async function searchLocalesAction(adAccountId: string, q: string) {
 
 /** The AI proposes interest NAMES; this checks each against Meta's own search and returns only what exists (with its real id). Nothing is invented. */
 export async function matchInterestsAction(adAccountId: string, names: string[]) {
-  return run(["VIEW_CAMPAIGNS"], async () => {
+  return run(["campaigns.view"], async () => {
     const acct = await requireAdAccount(adAccountId);
     const list = [...new Set((Array.isArray(names) ? names : []).map((n) => str(n, 80)).filter((n) => n.length >= 2))].slice(0, 10);
     const matches = await meta(() =>
@@ -199,7 +199,7 @@ export async function matchInterestsAction(adAccountId: string, names: string[])
 }
 
 export async function deliveryEstimateAction(input: { adAccountId: string; adSet: unknown }) {
-  return run(["VIEW_CAMPAIGNS"], async () => {
+  return run(["campaigns.view"], async () => {
     const acct = await requireAdAccount(input?.adAccountId);
     const set = normalizeAdSet(input?.adSet);
     if (!set.optimizationGoal) throw new SmmsInputError("Choose the performance goal first; Meta estimates reach per goal.");
@@ -214,7 +214,7 @@ export async function deliveryEstimateAction(input: { adAccountId: string; adSet
 // ── validation and launch ──────────────────────────────────────────────────────────────────────────
 
 export async function validateAction(campaignId: string) {
-  return run(["VIEW_CAMPAIGNS"], async () => {
+  return run(["campaigns.view"], async () => {
     const r = await meta(() => validateLaunch(id(campaignId, "campaign")));
     return { ok: r.ok, errors: r.errors, warnings: r.warnings, commitment: r.commitment, guard: r.guard, account: r.account, checkedAt: new Date().toISOString() };
   }, { revalidate: false });
@@ -242,35 +242,35 @@ async function launchOp(fn: () => Promise<LaunchDoc | { launch: LaunchDoc; error
 }
 
 export async function createLaunchAction(campaignId: string) {
-  return run(["CREATE_ADS", "EDIT_CAMPAIGNS"], async (v) => ({ result: await launchOp(() => createLaunch(id(campaignId, "campaign"), v)) }));
+  return run(["ads.create", "campaigns.edit"], async (v) => ({ result: await launchOp(() => createLaunch(id(campaignId, "campaign"), v)) }));
 }
 export async function resumeLaunchAction(launchId: string) {
-  return run(["CREATE_ADS", "EDIT_CAMPAIGNS"], async (v) => ({ result: await launchOp(() => resumeLaunch(id(launchId, "launch"), v)) }));
+  return run(["ads.create", "campaigns.edit"], async (v) => ({ result: await launchOp(() => resumeLaunch(id(launchId, "launch"), v)) }));
 }
 export async function rollbackLaunchAction(launchId: string) {
-  return run(["CREATE_ADS"], async (v) => ({ result: await launchOp(() => rollbackLaunch(id(launchId, "launch"), v)) }));
+  return run(["ads.create"], async (v) => ({ result: await launchOp(() => rollbackLaunch(id(launchId, "launch"), v)) }));
 }
 export async function approveLaunchAction(launchId: string, note: string) {
-  return run(["APPROVE_AD_SPEND"], async (v) => ({ result: await launchOp(() => approveLaunch(id(launchId, "launch"), v, { note: str(note, 500) })) }));
+  return run(["ads.approve"], async (v) => ({ result: await launchOp(() => approveLaunch(id(launchId, "launch"), v, { note: str(note, 500) })) }));
 }
 export async function revokeApprovalAction(launchId: string) {
-  return run(["APPROVE_AD_SPEND"], async (v) => ({ result: await launchOp(() => revokeApproval(id(launchId, "launch"), v)) }));
+  return run(["ads.approve"], async (v) => ({ result: await launchOp(() => revokeApproval(id(launchId, "launch"), v)) }));
 }
 export async function activateLaunchAction(launchId: string) {
-  return run(["PUBLISH_CONTENT"], async (v) => ({ result: await launchOp(() => activateLaunch(id(launchId, "launch"), v)) }));
+  return run(["posts.publish"], async (v) => ({ result: await launchOp(() => activateLaunch(id(launchId, "launch"), v)) }));
 }
 export async function pauseLaunchAction(launchId: string) {
-  return run(["PUBLISH_CONTENT"], async (v) => ({ result: await launchOp(() => pauseLaunch(id(launchId, "launch"), v)) }));
+  return run(["posts.publish"], async (v) => ({ result: await launchOp(() => pauseLaunch(id(launchId, "launch"), v)) }));
 }
 export async function archiveLaunchAction(launchId: string) {
-  return run(["PUBLISH_CONTENT"], async (v) => ({ result: await launchOp(() => archiveLaunch(id(launchId, "launch"), v)) }));
+  return run(["posts.publish"], async (v) => ({ result: await launchOp(() => archiveLaunch(id(launchId, "launch"), v)) }));
 }
 export async function editLaunchAction(launchId: string, edit: LaunchEdit) {
-  return run(["EDIT_CAMPAIGNS"], async (v) => ({ result: await launchOp(() => editLaunch(id(launchId, "launch"), v, rec(edit) as LaunchEdit)) }));
+  return run(["campaigns.edit"], async (v) => ({ result: await launchOp(() => editLaunch(id(launchId, "launch"), v, rec(edit) as LaunchEdit)) }));
 }
 
 export async function pauseAllRunningAction() {
-  return run(["APPROVE_AD_SPEND"], async (v) => {
+  return run(["ads.approve"], async (v) => {
     const r = await meta(() => pauseAllRunning(v));
     return { paused: r.paused, failed: r.failed, results: r.results };
   });
@@ -278,7 +278,7 @@ export async function pauseAllRunningAction() {
 
 /** Current launch of a campaign, for the status panel and its polling. Does not call Meta: it reads what the sync last stored. */
 export async function launchStatusAction(campaignId: string) {
-  return run(["VIEW_CAMPAIGNS"], async () => {
+  return run(["campaigns.view"], async () => {
     const cid = id(campaignId, "campaign");
     const l = (await getActiveLaunchForCampaign(cid)) ?? (await listLaunches(cid))[0] ?? null;
     return { launch: l ? await launchView(l) : null };
@@ -286,7 +286,7 @@ export async function launchStatusAction(campaignId: string) {
 }
 
 export async function launchByIdAction(launchId: string) {
-  return run(["VIEW_CAMPAIGNS"], async () => {
+  return run(["campaigns.view"], async () => {
     const l = await getLaunch(id(launchId, "launch"));
     return { launch: l ? await launchView(l) : null };
   }, { revalidate: false });
@@ -295,7 +295,7 @@ export async function launchByIdAction(launchId: string) {
 // ── company spending limits ────────────────────────────────────────────────────────────────────────
 
 export async function loadGuardAction() {
-  return run(["VIEW_CAMPAIGNS"], async () => ({ guard: guardSummary(await getGuard()) }), { revalidate: false });
+  return run(["campaigns.view"], async () => ({ guard: guardSummary(await getGuard()) }), { revalidate: false });
 }
 
 /** What changed between two sets of limits, in words, for the activity log. */
@@ -316,7 +316,7 @@ function describeGuardChange(before: Awaited<ReturnType<typeof getGuard>>, after
 
 export async function saveGuardAction(patch: { perCurrency?: Record<string, Partial<CurrencyCaps>>; requireSecondApprover?: boolean; allowUncapped?: boolean }) {
   // Lifting a cap, relaxing the approval rule or allowing uncapped launches is its own permission: not the one that approves spend.
-  return run(["MANAGE_AD_LIMITS"], async (v) => {
+  return run(["ads.limits"], async (v) => {
     const before = await getGuard();
     const g = await saveGuard(
       {
@@ -333,7 +333,7 @@ export async function saveGuardAction(patch: { perCurrency?: Record<string, Part
 
 export async function setKillSwitchAction(on: boolean) {
   // Turning it ON is a safety action anyone who approves spend may take (and it pauses what is running); turning it OFF lets spending resume.
-  return run([on === true ? "APPROVE_AD_SPEND" : "MANAGE_AD_LIMITS"], async (v) => {
+  return run([on === true ? "ads.approve" : "ads.limits"], async (v) => {
     if (on === true) {
       const r = await engageKillSwitch(v);
       return { guard: guardSummary(r.guard), paused: r.paused, failed: r.failed };
@@ -345,5 +345,5 @@ export async function setKillSwitchAction(on: boolean) {
 }
 
 export async function loadAccountsAction() {
-  return run(["VIEW_CAMPAIGNS"], async () => ({ accounts: await loadAccountOptions() }), { revalidate: false });
+  return run(["campaigns.view"], async () => ({ accounts: await loadAccountOptions() }), { revalidate: false });
 }

@@ -5,7 +5,7 @@ import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DecisionCell, DownloadCsvButton, MonthPicker } from "@/components/products/cashflow-ai/gst/PurchasesControls";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance } from "@/lib/fms-roles";
+import { canManageCompliance } from "@/lib/fms-access";
 import { gstinError, isMonth, supplierState, type Heads } from "@/lib/products/cashflow-ai/gst/core";
 import { carriesGst, FLAG_TEXT, previousMonthOf, summarisePurchases, type Bucket } from "@/lib/products/cashflow-ai/gst/purchases-core";
 import { loadPurchasesView } from "@/lib/products/cashflow-ai/gst/purchases-data";

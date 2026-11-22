@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/sitecraft-ai/gate";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Eye, ExternalLink, Pencil } from "lucide-react";
@@ -10,7 +11,10 @@ import DevicePreview from "./DevicePreview";
 import { displayTitle } from "@/lib/products/sitecraft-ai/site-areas";
 
 export default async function CmsPagePreviewPage({ params }: { params: Promise<{ id: string }> }) {
-  if (!(await getViewer())) redirect("/sitecraft-ai/login");
+  const viewer = await getViewer();
+  if (!viewer) redirect("/sitecraft-ai/login");
+  const locked = lockedUnless(viewer, "pages.view", "Pages");
+  if (locked) return locked;
   const { id } = await params;
   const page = await getPage(id);
   if (!page) notFound();

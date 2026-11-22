@@ -8,7 +8,7 @@ import { NoteStatusBadge } from "@/components/products/cashflow-ai/StatusBadges"
 import CancelNoteButton from "@/components/products/cashflow-ai/CancelNoteButton";
 import { cancelCreditNoteAction } from "../actions";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canApproveTransactions } from "@/lib/fms-roles";
+import { canApproveTransactions } from "@/lib/fms-access";
 import { getCreditNote, serializeCreditNote } from "@/lib/products/cashflow-ai/credit-notes";
 import { formatMoney } from "@/lib/products/cashflow-ai/constants";
 import { formatDateTime } from "@/lib/utils";

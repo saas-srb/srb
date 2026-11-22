@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/sitecraft-ai/gate";
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import { redirect } from "next/navigation";
 import { getViewer, can } from "@/lib/products/sitecraft-ai/viewer";
@@ -9,6 +10,8 @@ import CmsPageHeader from "@/components/products/sitecraft-ai/ui/CmsPageHeader";
 export default async function CmsNavigationPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/sitecraft-ai/login");
+  const locked = lockedUnless(viewer, "navigation.view", "Navigation");
+  if (locked) return locked;
 
   const items = await listNavItems();
 
@@ -21,7 +24,7 @@ export default async function CmsNavigationPage() {
         description={<>The website&apos;s header menu — its columns, links, icons and featured cards. The desktop mega-menu and the mobile menu share it; changes go live immediately.</>}
       />
       <PanelListFilters>
-<NavigationManager initialItems={items} canEdit={can(viewer, "NAV_MANAGE")} />
+<NavigationManager initialItems={items} canEdit={can(viewer, "navigation.manage")} />
 </PanelListFilters>
     </div>
   );

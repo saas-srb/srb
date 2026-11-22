@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/evaliq/gate";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Shuffle } from "lucide-react";
@@ -17,7 +18,8 @@ import type { PaperItem } from "@/lib/products/evaliq/attempt-types";
 export default async function TestPreviewPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ seed?: string; key?: string }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/evaliq/login");
-  if (!can(viewer, "VIEW_TESTS")) redirect("/evaliq");
+  const locked = lockedUnless(viewer, "tests.view", "Tests");
+  if (locked) return locked;
   const { id } = await params;
   const sp = await searchParams;
   const t = await getTest(id);
@@ -44,7 +46,7 @@ export default async function TestPreviewPage({ params, searchParams }: { params
         description="A sample paper generated exactly as for a candidate (random draws and shuffles included). Nothing is saved."
         actions={<TestActions id={id} name={t.name} status={status} perms={perms} hide={["preview"]} />}
       />
-      {can(viewer, "EDIT_TEST") && <TestStepper testId={id} current="preview" published={status !== "draft"} />}
+      {can(viewer, "tests.edit") && <TestStepper testId={id} current="preview" published={status !== "draft"} />}
       {summary.issues.length > 0 && (
         <Notice tone="error">
           <p className="font-semibold">Fix before this test can be published or taken:</p>

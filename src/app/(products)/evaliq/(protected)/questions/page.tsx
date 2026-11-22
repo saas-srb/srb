@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/evaliq/gate";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Plus, Library, Upload, Download, Rows3, Copy, Pencil, Archive, ArchiveRestore } from "lucide-react";
@@ -19,7 +20,8 @@ import { formatDateTime } from "@/lib/utils";
 export default async function QuestionBankPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/evaliq/login");
-  if (!can(viewer, "VIEW_QUESTIONS")) redirect("/evaliq");
+  const locked = lockedUnless(viewer, "questions.view", "Question Bank");
+  if (locked) return locked;
   const sp = await searchParams;
   const page = Math.max(Number(sp.page) || 1, 1);
   const [r, cats, catNames, facets] = await Promise.all([
@@ -30,7 +32,7 @@ export default async function QuestionBankPage({ searchParams }: { searchParams:
   ]);
   const usage = await questionUsage(r.items.map((q) => q._id));
   const exportQs = new URLSearchParams(Object.entries({ q: sp.q, type: sp.type, categoryId: sp.categoryId, difficulty: sp.difficulty, status: sp.status, subject: sp.subject }).filter((e): e is [string, string] => !!e[1])).toString();
-  const canEdit = can(viewer, "EDIT_QUESTION");
+  const canEdit = can(viewer, "questions.edit");
 
   return (
     <div className="space-y-4">
@@ -40,7 +42,7 @@ export default async function QuestionBankPage({ searchParams }: { searchParams:
         description={`${r.total} question${r.total === 1 ? "" : "s"} — one reusable repository for every test. Tests pick questions by hand or draw them automatically by difficulty, category, subject or tag.`}
         actions={
           <>
-            {can(viewer, "EXPORT_QUESTIONS") && (
+            {can(viewer, "questions.export") && (
               <>
                 <Button variant="outline" size="sm" nativeButton={false} render={<a href={`/api/evaliq/export/questions?format=csv${exportQs ? `&${exportQs}` : ""}`} />}>
                   <Download className="size-3.5" /> CSV
@@ -50,12 +52,12 @@ export default async function QuestionBankPage({ searchParams }: { searchParams:
                 </Button>
               </>
             )}
-            {can(viewer, "IMPORT_QUESTIONS") && (
+            {can(viewer, "questions.import") && (
               <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/evaliq/questions/import" />}>
                 <Upload className="size-3.5" /> Import
               </Button>
             )}
-            {can(viewer, "CREATE_QUESTION") && (
+            {can(viewer, "questions.create") && (
               <>
                 <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/evaliq/questions/bulk" />}>
                   <Rows3 className="size-3.5" /> Bulk create
@@ -90,7 +92,7 @@ export default async function QuestionBankPage({ searchParams }: { searchParams:
         <CardContent>
           {r.items.length === 0 ? (
             <EmptyState icon={<Library className="size-5" />} title="No questions match">
-              {can(viewer, "CREATE_QUESTION") ? "Create one, bulk-create several, or import a CSV / Excel file." : "Questions your team writes will appear here."}
+              {can(viewer, "questions.create") ? "Create one, bulk-create several, or import a CSV / Excel file." : "Questions your team writes will appear here."}
             </EmptyState>
           ) : (
             <Table>
@@ -139,7 +141,7 @@ export default async function QuestionBankPage({ searchParams }: { searchParams:
                               <Pencil className="size-3.5" />
                             </Button>
                           )}
-                          {can(viewer, "CREATE_QUESTION") && (
+                          {can(viewer, "questions.create") && (
                             <ActionButton action={duplicateQuestionAction.bind(null, q._id)} variant="ghost" size="icon-sm" success="Duplicated as a draft" redirectPrefix="/evaliq/questions/" aria-label="Duplicate">
                               <Copy className="size-3.5" />
                             </ActionButton>

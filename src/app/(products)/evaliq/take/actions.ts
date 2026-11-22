@@ -15,6 +15,7 @@ import {
   type ExamState,
 } from "@/lib/products/evaliq/attempts";
 import { mapError } from "@/lib/products/evaliq/run";
+import { can, getViewer } from "@/lib/products/evaliq/viewer";
 
 /**
  * Test-taking actions for EVERY candidate type — employees and staff (OTS
@@ -29,6 +30,11 @@ async function take<T extends object>(channel: Channel, fn: (t: Taker) => Promis
   if (channel !== "staff" && channel !== "portal") return { ok: false, error: "Unknown channel.", code: "AUTH" };
   const taker = await resolveTaker(channel);
   if (!taker) return { ok: false, error: "Your session has expired — please sign in again.", code: "AUTH" };
+  // A staff-channel person (employee / staff login) needs the feature to take tests; the portal channel (applicants, students) is its own sign-in.
+  if (channel === "staff") {
+    const viewer = await getViewer();
+    if (!viewer || !can(viewer, "assignments.take")) return { ok: false, error: "You don't have permission to take tests.", code: "AUTH" };
+  }
   try {
     return { ok: true, ...(await fn(taker)) };
   } catch (err) {

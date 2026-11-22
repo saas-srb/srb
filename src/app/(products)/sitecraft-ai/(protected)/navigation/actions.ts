@@ -11,13 +11,13 @@ type Result<T extends object = object> = ({ ok: true } & T) | { ok: false; error
 async function guard(): Promise<{ v: Awaited<ReturnType<typeof requireViewer>> | null; error: string | null }> {
   const v = await requireViewer().catch(() => null);
   if (!v) return { v: null, error: SESSION_EXPIRED };
-  if (!can(v, "NAV_MANAGE")) return { v: null, error: NO_PERMISSION };
+  if (!can(v, "navigation.manage")) return { v: null, error: NO_PERMISSION };
   return { v, error: null };
 }
 
 export async function listNavItemsAction(): Promise<CmsNavItemDoc[]> {
   const v = await requireViewer().catch(() => null);
-  if (!v || !can(v, "VIEW")) return [];
+  if (!v || !can(v, "navigation.view")) return [];
   return listNavItems();
 }
 

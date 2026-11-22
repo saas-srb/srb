@@ -11,7 +11,7 @@ import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import CashAccountForm from "@/components/products/cashflow-ai/CashAccountForm";
 import { TransactionStatusBadge, TransactionTypeBadge, FundAccountStatusBadge } from "@/components/products/cashflow-ai/StatusBadges";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageBanking } from "@/lib/fms-roles";
+import { canManageBanking } from "@/lib/fms-access";
 import { getCashAccount, serializeCashAccount } from "@/lib/products/cashflow-ai/cash-accounts";
 import { transactionsForFundAccount, serializeTransaction } from "@/lib/products/cashflow-ai/transactions";
 import { formatMoney } from "@/lib/products/cashflow-ai/constants";

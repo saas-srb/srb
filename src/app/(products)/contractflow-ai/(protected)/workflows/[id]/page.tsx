@@ -1,10 +1,11 @@
+import { lockedUnless } from "@/lib/products/contractflow-ai/gate";
+import { can } from "@/lib/products/contractflow-ai/viewer";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { getViewer } from "@/lib/products/contractflow-ai/viewer";
-import { lpmsCan } from "@/lib/lpms-roles";
 import { getWorkflow } from "@/lib/products/contractflow-ai/workflows";
 import WorkflowForm from "@/components/products/contractflow-ai/WorkflowForm";
 
@@ -15,10 +16,11 @@ export default async function WorkflowDetailPage({
 }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/contractflow-ai/login");
+  const locked = lockedUnless(viewer, "policies.manage", "Workflows");
+  if (locked) return locked;
 
   const ctx = { roles: viewer.roles, permissionOverrides: viewer.overrides };
-  if (!lpmsCan(ctx, "MANAGE_POLICIES")) redirect("/contractflow-ai");
-
+  
   const { id } = await params;
   const workflow = id === "new" ? null : await getWorkflow(id, viewer);
   if (id !== "new" && !workflow) notFound();

@@ -1,6 +1,6 @@
 import "server-only";
+import { can } from "@/lib/products/contractflow-ai/viewer";
 import { randomUUID } from "node:crypto";
-import { lpmsCan } from "@/lib/lpms-roles";
 import { cfClones, cfRequests, cfSigners } from "./cf-db";
 import { appendEvent } from "./events";
 import { generateToken, hashToken } from "./tokens";
@@ -21,7 +21,7 @@ export class RequestError extends Error {
 }
 
 const ctx = (v: LpmsViewer) => ({ roles: v.roles, permissionOverrides: v.overrides });
-const mayManage = (v: LpmsViewer) => lpmsCan(ctx(v), "SIGN") || lpmsCan(ctx(v), "MANAGE_DOCUMENTS");
+const mayManage = (v: LpmsViewer) => can(v, "signatures.sign") || can(v, "signatures.manage");
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const clean = (s: unknown, max: number) => (typeof s === "string" ? s.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max) : "");
 export const MAX_SIGNERS = 20;

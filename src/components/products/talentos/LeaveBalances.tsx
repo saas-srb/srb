@@ -7,7 +7,7 @@ import { Pencil, Check, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { setLeaveAllocationAction } from "@/app/(products)/talentos/(protected)/(staff)/leave/actions";
+import { setLeaveAllocationAction } from "@/app/(products)/talentos/(protected)/leave/actions";
 
 export interface BalanceRow {
   leaveTypeCode: string;

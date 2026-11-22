@@ -31,7 +31,7 @@ export default function LoginAsPortalUserButton({
   displayName,
   variant = "icon",
 }: LoginAsPortalUserButtonProps) {
-  const allowed = useLmsCan("IMPERSONATE");
+  const allowed = useLmsCan("portal.impersonate");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [clicked, setClicked] = useState(false);

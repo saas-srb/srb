@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/sitecraft-ai/gate";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Palette, Paintbrush } from "lucide-react";
@@ -12,6 +13,8 @@ import CmsPageHeader from "@/components/products/sitecraft-ai/ui/CmsPageHeader";
 export default async function CmsThemeListPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/sitecraft-ai/login");
+  const locked = lockedUnless(viewer, "theme.view", "Theme");
+  if (locked) return locked;
 
   const [themes, activeKey] = await Promise.all([listThemes(), getActiveThemeKey()]);
   const activeName = themes.find((t) => t._id === activeKey)?.name ?? "Default";
@@ -28,7 +31,7 @@ export default async function CmsThemeListPage() {
         description={<>Browse, live-preview and customize themes. The active theme — <strong className="text-foreground">{activeName}</strong> — drives the public site&apos;s colours, fonts, header, footer and hero layout.</>}
         actions={<Link href={`/sitecraft-ai/customize/${activeKey}`} className={buttonVariants({ size: "sm" })}><Paintbrush className="size-3.5" /> Customize active theme</Link>}
       />
-      <ThemeGallery themes={themes} presets={THEME_PRESETS} activeKey={activeKey} canEdit={can(viewer, "THEME_UPDATE")} canPublish={can(viewer, "THEME_PUBLISH")} />
+      <ThemeGallery themes={themes} presets={THEME_PRESETS} activeKey={activeKey} canEdit={can(viewer, "theme.edit")} canPublish={can(viewer, "theme.publish")} />
     </div>
   );
 }

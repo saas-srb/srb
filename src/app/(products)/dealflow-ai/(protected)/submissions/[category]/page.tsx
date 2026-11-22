@@ -29,7 +29,7 @@ export default async function SubmissionsListPage({
     sortDir?: string;
   }>;
 }) {
-  await requireLmsPage("VIEW_LEADS");
+  await requireLmsPage("submissions.view");
   const { category } = await params;
   if (!isValidCategory(category)) notFound();
 

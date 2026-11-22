@@ -25,7 +25,7 @@ import {
 import LeaveStatusBadge from "@/components/products/talentos/LeaveStatusBadge";
 import { LEAVE_REQUEST_STATUSES } from "@/lib/products/talentos/leave-status";
 import { formatDate, formatDateTime } from "@/lib/utils";
-import { decideLeaveAction, cancelLeaveAction } from "@/app/(products)/talentos/(protected)/(staff)/leave/actions";
+import { decideLeaveAction, cancelLeaveAction } from "@/app/(products)/talentos/(protected)/leave/actions";
 
 interface Req {
   _id: string;

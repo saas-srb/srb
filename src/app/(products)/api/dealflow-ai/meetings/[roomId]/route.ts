@@ -13,7 +13,7 @@ const notFound = () => NextResponse.json({ ok: false, error: "Meeting not found"
 type Ctx = { params: Promise<{ roomId: string }> };
 
 async function handleGET(_: NextRequest, { params }: Ctx) {
-  const user = await requireLms("VIEW_LEADS");
+  const user = await requireLms("meetings.view");
   if (!user) return deny();
   try {
     const m = await getMeeting((await params).roomId);
@@ -31,7 +31,7 @@ async function handleGET(_: NextRequest, { params }: Ctx) {
  * PATCH { title?, agenda?, scheduledAt?, durationMinutes?, timezone?, agentSettings?, waitingRoom?, target?, notify? }  edits it (a new time sends the updated invitation).
  */
 async function handlePATCH(req: NextRequest, { params }: Ctx) {
-  const user = await requireLms("VIEW_LEADS");
+  const user = await requireLms("meetings.view");
   if (!user) return deny();
   try {
     const { roomId } = await params;
@@ -89,7 +89,7 @@ async function handlePATCH(req: NextRequest, { params }: Ctx) {
 
 /** Permanently removes a meeting that is not running. Cancelling (PATCH) keeps the record. */
 async function handleDELETE(_: NextRequest, { params }: Ctx) {
-  const user = await requireLms("VIEW_LEADS");
+  const user = await requireLms("meetings.view");
   if (!user) return deny();
   try {
     const { roomId } = await params;

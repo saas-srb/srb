@@ -6,6 +6,10 @@ import { cookies } from "next/headers";
 import { ObjectId } from "mongodb";
 import { WORKSPACE_SESSION_COOKIE, workspaceSessionAccountId } from "@/lib/workspace-session";
 import { getDb } from "@/lib/mongodb";
+import { subjectFromRow } from "@/lib/access/server";
+import type { AccessSubject } from "@/lib/access/can";
+import { chatCan } from "@/lib/messenger-access";
+import { redirect } from "next/navigation";
 import { verifyPassword, hashPassword } from "@/lib/lms-auth";
 import { CHAT_ROLES, normalizeChatRoles, type ChatRole } from "@/lib/messenger-roles";
 
@@ -56,6 +60,8 @@ export interface CurrentChatUser {
   allRoles: string[];
   /** Per-capability overrides from the Director — see `permission-overrides.ts`. */
   permissionOverrides: Record<string, boolean>;
+  /** The person's access (micro features) - what every Huddle check reads. */
+  subject: AccessSubject;
   /** Linked `hrms_employees` id — set for accounts that are also HRMS employees. */
   employeeId: string | null;
   displayName: string;
@@ -179,6 +185,7 @@ export async function getChatUserForAccount(adminId: ObjectId): Promise<CurrentC
     roles,
     allRoles: user.roles ?? [],
     permissionOverrides: user.permissionOverrides ?? {},
+    subject: subjectFromRow(user as never),
     employeeId: user.employeeId ?? null,
     displayName: user.chatDisplayName?.trim() || nameFromEmail(user.email),
     avatarUrl: user.chatAvatarUrl ?? null,
@@ -224,6 +231,22 @@ export async function requireChatUser(...anyOf: ChatRole[]): Promise<CurrentChat
   if (anyOf.length > 0 && !anyOf.some((r) => user.roles.includes(r))) {
     throw new Error("Forbidden");
   }
+  return user;
+}
+
+/** Server-action / route guard on a micro feature: the signed-in user when they hold `key`, else `Unauthorized` / `Forbidden`. */
+export async function requireChat(key: string): Promise<CurrentChatUser> {
+  const user = await getCurrentChatUser();
+  if (!user) throw new Error("Unauthorized");
+  if (!chatCan(user, key)) throw new Error("Forbidden");
+  return user;
+}
+
+/** Page guard for a section of Huddle: the signed-in user when they hold `key`, else back to the Huddle home (or sign-in). */
+export async function requireChatPage(key: string): Promise<CurrentChatUser> {
+  const user = await getCurrentChatUser();
+  if (!user) redirect("/huddle-ai/login");
+  if (!chatCan(user, key)) redirect("/huddle-ai");
   return user;
 }
 

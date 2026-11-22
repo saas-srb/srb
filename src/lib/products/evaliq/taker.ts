@@ -30,7 +30,7 @@ export interface Taker {
 export async function resolveTaker(channel: Channel): Promise<Taker | null> {
   if (channel === "staff") {
     const v = await getViewer();
-    if (!v || !can(v, "TAKE_TEST")) return null;
+    if (!v || !can(v, "assignments.take")) return null;
     return { channel, actorId: v.userId, actorEmail: v.email, name: v.name, refs: v.candidates, keys: v.candidates.map(candidateKey) };
   }
   const u = await getCurrentPortalUser();
@@ -56,6 +56,6 @@ export interface CandidatePaths {
 
 export function basePath(channel: Channel): CandidatePaths {
   return channel === "staff"
-    ? { tests: "/evaliq/my-tests", exam: "/evaliq/take", results: "/evaliq/my-results", certificates: "/evaliq/certificates" }
+    ? { tests: "/evaliq/assignments", exam: "/evaliq/take", results: "/evaliq/results", certificates: "/evaliq/certificates" }
     : { tests: "/clientos/tests", exam: "/clientos/exam", results: "/clientos/tests/results", certificates: "/clientos/tests/certificates" };
 }

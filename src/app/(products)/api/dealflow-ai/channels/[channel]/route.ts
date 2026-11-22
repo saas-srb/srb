@@ -7,7 +7,7 @@ const channelOf = (v: string): ChannelKind | null => (v === "email" || v === "wh
 
 /** GET ?leadId= : what was sent to that lead on this channel. */
 async function handleGET(req: NextRequest, { params }: { params: Promise<{ channel: string }> }) {
-  if (!(await requireLms("VIEW_LEADS"))) return NextResponse.json({ ok: false, error: "Not allowed" }, { status: 403 });
+  if (!(await requireLms("messages.view"))) return NextResponse.json({ ok: false, error: "Not allowed" }, { status: 403 });
   const channel = channelOf((await params).channel);
   const leadId = new URL(req.url).searchParams.get("leadId");
   if (!channel || !leadId) return NextResponse.json({ ok: false, error: "A channel and a leadId are required" }, { status: 400 });
@@ -21,7 +21,7 @@ async function handleGET(req: NextRequest, { params }: { params: Promise<{ chann
 
 /** POST { leadId, subject?, body } : sends to the lead through the company's own account and records the attempt. */
 async function handlePOST(req: NextRequest, { params }: { params: Promise<{ channel: string }> }) {
-  const user = await requireLms("MESSAGE_LEADS");
+  const user = await requireLms("messages.send");
   if (!user) return NextResponse.json({ ok: false, error: "Not allowed" }, { status: 403 });
   const channel = channelOf((await params).channel);
   const body = await req.json().catch(() => null);

@@ -4,7 +4,7 @@ import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdjustmentsPanel, NotePanel, ProvisionPanel, RatesForm, RegimeChooser, SetOffPanel, type RegimeChoice } from "@/components/products/cashflow-ai/income-tax/YearForms";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance, canManageFiscalPeriods } from "@/lib/fms-roles";
+import { canManageCompliance, canManageFiscalPeriods } from "@/lib/fms-access";
 import { provisionState } from "@/lib/products/cashflow-ai/income-tax/provision";
 import { loadYearComputation } from "@/lib/products/cashflow-ai/income-tax/store";
 import { COMPUTATION_NOTE_TEXT } from "@/lib/products/cashflow-ai/income-tax/core";

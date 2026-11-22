@@ -7,7 +7,8 @@ import { getChatUsers } from "@/lib/products/huddle-ai/users";
 import { getChannelBySlug, listMemberIds } from "@/lib/products/huddle-ai/channels";
 import { postMessage } from "@/lib/products/huddle-ai/messages";
 import { recordAudit } from "@/lib/products/huddle-ai/audit";
-import { normalizeChatRoles, canPostAnnouncements, type ChatRole } from "@/lib/messenger-roles";
+import { normalizeChatRoles, type ChatRole } from "@/lib/messenger-roles";
+import { canPostAnnouncements, type ChatHolder } from "@/lib/messenger-access";
 import type { Attachment } from "@/lib/products/huddle-ai/attachments";
 
 /**
@@ -230,7 +231,7 @@ export async function getAnnouncement(id: string): Promise<Announcement | null> 
 
 export async function canViewAnnouncement(
   a: Announcement,
-  user: { id: string; roles: ChatRole[]; permissionOverrides?: Record<string, boolean> }
+  user: { id: string } & ChatHolder
 ): Promise<boolean> {
   if (canPostAnnouncements(user)) return true;
   if (a.status !== "published") return false;

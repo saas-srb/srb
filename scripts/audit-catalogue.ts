@@ -93,7 +93,7 @@ async function main() {
     for (const [name, fn] of Object.entries(mod)) {
       if (typeof fn !== "function" || !/^(can|is|has)[A-Z]/.test(name) || /Role$|Roles$/.test(name) || name === "isLearner") continue;
       const info = d.get(name);
-      const arrayStyle = /^has\w*(Access|StaffRole)$|^is\w*(Only|Tier)$/.test(name) && !/\(user/.test(src.slice(src.indexOf(`function ${name}`), src.indexOf(`function ${name}`) + 80));
+      const arrayStyle = /^has\w*(Access|StaffRole)$|^hasAny\w*Role$|^is\w*(Only|Tier)$/.test(name) && !/\(user/.test(src.slice(src.indexOf(`function ${name}`), src.indexOf(`function ${name}`) + 80));
       if (arrayStyle) {
         const holders = rolesToTry.filter((r) => { try { return Boolean((fn as (a: string[]) => boolean)([r])); } catch { return false; } });
         features.push({ uses: 0, useFiles: [], product: prod.name, slug: prod.slug, name: prod.name, source: f, id: name, key: null, description: info?.doc || "Tier gate", level: "read", roles: holders, defaultExpr: "tier gate (who can open the product / which area)" });

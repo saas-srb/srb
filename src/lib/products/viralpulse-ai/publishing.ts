@@ -2,7 +2,9 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/mongodb";
-import { smmsCan, type SmmsPermission } from "@/lib/smms-roles";
+import { subjectFromRow } from "@/lib/access/server";
+import { can as accessCan } from "@/lib/access/can";
+import type { AccessMap } from "@/lib/access/types";
 import { notDeleted } from "@/lib/products/viralpulse-ai/db";
 import { PUBLISHER_MODULES } from "@/lib/products/viralpulse-ai/publishers/index";
 import { attemptsForPost, cancelAttempts, claimAttempt, claimDue, ensureAttempt, reopen, type AttemptDoc } from "@/lib/products/viralpulse-ai/publishers/attempts";
@@ -36,16 +38,16 @@ import { afterForCompany } from "@/lib/platform/tenancy/context";
 type Actor = { userId: string; email: string | null };
 export const WORKER_BUDGET_MS = 240_000;
 
-export async function smmsUsersWith(permission: SmmsPermission): Promise<string[]> {
+export async function smmsUsersWith(permission: string): Promise<string[]> {
   const db = await getDb();
   const rows = await db
-    .collection<{ _id: ObjectId; roles?: string[]; permissionOverrides?: Record<string, boolean> }>("admin_users")
-    .find({ roles: { $elemMatch: { $regex: "^(smms_|super_admin$)" } } }, { projection: { roles: 1, permissionOverrides: 1 } })
+    .collection<{ _id: ObjectId; roles?: string[]; permissionOverrides?: Record<string, boolean>; access?: AccessMap | null }>("admin_users")
+    .find({ roles: { $elemMatch: { $regex: "^(smms_|super_admin$)" } } }, { projection: { roles: 1, permissionOverrides: 1, access: 1 } })
     .toArray();
-  return rows.filter((r) => smmsCan({ roles: r.roles ?? [], permissionOverrides: r.permissionOverrides ?? {} }, permission)).map((r) => r._id.toString());
+  return rows.filter((r) => accessCan(subjectFromRow(r), "viralpulse-ai", `viralpulse-ai.${permission}`)).map((r) => r._id.toString());
 }
 
-function need(v: SmmsViewer, ...anyOf: SmmsPermission[]) {
+function need(v: SmmsViewer, ...anyOf: string[]) {
   if (!anyOf.some((p) => can(v, p))) throw new ForbiddenError();
 }
 
@@ -140,7 +142,7 @@ function formatName(platform: PlatformKey, o: PublishOptions, images: number, ha
 }
 
 export async function getPublishPlan(postId: string, viewer: SmmsViewer): Promise<PublishPlan> {
-  need(viewer, "MANAGE_POSTS", "SCHEDULE_POSTS", "PUBLISH_CONTENT");
+  need(viewer, "posts.manage", "posts.schedule", "posts.publish");
   const p = await getPost(postId);
   if (!p) throw new SmmsInputError("That post no longer exists.");
   return buildPlan(p);
@@ -204,7 +206,7 @@ export interface ScheduleInput {
 }
 
 export async function schedulePost(postId: string, input: ScheduleInput, viewer: SmmsViewer, now = new Date()): Promise<{ scheduledAt: Date; timezone: string; approved: boolean; plan: PublishPlan }> {
-  need(viewer, "SCHEDULE_POSTS", "PUBLISH_CONTENT");
+  need(viewer, "posts.schedule", "posts.publish");
   const p = await getPost(postId);
   if (!p) throw new SmmsInputError("That post no longer exists.");
   if (p.status === "archived") throw new SmmsInputError("Restore the post before scheduling it.");
@@ -224,7 +226,7 @@ export async function schedulePost(postId: string, input: ScheduleInput, viewer:
   if (!plan.platforms.some((x) => x.variantState !== "published")) throw new SmmsInputError("Every platform of this post is already published.");
   const blockers = plan.platforms.filter((x) => x.variantState !== "published" && x.blocking);
   if (blockers.length) throw new SmmsInputError(`Fix these before scheduling - ${blockers.map((b) => `${b.label}: ${b.issues.filter((i) => i.severity === "error").map((i) => i.message).join(" ")}`).join(" | ")}`.slice(0, 600));
-  const approve = Boolean(input.approve) && can(viewer, "PUBLISH_CONTENT");
+  const approve = Boolean(input.approve) && can(viewer, "posts.publish");
   await cancelAttempts(postId); // a new schedule replaces any waiting attempts
   await updatePost(postId, { status: "scheduled", scheduledAt: at, scheduledTz: tz, scheduledBy: viewer.userId, approvedBy: approve ? viewer.userId : null, approvedAt: approve ? now : null, publishQueuedAt: null, publishOptions: merged.publishOptions }, viewer.userId);
   await recordAudit({ actorId: viewer.userId, actorEmail: viewer.email, action: "schedule", entity: "post", entityId: postId, entityLabel: p.title, recordId: postId, summary: `${at.toISOString()} (${tz})${approve ? " · approved to auto-publish" : " · awaiting approval"}` });
@@ -243,7 +245,7 @@ export interface QueuedResult {
 
 /** Hands the chosen platforms to the engine and returns immediately; the work runs in the background right after the response. */
 export async function publishNow(postId: string, platforms: PostPlatform[], viewer: SmmsViewer, opts: { options?: PublishOptions } = {}): Promise<QueuedResult[]> {
-  need(viewer, "PUBLISH_CONTENT");
+  need(viewer, "posts.publish");
   const p = await getPost(postId);
   if (!p) throw new SmmsInputError("That post no longer exists.");
   if (p.status === "archived") throw new SmmsInputError("Restore the post before publishing it.");
@@ -285,13 +287,13 @@ export async function publishPostNow(postId: string, platforms: PostPlatform[], 
 
 async function viewerFor(actor: Actor): Promise<SmmsViewer> {
   const db = await getDb();
-  const u = ObjectId.isValid(actor.userId) ? await db.collection<{ _id: ObjectId; roles?: string[]; permissionOverrides?: Record<string, boolean> }>("admin_users").findOne({ _id: new ObjectId(actor.userId) }, { projection: { roles: 1, permissionOverrides: 1 } }) : null;
+  const u = ObjectId.isValid(actor.userId) ? await db.collection<{ _id: ObjectId; roles?: string[]; permissionOverrides?: Record<string, boolean>; access?: AccessMap | null }>("admin_users").findOne({ _id: new ObjectId(actor.userId) }, { projection: { roles: 1, permissionOverrides: 1, access: 1 } }) : null;
   const roles = u?.roles ?? [];
-  return { userId: actor.userId, email: actor.email ?? "", roles, ctx: { roles, permissionOverrides: u?.permissionOverrides ?? {} } };
+  return { userId: actor.userId, email: actor.email ?? "", roles, ctx: { roles, permissionOverrides: u?.permissionOverrides ?? {} }, subject: u ? subjectFromRow(u) : { isDirector: false, access: {} } };
 }
 
 export async function retryPublish(postId: string, platform: PostPlatform, opts: { force?: boolean }, viewer: SmmsViewer): Promise<QueuedResult> {
-  need(viewer, "PUBLISH_CONTENT");
+  need(viewer, "posts.publish");
   const p = await getPost(postId);
   if (!p) throw new SmmsInputError("That post no longer exists.");
   const latest = (await attemptsForPost(postId)).find((a) => a.platform === platform);
@@ -311,7 +313,7 @@ export async function retryPublish(postId: string, platform: PostPlatform, opts:
 }
 
 export async function cancelScheduled(postId: string, viewer: SmmsViewer): Promise<{ cancelled: number }> {
-  need(viewer, "SCHEDULE_POSTS", "PUBLISH_CONTENT");
+  need(viewer, "posts.schedule", "posts.publish");
   const p = await getPost(postId);
   if (!p) throw new SmmsInputError("That post no longer exists.");
   const n = await cancelAttempts(postId);
@@ -344,7 +346,7 @@ export async function withdrawApprovalForMedia(mediaId: string, actor: { userId:
 }
 
 export async function listAttempts(postId: string, viewer: SmmsViewer): Promise<AttemptView[]> {
-  need(viewer, "MANAGE_POSTS", "SCHEDULE_POSTS", "PUBLISH_CONTENT");
+  need(viewer, "posts.manage", "posts.schedule", "posts.publish");
   if (!(await getPost(postId))) throw new SmmsInputError("That post no longer exists.");
   return (await attemptsForPost(postId)).map(view);
 }
@@ -433,7 +435,7 @@ export async function applyOutcome(out: Outcome): Promise<void> {
   } else if (out.kind === "failed") {
     await set({ state: "failed", method: null, externalId: null, url: null, error: `${out.error.message} ${out.error.hint}`.slice(0, 400), at: new Date(), by: actorId });
     await recordAudit({ actorId, action: "publish_failed", entity: "post", entityId: a.postId, entityLabel: post.title, recordId: a.postId, summary: `${label}: ${out.error.message}`, metadata: { attemptId: a._id, class: out.error.klass } });
-    const publishers = await smmsUsersWith("PUBLISH_CONTENT");
+    const publishers = await smmsUsersWith("posts.publish");
     await notifySmmsUsers([...new Set([...publishers, post.scheduledBy ?? "", a.requestedBy ?? ""].filter(Boolean))], { type: "smms_publish_failed", title: `Publishing failed on ${label}: ${post.title}`, body: `${out.error.message} ${out.error.hint}`.slice(0, 300), link, dedupeKey: `smms-fail-${a._id}-${a.attempts}` });
   } else if (out.kind === "cancelled") {
     // A scheduled publish that stopped (approval withdrawn): let the next sweep look at the post again.
@@ -485,7 +487,7 @@ export async function runDueSweep(o: { deps?: EngineDeps; now?: Date } = {}): Pr
   const now = o.now ?? new Date();
   const settings = await getPublishSettings();
   const posts = await postsCollection();
-  const publishers = await smmsUsersWith("PUBLISH_CONTENT");
+  const publishers = await smmsUsersWith("posts.publish");
   let queuedPosts = 0;
   let awaitingApproval = 0;
   const due = await posts.find({ ...notDeleted, status: "scheduled", scheduledAt: { $lte: now }, publishQueuedAt: null }).sort({ scheduledAt: 1 }).limit(settings.batchCap * 3).toArray();

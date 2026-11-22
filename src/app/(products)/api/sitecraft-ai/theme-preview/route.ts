@@ -15,7 +15,7 @@ import { THEME_PREVIEW_COOKIE, type ThemePreviewCookie } from "@/lib/products/si
  */
 async function handleGET(request: Request) {
   const viewer = await getViewer();
-  if (!viewer || !can(viewer, "VIEW")) return new Response("Sign in to the CMS to preview themes.", { status: 401 });
+  if (!viewer || !can(viewer, "theme.view")) return new Response("Sign in to the CMS to preview themes.", { status: 401 });
 
   const url = new URL(request.url);
   const themeKey = url.searchParams.get("theme") ?? "";

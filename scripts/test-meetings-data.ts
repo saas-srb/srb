@@ -1,3 +1,4 @@
+import { legacyToAccess } from "../src/lib/access/adapter";
 import assert from "node:assert/strict";
 import { ObjectId } from "mongodb";
 import { TokenVerifier } from "livekit-server-sdk";
@@ -42,7 +43,7 @@ const at = (min: number, base = new Date()) => new Date(base.getTime() + min * 6
       { _id: outsiderId, name: "Olga Outsider", email: "olga@co.test", roles: ["lms_agent"], status: "active" },
       { _id: mgrId, name: "Mona Manager", email: "mona@co.test", roles: ["lms_manager"], status: "active" },
     ] as never[]);
-    const u = (id: ObjectId, roles: string[]) => ({ id: String(id), email: "x@co.test", roles, permissionOverrides: {} });
+    const u = (id: ObjectId, roles: string[]) => ({ id: String(id), email: "x@co.test", roles, permissionOverrides: {}, subject: legacyToAccess({ roles, permissionOverrides: null }) });
     const host = u(hostId, ["lms_agent"]), staff = u(staffId, ["lms_agent"]), outsider = u(outsiderId, ["lms_agent"]), manager = u(mgrId, ["lms_manager"]);
     const deps = { agents: async () => [{ id: "bot1", name: "Asha" }, { id: "bot2", name: "Ravi" }] };
     const tz = "Asia/Kolkata";

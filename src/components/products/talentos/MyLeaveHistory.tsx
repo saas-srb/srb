@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import LeaveStatusBadge from "@/components/products/talentos/LeaveStatusBadge";
 import { formatDate } from "@/lib/utils";
-import { cancelMyLeaveAction } from "@/app/(products)/talentos/(protected)/me/leave/actions";
+import { cancelMyLeaveAction } from "@/app/(products)/talentos/(protected)/leave/actions";
 
 interface Row {
   _id: string;
@@ -33,7 +33,7 @@ interface Row {
   decisionNote: string | null;
 }
 
-export default function MyLeaveHistory({ rows }: { rows: Row[] }) {
+export default function MyLeaveHistory({ rows, canWithdraw = true }: { rows: Row[]; canWithdraw?: boolean }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -68,7 +68,7 @@ export default function MyLeaveHistory({ rows }: { rows: Row[] }) {
             </div>
             <div className="flex items-center gap-2">
               <LeaveStatusBadge status={r.status} />
-              {r.status === "pending" && (
+              {r.status === "pending" && canWithdraw && (
                 <AlertDialog>
                   <AlertDialogTrigger
                     render={

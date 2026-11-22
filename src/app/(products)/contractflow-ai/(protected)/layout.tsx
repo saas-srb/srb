@@ -1,9 +1,10 @@
+import { hasLpmsAccess } from '@/lib/lpms-roles';
+import { can } from "@/lib/products/contractflow-ai/viewer";
 import { twoStepGate } from "@/lib/security/two-step-gate";
 import { runLpmsSweep } from "@/lib/notify/sweeps";
 import { panelUnread } from "@/lib/notify";
 import { redirect } from 'next/navigation';
 import { getCurrentLpmsUser } from '@/lib/lpms-auth';
-import { hasLpmsAccess, lpmsCan } from '@/lib/lpms-roles';
 import { getViewer } from '@/lib/products/contractflow-ai/viewer';
 import LpmsSidebarShell from '@/components/products/contractflow-ai/LpmsSidebarShell';
 import LpmsTopbar from '@/components/products/contractflow-ai/LpmsTopbar';
@@ -38,13 +39,16 @@ export default async function ProtectedLpmsLayout({ children }: { children: Reac
   } catch {}
 
   const flags: LpmsNavFlags = {
-    canCreate: lpmsCan(ctx, 'CREATE'),
-    canManageTemplates: lpmsCan(ctx, 'MANAGE_TEMPLATES'),
-    canManageMakers: lpmsCan(ctx, 'MANAGE_MAKERS'),
-    canApprove: lpmsCan(ctx, 'APPROVE'),
-    canSign: lpmsCan(ctx, 'SIGN'),
-    canViewAudit: lpmsCan(ctx, 'VIEW_AUDIT'),
-    canSettings: lpmsCan(ctx, 'MANAGE_POLICIES'),
+    canCreate: can(viewer, "documents.create"),
+    canManageTemplates: can(viewer, "templates.manage"),
+    canManageMakers: can(viewer, "makers.manage"),
+    canApprove: can(viewer, "documents.approve"),
+    canSign: can(viewer, "signatures.sign"),
+    canViewAudit: can(viewer, "audit.view"),
+    canSettings: can(viewer, "policies.manage"),
+    canViewDashboard: can(viewer, 'dashboard.view'),
+    canViewDocuments: can(viewer, 'documents.view'),
+    canViewArchive: can(viewer, 'archive.view'),
     pendingApprovals,
   };
 

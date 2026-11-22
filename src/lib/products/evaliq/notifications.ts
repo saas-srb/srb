@@ -58,7 +58,7 @@ export async function notifyCandidates(notices: CandidateNotice[]): Promise<void
               type: n.type,
               title: n.title,
               body: n.body ?? null,
-              link: n.staffLink ?? `/evaliq/my-tests/${n.assignmentId}`,
+              link: n.staffLink ?? `/evaliq/assignments/${n.assignmentId}`,
               dedupeKey: n.dedupeKey ?? null,
             }).catch(() => {})
           );

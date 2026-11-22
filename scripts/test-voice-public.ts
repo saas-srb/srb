@@ -1,3 +1,4 @@
+import { legacyToAccess } from "../src/lib/access/adapter";
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { getDb, getPlatformDb } from "../src/lib/mongodb";
@@ -20,7 +21,7 @@ import { frameAncestorsFor } from "../src/lib/products/agentos/calls/public-embe
 // Throwaway database only. ElevenLabs is never reached: the client gets an injected fetch.
 process.env.PLATFORM_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString("base64"); // test-only key
 const t = async (name: string, fn: () => Promise<void>) => { await fn(); console.log("  ✓", name); };
-const viewer = (roles: string[]) => ({ userId: "u", email: "u@x.test", roles, ctx: { roles, permissionOverrides: undefined }, seesAll: false }) as never;
+const viewer = (roles: string[]) => ({ userId: "u", email: "u@x.test", roles, ctx: { roles, permissionOverrides: undefined }, subject: legacyToAccess({ roles, permissionOverrides: null }), seesAll: false }) as never;
 const SECRET = "unit-test-secret";
 const IP = "203.0.113.7";
 const OWN = "https://acme.test";

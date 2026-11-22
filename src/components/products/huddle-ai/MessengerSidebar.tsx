@@ -19,6 +19,8 @@ import {
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import type { ChatRole } from "@/lib/messenger-roles";
+import type { AccessSubject } from "@/lib/access/can";
+import { chatCan } from "@/lib/messenger-access";
 
 function NavLink({
   href,
@@ -94,6 +96,7 @@ function SectionLabel({ children, collapsed }: { children: React.ReactNode; coll
 }
 
 export default function MessengerSidebar({
+  subject,
   onNavigate,
   collapsed = false,
   unreadDms = 0,
@@ -101,6 +104,7 @@ export default function MessengerSidebar({
 }: {
   roles: ChatRole[];
   permissionOverrides?: Record<string, boolean>;
+  subject: AccessSubject;
   onNavigate?: () => void;
   collapsed?: boolean;
   unreadDms?: number;
@@ -115,25 +119,27 @@ export default function MessengerSidebar({
     soon?: boolean;
     badge?: number;
   }) => <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />;
+  // A section the person does not hold is hidden, never shown locked.
+  const has = (key: string) => chatCan({ subject }, key);
 
   return (
     <nav className="flex h-full flex-col gap-1 p-3">
-      {nav({ href: "/huddle-ai", label: "Dashboard", icon: LayoutDashboard, exact: true })}
-      {nav({ href: "/huddle-ai/search", label: "Search", icon: Search })}
+      {has("dashboard.view") && nav({ href: "/huddle-ai", label: "Dashboard", icon: LayoutDashboard, exact: true })}
+      {has("search.view") && nav({ href: "/huddle-ai/search", label: "Search", icon: Search })}
 
       <SectionLabel collapsed={collapsed}>Conversations</SectionLabel>
-      {nav({ href: "/huddle-ai/dm", label: "Direct Messages", icon: MessagesSquare, badge: unreadDms })}
-      {nav({ href: "/huddle-ai/channels", label: "Team Channels", icon: Hash, badge: unreadChannels })}
-      {nav({ href: "/huddle-ai/projects", label: "Project Channels", icon: FolderKanban })}
-      {nav({ href: "/huddle-ai/groups", label: "Group Chats", icon: Users })}
+      {has("dm.view") && nav({ href: "/huddle-ai/dm", label: "Direct Messages", icon: MessagesSquare, badge: unreadDms })}
+      {has("channels.view") && nav({ href: "/huddle-ai/channels", label: "Team Channels", icon: Hash, badge: unreadChannels })}
+      {has("projects.view") && nav({ href: "/huddle-ai/projects", label: "Project Channels", icon: FolderKanban })}
+      {has("groups.view") && nav({ href: "/huddle-ai/groups", label: "Group Chats", icon: Users })}
 
       <SectionLabel collapsed={collapsed}>Workspace</SectionLabel>
-      {nav({ href: "/huddle-ai/announcements", label: "Announcements", icon: Megaphone })}
-      {nav({ href: "/huddle-ai/files", label: "Shared Files", icon: FolderOpen })}
-      {nav({ href: "/huddle-ai/meetings", label: "Meetings", icon: Video })}
+      {has("announcements.view") && nav({ href: "/huddle-ai/announcements", label: "Announcements", icon: Megaphone })}
+      {has("files.view") && nav({ href: "/huddle-ai/files", label: "Shared Files", icon: FolderOpen })}
+      {has("meetings.view") && nav({ href: "/huddle-ai/meetings", label: "Meetings", icon: Video })}
 
       <SectionLabel collapsed={collapsed}>Governance</SectionLabel>
-      {nav({ href: "/huddle-ai/settings", label: "Settings", icon: Settings })}
+      {has("settings.view") && nav({ href: "/huddle-ai/settings", label: "Settings", icon: Settings })}
     </nav>
   );
 }

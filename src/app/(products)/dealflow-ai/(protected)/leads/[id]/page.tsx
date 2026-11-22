@@ -35,7 +35,7 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireLmsPage("VIEW_LEADS");
+  await requireLmsPage("leads.view");
   const { id } = await params;
   const lead = await getLeadRecord(id);
   if (!lead) notFound();

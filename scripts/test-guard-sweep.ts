@@ -55,7 +55,7 @@ T("the sweep really detects: a file with no guard is flagged", () => {
   assert.equal(hasRecognisedGuard('return run(["MANAGE_POSTS"], async (v) => save(v));'), true);
 });
 T("the two real holes found by this sweep stay fixed: the DealFlow contacts route needs the view-leads feature; a draft visiting card is not served to anonymous visitors", () => {
-  assert.match(read(join(APP, "(products)/api/dealflow-ai/contacts/route.ts")), /requireLms\("VIEW_LEADS"\)/);
+  assert.match(read(join(APP, "(products)/api/dealflow-ai/contacts/route.ts")), /requireLms\("leads.view"\)/);
   assert.match(read(join(APP, "api/viralpulse-ai/vcard/[id]/pdf/route.ts")), /status !== "published"/);
 });
 console.log(`\n${passed} passed (${rows.length} route and action files)`);

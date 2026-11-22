@@ -85,7 +85,7 @@ export async function saveUgcSettingsAction(patch: Partial<UgcSettings>) {
 
 /** Recent posts to attach a finished video to. */
 export async function ugcPostChoicesAction(q: string) {
-  return run(["MANAGE_POSTS"], async () => {
+  return run(["posts.manage"], async () => {
     const r = await listPosts({ q: String(q ?? "").slice(0, 100), pageSize: 15 });
     return { posts: r.items.map((p) => ({ id: p._id, title: p.title, platforms: p.variants.map((v) => v.platform), status: p.status })) };
   }, { revalidate: false });
@@ -139,7 +139,7 @@ export async function deleteStyleSampleAction(key: string) {
 
 /** "Use in campaign / ad" for a finished video: checks it is ready and has one joined video, then returns the wizard link that opens step 4 with that video attached (the AI flag travels with the media row). */
 export async function startCampaignFromUgcAction(projectId: string) {
-  const allowed = await run(["CREATE_ADS", "CREATE_CAMPAIGNS"], async () => ({}), { revalidate: false });
+  const allowed = await run(["ads.create", "campaigns.create"], async () => ({}), { revalidate: false });
   if (!allowed.ok) return allowed;
   const r = await api.getProject(id(projectId));
   if (!r.ok) return r;

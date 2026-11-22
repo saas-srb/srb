@@ -1,3 +1,4 @@
+import { legacyToAccess } from "../src/lib/access/adapter";
 /**
  * ViralPulse review-fix regression tests. One block per finding of the independent review: two companies sharing external ids, AI media
  * without provenance, a per-post disclosure override, the kill switch, spend-cap races, approval rules, Image Studio consent, legacy
@@ -166,7 +167,7 @@ async function main() {
   const L = await import("../src/lib/products/viralpulse-ai/ads-platforms/launches");
   const { runAdsSync } = await import("../src/lib/products/viralpulse-ai/ads-platforms/ads-sync");
   const { ForbiddenError } = await import("../src/lib/products/viralpulse-ai/viewer");
-  const viewer = (id: string, role: string) => ({ userId: id, email: `${id}@x.test`, roles: [role], ctx: { roles: [role], permissionOverrides: {} } }) as never;
+  const viewer = (id: string, role: string) => ({ userId: id, email: `${id}@x.test`, roles: [role], ctx: { roles: [role], permissionOverrides: {} }, subject: legacyToAccess({ roles: [role], permissionOverrides: null }) }) as never;
   const manager = viewer("u_mgr", "smms_manager");
   const specialist = viewer("u_spec", "smms_specialist");
 
@@ -456,7 +457,7 @@ async function main() {
     const route = src("src/app/(products)/api/viralpulse-ai/media/[id]/route.ts");
     assert.match(route, /keyBelongsToCompany/);
     assert.match(route, /Forbidden/);
-    assert.match(src("src/app/(products)/api/viralpulse-ai/image-studio/variant/[projectId]/[variantId]/route.ts"), /!can\(viewer, "MANAGE_MEDIA"\) \|\| !can\(viewer, "GENERATE_AI_CONTENT"\)/);
+    assert.match(src("src/app/(products)/api/viralpulse-ai/image-studio/variant/[projectId]/[variantId]/route.ts"), /!can\(viewer, "studio.use"\) \|\| !can\(viewer, "studio.generate"\)/);
   });
 
   // ── #LOW metrics ──

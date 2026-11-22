@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
  * (`MeetingRoom`) with what the server returns. Guests use `/meeting/[roomId]?t=…`.
  */
 export default async function MeetingRoomPage({ params }: { params: Promise<{ roomId: string }> }) {
-  const user = await requireLmsPage("VIEW_LEADS");
+  const user = await requireLmsPage("meetings.view");
   const { roomId } = await params;
   const meeting = await getMeeting(roomId);
   if (!meeting || !canSeeMeeting(user, meeting)) notFound();

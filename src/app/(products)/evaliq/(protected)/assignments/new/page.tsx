@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/evaliq/gate";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/products/evaliq/OtsUi";
 import AssignWizard from "@/components/products/evaliq/AssignWizard";
@@ -10,7 +11,8 @@ import { TARGET_TYPES, type TargetType } from "@/lib/products/evaliq/constants";
 export default async function NewAssignmentPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/evaliq/login");
-  if (!can(viewer, "ASSIGN_TEST")) redirect("/evaliq/assignments");
+  const locked = lockedUnless(viewer, "assignments.assign", "Assign tests");
+  if (locked) return locked;
   const sp = await searchParams;
   const [tests, directory] = await Promise.all([listTestOptions({ assignableOnly: true }), getDirectory()]);
   const target = TARGET_TYPES.some((t) => t.value === sp.target) && sp.id ? [{ type: sp.target as TargetType, ids: [sp.id] }] : [];

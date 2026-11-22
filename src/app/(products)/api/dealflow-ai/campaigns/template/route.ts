@@ -5,7 +5,7 @@ import { isValidImportKind, isValidPlatform } from "@/lib/campaign-platforms";
 import { templateHeadersFor } from "@/lib/campaign-csv";
 
 async function handleGET(req: NextRequest) {
-  const lmsUser = await requireLms("MANAGE_CAMPAIGNS");
+  const lmsUser = await requireLms("campaigns.manage");
   if (!lmsUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const sp = req.nextUrl.searchParams;

@@ -6,7 +6,7 @@ import StartPlanForm from "@/components/products/cashflow-ai/work/StartPlanForm"
 import WorkTabs from "@/components/products/cashflow-ai/work/WorkTabs";
 import { WorkItemCard, dmy } from "@/components/products/cashflow-ai/work/WorkItemCard";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance, canManageTransactions } from "@/lib/fms-roles";
+import { canManageCompliance, canManageTransactions } from "@/lib/fms-access";
 import { istToday } from "@/lib/products/cashflow-ai/accrual/core";
 import { getComplianceProfile } from "@/lib/products/cashflow-ai/compliance/filings";
 import { summarise, type WorkInstance } from "@/lib/products/cashflow-ai/work/engine";

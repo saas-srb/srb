@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance } from "@/lib/fms-roles";
+import { canManageCompliance } from "@/lib/fms-access";
 import { isMonth } from "@/lib/products/cashflow-ai/gst/core";
 import { MAX_FILE_BYTES } from "@/lib/products/cashflow-ai/gst/gstr2b-core";
 import { saveGstr2bUpload } from "@/lib/products/cashflow-ai/gst/gstr2b-store";

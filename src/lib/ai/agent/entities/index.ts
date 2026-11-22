@@ -1,5 +1,6 @@
 import "server-only";
 import { DATA_PANELS, hasLevel } from "@/lib/ai/agent/access";
+import { FINISHED_PANELS, isMicroGate } from "@/lib/ai/agent/micro-gate";
 import type { ActionDef, AgentUser, EntityDef, Level, ReportDef } from "@/lib/ai/agent/types";
 import { PMS_ENTITIES, PMS_ACTIONS, PMS_REPORTS } from "@/lib/ai/agent/entities/pms";
 import { HRMS_ENTITIES, HRMS_ACTIONS, HRMS_REPORTS } from "@/lib/ai/agent/entities/hrms";
@@ -45,8 +46,12 @@ async function resolve(user: AgentUser, e: EntityDef): Promise<EntityDef | null>
   return resolveLevels(user, e);
 }
 
+/** Products finished on micro features: the agent decides from the person's own access. A gate that is not a micro gate is refused, so a leftover role-list check can never be the only guard. */
+const finished = (panel: string) => panel in FINISHED_PANELS;
+
 async function resolveLevels(user: AgentUser, e: EntityDef): Promise<EntityDef | null> {
   if (user.blockedPanels?.includes(e.panel)) return null;
+  if (finished(e.panel) && !isMicroGate(e.allowRead)) return null;
   if (hasLevel(user.roles, e.panel, need(e.read, "staff")) && (e.allowRead ? e.allowRead(user) : true)) return e;
   if (!e.self || !hasLevel(user.roles, e.panel, "any")) return null;
   const mine = await e.self(user);
@@ -68,16 +73,16 @@ export async function entitiesFor(user: AgentUser, panel: string): Promise<Entit
 export function actionsFor(user: AgentUser, panel: string): ActionDef[] {
   const panels = new Set(scopePanels(panel));
   if (user.readOnly) return [];
-  return ACTIONS.filter((a) => panels.has(a.panel) && !user.blockedPanels?.includes(a.panel) && hasLevel(user.roles, a.panel, a.level) && (a.allow ? a.allow(user) : true));
+  return ACTIONS.filter((a) => panels.has(a.panel) && !user.blockedPanels?.includes(a.panel) && hasLevel(user.roles, a.panel, a.level) && (finished(a.panel) ? isMicroGate(a.allow) : true) && (a.allow ? a.allow(user) : true));
 }
 
 export function canWrite(user: AgentUser, e: EntityDef): boolean {
-  return !user.readOnly && !user.blockedPanels?.includes(e.panel) && !!e.write && hasLevel(user.roles, e.panel, e.write) && (e.allow ? e.allow(user) : true);
+  return !user.readOnly && !user.blockedPanels?.includes(e.panel) && !!e.write && hasLevel(user.roles, e.panel, e.write) && (finished(e.panel) ? isMicroGate(e.allow) : true) && (e.allow ? e.allow(user) : true);
 }
 
 export function reportsFor(user: AgentUser, panel: string): ReportDef[] {
   const panels = new Set(scopePanels(panel));
-  return REPORTS.filter((r) => panels.has(r.panel) && !user.blockedPanels?.includes(r.panel) && hasLevel(user.roles, r.panel, r.level) && (r.allow ? r.allow(user) : true));
+  return REPORTS.filter((r) => panels.has(r.panel) && !user.blockedPanels?.includes(r.panel) && hasLevel(user.roles, r.panel, r.level) && (finished(r.panel) ? isMicroGate(r.allow) : true) && (r.allow ? r.allow(user) : true));
 }
 
 export const actionByKey = (user: AgentUser, panel: string, key: string) => actionsFor(user, panel).find((a) => a.key === key);

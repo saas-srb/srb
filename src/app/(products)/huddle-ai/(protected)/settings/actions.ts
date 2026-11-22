@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/mongodb";
 import { getCurrentChatUser } from "@/lib/messenger-auth";
+import { chatCan } from "@/lib/messenger-access";
 import { updatePreferences } from "@/lib/products/huddle-ai/users";
 import { heartbeat } from "@/lib/products/huddle-ai/presence";
 import { recordAudit } from "@/lib/products/huddle-ai/audit";
@@ -20,6 +21,7 @@ export async function saveMessengerSettingsAction(
 ): Promise<SettingsState> {
   const user = await getCurrentChatUser();
   if (!user) redirect("/huddle-ai/login");
+  if (!chatCan(user, "settings.view")) return { error: "You don't have permission to change these settings." };
 
   const displayName = String(formData.get("displayName") ?? "").trim();
   const soundEnabled = formData.get("soundEnabled") === "on";

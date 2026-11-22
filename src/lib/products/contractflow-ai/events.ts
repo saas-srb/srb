@@ -30,7 +30,9 @@ function hashOf(e: Omit<EventDoc, "hash" | "_id">): string {
 
 export async function appendEvent(input: NewEvent): Promise<EventDoc> {
   const col = await cfEvents();
-  for (let attempt = 0; attempt < 6; attempt++) {
+  // Optimistic append: a writer that loses the race for a sequence number re-reads and tries again (with a short random pause so many simultaneous writers spread out).
+  for (let attempt = 0; attempt < 30; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, Math.floor(Math.random() * 8 * Math.min(attempt, 6))));
     const last = await col.find({ requestId: input.requestId }).sort({ seq: -1 }).limit(1).next();
     const body: Omit<EventDoc, "hash" | "_id"> = {
       requestId: input.requestId,

@@ -6,7 +6,7 @@ import KpiGrid from "@/components/products/dealflow-ai/KpiGrid";
 import PayoutDesk, { type DeskRow } from "@/components/products/cashflow-ai/PayoutDesk";
 import { resolveRazorpayCredentials } from "@/lib/platform/integrations/payments";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { isFmsAdmin } from "@/lib/fms-roles";
+import { isFmsAdmin } from "@/lib/fms-access";
 import { getPaymentControls } from "@/lib/products/cashflow-ai/payment-controls";
 import { paymentHealth } from "@/lib/products/cashflow-ai/payment-health";
 import { listPayouts, refreshStalePayouts } from "@/lib/products/cashflow-ai/payments/payouts";

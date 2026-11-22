@@ -45,10 +45,10 @@ export default async function MediaLibraryTab({ viewer, sp }: { viewer: SmmsView
       <MediaLibrary
         key={r.items.map((m) => m._id + m.updatedAt.getTime()).join(",")}
         openId={sp.open ?? null}
-        canManage={can(viewer, "MANAGE_MEDIA")}
-        canGenerate={can(viewer, "GENERATE_AI_CONTENT") && (await isOpenAIConfigured())}
-        canPost={can(viewer, "MANAGE_POSTS")}
-        canAds={can(viewer, "CREATE_ADS")}
+        canManage={can(viewer, "media.manage")}
+        canGenerate={can(viewer, "posts.generate") && (await isOpenAIConfigured())}
+        canPost={can(viewer, "posts.manage")}
+        canAds={can(viewer, "ads.create")}
         items={r.items.map((m) => ({ ...toMediaCard(m), description: m.description, tags: m.tags, platform: m.platform, creativePrompt: m.creativePrompt, script: m.script, caption: m.caption, createdAt: m.createdAt.toISOString(), versions: m.versions.length, folder: m.folder ?? null, fits: platformFit(m), studio: m.studio ? { specKey: m.studio.specKey, badge: m.studio.badge, consentRecorded: m.studio.consentRecorded } : null, aiModel: m.ai?.model ?? null, thumbnail: m.thumbnailId ? (thumbs.get(m.thumbnailId) ?? null) : null }))}
       />
       {r.totalPages > 1 && (

@@ -7,7 +7,7 @@ import KpiGrid from "@/components/products/dealflow-ai/KpiGrid";
 import FmsDataTable from "@/components/products/cashflow-ai/FmsDataTable";
 import ReceiptForm from "@/components/products/cashflow-ai/ReceiptForm";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageTransactions } from "@/lib/fms-roles";
+import { canManageTransactions } from "@/lib/fms-access";
 import { searchReceipts, serializeReceipt } from "@/lib/products/cashflow-ai/receipts";
 import { listFundAccountOptions } from "@/lib/products/cashflow-ai/fund-accounts";
 import { listClientOptions } from "@/lib/products/sprintos/clients";

@@ -1,6 +1,7 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentChatUser } from "@/lib/messenger-auth";
+import { chatCan } from "@/lib/messenger-access";
 import { getSharedFileByKey, readAttachmentStream } from "@/lib/products/huddle-ai/attachments";
 import { getChannel, canAccessChannel } from "@/lib/products/huddle-ai/channels";
 import { getConversation, isParticipant } from "@/lib/products/huddle-ai/conversations";
@@ -20,6 +21,9 @@ export const dynamic = "force-dynamic";
 async function handleGET(_req: NextRequest, ctx: RouteContext<"/api/huddle-ai/files/[key]">) {
   const user = await getCurrentChatUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  // an attachment opens for anyone who may open the kind of place it was shared in (the per-file membership check follows)
+  if (!["files.view", "dm.view", "channels.view", "groups.view", "projects.view", "announcements.view"].some((k) => chatCan(user, k))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { key } = await ctx.params;
 

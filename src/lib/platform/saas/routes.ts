@@ -31,7 +31,6 @@ const EXACT = new Set([
   "/sla",
   "/refund-policy",
   "/dpa",
-  "/subprocessors",
   "/data-requests",
   "/vulnerability-disclosure",
   "/demo",

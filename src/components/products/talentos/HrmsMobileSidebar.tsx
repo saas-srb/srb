@@ -9,14 +9,17 @@ import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/
 import HrmsSidebar from "@/components/products/talentos/HrmsSidebar";
 import SidebarBrand from "@/components/SidebarBrand";
 import type { HrmsRole } from "@/lib/hrms-roles";
+import type { AccessSubject } from "@/lib/access/can";
 
 export default function HrmsMobileSidebar({
   roles,
   permissionOverrides,
+  subject,
   employeeId,
 }: {
   roles: HrmsRole[];
   permissionOverrides?: Record<string, boolean>;
+  subject: AccessSubject;
   employeeId: string | null;
 }) {
   const [open, setOpen] = useState(false);
@@ -34,7 +37,7 @@ export default function HrmsMobileSidebar({
             <SidebarBrand />
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <HrmsSidebar roles={roles} permissionOverrides={permissionOverrides} employeeId={employeeId} onNavigate={() => setOpen(false)} />
+            <HrmsSidebar roles={roles} permissionOverrides={permissionOverrides} subject={subject} employeeId={employeeId} onNavigate={() => setOpen(false)} />
           </div>
           <MobileSidebarProfile />
         </SheetContent>

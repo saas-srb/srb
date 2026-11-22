@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageBanking } from "@/lib/fms-roles";
+import { canManageBanking } from "@/lib/fms-access";
 import {
   createBankAccount,
   updateBankAccount,

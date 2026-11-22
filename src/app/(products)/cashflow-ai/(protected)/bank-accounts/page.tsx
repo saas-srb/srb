@@ -12,7 +12,7 @@ import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import BankAccountForm from "@/components/products/cashflow-ai/BankAccountForm";
 import { FundAccountStatusBadge } from "@/components/products/cashflow-ai/StatusBadges";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageBanking } from "@/lib/fms-roles";
+import { canManageBanking } from "@/lib/fms-access";
 import { listBankAccounts, serializeBankAccount, totalBankBalance } from "@/lib/products/cashflow-ai/bank-accounts";
 import { formatMoney } from "@/lib/products/cashflow-ai/constants";
 

@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/evaliq/gate";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Plus, FileCheck2 } from "lucide-react";
@@ -18,7 +19,8 @@ import { formatDateTime } from "@/lib/utils";
 export default async function TestsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/evaliq/login");
-  if (!can(viewer, "VIEW_TESTS")) redirect("/evaliq");
+  const locked = lockedUnless(viewer, "tests.view", "Tests");
+  if (locked) return locked;
   const sp = await searchParams;
   const page = Math.max(Number(sp.page) || 1, 1);
   const [r, cats, catNames, dir] = await Promise.all([
@@ -44,7 +46,7 @@ export default async function TestsPage({ searchParams }: { searchParams: Promis
         crumbs={[{ label: "Tests" }]}
         description={`${r.total} test${r.total === 1 ? "" : "s"}. Practice tests, assessments, examinations, mock, screening, certification, training and interview tests — all built on one engine.`}
         actions={
-          can(viewer, "CREATE_TEST") && (
+          can(viewer, "tests.create") && (
             <Button nativeButton={false} render={<Link href="/evaliq/tests/new" />}>
               <Plus className="size-4" /> New test
             </Button>
@@ -65,7 +67,7 @@ export default async function TestsPage({ searchParams }: { searchParams: Promis
       <GlassCard interactive={false}>
         <CardContent>
           {r.items.length === 0 ? (
-            <EmptyState icon={<FileCheck2 className="size-5" />} title="No tests here">{can(viewer, "CREATE_TEST") ? "Create a test, add questions from the bank, publish it and assign it." : "Tests your team creates will appear here."}</EmptyState>
+            <EmptyState icon={<FileCheck2 className="size-5" />} title="No tests here">{can(viewer, "tests.create") ? "Create a test, add questions from the bank, publish it and assign it." : "Tests your team creates will appear here."}</EmptyState>
           ) : (
             <Table>
               <TableHeader>

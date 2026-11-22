@@ -138,3 +138,15 @@ Counting: 2 of about 40 features done = about 5%.
 - 2026-11-17: micro-level framework plus CyberVault complete (28 features, server-side enforcement, coverage test). Next: TalentOS. See docs/people-access-v2-ledger.md.
 - 2026-11-17: RankMax complete (42 micro features, test:rankmax-access). TalentOS needs its own run (staff tier + reporting-line scope + Me tree).
 - 2026-11-17: AgentOS complete (17 micro features, Read only truly read only, test:agentos-access). SiteCraft needs its own run (shared LMS gates).
+- 2026-11-22: EvalIQ complete (micro features, own/all scope pages, P8-C EvalIQ Read only). Next: ViralPulse.
+- 2026-11-22: ViralPulse complete (26 micro features, every page checked). Next: ContractFlow.
+- 2026-11-22: ContractFlow complete. Next: SiteCraft with DealFlow (shared Offers/Wallet/Push/Chatbot).
+- 2026-11-22: ViralPulse wp0/wp2 tests explained and fixed (stale tests; keyring rotation proven). SiteCraft+DealFlow design hazards written to the ledger.
+- 2026-11-22: SiteCraft + DealFlow complete (shared growth tools checked once, one-sided people tested). Next: SprintOS.
+- 2026-11-22: remaining products grouped (staff/Me group with TalentOS; CashFlow and Huddle clean). See ledger.
+- 2026-11-22: Ask AI enforcement gap closed for the eight finished panels (test:agent-access). Next: CashFlow.
+- 2026-11-22: CashFlow complete (micro features per module, subject on the user, layouts/actions/AI gates converted, test:cashflow-access). Next: Huddle, then the TalentOS group (staged).
+- 2026-11-23: Huddle complete (20 micro features, test:huddle-access, messenger in FINISHED_PANELS).
+- 2026-11-23: wide regression re-run of every npm suite: all green except test:settings-visual (needs playwright-core, not installed) and test:gridfs (needs GRIDFS_TEST_URI). Fixed stale fixtures (voice, meetings: missing subject), test-legal (removed pages), env-classes NEXT_PHASE, ContractFlow event append retry, test-pb-identity-block exit. New npm scripts test:guard-sweep, test:pb-cf-nav, test:huddle-access, test:cashflow-access.
+- 2026-11-23: TalentOS staged: shared pieces + Leave module converted (test:talentos-access, test:people-scope).
+- 2026-11-23: TalentOS staged: Leave, Attendance, Requests, Holidays converted (4 of 10 modules); Dashboard, Employees+Documents, Payroll, Recruitment, Settings pending.

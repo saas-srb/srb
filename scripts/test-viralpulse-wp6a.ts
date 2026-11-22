@@ -1,3 +1,4 @@
+import { legacyToAccess } from "../src/lib/access/adapter";
 /**
  * ViralPulse WP6a tests: Meta ads manager backend. A FAKE Meta Graph server (in-memory) answers every call: no provider is contacted.
  * Covers the HTTP client (appsecret_proof, usage headers, retries, ambiguous writes), error mapping, validators per objective / placement /
@@ -173,7 +174,7 @@ class FakeMeta {
 // ── scaffolding ───────────────────────────────────────────────────────────────────────────────────────
 const T0 = Date.now();
 const iso = (days: number) => new Date(T0 + days * 86_400_000).toISOString();
-const viewer = (id: string, role: string): SmmsViewer => ({ userId: id, email: `${id}@x.test`, roles: [role], ctx: { roles: [role], permissionOverrides: null } });
+const viewer = (id: string, role: string): SmmsViewer => ({ userId: id, email: `${id}@x.test`, roles: [role], ctx: { roles: [role], permissionOverrides: null }, subject: legacyToAccess({ roles: [role], permissionOverrides: null }) });
 const admin = viewer("u_admin", "smms_admin");
 const manager = viewer("u_manager", "smms_manager");
 const specialist = viewer("u_spec", "smms_specialist");

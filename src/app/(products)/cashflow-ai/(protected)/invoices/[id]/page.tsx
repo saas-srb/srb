@@ -12,7 +12,7 @@ import InvoiceStatusActions from "@/components/products/cashflow-ai/InvoiceStatu
 import ReceiptForm from "@/components/products/cashflow-ai/ReceiptForm";
 import CreditNoteForm from "@/components/products/cashflow-ai/CreditNoteForm";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageTransactions } from "@/lib/fms-roles";
+import { canManageTransactions } from "@/lib/fms-access";
 import { getInvoice, serializeInvoice, invoiceBalance } from "@/lib/products/cashflow-ai/invoices";
 import { listReceiptsForInvoice, serializeReceipt } from "@/lib/products/cashflow-ai/receipts";
 import { listCreditNotesForInvoice, serializeCreditNote } from "@/lib/products/cashflow-ai/credit-notes";

@@ -16,7 +16,7 @@ async function handleGET(_req: Request, { params }: Context) {
   const cert = await getCertificate(id);
   if (!cert) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const viewer = await getViewer();
-  const isStaff = !!viewer && (can(viewer, "VIEW_REPORTS") || can(viewer, "GENERATE_CERTIFICATE") || can(viewer, "REVOKE_CERTIFICATE"));
+  const isStaff = !!viewer && (can(viewer, "reports.view") || can(viewer, "certificates.generate") || can(viewer, "certificates.revoke"));
   let isOwner = false;
   if (!isStaff) {
     const [staffTaker, portalTaker] = await Promise.all([resolveTaker("staff"), resolveTaker("portal")]);

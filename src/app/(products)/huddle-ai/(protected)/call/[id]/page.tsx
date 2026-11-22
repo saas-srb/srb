@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { requireChatPage } from "@/lib/messenger-auth";
 import { getCurrentChatUser } from "@/lib/messenger-auth";
 import { getCall, isParticipant, serializeCall, getIceServers } from "@/lib/products/huddle-ai/calls";
 import CallStage from "@/components/products/huddle-ai/call/CallStage";
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function CallPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  await requireChatPage("calls.use");
   const user = await getCurrentChatUser();
   if (!user) return null;
 

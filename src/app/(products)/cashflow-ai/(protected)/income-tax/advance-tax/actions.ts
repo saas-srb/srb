@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance } from "@/lib/fms-roles";
+import { canManageCompliance } from "@/lib/fms-access";
 import { isFinancialYear } from "@/lib/products/cashflow-ai/tds/core";
 import type { TaxPaymentKind } from "@/lib/products/cashflow-ai/income-tax/core";
 import { cancelPayment, createPayment, saveSchedule } from "@/lib/products/cashflow-ai/income-tax/payments-store";

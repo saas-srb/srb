@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentHrmsUser } from "@/lib/hrms-auth";
-import { canManageHolidays } from "@/lib/hrms-roles";
+import { hrCan } from "@/lib/talentos-access";
 import { createHoliday, updateHoliday, deleteHoliday } from "@/lib/products/talentos/holidays";
 import { validateHoliday } from "@/lib/products/talentos/validation-ops";
 import { recordAudit } from "@/lib/products/talentos/audit";
@@ -16,7 +16,7 @@ export interface HolidayActionResult {
 async function requireHolidays() {
   const user = await getCurrentHrmsUser();
   if (!user) throw new Error("Unauthorized");
-  if (!canManageHolidays(user)) throw new Error("Forbidden");
+  if (user.mustChangePassword || !hrCan(user, "holidays.manage")) throw new Error("Forbidden");
   return user;
 }
 

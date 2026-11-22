@@ -10,7 +10,7 @@ import KpiGrid from "@/components/products/dealflow-ai/KpiGrid";
 import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import FundTransferForm, { type FundAccountOption } from "@/components/products/cashflow-ai/FundTransferForm";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageTransactions } from "@/lib/fms-roles";
+import { canManageTransactions } from "@/lib/fms-access";
 import { listTransfers, serializeFundTransfer } from "@/lib/products/cashflow-ai/fund-transfers";
 import { listBankAccountOptions } from "@/lib/products/cashflow-ai/bank-accounts";
 import { listCashAccountOptions } from "@/lib/products/cashflow-ai/cash-accounts";

@@ -28,9 +28,9 @@ eq(groupedPbNav({ create: true, brand: true }).map((g) => g.key), ["overview", "
 eq(groupedPbNav({ create: false, brand: false }).map((g) => g.key), ["overview", "sops", "documents", "kpis"], "no brand right: the Brand group is dropped, not left empty");
 ok(!visiblePbNav({ create: false, brand: true }).some((i) => i.icon === "create"), "no create right: no Create items");
 ok(groupedPbNav({ create: false, brand: false }).every((g) => g.items.length > 0), "no empty groups");
-eq(groupedCfNav({ settings: false }).map((g) => g.key), ["overview", "track", "governance"], "ContractFlow without settings still has Governance (Archive)");
-ok(!visibleCfNav({ settings: false }).some((i) => i.key === "settings") && visibleCfNav({ settings: true }).some((i) => i.key === "settings"), "Settings only with the right");
-eq(groupedCfNav({ settings: true })[0].items.map((i) => i.label), ["Dashboard"], "the Dashboard is first");
+eq(groupedCfNav({ settings: false, dashboard: true, documents: true, archive: true }).map((g) => g.key), ["overview", "track", "governance"], "ContractFlow without settings still has Governance (Archive)");
+ok(!visibleCfNav({ settings: false, dashboard: true, documents: true, archive: true }).some((i) => i.key === "settings") && visibleCfNav({ settings: true, dashboard: true, documents: true, archive: true }).some((i) => i.key === "settings"), "Settings only with the right");
+eq(groupedCfNav({ settings: true, dashboard: true, documents: true, archive: true })[0].items.map((i) => i.label), ["Dashboard"], "the Dashboard is first");
 
 // Active-state matching, including nested routes and task pages.
 const pb = visiblePbNav({ create: true, brand: true });
@@ -45,7 +45,7 @@ eq(activePbItem(pb, "/playbook-ai/documents/abc123/send"), null, "a task page: n
 eq(pbCurrentTask("/playbook-ai/documents/abc123/send")?.label, "Send to ContractFlow", "task: send");
 eq(pbCurrentTask("/playbook-ai/documents/abc123/version")?.label, "Save as version", "task: version");
 eq(pbCurrentTask("/playbook-ai/documents/abc123"), null, "the editor is not a task page");
-const cf = visibleCfNav({ settings: true });
+const cf = visibleCfNav({ settings: true, dashboard: true, documents: true, archive: true });
 eq(activeCfItem(cf, "/contractflow-ai/dashboard")?.key, "dashboard", "ContractFlow dashboard");
 eq(activeCfItem(cf, "/contractflow-ai/documents")?.key, "documents", "documents");
 eq(activeCfItem(cf, "/contractflow-ai/sops")?.key, "sops", "SOPs");

@@ -8,7 +8,7 @@ import FmsDataTable from "@/components/products/cashflow-ai/FmsDataTable";
 import AdvanceForm from "@/components/products/cashflow-ai/AdvanceForm";
 import { AdvanceStatusBadge } from "@/components/products/cashflow-ai/StatusBadges";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageTransactions } from "@/lib/fms-roles";
+import { canManageTransactions } from "@/lib/fms-access";
 import { searchAdvances, outstandingBalance, totalOutstandingAdvances } from "@/lib/products/cashflow-ai/employee-advances";
 import { listEmployeeOptions } from "@/lib/products/talentos/employees";
 import { ADVANCE_STATUSES, isValidAdvanceStatus, formatMoney } from "@/lib/products/cashflow-ai/constants";

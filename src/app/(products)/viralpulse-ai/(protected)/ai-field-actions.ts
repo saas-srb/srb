@@ -32,7 +32,7 @@ export async function aiFieldAction(input: AiFieldRequest): Promise<AiFieldResul
     targetLanguage: typeof input.targetLanguage === "string" ? input.targetLanguage : undefined,
     enumOptions: Array.isArray(input.enumOptions) ? input.enumOptions.slice(0, 120) : undefined,
   };
-  const out = await run(["GENERATE_AI_CONTENT"], async (v) => runAiField(req, makeRunDeps({ id: v.userId })), { revalidate: false });
+  const out = await run(["posts.generate"], async (v) => runAiField(req, makeRunDeps({ id: v.userId })), { revalidate: false });
   if (!out.ok && !("code" in out)) return { ok: false, error: out.error, code: "FORBIDDEN" };
   return out as AiFieldResult;
 }
@@ -40,7 +40,7 @@ export async function aiFieldAction(input: AiFieldRequest): Promise<AiFieldResul
 /** Tells the ledger whether a result was kept or undone (quality signal only). */
 export async function aiFieldOutcomeAction(runId: string, outcome: "applied" | "reverted"): Promise<{ ok: boolean }> {
   if (typeof runId !== "string" || (outcome !== "applied" && outcome !== "reverted")) return { ok: false };
-  const out = await run(["GENERATE_AI_CONTENT"], async (v) => {
+  const out = await run(["posts.generate"], async (v) => {
     await markFieldRun(v.userId, runId, outcome);
     return {};
   }, { revalidate: false });

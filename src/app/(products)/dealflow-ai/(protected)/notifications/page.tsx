@@ -4,6 +4,6 @@ import UnifiedNotificationsPage from "@/components/platform/panel/UnifiedNotific
 export const dynamic = "force-dynamic";
 
 export default async function LmsNotificationsPage() {
-  await requireLmsPage("VIEW_LEADS");
+  await requireLmsPage("leads.view");
   return <UnifiedNotificationsPage panel="lms" panelName="Lead Management System" shortCode="LMS" description="New leads, assignments, replies, stage changes and stale-lead alerts." />;
 }

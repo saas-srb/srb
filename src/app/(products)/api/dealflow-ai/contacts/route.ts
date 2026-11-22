@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   // P8-A: this route had no check at all, so anyone who reached the company's address could read its pipeline. It needs the view-leads feature.
-  if (!(await requireLms("VIEW_LEADS"))) return NextResponse.json({ error: "Not allowed" }, { status: 403 });
+  if (!(await requireLms("leads.view"))) return NextResponse.json({ error: "Not allowed" }, { status: 403 });
   try {
     const { searchParams } = new URL(request.url);
     const pipeline = (searchParams.get("pipeline") as PipelineTab) || undefined;

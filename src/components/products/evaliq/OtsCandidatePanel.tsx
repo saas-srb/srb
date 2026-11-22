@@ -18,7 +18,7 @@ import { cn, formatDateTime } from "@/lib/utils";
  */
 export default async function OtsCandidatePanel({ kind, id, title = "Online Tests" }: { kind: CandidateKind; id: string; title?: string }) {
   const viewer = await getViewer();
-  const allowed = !!viewer && (can(viewer, "VIEW_ASSIGNMENTS") || can(viewer, "VIEW_REPORTS"));
+  const allowed = !!viewer && (can(viewer, "assignments.all") || can(viewer, "reports.view"));
   const target = kind === "employee" ? "employee" : kind === "applicant" ? "applicant" : kind === "student" ? "student" : "user";
   if (!allowed)
     return (
@@ -39,7 +39,7 @@ export default async function OtsCandidatePanel({ kind, id, title = "Online Test
             <CardTitle className="flex items-center gap-2 text-base"><FileCheck2 className="size-4" /> {title}</CardTitle>
             <CardDescription>From the Online Test System — assessments, screening tests and exams assigned to this person.</CardDescription>
           </div>
-          {can(viewer, "ASSIGN_TEST") && (
+          {can(viewer, "assignments.assign") && (
             <Button size="sm" nativeButton={false} render={<Link href={`/evaliq/assignments/new?target=${target}&id=${encodeURIComponent(id)}`} />}>
               <Send className="size-3.5" /> Assign test
             </Button>

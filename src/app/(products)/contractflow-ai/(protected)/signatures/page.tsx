@@ -1,3 +1,5 @@
+import { lockedUnless } from "@/lib/products/contractflow-ai/gate";
+import { can } from "@/lib/products/contractflow-ai/viewer";
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { redirect } from "next/navigation";
@@ -6,17 +8,17 @@ import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import { CardContent } from "@/components/ui/card";
 import { getViewer } from "@/lib/products/contractflow-ai/viewer";
-import { lpmsCan } from "@/lib/lpms-roles";
 import { getDb } from "@/lib/mongodb";
 import { currentCompanyId } from "@/lib/platform/tenancy/context";
 
 export default async function SignaturesPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/contractflow-ai/login");
+  const locked = lockedUnless(viewer, "signatures.view", "Signatures");
+  if (locked) return locked;
 
   const ctx = { roles: viewer.roles, permissionOverrides: viewer.overrides };
-  if (!lpmsCan(ctx, "SIGN")) redirect("/contractflow-ai");
-
+  
   const companyId = currentCompanyId();
   const db = await getDb();
   const requests = await db

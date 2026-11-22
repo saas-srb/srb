@@ -18,7 +18,8 @@ import { getCampaignAnalytics, undoImport, isValidPlatform, campaignKeyFor } fro
 import { getStudent } from "@/lib/products/cohort-ai/students";
 import { getClient } from "@/lib/products/sprintos/clients";
 import { getProject } from "@/lib/products/sprintos/projects";
-import { canManageCampaigns, canViewLmsAnalytics, lmsCan, type LmsPermission } from "@/lib/lms-roles";
+import { microLegacy, microOr, featureScope as microFeatureScope } from "@/lib/ai/agent/micro-gate";
+type LmsPermission = string;
 import { check, fail, formInput, str } from "@/lib/ai/agent/entities/helpers";
 import { peek } from "@/lib/ai/agent/records";
 import type { ActionDef, AgentUser, EntityDef, Json, ReportDef } from "@/lib/ai/agent/types";
@@ -28,9 +29,11 @@ import type { ActionDef, AgentUser, EntityDef, Json, ReportDef } from "@/lib/ai/
  * managed leads run through a stage workflow with a portal account, owner, messages and interviews; plus job applications and campaigns.
  */
 
-const L = (p: LmsPermission) => (u: AgentUser) => lmsCan({ roles: u.roles, permissionOverrides: u.permissionOverrides }, p);
-const LEADS_OR_CAREERS = (u: AgentUser) => L("VIEW_LEADS")(u) || L("VIEW_CAREERS")(u);
-const EDIT_LEADS_OR_CAREERS = (u: AgentUser) => L("EDIT_LEADS")(u) || L("MANAGE_CAREERS")(u);
+const L = microLegacy("lms");
+const canManageCampaigns = L("MANAGE_CAMPAIGNS");
+const canViewLmsAnalytics = L("VIEW_ANALYTICS");
+const LEADS_OR_CAREERS = microOr(L("VIEW_LEADS"), L("VIEW_CAREERS"));
+const EDIT_LEADS_OR_CAREERS = microOr(L("EDIT_LEADS"), L("MANAGE_CAREERS"));
 
 const LEAD_STATUS: string[] = LEAD_STATUSES.map((s) => s.value);
 const APP_STATUS: string[] = CAREER_APPLICATION_STATUSES.map((s) => s.value);
@@ -42,9 +45,11 @@ async function categoryOfLead(id: string): Promise<CategorySlug | null> {
   return doc && typeof doc.category === "string" ? (doc.category as CategorySlug) : null;
 }
 
+const featureScope = (k: string) => microFeatureScope("dealflow-ai." + k);
+
 const LEAD: EntityDef = {
   key: "lms.lead", panel: "lms", label: "Enquiry / lead", description: "Website enquiries by category (every lead category together): name, contact, message, status new/in_progress/completed/rejected, notes, deal value, source and campaign.",
-  collection: "leads", titleField: "name", search: ["name", "email", "phone", "message", "campaign", "notes"], read: "staff", allowRead: L("VIEW_LEADS"), allow: L("EDIT_LEADS"),  write: "staff", canDelete: true, hide: ["resume", "attribution"],
+  collection: "leads", titleField: "name", search: ["name", "email", "phone", "message", "campaign", "notes"], scope: featureScope("leads.view"), read: "staff", allowRead: L("VIEW_LEADS"), allow: L("EDIT_LEADS"),  write: "staff", canDelete: true, hide: ["resume", "attribution"],
   collections: async () => (await getLeadCategories()).categories.map((c) => collectionNameFor(c.slug as CategorySlug)),
   fields: [
     { key: "name", label: "Name", type: "string" },
@@ -76,7 +81,7 @@ const LEAD: EntityDef = {
 
 const MANAGED: EntityDef = {
   key: "lms.managed_lead", panel: "lms", label: "Managed lead", description: "Leads run through a stage workflow (job applicant, intern, trainee, client) with an owner, portal account, messages and timeline.", collection: "lead_records", idType: "string", baseFilter: { deletedAt: null },
-  titleField: "name", search: ["name", "email", "phone", "code"], read: "staff", allowRead: L("VIEW_LEADS"), allow: L("EDIT_LEADS"),  write: "staff",
+  titleField: "name", search: ["name", "email", "phone", "code"], scope: featureScope("leads.view"), read: "staff", allowRead: L("VIEW_LEADS"), allow: L("EDIT_LEADS"),  write: "staff",
   fields: [
     { key: "name", label: "Name", type: "string", required: true },
     { key: "email", label: "Email", type: "email", required: true },
@@ -97,7 +102,7 @@ const MANAGED: EntityDef = {
 
 const APPLICATION: EntityDef = {
   key: "lms.career_application", panel: "lms", label: "Job application (careers)", description: "Applications from the careers page: candidate, position, status, notes.", collection: "career_applications", titleField: "name", search: ["name", "email", "positionTitle", "notes"],
-  read: "staff", allowRead: L("VIEW_CAREERS"), allow: L("MANAGE_CAREERS"),  write: "staff", canDelete: true, hide: ["resume"],
+  scope: featureScope("careers.view"), read: "staff", allowRead: L("VIEW_CAREERS"), allow: L("MANAGE_CAREERS"),  write: "staff", canDelete: true, hide: ["resume"],
   fields: [
     { key: "status", label: "Status", type: "enum", options: APP_STATUS },
     { key: "notes", label: "Notes", type: "text" },

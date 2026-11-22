@@ -4,7 +4,7 @@ import { limitOr429 } from "@/lib/security/rate-limit";
 import { createPaymentIntent, CreatePaymentIntentData } from "@/lib/products/cashflow-ai/payments/intents";
 import { acquireIdempotencyLock, releaseIdempotencyLock } from "@/lib/products/cashflow-ai/payments/idempotency";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canApproveTransactions, canManageTransactions } from "@/lib/fms-roles";
+import { canApproveTransactions, canManageTransactions } from "@/lib/fms-access";
 import { claimLinkAttempt, getPaymentLinkByToken } from "@/lib/products/cashflow-ai/payments/links";
 import { resolveRazorpayCredentials } from "@/lib/platform/integrations/payments";
 import { readSafeJson, UnsafeBodyError } from "@/lib/security/safe-json";

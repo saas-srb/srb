@@ -1,3 +1,4 @@
+import { OwnAssignments, OwnAssignment, OwnResults, OwnResult, seesEveryones } from "@/components/products/evaliq/OwnViews";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Megaphone, Award, ShieldAlert } from "lucide-react";
@@ -17,8 +18,8 @@ import { formatDateTime } from "@/lib/utils";
 export default async function StaffResultPage({ params }: { params: Promise<{ attemptId: string }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/evaliq/login");
-  if (!can(viewer, "VIEW_REPORTS") && !can(viewer, "EVALUATE_ANSWERS")) redirect("/evaliq");
   const { attemptId } = await params;
+  if (!seesEveryones(viewer, "results")) return <OwnResult viewer={viewer} attemptId={attemptId} />;
   const att = await getAttempt(attemptId);
   if (!att) notFound();
   const [a, t] = await Promise.all([getAssignment(att.assignmentId), getTest(att.testId)]);
@@ -47,12 +48,12 @@ export default async function StaffResultPage({ params }: { params: Promise<{ at
         }
         actions={
           <>
-            {can(viewer, "PUBLISH_RESULTS") && att.status === "evaluated" && !att.resultPublishedAt && policy !== "never" && (
+            {can(viewer, "results.publish") && att.status === "evaluated" && !att.resultPublishedAt && policy !== "never" && (
               <ActionButton action={publishResultsAction.bind(null, [attemptId])} variant="default" success="Result published to the candidate">
                 <Megaphone className="size-3.5" /> Publish result
               </ActionButton>
             )}
-            {can(viewer, "GENERATE_CERTIFICATE") && t?.certificate.enabled && a.result?.passed && !cert && (
+            {can(viewer, "certificates.generate") && t?.certificate.enabled && a.result?.passed && !cert && (
               <ActionButton action={generateCertificateAction.bind(null, a._id)} success="Certificate issued">
                 <Award className="size-3.5" /> Issue certificate
               </ActionButton>
@@ -67,7 +68,7 @@ export default async function StaffResultPage({ params }: { params: Promise<{ at
         <Link href={`/evaliq/assignments?testId=${a.testId}&q=${encodeURIComponent(a.candidateLabel)}`} className="text-primary hover:underline">Assignment</Link>
       </Notice>
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <ResultReport view={view} candidateName={name} evaluator={{ canEvaluate: can(viewer, "EVALUATE_ANSWERS"), canOverride: can(viewer, "OVERRIDE_MARKS"), negatives: att.paper.map((x) => x.negativeMarks) }} />
+        <ResultReport view={view} candidateName={name} evaluator={{ canEvaluate: can(viewer, "answers.evaluate"), canOverride: can(viewer, "answers.override"), negatives: att.paper.map((x) => x.negativeMarks) }} />
         <div className="space-y-4 self-start">
           <SectionCard title="Attempt details">
             <dl className="space-y-1 text-xs">

@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EXPENSE_CATEGORIES } from "@/lib/products/talentos/work-request-rules";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import PaymentCodeField from "@/components/products/cashflow-ai/PaymentCodeField";
-import { decideRequestAction } from "@/app/(products)/talentos/(protected)/(staff)/requests/actions";
+import { decideRequestAction } from "@/app/(products)/talentos/(protected)/requests/actions";
 import type { MyRequestRow } from "./MyRequests";
 
 export interface QueueRow extends MyRequestRow {

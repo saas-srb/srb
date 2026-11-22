@@ -15,7 +15,7 @@ function isKey(k: string): k is CollectionKey {
   return k in COLLECTIONS;
 }
 
-async function guard(permission: "COLLECTIONS_EDIT" | "COLLECTIONS_PUBLISH") {
+async function guard(permission: "collections.edit" | "collections.publish") {
   const v = await requireViewer().catch(() => null);
   if (!v) return { v: null, error: SESSION_EXPIRED } as const;
   if (!can(v, permission)) return { v: null, error: NO_PERMISSION } as const;
@@ -27,7 +27,7 @@ const audit = (v: { userId: string; email: string | null }, action: "create" | "
 
 export async function saveRecordAction(key: string, slug: string, data: Record<string, unknown>): Promise<Result> {
   if (!isKey(key)) return { ok: false, error: "Unknown collection." };
-  const { v, error } = await guard("COLLECTIONS_EDIT");
+  const { v, error } = await guard("collections.edit");
   if (!v) return { ok: false, error };
   const res = await saveRecordDraft(key, slug, data, v.userId);
   if (res.ok) await audit(v, "update", key, slug, "Saved draft");
@@ -36,7 +36,7 @@ export async function saveRecordAction(key: string, slug: string, data: Record<s
 
 export async function publishRecordAction(key: string, slug: string): Promise<Result<{ pageCreated?: boolean }>> {
   if (!isKey(key)) return { ok: false, error: "Unknown collection." };
-  const { v, error } = await guard("COLLECTIONS_PUBLISH");
+  const { v, error } = await guard("collections.publish");
   if (!v) return { ok: false, error };
   const res = await publishRecord(key, slug, v.userId);
   if (res.ok) await audit(v, "publish", key, slug, "Published");
@@ -45,7 +45,7 @@ export async function publishRecordAction(key: string, slug: string): Promise<Re
 
 export async function archiveRecordAction(key: string, slug: string, archived: boolean): Promise<Result> {
   if (!isKey(key)) return { ok: false, error: "Unknown collection." };
-  const { v, error } = await guard("COLLECTIONS_PUBLISH");
+  const { v, error } = await guard("collections.publish");
   if (!v) return { ok: false, error };
   const res = await setRecordArchived(key, slug, archived, v.userId);
   if (res.ok) await audit(v, "update", key, slug, archived ? "Archived (hidden from the site)" : "Restored to the site");
@@ -54,7 +54,7 @@ export async function archiveRecordAction(key: string, slug: string, archived: b
 
 export async function revertRecordAction(key: string, slug: string): Promise<Result> {
   if (!isKey(key)) return { ok: false, error: "Unknown collection." };
-  const { v, error } = await guard("COLLECTIONS_PUBLISH");
+  const { v, error } = await guard("collections.publish");
   if (!v) return { ok: false, error };
   const res = await revertRecord(key, slug);
   if (res.ok) await audit(v, res.deleted ? "delete" : "restore", key, slug, res.deleted ? "Deleted (never published)" : "Unpublished changes discarded");
@@ -63,7 +63,7 @@ export async function revertRecordAction(key: string, slug: string): Promise<Res
 
 export async function createRecordAction(key: string, slug: string): Promise<Result<{ slug: string }>> {
   if (!isKey(key)) return { ok: false, error: "Unknown collection." };
-  const { v, error } = await guard("COLLECTIONS_EDIT");
+  const { v, error } = await guard("collections.edit");
   if (!v) return { ok: false, error };
   const res = await createRecord(key, slug, v.userId);
   if (res.ok) await audit(v, "create", key, res.slug, "Created");
@@ -75,7 +75,7 @@ export async function quickDraftAction(key: string, title: string): Promise<Resu
   if (!isKey(key)) return { ok: false, error: "Unknown collection." };
   const clean = title.trim();
   if (!clean) return { ok: false, error: "Give the draft a title." };
-  const { v, error } = await guard("COLLECTIONS_EDIT");
+  const { v, error } = await guard("collections.edit");
   if (!v) return { ok: false, error };
   const base = clean.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 70) || "untitled";
   for (let n = 1; n <= 20; n++) {

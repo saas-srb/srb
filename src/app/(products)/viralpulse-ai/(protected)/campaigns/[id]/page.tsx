@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/viralpulse-ai/gate";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Copy, Pencil, Archive, ArchiveRestore, Trash2, Rocket, CalendarClock, CalendarX, Plus, Film, ImageIcon } from "lucide-react";
@@ -45,7 +46,9 @@ export const maxDuration = 300;
 export default async function CampaignPage({ params }: { params: Promise<{ id: string }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/viralpulse-ai/login");
-  if (!can(viewer, "VIEW_CAMPAIGNS")) redirect("/viralpulse-ai");
+  const locked = lockedUnless(viewer, "campaigns.view", "Campaigns");
+  if (locked) return locked;
+  if (!can(viewer, "campaigns.view")) redirect("/viralpulse-ai");
   const { id } = await params;
   const c = await getCampaign(id);
   if (!c) notFound();
@@ -64,8 +67,8 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   const draftMeta = wiz?.state.meta ?? null;
   const overall = listStatus(launch ? { state: launch.state, delivery: launch.delivery, active: launch.active, review: launch.review, stopTime: launch.stopTime } : null);
   const thumbs = new Map((await getMediaMany(ads.flatMap((a) => [a.mediaIds[0], a.thumbnailId].filter((x): x is string => Boolean(x))))).map((m) => [m._id, toMediaCard(m)]));
-  const canEdit = can(viewer, "EDIT_CAMPAIGNS") && c.status !== "archived";
-  const canAds = can(viewer, "CREATE_ADS") && c.status !== "archived";
+  const canEdit = can(viewer, "campaigns.edit") && c.status !== "archived";
+  const canAds = can(viewer, "ads.create") && c.status !== "archived";
   const hasAi = Boolean(c.ai.summary || c.ai.adConcepts.length);
   const offer = offers.find((o) => o._id === c.offerId);
   const client = clients.find((x) => x._id === c.clientId);
@@ -102,23 +105,23 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
         actions={
           <>
             {canEdit && <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/viralpulse-ai/campaigns/${id}/edit`} />}><Pencil className="size-3.5" /> {isMetaCampaign ? "Open in wizard" : "Edit brief"}</Button>}
-            {can(viewer, "CREATE_CAMPAIGNS") && <ActionButton action={duplicateCampaignAction.bind(null, id)} success="Duplicated" redirectPrefix="/viralpulse-ai/campaigns/"><Copy className="size-3.5" /> Duplicate</ActionButton>}
-            {!isMetaCampaign && c.status !== "archived" && c.status !== "published" && can(viewer, "SCHEDULE_POSTS") && (c.status === "scheduled" ? (
+            {can(viewer, "campaigns.create") && <ActionButton action={duplicateCampaignAction.bind(null, id)} success="Duplicated" redirectPrefix="/viralpulse-ai/campaigns/"><Copy className="size-3.5" /> Duplicate</ActionButton>}
+            {!isMetaCampaign && c.status !== "archived" && c.status !== "published" && can(viewer, "posts.schedule") && (c.status === "scheduled" ? (
               <ActionButton action={setCampaignLifecycleAction.bind(null, id, "unschedule")} success="Launch unscheduled"><CalendarX className="size-3.5" /> Unschedule</ActionButton>
             ) : (
               <ActionButton action={setCampaignLifecycleAction.bind(null, id, "scheduled")} success="Launch scheduled for the start date"><CalendarClock className="size-3.5" /> Schedule launch</ActionButton>
             ))}
-            {!isMetaCampaign && c.status !== "archived" && c.status !== "published" && can(viewer, "PUBLISH_CONTENT") && (
+            {!isMetaCampaign && c.status !== "archived" && c.status !== "published" && can(viewer, "posts.publish") && (
               <ActionButton variant="default" action={setCampaignLifecycleAction.bind(null, id, "published")} success="Marked as launched" confirm={{ title: "Track this campaign as launched by hand?", description: "This platform cannot be launched from here. Confirm you set it live in the platform's own ads manager. It is recorded under your name and shown as manually tracked, not as verified.", confirmLabel: "Mark launched" }}>
                 <Rocket className="size-3.5" /> Launched by hand
               </ActionButton>
             )}
-            {can(viewer, "EDIT_CAMPAIGNS") && (c.status === "archived" ? (
+            {can(viewer, "campaigns.edit") && (c.status === "archived" ? (
               <ActionButton action={archiveCampaignAction.bind(null, id, false)} success="Restored"><ArchiveRestore className="size-3.5" /> Restore</ActionButton>
             ) : (
               <ActionButton action={archiveCampaignAction.bind(null, id, true)} success="Archived"><Archive className="size-3.5" /> Archive</ActionButton>
             ))}
-            {can(viewer, "DELETE_CAMPAIGNS") && (
+            {can(viewer, "campaigns.delete") && (
               <ActionButton variant="destructive" action={deleteCampaignAction.bind(null, id)} success="Campaign deleted" redirectTo="/viralpulse-ai/campaigns" confirm={{ title: "Delete this campaign?", description: `“${c.name}” and its ${ads.length} ad(s) will be removed. Generated media stays in the library.`, confirmLabel: "Delete" }} aria-label="Delete campaign">
                 <Trash2 className="size-3.5" />
               </ActionButton>
@@ -212,7 +215,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
         {isMetaCampaign && (
           <TabsContent value="launch" className="mt-4">
             <SectionCard title="Launch" description="Approve, switch on, pause, edit, archive or roll back. Everything is recorded.">
-              <LaunchHost campaignId={id} initial={launch} perms={{ canCreate: can(viewer, "CREATE_ADS") && can(viewer, "EDIT_CAMPAIGNS"), canApprove: can(viewer, "APPROVE_AD_SPEND"), canPublish: can(viewer, "PUBLISH_CONTENT"), canEdit: can(viewer, "EDIT_CAMPAIGNS"), userId: viewer.userId }} />
+              <LaunchHost campaignId={id} initial={launch} perms={{ canCreate: can(viewer, "ads.create") && can(viewer, "campaigns.edit"), canApprove: can(viewer, "ads.approve"), canPublish: can(viewer, "posts.publish"), canEdit: can(viewer, "campaigns.edit"), userId: viewer.userId }} />
             </SectionCard>
           </TabsContent>
         )}
@@ -235,7 +238,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
             hasContent={hasAi}
             label="Generate strategy with AI"
             generate={generateCampaignAction.bind(null, id)}
-            disabled={!canEdit || !can(viewer, "GENERATE_AI_CONTENT") || !(await isOpenAIConfigured()) || c.status === "published"}
+            disabled={!canEdit || !can(viewer, "posts.generate") || !(await isOpenAIConfigured()) || c.status === "published"}
             disabledReason={!(await isOpenAIConfigured()) ? "OpenAI isn't connected for this workspace (Settings → Integrations)." : c.status === "published" ? "Launched campaigns keep their strategy — duplicate to plan a new version." : "You can read this strategy but not regenerate it."}
           />
           {hasAi && c.ai.adConcepts.length > 0 && (
@@ -264,7 +267,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
           )}
           {hasAi ? (
             <SectionCard title="Strategy" description="Edit anything — saving creates a new version.">
-              <CampaignStrategyEditor key={versions[0]?._id ?? "none"} campaignId={id} ai={c.ai} canEdit={canEdit} campaign={campaignBriefContext(c)} canGenerate={can(viewer, "GENERATE_AI_CONTENT") && (await isOpenAIConfigured())} />
+              <CampaignStrategyEditor key={versions[0]?._id ?? "none"} campaignId={id} ai={c.ai} canEdit={canEdit} campaign={campaignBriefContext(c)} canGenerate={can(viewer, "posts.generate") && (await isOpenAIConfigured())} />
             </SectionCard>
           ) : (
             <EmptyState title="No strategy yet">Generate one from the brief — you&apos;ll get a strategy, ideas, audiences, keywords, hashtags and ad concepts per platform.</EmptyState>
@@ -274,7 +277,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
         <TabsContent value="ads" className="mt-4 space-y-4">
           {canAds && (
             <SectionCard title="New ad" description="One platform and format per ad. Duplicate an ad to adapt it for another platform.">
-              <NewAdForm campaignId={id} platforms={c.platforms} campaign={campaignBriefContext(c)} canGenerate={can(viewer, "GENERATE_AI_CONTENT") && (await isOpenAIConfigured())} />
+              <NewAdForm campaignId={id} platforms={c.platforms} campaign={campaignBriefContext(c)} canGenerate={can(viewer, "posts.generate") && (await isOpenAIConfigured())} />
             </SectionCard>
           )}
           <SectionCard title="Ads">
@@ -303,7 +306,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
 
         <TabsContent value="performance" className="mt-4 space-y-4">
           <SectionCard title="Linked ad-platform data" description="Spend and results live in DealFlow → Campaigns (CSV imports from Meta, Google and LinkedIn). Link the imported campaigns that belong to this one.">
-            {can(viewer, "EDIT_CAMPAIGNS") ? (
+            {can(viewer, "campaigns.edit") ? (
               <LmsLinker options={lmsOptions.map((o) => ({ key: o.key, name: o.name, platform: o.platform }))} selected={c.lmsCampaignKeys} save={linkLmsCampaignsAction.bind(null, id)} />
             ) : (
               <p className="text-sm text-muted-foreground">{`${c.lmsCampaignKeys.length} linked DealFlow campaign(s).`}</p>

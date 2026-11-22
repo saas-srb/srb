@@ -60,6 +60,7 @@ export default async function ProtectedMessengerLayout({ children }: { children:
               displayName={user.displayName}
               roles={user.roles}
               permissionOverrides={user.permissionOverrides}
+              subject={user.subject}
               createdAt={user.createdAt.toISOString()}
               lastLoginAt={user.lastLoginAt ? user.lastLoginAt.toISOString() : null}
               unreadDms={summary.dms}
@@ -72,6 +73,7 @@ export default async function ProtectedMessengerLayout({ children }: { children:
                 <MessengerTopbar
                   roles={user.roles}
                   allRoles={user.allRoles}
+                  subject={user.subject}
                   unreadDms={summary.dms}
                   unreadChannels={summary.channels}
                   notifications={notifications.map((n) => ({

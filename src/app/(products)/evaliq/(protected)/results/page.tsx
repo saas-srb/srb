@@ -1,3 +1,4 @@
+import { OwnAssignments, OwnAssignment, OwnResults, OwnResult, seesEveryones } from "@/components/products/evaliq/OwnViews";
 import { redirect } from "next/navigation";
 import { ListChecks, Download } from "lucide-react";
 import { CardContent } from "@/components/ui/card";
@@ -16,8 +17,8 @@ import { formatDateTime } from "@/lib/utils";
 export default async function ResultsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/evaliq/login");
-  if (!can(viewer, "VIEW_REPORTS") && !can(viewer, "EVALUATE_ANSWERS")) redirect("/evaliq");
   const sp = await searchParams;
+  if (!seesEveryones(viewer, "results") || sp.mine === "1") return <OwnResults viewer={viewer} sp={sp} />;
   const page = Math.max(Number(sp.page) || 1, 1);
   const [r, tests] = await Promise.all([listResults({ ...sp, page }), listTestOptions()]);
   const people = await describeCandidates(r.items.map((x) => x.candidate));
@@ -30,7 +31,7 @@ export default async function ResultsPage({ searchParams }: { searchParams: Prom
         crumbs={[{ label: "Results" }]}
         description={`${r.total} submitted attempt${r.total === 1 ? "" : "s"}. Objective answers are marked automatically; subjective ones wait here for an evaluator.`}
         actions={
-          can(viewer, "EXPORT_REPORTS") && (
+          can(viewer, "reports.export") && (
             <Button variant="outline" size="sm" nativeButton={false} render={<a href={`/api/evaliq/export/results?format=xlsx${exportQs ? `&${exportQs}` : ""}`} />}>
               <Download className="size-3.5" /> Export results
             </Button>
@@ -59,7 +60,7 @@ export default async function ResultsPage({ searchParams }: { searchParams: Prom
             <EmptyState icon={<ListChecks className="size-5" />} title="No results match">Submitted attempts appear here.</EmptyState>
           ) : (
             <ResultsTable
-              canPublish={can(viewer, "PUBLISH_RESULTS")}
+              canPublish={can(viewer, "results.publish")}
               rows={r.items.map((x) => {
                 const p = people.get(x.candidateKey);
                 return {

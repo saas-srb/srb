@@ -1,3 +1,4 @@
+import { OwnAssignments, OwnAssignment, OwnResults, OwnResult, seesEveryones } from "@/components/products/evaliq/OwnViews";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Send, Download } from "lucide-react";
@@ -18,8 +19,9 @@ import { formatDateTime } from "@/lib/utils";
 export default async function AssignmentsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/evaliq/login");
-  if (!can(viewer, "VIEW_ASSIGNMENTS")) redirect("/evaliq");
   const sp = await searchParams;
+  // Same page for everyone: with everyone's scope the full list, otherwise (or with ?mine=1) the person's own tests.
+  if (!seesEveryones(viewer, "assignments") || sp.mine === "1") return <OwnAssignments viewer={viewer} />;
   const page = Math.max(Number(sp.page) || 1, 1);
   await expireOverdue();
   const [r, tests, dispatch] = await Promise.all([
@@ -38,12 +40,12 @@ export default async function AssignmentsPage({ searchParams }: { searchParams: 
         description={`${r.total} assignment${r.total === 1 ? "" : "s"}. Assigned → In Progress → Submitted → Evaluated → Completed, or Expired.`}
         actions={
           <>
-            {can(viewer, "EXPORT_REPORTS") && (
+            {can(viewer, "reports.export") && (
               <Button variant="outline" size="sm" nativeButton={false} render={<a href={`/api/evaliq/export/results?format=xlsx${exportQs ? `&${exportQs}` : ""}`} />}>
                 <Download className="size-3.5" /> Export
               </Button>
             )}
-            {can(viewer, "ASSIGN_TEST") && (
+            {can(viewer, "assignments.assign") && (
               <Button nativeButton={false} render={<Link href={`/evaliq/assignments/new${sp.testId ? `?testId=${sp.testId}` : ""}`} />}>
                 <Send className="size-4" /> Assign test
               </Button>
@@ -118,8 +120,8 @@ export default async function AssignmentsPage({ searchParams }: { searchParams: 
                       <TableCell className="text-right">
                         <AssignmentRowActions
                           a={{ id: a._id, label: p?.exists ? p.name : a.candidateLabel, status: a.status, startAt: a.startAt?.toISOString() ?? null, dueAt: a.dueAt?.toISOString() ?? null, maxAttempts: a.maxAttempts, priority: a.priority, instructions: a.instructions, allowLateStart: a.allowLateStart }}
-                          canEdit={can(viewer, "EDIT_ASSIGNMENT")}
-                          canCancel={can(viewer, "CANCEL_ASSIGNMENT")}
+                          canEdit={can(viewer, "assignments.edit")}
+                          canCancel={can(viewer, "assignments.cancel")}
                         />
                       </TableCell>
                     </TableRow>

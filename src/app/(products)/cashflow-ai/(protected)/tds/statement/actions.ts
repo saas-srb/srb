@@ -1,7 +1,7 @@
 "use server";
 
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canViewFinancialStatements } from "@/lib/fms-roles";
+import { canViewFinancialStatements } from "@/lib/fms-access";
 import { isFinancialYear, isQuarter } from "@/lib/products/cashflow-ai/tds/core";
 import { loadDeductions } from "@/lib/products/cashflow-ai/tds/store";
 import { statementLines } from "@/lib/products/cashflow-ai/tds/statement";

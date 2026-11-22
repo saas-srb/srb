@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 import { getCurrentHubUser, type CurrentHubUser } from "@/lib/hub-auth";
-import { requireLms, requireLmsOrCms } from "@/lib/lms-auth";
+import { requireLms } from "@/lib/lms-auth";
+import { requireChatbot } from "@/lib/products/sitecraft-ai/growth";
 import { MANAGE_PERMISSIONS } from "@/lib/products/commandos/nav";
 import { checkWorkspaceAccess, requireWorkspaceAction } from "@/lib/products/commandos/access";
 import { resolvePermission } from "@/lib/permission-overrides";
@@ -23,7 +24,7 @@ export async function requireChatbotManageAction(): Promise<CurrentHubUser> {
   if (resolvePermission(user, MANAGE_PERMISSIONS.chatbot, () => false)) {
     return requireWorkspaceAction(CHATBOT_MANAGE_KEY);
   }
-  if (!(await requireLmsOrCms("MANAGE_CHATBOT")) || !(await checkWorkspaceAccess(user, CHATBOT_MANAGE_KEY))) {
+  if (!(await requireChatbot("manage")) || !(await checkWorkspaceAccess(user, CHATBOT_MANAGE_KEY))) {
     throw new Error("Forbidden");
   }
   return user;
@@ -45,8 +46,8 @@ export async function authorizeChatbotApi(
   }
 
   const productUser = capability === "export"
-    ? await requireLms("EXPORT_DATA")
-    : await requireLmsOrCms(capability === "manage" ? "MANAGE_CHATBOT" : "VIEW_CHATBOT");
+    ? await requireLms("data.export")
+    : await requireChatbot(capability === "manage" ? "manage" : "view");
   if (productUser && (!user || await checkWorkspaceAccess(user, CHATBOT_MANAGE_KEY))) {
     return { ok: true, email: productUser.email };
   }

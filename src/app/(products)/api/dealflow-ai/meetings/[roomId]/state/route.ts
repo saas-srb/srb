@@ -29,7 +29,7 @@ async function handleGET(req: NextRequest, { params }: { params: Promise<{ roomI
       if (!me || me.kind === "agent") return NextResponse.json({ ok: false, error: "Invalid token" }, { status: 401 });
       view = me.kind === "external" ? redactForGuest(toMeetingView(m)) : toMeetingView(m);
     } else {
-      const user = await requireLms("VIEW_LEADS");
+      const user = await requireLms("meetings.view");
       if (!user || !canSeeMeeting(user, m)) return NextResponse.json({ ok: false, error: "Not allowed" }, { status: 403 });
       view = toMeetingView(m, { audit: canHostMeeting(user, m) });
     }

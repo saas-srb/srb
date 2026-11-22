@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { requireLms } from "@/lib/lms-auth";
-import type { LmsPermission } from "@/lib/lms-roles";
 import { undoImport } from "@/lib/campaigns";
 import { isValidPlatform } from "@/lib/campaign-platforms";
 import { campaignKeyFor } from "@/lib/utm";
@@ -11,14 +10,14 @@ import { isValidCategory, type CategorySlug } from "@/lib/categories";
 
 // Each action independently re-checks the session — render-time gating on the
 // page is not a security boundary for the action endpoint itself.
-async function requireLmsUser(permission: LmsPermission) {
+async function requireLmsUser(permission: string) {
   const u = await requireLms(permission);
   if (!u) throw new Error("Forbidden");
   return u;
 }
 
 export async function undoImportAction(importId: string): Promise<{ error?: string }> {
-  await requireLmsUser("MANAGE_CAMPAIGNS");
+  await requireLmsUser("campaigns.manage");
   const result = await undoImport(importId);
   if (result.error) return { error: result.error };
   revalidatePath("/dealflow-ai/campaigns");
@@ -32,7 +31,7 @@ export async function assignCampaignAction(
   source: string,
   campaignName: string
 ): Promise<{ updated: number; error?: string }> {
-  await requireLmsUser("MANAGE_CAMPAIGNS");
+  await requireLmsUser("campaigns.manage");
   if (!isValidPlatform(source)) return { updated: 0, error: "Unknown platform." };
   const name = campaignName.trim().slice(0, 200);
   const valid = targets.filter((t): t is { category: CategorySlug; id: string } => isValidCategory(t.category));

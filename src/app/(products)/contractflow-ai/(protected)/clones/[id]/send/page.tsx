@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/contractflow-ai/gate";
 import { notFound, redirect } from "next/navigation";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import CfSendForm from "@/components/products/contractflow-ai/CfSendForm";
@@ -12,6 +13,8 @@ export default async function CloneSendPage({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const viewer = await getViewer();
   if (!viewer) redirect("/contractflow-ai/login");
+  const locked = lockedUnless(viewer, "signatures.view", "Signatures");
+  if (locked) return locked;
   const r = await getClone(viewer, id);
   if (!r.ok) { if (r.error.code === "forbidden") redirect("/contractflow-ai/documents"); notFound(); }
   const { clone: c, capabilities: cap } = r;

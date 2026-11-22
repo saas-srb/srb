@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { cookiesDoc, dataPolicyDoc, dataRequestsDoc, dpaDoc, grievanceDoc, privacyDoc, refundDoc, subprocessorsDoc, termsDoc, type LegalContext } from "../src/lib/platform/saas/legal-india";
 import { CONSTITUTIONS_LIST } from "../src/app/(platform)/console/legal/options";
@@ -67,7 +67,9 @@ t("no policy is about another country's law", () => {
   for (const [k, s] of text(full)) assert.ok(!/UK GDPR|GDPR|CCPA|California|Saudi|United Arab Emirates|DIFC|ADGM|Information Commissioner/.test(s), `${k} still mentions a foreign regime`);
 });
 t("the public pages read their text from the builders, not from stale copies", () => {
-  for (const slug of ["terms", "privacy", "refund-policy", "cookies", "data-policy", "dpa", "subprocessors", "data-requests", "grievance"]) {
+  for (const slug of ["terms", "privacy", "refund-policy", "cookies", "data-policy", "dpa", "data-requests", "grievance"]) {
+    // a policy without its own public page (grievance; subprocessors and vulnerability-disclosure were removed) has nothing stale to check
+    if (!existsSync(`src/app/(platform)/saas/${slug}/page.tsx`)) continue;
     const f = readFileSync(`src/app/(platform)/saas/${slug}/page.tsx`, "utf8");
     assert.ok(f.includes("legal-india") && f.includes("loadLegalContext"), slug);
   }

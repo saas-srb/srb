@@ -1,7 +1,7 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canViewReports } from "@/lib/fms-roles";
+import { canViewReports } from "@/lib/fms-access";
 import { toCsv } from "@/lib/csv";
 import { buildWorkbook, type SheetSpec } from "@/lib/products/cashflow-ai/xlsx";
 import { renderFmsReportPdf, type FmsReportPdfData } from "@/components/products/cashflow-ai/reports/FmsReportPdf";

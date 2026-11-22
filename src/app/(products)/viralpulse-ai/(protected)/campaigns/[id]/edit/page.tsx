@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/viralpulse-ai/gate";
 import { notFound, redirect } from "next/navigation";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import AdsWizard from "@/components/products/viralpulse-ai/ads/AdsWizard";
@@ -16,14 +17,16 @@ export const maxDuration = 300;
 export default async function EditCampaignPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/viralpulse-ai/login");
-  if (!can(viewer, "VIEW_CAMPAIGNS")) redirect("/viralpulse-ai");
+  const locked = lockedUnless(viewer, "campaigns.edit", "Edit campaigns");
+  if (locked) return locked;
+  if (!can(viewer, "campaigns.view")) redirect("/viralpulse-ai");
   const { id } = await params;
   const sp = await searchParams;
   const c = await getCampaign(id);
   if (!c) notFound();
   // A campaign with no Facebook or Instagram platform is not launched from here: it keeps the plain brief editor.
   if (!c.platforms.some((p) => p === "facebook" || p === "instagram")) {
-    if (!can(viewer, "EDIT_CAMPAIGNS")) redirect(`/viralpulse-ai/campaigns/${id}`);
+    if (!can(viewer, "campaigns.edit")) redirect(`/viralpulse-ai/campaigns/${id}`);
     const pickers = await briefPickers();
     return (
       <div className="space-y-4">
@@ -48,10 +51,10 @@ export default async function EditCampaignPage({ params, searchParams }: { param
         initial={initial}
         accounts={accounts}
         guard={guardSummary(guard)}
-        perms={{ canEdit: can(viewer, "EDIT_CAMPAIGNS") && can(viewer, "CREATE_ADS"), canCreate: can(viewer, "CREATE_ADS") && can(viewer, "EDIT_CAMPAIGNS"), canApprove: can(viewer, "APPROVE_AD_SPEND"), canPublish: can(viewer, "PUBLISH_CONTENT"), userId: viewer.userId, canGenerate: can(viewer, "GENERATE_AI_CONTENT") && ai, canUpload: can(viewer, "MANAGE_MEDIA") }}
+        perms={{ canEdit: can(viewer, "campaigns.edit") && can(viewer, "ads.create"), canCreate: can(viewer, "ads.create") && can(viewer, "campaigns.edit"), canApprove: can(viewer, "ads.approve"), canPublish: can(viewer, "posts.publish"), userId: viewer.userId, canGenerate: can(viewer, "posts.generate") && ai, canUpload: can(viewer, "media.manage") }}
         handoff={{ step, mediaIds: [], ugcProjectId: null }}
         handoffMedia={[]}
-        limitsHref={can(viewer, "APPROVE_AD_SPEND") ? "/viralpulse-ai/campaigns/limits" : null}
+        limitsHref={can(viewer, "ads.approve") ? "/viralpulse-ai/campaigns/limits" : null}
       />
     </div>
   );

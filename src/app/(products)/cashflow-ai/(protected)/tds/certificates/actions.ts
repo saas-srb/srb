@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance } from "@/lib/fms-roles";
+import { canManageCompliance } from "@/lib/fms-access";
 import { clearCertificate, recordCertificate, removeLowerCert, saveLowerCert } from "@/lib/products/cashflow-ai/tds/certificates-store";
 
 type Result = { ok: true } | { ok: false; error: string };

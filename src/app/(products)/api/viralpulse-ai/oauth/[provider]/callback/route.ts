@@ -28,7 +28,7 @@ export async function GET(req: NextRequest, { params }: Context) {
   };
   const viewer = await getViewer();
   if (!viewer) return NextResponse.redirect(new URL("/viralpulse-ai/login", req.url));
-  if (!can(viewer, "MANAGE_INTEGRATIONS")) return NextResponse.redirect(new URL("/viralpulse-ai", req.url));
+  if (!can(viewer, "integrations.manage")) return NextResponse.redirect(new URL("/viralpulse-ai", req.url));
   const { provider } = await params;
   if (!isConnectionProvider(provider)) return fail("Unknown platform.");
 

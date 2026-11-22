@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/sitecraft-ai/gate";
 import { redirect } from "next/navigation";
 import { Files } from "lucide-react";
 import { getViewer, can } from "@/lib/products/sitecraft-ai/viewer";
@@ -10,6 +11,8 @@ import PagesTable from "./PagesTable";
 export default async function CmsPagesPage({ searchParams }: { searchParams: Promise<{ area?: string }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/sitecraft-ai/login");
+  const locked = lockedUnless(viewer, "pages.view", "Pages");
+  if (locked) return locked;
 
   const [pages, { area }] = await Promise.all([listPages(), searchParams]);
   const title = area ? areaLabel(area) : "Pages";
@@ -21,10 +24,10 @@ export default async function CmsPagesPage({ searchParams }: { searchParams: Pro
         icon={Files}
         title={title}
         description="Every page on the public website. Edit its sections and SEO, preview the draft, then publish."
-        actions={can(viewer, "PAGES_CREATE") ? <NewPageDialog /> : undefined}
+        actions={can(viewer, "pages.create") ? <NewPageDialog /> : undefined}
       />
       <PagesTable
-        canPublish={can(viewer, "PAGES_PUBLISH")}
+        canPublish={can(viewer, "pages.publish")}
         rows={pages.map((p) => ({
           id: p._id,
           title: displayTitle(p.title, p.path),

@@ -54,7 +54,7 @@ await t("keys are unique and stable-shaped; override keys are unique", () => {
   for (const e of CATALOGUE) assert.match(e.key, /^[a-z]+\.[A-Za-z_]+$/);
   const ok = CATALOGUE.filter((e) => e.overrideKey).map((e) => e.overrideKey);
   assert.equal(new Set(ok).size, ok.length);
-  assert.equal(CATALOGUE.length, 265);
+  assert.equal(CATALOGUE.length, 270);
   assert.equal(PRODUCTS.length, 17);
 });
 

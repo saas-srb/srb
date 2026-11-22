@@ -83,10 +83,8 @@ const ui = buildAccessUi();
     // AgentOS is finished on micro features: its Read only is truly read only (no chatting, no creating), so it no longer needs the next-level-up wording.
     assert.equal(ui.presets["agentos"].readLabel, "Read only");
     assert.deepEqual(ui.presets["agentos"].readExtras, []);
-    for (const k of ["evaliq"]) {
-      assert.equal(ui.presets[k].readLabel, "Read only (view and reports)");
-      assert.ok(ui.presets[k].readExtras.length > 0);
-    }
+    assert.equal(ui.presets["evaliq"].readLabel, "Read only"); // EvalIQ is finished the same way: its Read only is truly read only
+    assert.deepEqual(ui.presets["evaliq"].readExtras, []);
     assert.equal(ui.presets["sprintos"].readLabel, "Read only");
   });
   await T("refusals: a map that older roles would widen, and a map with no product", () => {

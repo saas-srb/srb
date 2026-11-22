@@ -1,6 +1,7 @@
 import "server-only";
 import * as A from "@/app/(products)/cybervault/(protected)/actions";
-import { dlmsCan, type DlmsPermission } from "@/lib/dlms-roles";
+type DlmsPermission = string;
+import { microLegacy, microAny, featureScope as microFeatureScope, holds } from "@/lib/ai/agent/micro-gate";
 import { requireViewer, scopeFilter, can as viewerCan } from "@/lib/products/cybervault/viewer";
 import type { RecordType } from "@/lib/products/cybervault/constants";
 import { CREDENTIAL_TYPES, DOCUMENT_CATEGORIES, LINK_TYPES, NOTE_TYPES, RECORD_TYPES, SCOPES } from "@/lib/products/cybervault/constants";
@@ -13,20 +14,14 @@ import type { ActionDef, AgentUser, EntityDef, FieldDef, Json } from "@/lib/ai/a
  * client vaults the person has been granted.
  */
 
-const ctx = (u: AgentUser) => ({ roles: u.roles, permissionOverrides: u.permissionOverrides });
-const can = (p: DlmsPermission) => (u: AgentUser) => dlmsCan(ctx(u), p);
+const can = microLegacy("dlms");
 /** What the person may read from a vault collection: the record type's view feature, then company/client scope, decided by the server (not the offer list). */
-const vaultScope = (type: RecordType) => async (): Promise<Json | null> => {
+const TYPE_VIEW: Record<RecordType, string> = { credential: "credentials.view", document: "documents.view", link: "urls.view", note: "notes.view" };
+const featureScope = (k: string) => microFeatureScope("cybervault." + k);
+const vaultScope = (type: RecordType) => async (u: AgentUser): Promise<Json | null> => {
+  if (!holds(u.subject, `cybervault.${TYPE_VIEW[type]}`)) return { _id: "__none__" };
   try {
     return scopeFilter(await requireViewer(), type) as Json;
-  } catch {
-    return null;
-  }
-};
-/** Reading an admin-only collection: only a person who holds the micro feature gets any rows. */
-const featureScope = (key: string) => async (): Promise<Json | null> => {
-  try {
-    return viewerCan(await requireViewer(), key) ? {} : { _id: "__none__" };
   } catch {
     return null;
   }

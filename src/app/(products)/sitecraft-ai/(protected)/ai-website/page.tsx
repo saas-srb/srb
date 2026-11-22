@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/sitecraft-ai/gate";
 import { redirect } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { getViewer, can } from "@/lib/products/sitecraft-ai/viewer";
@@ -12,6 +13,8 @@ export const maxDuration = 300;
 export default async function AiWebsitePage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/sitecraft-ai/login");
+  const locked = lockedUnless(viewer, "aiwebsite.use", "AI website");
+  if (locked) return locked;
   if (await isPlatformOwnerContext()) redirect("/sitecraft-ai");
   const [state, versions] = await Promise.all([getAiWebsiteState(), listAiWebsiteVersions()]);
   const plainVersions = JSON.parse(JSON.stringify(versions));
@@ -25,7 +28,7 @@ export default async function AiWebsitePage() {
         title="AI Website"
         description={<>Your whole website, written from the business categories you chose: pages, menus, footer, colours, fonts, layout and photos. Everything stays editable in the CMS.</>}
       />
-      <AiWebsitePanel key={`${state?.currentVersionId ?? "none"}-${state?.plan?.sitePrompt?.slice(0, 80) ?? ""}`} state={plain} versions={plainVersions} canGenerate={can(viewer, "THEME_PUBLISH")} />
+      <AiWebsitePanel key={`${state?.currentVersionId ?? "none"}-${state?.plan?.sitePrompt?.slice(0, 80) ?? ""}`} state={plain} versions={plainVersions} canGenerate={can(viewer, "aiwebsite.use")} />
     </div>
   );
 }

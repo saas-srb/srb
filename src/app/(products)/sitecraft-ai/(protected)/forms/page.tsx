@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/sitecraft-ai/gate";
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import { redirect } from "next/navigation";
 import { getViewer, can } from "@/lib/products/sitecraft-ai/viewer";
@@ -11,6 +12,8 @@ import CmsPageHeader from "@/components/products/sitecraft-ai/ui/CmsPageHeader";
 export default async function CmsFormsPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/sitecraft-ai/login");
+  const locked = lockedUnless(viewer, "forms.view", "Forms");
+  if (locked) return locked;
 
   const fields = await getFormDoc("contact", CONTACT_FORM_FIELD_NAMES);
   const leadSet = await getLeadCategories();
@@ -24,8 +27,8 @@ export default async function CmsFormsPage() {
         description={<>The contact form&apos;s field labels, placeholders and help text. Submissions still go through the existing leads pipeline — this only controls how the fields are presented.</>}
       />
       <PanelListFilters>
-<ContactFormEditor initialFields={fields} canEdit={can(viewer, "FORMS_MANAGE")} />
-{leadSet.custom && <LeadCategoriesEditor initial={leadSet.categories} canEdit={can(viewer, "FORMS_MANAGE")} />}
+<ContactFormEditor initialFields={fields} canEdit={can(viewer, "forms.manage")} />
+{leadSet.custom && <LeadCategoriesEditor initial={leadSet.categories} canEdit={can(viewer, "forms.manage")} />}
 </PanelListFilters>
     </div>
   );

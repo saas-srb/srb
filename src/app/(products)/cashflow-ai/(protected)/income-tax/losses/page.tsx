@@ -3,7 +3,7 @@ import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import LossesManager from "@/components/products/cashflow-ai/income-tax/LossesManager";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance } from "@/lib/fms-roles";
+import { canManageCompliance } from "@/lib/fms-access";
 import { LOSS_KIND_LABEL, type LossKind } from "@/lib/products/cashflow-ai/income-tax/core";
 import { listLossDocs } from "@/lib/products/cashflow-ai/income-tax/losses-store";
 

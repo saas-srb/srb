@@ -1,3 +1,4 @@
+import { legacyToAccess } from "../src/lib/access/adapter";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -41,7 +42,7 @@ const ROOT = path.resolve(__dirname, "..");
   O.__setOtpSenders({ email: async (to, _s, text) => { mail.push({ to, text }); return { ok: true }; }, sms: async () => ({ ok: true }), emailConfigured: async () => true, companyTwilio: async () => null });
   const lastCode = () => /\b(\d{6})\b/.exec(mail[mail.length - 1].text)![1];
 
-  const viewer = (roles: string[]): Viewer => ({ userId: "u_" + roles.join("_"), email: "x@test.invalid", roles, overrides: {}, lpmsRoles: [], employeeId: null, companyId: "" });
+  const viewer = (roles: string[]): Viewer => ({ userId: "u_" + roles.join("_"), email: "x@test.invalid", roles, overrides: {}, subject: legacyToAccess({ roles, permissionOverrides: null }), lpmsRoles: [], employeeId: null, companyId: "" });
   const MANAGER = viewer(["lpms_manager"]);
   const PB_MANAGER = { id: "pb_mgr", email: "pb@test.invalid", name: "Pat", roles: ["sop_manager"], permissionOverrides: {} };
   const inA = <T,>(fn: () => Promise<T>) => runAsCompany("coA", fn);

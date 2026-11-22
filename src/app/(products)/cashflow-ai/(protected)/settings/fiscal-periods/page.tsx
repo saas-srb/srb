@@ -9,7 +9,7 @@ import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import SimpleActionButton from "@/components/products/cashflow-ai/SimpleActionButton";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageFiscalPeriods } from "@/lib/fms-roles";
+import { canManageFiscalPeriods } from "@/lib/fms-access";
 import { listFiscalPeriods } from "@/lib/products/cashflow-ai/fiscal-periods";
 import { createFiscalPeriodAction, closeFiscalPeriodAction, reopenFiscalPeriodAction } from "./actions";
 import { formatDate } from "@/lib/utils";

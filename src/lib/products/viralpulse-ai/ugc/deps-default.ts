@@ -80,7 +80,7 @@ export function defaultDeps(): EngineDeps {
     async notify(ids, n) {
       await notifySmmsUsers(ids, n);
     },
-    managerIds: () => smmsUsersWith("PUBLISH_CONTENT"),
+    managerIds: () => smmsUsersWith("posts.publish"),
     async deleteMedia(mediaId, actorId) {
       await deleteMedia(mediaId, actorId);
     },

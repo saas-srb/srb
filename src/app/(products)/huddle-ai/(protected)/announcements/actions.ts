@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getCurrentChatUser } from "@/lib/messenger-auth";
-import { canPostAnnouncements } from "@/lib/messenger-roles";
+import { chatCan } from "@/lib/messenger-access";
 import {
   createAnnouncement,
   updateAnnouncement,
@@ -20,7 +20,7 @@ import type { Attachment } from "@/lib/products/huddle-ai/attachments";
 async function requireAuthor() {
   const user = await getCurrentChatUser();
   if (!user) redirect("/huddle-ai/login");
-  if (!canPostAnnouncements(user)) throw new Error("Forbidden");
+  if (!chatCan(user, "announcements.post")) throw new Error("Forbidden");
   return user;
 }
 
@@ -107,6 +107,7 @@ export async function archiveAnnouncementAction(id: string): Promise<{ ok: boole
 export async function acknowledgeAnnouncementAction(id: string): Promise<{ ok: boolean }> {
   const user = await getCurrentChatUser();
   if (!user) return { ok: false };
+  if (!chatCan(user, "messages.send")) return { ok: false };
   await markAnnouncementRead(id, user.id);
   revalidatePath(`/huddle-ai/announcements/${id}`);
   return { ok: true };

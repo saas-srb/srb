@@ -1,7 +1,7 @@
 import "server-only";
 import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/mongodb";
-import { lmsCan } from "@/lib/lms-roles";
+import { lmsCan } from "@/lib/lms-auth";
 import type { AibotsViewer } from "@/lib/products/agentos/viewer";
 import type { CallTarget } from "@/lib/products/agentos/calls/types";
 import type { BriefingItem, BriefingSection } from "@/lib/products/agentos/calls/briefing-core";
@@ -123,7 +123,7 @@ async function leadSections(viewer: AibotsViewer, leadId: string): Promise<Brief
   if (!lead) return [];
   const sources = await linkedSource(lead, viewer);
   const stage = stageMeta(lead.type, lead.stage)?.label ?? lead.stage;
-  const canMoney = lmsCan(viewer.ctx, "EDIT_LEADS");
+  const canMoney = lmsCan(viewer, "leads.edit");
   const profile: BriefingSection = {
     key: "profile", title: "Lead profile", kind: "profile", sourceCount: 1,
     items: items([
@@ -160,7 +160,7 @@ async function linkedSource(lead: LeadRecord, viewer: AibotsViewer): Promise<{ c
     }
     const appId = lead.applicationId ?? (ref?.kind === "career_application" ? ref.id : null);
     // The application's own text and notes belong to the careers pages: they need the careers permission.
-    if (appId && /^[a-f\d]{24}$/i.test(appId) && lmsCan(viewer.ctx, "VIEW_CAREERS")) {
+    if (appId && /^[a-f\d]{24}$/i.test(appId) && lmsCan(viewer, "careers.view")) {
       const a = await (await getDb()).collection(APPLICATIONS_COLLECTION).findOne({ _id: new ObjectId(appId) } as never);
       return a ? { ...none, message: str(a.coverNote), notes: str(a.notes), aiCalls: Array.isArray(a.aiCalls) ? (a.aiCalls as AiCallEntry[]) : [] } : none;
     }
@@ -203,7 +203,7 @@ async function submissionSections(viewer: AibotsViewer, entityId: string): Promi
   if (!p || !isValidCategory(p.category)) return [];
   const l = await getLead(p.category, p.id);
   if (!l) return [];
-  const canMoney = lmsCan(viewer.ctx, "EDIT_LEADS");
+  const canMoney = lmsCan(viewer, "leads.edit");
   const linked = await (await getDb()).collection<LeadRecord>(LEAD_RECORDS_COLLECTION).find({ "sourceRef.kind": "category_lead", "sourceRef.id": p.id, deletedAt: null }, { projection: { _id: 1 } }).limit(5).toArray();
   const profile: BriefingSection = {
     key: "profile", title: "Enquiry profile", kind: "profile", sourceCount: 1,
@@ -228,8 +228,8 @@ async function submissionSections(viewer: AibotsViewer, entityId: string): Promi
 
 export async function dealflowBriefing(viewer: AibotsViewer, target: CallTarget): Promise<BriefingSection[]> {
   if (target.product !== DEALFLOW_PRODUCT) return [];
-  if (target.entityType === "lead") return lmsCan(viewer.ctx, "VIEW_LEADS") ? leadSections(viewer, target.entityId) : [];
-  if (target.entityType === "submission") return lmsCan(viewer.ctx, "VIEW_LEADS") ? submissionSections(viewer, target.entityId) : [];
-  if (target.entityType === "applicant") return lmsCan(viewer.ctx, "VIEW_CAREERS") ? applicantSections(target.entityId) : [];
+  if (target.entityType === "lead") return lmsCan(viewer, "leads.view") ? leadSections(viewer, target.entityId) : [];
+  if (target.entityType === "submission") return lmsCan(viewer, "leads.view") ? submissionSections(viewer, target.entityId) : [];
+  if (target.entityType === "applicant") return lmsCan(viewer, "careers.view") ? applicantSections(target.entityId) : [];
   return [];
 }

@@ -1,6 +1,6 @@
 import { withTransport } from "@/lib/security/transport";
 import type { NextRequest } from "next/server";
-import { resolveScope, requireSession, jsonError, HttpError } from "@/lib/products/huddle-ai/route-helpers";
+import { resolveScope, requireSession, requireSessionFor, jsonError, HttpError } from "@/lib/products/huddle-ai/route-helpers";
 import { startCall, getActiveCallForScope, serializeCall, getIceServers } from "@/lib/products/huddle-ai/calls";
 import type { CallMode } from "@/lib/products/huddle-ai/call-constants";
 
@@ -11,7 +11,7 @@ async function handleGET(request: NextRequest) {
   try {
     const user = await requireSession();
     const sp = request.nextUrl.searchParams;
-    const resolved = await resolveScope(sp.get("scopeType"), sp.get("scopeId"), user);
+    const resolved = await resolveScope(sp.get("scopeType"), sp.get("scopeId"), user, "read");
     const call = await getActiveCallForScope(resolved.scope);
     return Response.json({ call: call ? await serializeCall(call, user.id) : null });
   } catch (err) {
@@ -22,9 +22,9 @@ async function handleGET(request: NextRequest) {
 /** POST /api/huddle-ai/calls  { scopeType, scopeId, mode, meetingId? }  — start (or reuse) a call. */
 async function handlePOST(request: NextRequest) {
   try {
-    const user = await requireSession();
+    const user = await requireSessionFor("calls.use");
     const data = (await request.json()) as { scopeType?: string; scopeId?: string; mode?: CallMode; meetingId?: string | null };
-    const resolved = await resolveScope(data.scopeType, data.scopeId, user);
+    const resolved = await resolveScope(data.scopeType, data.scopeId, user, "read");
     if (!resolved.canPost) throw new HttpError(403, "You can't start a call here.");
 
     const mode: CallMode = data.mode === "audio" ? "audio" : "video";

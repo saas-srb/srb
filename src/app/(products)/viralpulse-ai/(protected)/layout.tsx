@@ -29,14 +29,20 @@ export default async function ProtectedSmmsLayout({ children }: { children: Reac
 
   const bell = await listSmmsNotifications(viewer.userId);
   const flags: SmmsNavFlags = {
-    campaigns: can(viewer, "VIEW_CAMPAIGNS"),
-    posts: can(viewer, "MANAGE_POSTS") || can(viewer, "VIEW_CAMPAIGNS"),
-    media: can(viewer, "MANAGE_MEDIA") || can(viewer, "MANAGE_POSTS") || can(viewer, "CREATE_ADS"),
-    ai: can(viewer, "GENERATE_AI_CONTENT"),
-    ugc: can(viewer, "GENERATE_AI_CONTENT"),
-    analytics: can(viewer, "VIEW_ANALYTICS"),
-    audit: can(viewer, "VIEW_AUDIT_LOG"),
-    settings: can(viewer, "MANAGE_INTEGRATIONS"),
+    campaigns: can(viewer, "campaigns.view"),
+    posts: can(viewer, "posts.view"),
+    media: can(viewer, "media.manage"),
+    ai: can(viewer, "posts.generate"),
+    ugc: can(viewer, "ugc.use"),
+    studio: can(viewer, "studio.use"),
+    generateImage: can(viewer, "studio.generate"),
+    brochures: can(viewer, "brochures.use"),
+    vcards: can(viewer, "vcards.use"),
+    library: can(viewer, "library.view"),
+    brand: can(viewer, "brand.view"),
+    analytics: can(viewer, "analytics.view"),
+    audit: can(viewer, "activity.view"),
+    settings: can(viewer, "integrations.manage"),
   };
 
   const badges = await getNavBadges(flags);

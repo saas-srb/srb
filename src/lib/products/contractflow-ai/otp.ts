@@ -1,6 +1,6 @@
 import "server-only";
+import { can } from "@/lib/products/contractflow-ai/viewer";
 import { createHash, randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
-import { lpmsCan } from "@/lib/lpms-roles";
 import { activeEmailProvider, sendEmail } from "@/lib/platform/email";
 import { getSavedConnection } from "@/lib/platform/connections/store";
 import { resolveConnection } from "@/lib/platform/connections/resolve";
@@ -124,7 +124,7 @@ export async function getDlt(): Promise<DltDetails | null> {
 
 /** A manager records that DLT registration is complete. All four fields are required; the template must carry {code}. */
 export async function recordDlt(v: LpmsViewer, input: { entityId: string; senderId: string; templateId: string; templateText: string }, now = new Date()): Promise<DltDetails> {
-  if (!lpmsCan(ctx(v), "MANAGE_POLICIES")) throw new OtpError("Only a manager may record the DLT registration.", "forbidden");
+  if (!can(v, "policies.manage")) throw new OtpError("Only a manager may record the DLT registration.", "forbidden");
   const entityId = String(input.entityId ?? "").trim();
   const senderId = String(input.senderId ?? "").trim();
   const templateId = String(input.templateId ?? "").trim();
@@ -138,7 +138,7 @@ export async function recordDlt(v: LpmsViewer, input: { entityId: string; sender
 }
 
 export async function clearDlt(v: LpmsViewer): Promise<void> {
-  if (!lpmsCan(ctx(v), "MANAGE_POLICIES")) throw new OtpError("Only a manager may change the DLT registration.", "forbidden");
+  if (!can(v, "policies.manage")) throw new OtpError("Only a manager may change the DLT registration.", "forbidden");
   await (await cfSettings()).updateOne({ _id: "main" }, { $set: { dlt: null } }, { upsert: true });
 }
 

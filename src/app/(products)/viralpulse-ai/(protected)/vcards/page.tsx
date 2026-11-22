@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/viralpulse-ai/gate";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Plus, CreditCard, Eye, Globe, TrendingUp, FileEdit, Copy, Trash2, ExternalLink } from "lucide-react";
@@ -77,6 +78,8 @@ function CardItem({ card }: { card: VCardListItem }) {
 export default async function VCardsPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/viralpulse-ai/login");
+  const locked = lockedUnless(viewer, "vcards.use", "Digital cards");
+  if (locked) return locked;
 
   const res = await listVCardsAction({ status: "all" });
   const cards: VCardListItem[] = res.ok ? (res as unknown as { ok: true } & Record<string, VCardListItem[]>)[Object.keys(res).find((k) => k !== "ok") || ""] || [] : [];

@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/sitecraft-ai/gate";
 import { notFound, redirect } from "next/navigation";
 import { getViewer, can } from "@/lib/products/sitecraft-ai/viewer";
 import { COLLECTIONS } from "@/lib/products/sitecraft-ai/collections/registry";
@@ -13,6 +14,8 @@ export default async function CmsCollectionPage({ params }: { params: Promise<{ 
   const { key } = await params;
   const viewer = await getViewer();
   if (!viewer) redirect("/sitecraft-ai/login");
+  const locked = lockedUnless(viewer, "collections.view", "Collections");
+  if (locked) return locked;
   if (!(key in COLLECTIONS)) notFound();
   const k = key as CollectionKey;
   const def = COLLECTIONS[k];
@@ -25,7 +28,7 @@ export default async function CmsCollectionPage({ params }: { params: Promise<{ 
         icon={COLLECTION_META[k].icon}
         title={def.label}
         description={COLLECTION_META[k].description}
-        actions={can(viewer, "COLLECTIONS_EDIT") ? <NewRecordDialog collection={key} singular={def.singular} /> : undefined}
+        actions={can(viewer, "collections.edit") ? <NewRecordDialog collection={key} singular={def.singular} /> : undefined}
       />
       <RecordsTable
         collection={key}

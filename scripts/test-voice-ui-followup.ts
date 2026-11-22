@@ -1,3 +1,4 @@
+import { legacyToAccess } from "../src/lib/access/adapter";
 import assert from "node:assert/strict";
 
 // Throwaway database only. Nothing here reaches ElevenLabs or Twilio: the recording is served from an injected client.
@@ -82,7 +83,7 @@ const t = async (name: string, fn: () => Promise<void> | void) => { await fn(); 
   });
 
   // ── Data side ──────────────────────────────────────────────────────────
-  const viewer = (userId: string, roles: string[]): Viewer => ({ userId, email: `${userId}@x.test`, roles, ctx: { roles, permissionOverrides: undefined } as Viewer["ctx"], seesAll: false });
+  const viewer = (userId: string, roles: string[]): Viewer => ({ userId, email: `${userId}@x.test`, roles, ctx: { roles, permissionOverrides: undefined } as Viewer["ctx"], subject: legacyToAccess({ roles, permissionOverrides: null }), seesAll: false });
   const admin = viewer("admin", ["aibots_admin"]);
   const manager = viewer("mgr", ["aibots_manager"]); // VIEW_CHATS, no VOICE_CALL_MANAGE
   const alice = viewer("alice", ["aibots_user"]);

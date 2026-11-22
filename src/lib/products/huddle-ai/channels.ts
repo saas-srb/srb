@@ -3,7 +3,7 @@ import { getDb } from "@/lib/mongodb";
 import { newId, createStamp, updateStamp, notDeleted, slugify, type AuditFields } from "@/lib/products/huddle-ai/db";
 import { emit } from "@/lib/products/huddle-ai/events";
 import { getChatUsers, type DirectoryUser } from "@/lib/products/huddle-ai/users";
-import { isChatAdmin, type ChatRole } from "@/lib/messenger-roles";
+import { canModerateAll, type ChatHolder } from "@/lib/messenger-access";
 
 /**
  * `chat_channels` + `channel_members`. Three kinds share one model:
@@ -128,18 +128,18 @@ export async function isMember(channelId: string, userId: string): Promise<boole
 /** Can this user read the channel at all? */
 export async function canAccessChannel(
   channel: Channel,
-  user: { id: string; roles: ChatRole[]; permissionOverrides?: Record<string, boolean> }
+  user: { id: string } & ChatHolder
 ): Promise<boolean> {
   if (await isMember(channel._id, user.id)) return true;
   if (channel.kind === "team" && channel.visibility === "public") return true;
-  if (isChatAdmin(user)) return true;
+  if (canModerateAll(user)) return true;
   return false;
 }
 
 /** Can this user post in the channel? (Archived channels are read-only.) */
 export async function canPostInChannel(
   channel: Channel,
-  user: { id: string; roles: ChatRole[]; permissionOverrides?: Record<string, boolean> }
+  user: { id: string } & ChatHolder
 ): Promise<boolean> {
   if (channel.archivedAt) return false;
   if (await isMember(channel._id, user.id)) return true;

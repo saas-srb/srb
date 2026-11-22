@@ -1,3 +1,4 @@
+import { legacyToAccess } from "../src/lib/access/adapter";
 import assert from "node:assert/strict";
 
 // Throwaway database only. Twilio and ElevenLabs are one fake `fetch`: no network, no real call is ever placed.
@@ -27,7 +28,7 @@ const hex = (prefix: string, n: number) => prefix + n.toString(16).padStart(32, 
   assert.ok(/zz_throwaway_/.test(pdb.databaseName), "refusing to run on a non-throwaway database");
   await pdb.dropDatabase();
 
-  const viewer = (userId: string, roles: string[]): Viewer => ({ userId, email: `${userId}@x.test`, roles, ctx: { roles, permissionOverrides: undefined } as Viewer["ctx"], seesAll: false });
+  const viewer = (userId: string, roles: string[]): Viewer => ({ userId, email: `${userId}@x.test`, roles, ctx: { roles, permissionOverrides: undefined } as Viewer["ctx"], subject: legacyToAccess({ roles, permissionOverrides: null }), seesAll: false });
   const admin = viewer("admin", ["aibots_admin"]);
   const mgr = viewer("mgr", ["aibots_manager"]); // has VOICE_CALL_TAKEOVER
   const alice = viewer("alice", ["aibots_user"]); // placed the call

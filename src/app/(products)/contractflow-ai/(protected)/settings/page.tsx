@@ -1,3 +1,5 @@
+import { lockedUnless } from "@/lib/products/contractflow-ai/gate";
+import { can } from "@/lib/products/contractflow-ai/viewer";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { redirect } from "next/navigation";
 import { Settings, Layers, LayoutTemplate, Tags, GitBranch } from "lucide-react";
@@ -5,7 +7,6 @@ import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import { CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { getViewer } from "@/lib/products/contractflow-ai/viewer";
-import { lpmsCan } from "@/lib/lpms-roles";
 import { listMakerTypes } from "@/lib/products/contractflow-ai/makers";
 import { listTemplates } from "@/lib/products/contractflow-ai/templates";
 import { listCategories } from "@/lib/products/contractflow-ai/categories";
@@ -16,10 +17,11 @@ import { buttonVariants } from "@/components/ui/button";
 export default async function LpmsSettingsPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/contractflow-ai/login");
+  const locked = lockedUnless(viewer, "policies.manage", "Settings");
+  if (locked) return locked;
 
   const ctx = { roles: viewer.roles, permissionOverrides: viewer.overrides };
-  if (!lpmsCan(ctx, "MANAGE_POLICIES")) redirect("/contractflow-ai");
-
+  
   const [makerTypes, templates, categories, workflows] = await Promise.all([
     listMakerTypes(viewer),
     listTemplates({}, viewer),

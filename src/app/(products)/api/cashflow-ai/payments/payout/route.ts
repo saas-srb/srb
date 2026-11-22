@@ -1,7 +1,7 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextResponse } from "next/server";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canApproveTransactions } from "@/lib/fms-roles";
+import { canApproveTransactions } from "@/lib/fms-access";
 import { startPayout, type FmsPayout, type PayoutPurpose } from "@/lib/products/cashflow-ai/payments/payouts";
 import { limitOr429 } from "@/lib/security/rate-limit";
 import { paymentGate } from "@/lib/products/cashflow-ai/payment-guard";

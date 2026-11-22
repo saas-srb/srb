@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/viralpulse-ai/gate";
 import { notFound, redirect } from "next/navigation";
 import { PageHeader } from "@/components/products/viralpulse-ai/SmmsUi";
 import UgcProjectDetail from "@/components/products/viralpulse-ai/ugc/UgcProjectDetail";
@@ -10,7 +11,9 @@ export default async function UgcProjectPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const viewer = await getViewer();
   if (!viewer) redirect("/viralpulse-ai/login");
-  if (!can(viewer, "GENERATE_AI_CONTENT")) redirect("/viralpulse-ai");
+  const locked = lockedUnless(viewer, "ugc.use", "UGC videos");
+  if (locked) return locked;
+  if (!can(viewer, "ugc.use")) redirect("/viralpulse-ai");
   const [r, ov, conn] = await Promise.all([api.getProject(id), api.overview(), api.connections()]);
   if (!r.ok) notFound();
   if (!ov.ok || !conn.ok) redirect("/viralpulse-ai/ugc");
@@ -22,11 +25,11 @@ export default async function UgcProjectPage({ params }: { params: Promise<{ id:
         initial={p}
         settings={ov.overview.settings}
         connections={conn.connections}
-        canGenerate={can(viewer, "GENERATE_AI_CONTENT")}
-        canApprove={can(viewer, "PUBLISH_CONTENT")}
-        canIntegrations={can(viewer, "MANAGE_INTEGRATIONS")}
-        canPost={can(viewer, "MANAGE_POSTS")}
-        canAds={can(viewer, "CREATE_ADS") && can(viewer, "CREATE_CAMPAIGNS")}
+        canGenerate={can(viewer, "ugc.use")}
+        canApprove={can(viewer, "posts.publish")}
+        canIntegrations={can(viewer, "ugc.settings")}
+        canPost={can(viewer, "posts.manage")}
+        canAds={can(viewer, "ads.create") && can(viewer, "campaigns.create")}
       />
     </div>
   );

@@ -11,7 +11,7 @@ async function handleGET(_req: NextRequest, { params }: Context) {
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   // The Create tab that shows these pictures needs both; so does this route.
-  if (!can(viewer, "MANAGE_MEDIA") || !can(viewer, "GENERATE_AI_CONTENT")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!can(viewer, "studio.use") || !can(viewer, "studio.generate")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { projectId, variantId } = await params;
   const project = await getProject(projectId);
   const variant = project?.variants.find((v) => v.id === variantId);

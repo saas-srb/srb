@@ -14,7 +14,7 @@ import { getChatUser } from "@/lib/products/huddle-ai/users";
 import { listSharedFilesForScope } from "@/lib/products/huddle-ai/attachments";
 import { getPresence } from "@/lib/products/huddle-ai/presence";
 import { scopeKey } from "@/lib/products/huddle-ai/event-key";
-import { isChatAdmin } from "@/lib/messenger-roles";
+import { canModerateAll } from "@/lib/messenger-access";
 import ChatView from "@/components/products/huddle-ai/ChatView";
 import ChannelHeader from "@/components/products/huddle-ai/ChannelHeader";
 import ChannelWorkspace from "@/components/products/huddle-ai/ChannelWorkspace";
@@ -55,7 +55,7 @@ export default async function ChannelScreen({
   const presence = await getPresence(members.map((m) => m.userId));
 
   const canPost = await canPostInChannel(channel, user);
-  const isModerator = isChatAdmin(user) || membership?.role === "owner" || membership?.role === "admin";
+  const isModerator = canModerateAll(user) || membership?.role === "owner" || membership?.role === "admin";
 
   const memberLite = [
     { _id: user.id, displayName: me?.displayName ?? user.displayName },

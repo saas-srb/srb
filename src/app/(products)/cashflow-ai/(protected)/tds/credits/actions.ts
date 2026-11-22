@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance, canViewFinancialStatements } from "@/lib/fms-roles";
+import { canManageCompliance, canViewFinancialStatements } from "@/lib/fms-access";
 import { isFinancialYear } from "@/lib/products/cashflow-ai/tds/core";
 import { MAX_FILE_BYTES, templateCsv } from "@/lib/products/cashflow-ai/tds/credits-core";
 import { saveTdsCreditsUpload } from "@/lib/products/cashflow-ai/tds/credits-store";

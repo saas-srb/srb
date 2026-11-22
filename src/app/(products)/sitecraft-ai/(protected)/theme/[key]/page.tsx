@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/sitecraft-ai/gate";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { Palette, Eye, Paintbrush } from "lucide-react";
@@ -14,6 +15,8 @@ export default async function CmsThemeEditPage({ params }: { params: Promise<{ k
   const { key } = await params;
   const viewer = await getViewer();
   if (!viewer) redirect("/sitecraft-ai/login");
+  const locked = lockedUnless(viewer, "theme.view", "Theme");
+  if (locked) return locked;
 
   const [doc, activeKey] = await Promise.all([getTheme(key).catch(() => null), getActiveThemeKey()]);
   if (!doc) notFound();
@@ -33,13 +36,13 @@ export default async function CmsThemeEditPage({ params }: { params: Promise<{ k
           </>
         }
       />
-      <ThemeComponentsEditor themeKey={doc._id} initial={normalizeSelections(doc.components)} isActive={activeKey === doc._id} canEdit={can(viewer, "THEME_PUBLISH")} />
+      <ThemeComponentsEditor themeKey={doc._id} initial={normalizeSelections(doc.components)} isActive={activeKey === doc._id} canEdit={can(viewer, "theme.publish")} />
       <ThemeEditor
         themeKey={doc._id}
         draftTokens={doc.draftTokens}
         publishedTokens={doc.tokens}
-        canEdit={can(viewer, "THEME_UPDATE")}
-        canPublish={can(viewer, "THEME_PUBLISH")}
+        canEdit={can(viewer, "theme.edit")}
+        canPublish={can(viewer, "theme.publish")}
         history={[...(doc.history ?? [])].reverse().map((h, i) => ({
           version: h.version,
           publishedAt: new Date(h.publishedAt).toISOString(),

@@ -15,13 +15,13 @@ type Result<T extends object = object> = ({ ok: true } & T) | { ok: false; error
 async function guard() {
   const v = await requireViewer().catch(() => null);
   if (!v) return { v: null, error: SESSION_EXPIRED } as const;
-  if (!can(v, "FOOTER_MANAGE")) return { v: null, error: NO_PERMISSION } as const;
+  if (!can(v, "footer.manage")) return { v: null, error: NO_PERMISSION } as const;
   return { v, error: null } as const;
 }
 
 export async function listFooterAction(): Promise<{ columns: CmsFooterColumnDoc[]; links: CmsFooterLinkDoc[] }> {
   const v = await requireViewer().catch(() => null);
-  if (!v || !can(v, "VIEW")) return { columns: [], links: [] };
+  if (!v || !can(v, "footer.view")) return { columns: [], links: [] };
   const [columns, links] = await Promise.all([listFooterColumns(), listFooterLinks()]);
   return { columns, links };
 }

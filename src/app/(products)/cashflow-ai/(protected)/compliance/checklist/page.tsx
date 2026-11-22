@@ -4,7 +4,7 @@ import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import { CardContent } from "@/components/ui/card";
 import ChecklistItemRow from "@/components/products/cashflow-ai/compliance/ChecklistItemRow";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance } from "@/lib/fms-roles";
+import { canManageCompliance } from "@/lib/fms-access";
 import { COMPLIANCE_SECTIONS, OWNER_LABELS, computeProgress, itemKey, type ItemStatus } from "@/lib/products/cashflow-ai/compliance/catalog";
 import { listItemStates } from "@/lib/products/cashflow-ai/compliance/tracker";
 import { gatherFacts } from "@/lib/products/cashflow-ai/compliance/facts";

@@ -38,6 +38,7 @@ export default async function ProtectedHrmsLayout({ children }: { children: Reac
             email={user.email}
             roles={user.roles}
             permissionOverrides={user.permissionOverrides}
+            subject={user.subject}
             employeeId={user.employeeId}
             createdAt={user.createdAt.toISOString()}
             lastLoginAt={user.lastLoginAt ? user.lastLoginAt.toISOString() : null}
@@ -49,6 +50,7 @@ export default async function ProtectedHrmsLayout({ children }: { children: Reac
                 roles={user.roles}
                 allRoles={user.allRoles}
                 permissionOverrides={user.permissionOverrides}
+                subject={user.subject}
                 employeeId={user.employeeId}
                 notifications={notifications.items.map((n) => ({
                   _id: n._id,

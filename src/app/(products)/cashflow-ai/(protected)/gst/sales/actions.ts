@@ -1,7 +1,7 @@
 "use server";
 
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canViewFinancialStatements } from "@/lib/fms-roles";
+import { canViewFinancialStatements } from "@/lib/fms-access";
 import { isMonth } from "@/lib/products/cashflow-ai/gst/core";
 import { loadOutwardRows } from "@/lib/products/cashflow-ai/gst/store";
 import { salesCsv } from "@/lib/products/cashflow-ai/gst/csv";

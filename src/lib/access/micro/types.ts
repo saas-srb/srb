@@ -19,13 +19,13 @@ export interface MicroFeature {
   description: string;
   /** "read" = only opens/views/uses; "write" = changes, creates, deletes, reveals or sends. */
   level: Level;
-  /** Scope variant: "all" = everyone's / every record (the person without it sees only what is assigned to them or their own). */
-  scope?: "all";
+  /** Scope variant: "all" = everyone's / every record; "team" = the records of the person's reporting line (a manager's team). Without either the person sees only what is assigned to them or their own. */
+  scope?: "all" | "team";
   legacy: string[];
   /** Part of the product's visible baseline: everybody given the product gets it (shown in Preview), so a person with the product but no other feature sees an empty but working product. */
   baseline?: boolean;
 }
 
 /** What a mapped route, action or UI part is guarded by: micro feature keys (any one is enough unless `all` is true), or a reason it needs none. */
-/** `via`: text that proves the check is made through a shared helper (for example `typeKey(`) when the key is built from the record type. */
-export type Guard = { any: string[]; via?: string } | { all: string[]; via?: string } | { open: "self-service" | "session" | "public" | "redirect"; reason: string };
+/** `viaLayout`: the check is made by the nearest layout above the page (every page below it is covered). `via`: text that proves the check is made through a shared helper (for example `typeKey(`) when the key is built from the record type. */
+export type Guard = { any: string[]; via?: string; viaLayout?: boolean } | { all: string[]; via?: string; viaLayout?: boolean } | { open: "self-service" | "session" | "public" | "redirect"; reason: string };

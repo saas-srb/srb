@@ -94,15 +94,16 @@ export async function discover(): Promise<{ entries: Entry[]; roles: Record<stri
       }
     }
     for (const [name, fn] of Object.entries(mod)) {
-      if (typeof fn !== "function" || !/^(can|is|has)[A-Z]/.test(name) || /Role$|Roles$/.test(name) || name === "isLearner") continue;
+      if (typeof fn !== "function" || !/^(can|is|has)[A-Z]/.test(name) || (/Role$|Roles$/.test(name) && !/^has(Any\w*Role|\w*StaffRole)$/.test(name)) || name === "isLearner") continue;
       if (name === canName) continue;
       const info = d.get(name);
       const at = src.indexOf(`function ${name}`);
-      const arrayStyle = /^has\w*(Access|StaffRole)$|^is\w*(Only|Tier)$|^isSuperAdmin$/.test(name) && !/\(user/.test(src.slice(at, at + 80));
+      const arrayStyle = /^has\w*(Access|StaffRole)$|^hasAny\w*Role$|^is\w*(Only|Tier)$|^isSuperAdmin$/.test(name) && !/\(user/.test(src.slice(at, at + 80));
       if (arrayStyle) {
         entries.push({ key: `${base}.${name}`, product: prod.product, source: base, kind: "tier", fn: name, perm: null, overrideKey: null, level: "read", label: humanize(name), description: info?.doc || "Who can open this area" });
         continue;
       }
+      if (/StaffRole$|^hasAny\w*Role$/.test(name)) continue; // only the array-style tier gates above are catalogue entries (hasChatStaffRole is a capability of its own and is not offered)
       if ((fn as { length: number }).length !== 1) continue;
       entries.push({ key: `${base}.${name}`, product: prod.product, source: base, kind: "pred", fn: name, perm: null, overrideKey: info?.key ?? null, level: level(name, info?.doc ?? ""), label: humanize(name), description: info?.doc ?? "" });
     }

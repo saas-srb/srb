@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireLms } from "@/lib/lms-auth";
-import type { LmsPermission } from "@/lib/lms-roles";
 import {
   advanceLeadStage,
   assignLeadOwner,
@@ -33,7 +32,7 @@ import {
 import { notifyPortalUser } from "@/lib/products/clientos/notifications";
 import { sharePortalDocument, deletePortalDocument } from "@/lib/products/clientos/documents";
 
-async function requireLmsUser(permission: LmsPermission) {
+async function requireLmsUser(permission: string) {
   const u = await requireLms(permission);
   if (!u) throw new Error("Forbidden");
   return u;
@@ -46,7 +45,7 @@ function touch(id: string) {
 }
 
 export async function advanceLeadStageAction(leadId: string, toStage: string): Promise<{ error?: string }> {
-  const user = await requireLmsUser("EDIT_LEADS");
+  const user = await requireLmsUser("leads.edit");
   const res = await advanceLeadStage(leadId, toStage, user.id);
   if (!res.ok) return { error: res.error };
   touch(leadId);
@@ -54,14 +53,14 @@ export async function advanceLeadStageAction(leadId: string, toStage: string): P
 }
 
 export async function assignLeadToMeAction(leadId: string, unassign: boolean): Promise<{ error?: string }> {
-  const user = await requireLmsUser("EDIT_LEADS");
+  const user = await requireLmsUser("leads.edit");
   await assignLeadOwner(leadId, unassign ? null : user.id, user.id);
   touch(leadId);
   return {};
 }
 
 export async function setLeadDoNotContactAction(leadId: string, doNotContact: boolean): Promise<{ error?: string }> {
-  const user = await requireLmsUser("EDIT_LEADS");
+  const user = await requireLmsUser("leads.edit");
   if (typeof leadId !== "string" || typeof doNotContact !== "boolean") return { error: "Invalid request." };
   if (!(await setLeadDoNotContact(leadId, doNotContact, user.id))) return { error: "Lead not found." };
   touch(leadId);
@@ -69,7 +68,7 @@ export async function setLeadDoNotContactAction(leadId: string, doNotContact: bo
 }
 
 export async function addLeadNoteAction(leadId: string, body: string): Promise<{ error?: string }> {
-  const user = await requireLmsUser("EDIT_LEADS");
+  const user = await requireLmsUser("leads.edit");
   if (!body.trim()) return { error: "Note is empty." };
   await postLeadMessage({ leadId, body, visibility: "internal", channel: "note", authorType: "staff", authorStaffId: user.id });
   touch(leadId);
@@ -82,7 +81,7 @@ export async function sendLeadMessageAction(
   channel: "message" | "document_request" | "interview_reminder",
   attachments?: LeadMessageAttachment[]
 ): Promise<{ error?: string }> {
-  const user = await requireLmsUser("MESSAGE_LEADS");
+  const user = await requireLmsUser("messages.send");
   if (!body.trim() && !attachments?.length) return { error: "Message is empty." };
   await postLeadMessage({ leadId, body, visibility: "portal", channel, authorType: "staff", authorStaffId: user.id, attachments });
   touch(leadId);
@@ -91,13 +90,13 @@ export async function sendLeadMessageAction(
 
 /** Staff opened the Communication Center — clears the "new portal reply" flag on the leads list. */
 export async function clearLeadUnreadAction(leadId: string): Promise<{ error?: string }> {
-  const user = await requireLmsUser("VIEW_LEADS");
+  const user = await requireLmsUser("leads.view");
   await clearLeadPortalUnread(leadId, user.id);
   return {};
 }
 
 export async function linkStudentAction(leadId: string, studentId: string): Promise<{ error?: string }> {
-  const user = await requireLmsUser("EDIT_LEADS");
+  const user = await requireLmsUser("leads.edit");
   const lead = await getLeadRecord(leadId);
   if (!lead) return { error: "Lead not found." };
   const student = await getStudent(studentId.trim());
@@ -117,7 +116,7 @@ export async function linkStudentAction(leadId: string, studentId: string): Prom
 }
 
 export async function linkClientAction(leadId: string, clientId: string, projectId: string): Promise<{ error?: string }> {
-  const user = await requireLmsUser("EDIT_LEADS");
+  const user = await requireLmsUser("leads.edit");
   const lead = await getLeadRecord(leadId);
   if (!lead) return { error: "Lead not found." };
   const client = await getClient(clientId.trim());
@@ -157,7 +156,7 @@ export async function addLeadInterviewAction(
     notes?: string;
   }
 ): Promise<{ error?: string }> {
-  const user = await requireLmsUser("EDIT_LEADS");
+  const user = await requireLmsUser("leads.edit");
   const lead = await getLeadRecord(leadId);
   if (!lead) return { error: "Lead not found." };
   if (lead.type !== "job_applicant") return { error: "Interviews are only for job applicant leads." };
@@ -203,7 +202,7 @@ export async function setLeadInterviewStatusAction(
   interviewId: string,
   status: InterviewStatus
 ): Promise<{ error?: string }> {
-  const user = await requireLmsUser("EDIT_LEADS");
+  const user = await requireLmsUser("leads.edit");
   await updateInterviewStatus(interviewId, status);
   await recordLeadEvent(leadId, {
     kind: "interview_updated",
@@ -217,20 +216,20 @@ export async function setLeadInterviewStatusAction(
 }
 
 export async function removeLeadInterviewAction(leadId: string, interviewId: string): Promise<{ error?: string }> {
-  await requireLmsUser("EDIT_LEADS");
+  await requireLmsUser("leads.edit");
   await deleteInterview(interviewId);
   touch(leadId);
   return {};
 }
 
 export async function listLeadInterviewsAction(leadId: string): Promise<SerializedInterview[]> {
-  await requireLmsUser("VIEW_LEADS");
+  await requireLmsUser("leads.view");
   const lead = await getLeadRecord(leadId);
   return listInterviewsForLead(leadId, lead?.applicationId ?? null);
 }
 
 export async function shareLeadDocumentAction(leadId: string, formData: FormData): Promise<{ error?: string }> {
-  const user = await requireLmsUser("EDIT_LEADS");
+  const user = await requireLmsUser("leads.edit");
   const lead = await getLeadRecord(leadId);
   if (!lead) return { error: "Lead not found." };
   const file = formData.get("file");
@@ -259,7 +258,7 @@ export async function shareLeadDocumentAction(leadId: string, formData: FormData
 }
 
 export async function deleteLeadDocumentAction(leadId: string, docId: string): Promise<{ error?: string }> {
-  await requireLmsUser("EDIT_LEADS");
+  await requireLmsUser("leads.edit");
   const lead = await getLeadRecord(leadId);
   if (!lead) return { error: "Lead not found." };
   await deletePortalDocument(docId, lead.externalUserId);
@@ -274,7 +273,7 @@ export async function createManualLeadAction(input: {
   type: string;
   message?: string;
 }): Promise<{ error?: string; leadId?: string }> {
-  const user = await requireLmsUser("CREATE_LEADS");
+  const user = await requireLmsUser("leads.create");
   const { name, email, phone, type } = input;
   if (!name.trim() || !email.trim() || !phone.trim()) return { error: "Name, email and phone are required." };
   if (!isPortalRole(type)) return { error: "Pick a valid lead type." };

@@ -5,7 +5,7 @@ import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CancelChallanButton, RecordChallanForm } from "@/components/products/cashflow-ai/tds/ChallanForms";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance } from "@/lib/fms-roles";
+import { canManageCompliance } from "@/lib/fms-access";
 import { formatMoney } from "@/lib/products/cashflow-ai/constants";
 import { istToday } from "@/lib/products/cashflow-ai/accrual/core";
 import { getAccrualSettings } from "@/lib/products/cashflow-ai/accrual/settings";

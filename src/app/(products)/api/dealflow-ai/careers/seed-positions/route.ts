@@ -16,7 +16,7 @@ import { getDb } from "@/lib/mongodb";
  * remaining resolvable for historical applications.
  */
 async function handlePOST() {
-  const lmsUser = await requireLms("MANAGE_CAREERS");
+  const lmsUser = await requireLms("careers.manage");
   if (!lmsUser) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

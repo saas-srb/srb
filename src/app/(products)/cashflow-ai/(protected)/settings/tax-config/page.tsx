@@ -9,7 +9,7 @@ import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import SimpleActionButton from "@/components/products/cashflow-ai/SimpleActionButton";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageTaxConfig } from "@/lib/fms-roles";
+import { canManageTaxConfig } from "@/lib/fms-access";
 import { getTaxConfig } from "@/lib/products/cashflow-ai/tax-config";
 import { addTaxRateAction, deleteTaxRateAction, toggleTaxRateAction } from "./actions";
 

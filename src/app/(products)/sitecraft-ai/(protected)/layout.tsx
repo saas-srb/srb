@@ -1,3 +1,4 @@
+import { growthAllowed } from "@/lib/products/sitecraft-ai/growth";
 import { twoStepGate } from "@/lib/security/two-step-gate";
 import { runCmsSweep } from "@/lib/notify/sweeps";
 import { panelUnread } from "@/lib/notify";
@@ -35,8 +36,23 @@ export default async function ProtectedCmsLayout({ children }: { children: React
 
   const [pages, maintenance, activeTheme, isOperator] = await Promise.all([listPages(), getMaintenanceMode(), getActiveThemeKey(), isPlatformOwnerContext()]);
   const flags: CmsNavFlags = {
-    settings: can(viewer, "SETTINGS_MANAGE"),
-    audit: can(viewer, "VIEW_AUDIT"),
+    settings: can(viewer, "settings.manage"),
+    audit: can(viewer, "activity.view"),
+    see: {
+      dashboard: can(viewer, "dashboard.view"),
+      pages: can(viewer, "pages.view"),
+      collections: can(viewer, "collections.view"),
+      media: can(viewer, "media.view"),
+      forms: can(viewer, "forms.view"),
+      aiwebsite: can(viewer, "aiwebsite.use"),
+      theme: can(viewer, "theme.view"),
+      navigation: can(viewer, "navigation.view"),
+      footer: can(viewer, "footer.view"),
+      identity: can(viewer, "identity.view"),
+      seo: can(viewer, "seo.view"),
+      offers: growthAllowed(viewer.subject, "offers"),
+      wallet: growthAllowed(viewer.subject, "wallet"),
+    },
     pendingPages: pages.filter((p) => p.hasUnpublishedChanges).length,
     activeTheme,
   };

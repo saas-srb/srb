@@ -47,7 +47,7 @@ export default async function CareersDashboardPage({
     granularity?: string;
   }>;
 }) {
-  await requireLmsPage("VIEW_CAREERS");
+  await requireLmsPage("careers.view");
   const sp = await searchParams;
 
   const status = sp.status && isValidCareerApplicationStatus(sp.status) ? sp.status : undefined;

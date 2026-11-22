@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/viralpulse-ai/gate";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Pencil } from "lucide-react";
@@ -17,7 +18,9 @@ export const metadata = { title: "Image project" };
 export default async function ImageProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/viralpulse-ai/login");
-  if (!can(viewer, "MANAGE_MEDIA")) redirect("/viralpulse-ai/image-studio");
+  const locked = lockedUnless(viewer, "studio.use", "Image studio");
+  if (locked) return locked;
+  if (!can(viewer, "studio.use")) redirect("/viralpulse-ai/image-studio");
   const { id } = await params;
   let project;
   try {

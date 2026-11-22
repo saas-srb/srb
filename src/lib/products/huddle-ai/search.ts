@@ -4,7 +4,7 @@ import { searchMessages } from "@/lib/products/huddle-ai/messages";
 import { getChannel } from "@/lib/products/huddle-ai/channels";
 import { resolveVisibleScopes } from "@/lib/products/huddle-ai/access";
 import { getDb } from "@/lib/mongodb";
-import { isChatAdmin, type ChatRole } from "@/lib/messenger-roles";
+import { canModerateAll, type ChatHolder } from "@/lib/messenger-access";
 
 /**
  * Global enterprise search. Every result is bounded to what the caller may
@@ -34,7 +34,7 @@ export interface GlobalSearchResults {
 
 export async function globalSearch(
   q: string,
-  user: { id: string; roles: ChatRole[]; permissionOverrides?: Record<string, boolean> },
+  user: { id: string } & ChatHolder,
   opts: { types?: SearchType[]; limit?: number } = {}
 ): Promise<GlobalSearchResults> {
   const term = q.trim();
@@ -54,7 +54,7 @@ export async function globalSearch(
     types.has("channels")
       ? (async () => {
           const rx = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-          const filter: Record<string, unknown> = isChatAdmin(user)
+          const filter: Record<string, unknown> = canModerateAll(user)
             ? { deletedAt: null, $or: [{ name: rx }, { slug: rx }, { description: rx }] }
             : { deletedAt: null, $or: [{ name: rx }, { slug: rx }, { description: rx }], $and: [{ $or: [{ _id: { $in: scopes.channelIds } }, { visibility: "public", kind: "team" }] }] };
           return db.collection<{ _id: string; slug: string; name: string; kind: string; description: string | null }>("chat_channels").find(filter).limit(limit).toArray();

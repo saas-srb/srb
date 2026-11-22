@@ -4,6 +4,15 @@ import { join, relative } from "node:path";
 import { MICRO, FINISHED_PRODUCTS, microOf, type Guard } from "../src/lib/access/micro";
 import { CYBERVAULT_COVERAGE, CYBERVAULT_EXTRA, CYBERVAULT_ROOTS } from "../src/lib/access/micro/coverage/cybervault";
 import { AGENTOS_COVERAGE, AGENTOS_EXTRA, AGENTOS_ROOTS } from "../src/lib/access/micro/coverage/agentos";
+import { EVALIQ_COVERAGE, EVALIQ_EXTRA, EVALIQ_ROOTS } from "../src/lib/access/micro/coverage/evaliq";
+import { VIRALPULSE_COVERAGE, VIRALPULSE_EXTRA, VIRALPULSE_ROOTS } from "../src/lib/access/micro/coverage/viralpulse";
+import { CONTRACTFLOW_COVERAGE, CONTRACTFLOW_EXTRA, CONTRACTFLOW_ROOTS } from "../src/lib/access/micro/coverage/contractflow";
+import { SITECRAFT_COVERAGE, SITECRAFT_EXTRA, SITECRAFT_ROOTS } from "../src/lib/access/micro/coverage/sitecraft";
+import { DEALFLOW_COVERAGE, DEALFLOW_EXTRA, DEALFLOW_ROOTS, DEALFLOW_LIBS } from "../src/lib/access/micro/coverage/dealflow";
+import { CASHFLOW_COVERAGE, CASHFLOW_EXTRA, CASHFLOW_ROOTS } from "../src/lib/access/micro/coverage/cashflow";
+import { HUDDLE_COVERAGE, HUDDLE_EXTRA, HUDDLE_ROOTS } from "../src/lib/access/micro/coverage/huddle";
+import { TALENTOS_COVERAGE, TALENTOS_EXTRA, TALENTOS_ROOTS } from "../src/lib/access/micro/coverage/talentos";
+import { STAGED } from "../src/lib/access/micro/staged";
 import { RANKMAX_COVERAGE, RANKMAX_EXTRA, RANKMAX_ROOTS } from "../src/lib/access/micro/coverage/rankmax";
 
 // The catalogue-wide coverage test: for every FINISHED product, every page route, route handler and server action is mapped to micro feature(s)
@@ -28,6 +37,77 @@ const PRODUCTS: Record<string, { roots: string[]; coverage: Record<string, Guard
     // sign-in entry gates; the AI file only uses the old function for the offer list (what the agent shows), never for reading or running
     legacyAllowed: ["src/lib/aibots-auth.ts", "src/components/products/agentos/AibotsProfileMenu.tsx", "src/lib/ai/agent/entities/aibots.ts"],
     legacyNames: /\b(aibotsCan|isAibotsManagerTier)\b/,
+  },
+  evaliq: {
+    roots: EVALIQ_ROOTS,
+    coverage: EVALIQ_COVERAGE,
+    extra: EVALIQ_EXTRA,
+    libDirs: ["src/lib/products/evaliq", "src/components/products/evaliq", "src/lib/ai/agent/entities/ots.ts"],
+    // sign-in entry gates; the AI file only uses the old function for the offer list (what the agent shows), never for reading or running
+    legacyAllowed: ["src/lib/ots-auth.ts", "src/components/products/evaliq/OtsProfileMenu.tsx", "src/lib/ai/agent/entities/ots.ts"],
+    legacyNames: /\b(otsCan|isOtsStaff)\b/,
+  },
+  "viralpulse-ai": {
+    roots: VIRALPULSE_ROOTS,
+    coverage: VIRALPULSE_COVERAGE,
+    extra: VIRALPULSE_EXTRA,
+    libDirs: ["src/lib/products/viralpulse-ai", "src/components/products/viralpulse-ai", "src/lib/ai/agent/entities/smms.ts"],
+    // sign-in entry gates; the AI file only uses the old function for the offer list (what the agent shows), never for reading or running
+    legacyAllowed: ["src/lib/smms-auth.ts", "src/components/products/viralpulse-ai/SmmsProfileMenu.tsx", "src/lib/ai/agent/entities/smms.ts"],
+    legacyNames: /\b(smmsCan)\b/,
+  },
+  "contractflow-ai": {
+    roots: CONTRACTFLOW_ROOTS,
+    coverage: CONTRACTFLOW_COVERAGE,
+    extra: CONTRACTFLOW_EXTRA,
+    libDirs: ["src/lib/products/contractflow-ai", "src/components/products/contractflow-ai", "src/lib/ai/agent/entities/lpms.ts"],
+    // sign-in entry gates; the AI file only uses the old function for the offer list (what the agent shows), never for reading or running
+    legacyAllowed: ["src/lib/lpms-auth.ts", "src/components/products/contractflow-ai/LpmsProfileMenu.tsx", "src/lib/ai/agent/entities/lpms.ts"],
+    legacyNames: /\b(lpmsCan|isLpmsManagerTier|isLpmsAdmin)\b/,
+  },
+  "sitecraft-ai": {
+    roots: SITECRAFT_ROOTS,
+    coverage: SITECRAFT_COVERAGE,
+    extra: SITECRAFT_EXTRA,
+    libDirs: ["src/lib/products/sitecraft-ai", "src/components/products/sitecraft-ai"],
+    legacyAllowed: ["src/lib/cms-auth.ts", "src/components/products/sitecraft-ai/CmsProfileMenu.tsx"],
+    legacyNames: /\b(cmsCan)\b/,
+  },
+  "dealflow-ai": {
+    roots: DEALFLOW_ROOTS,
+    coverage: DEALFLOW_COVERAGE,
+    extra: DEALFLOW_EXTRA,
+    libDirs: DEALFLOW_LIBS,
+    // entry gate (hasLmsAccess) only; the old per-permission function is no longer used by the product
+    legacyAllowed: ["src/lib/lms-auth.ts", "src/components/products/dealflow-ai/LmsProfileMenu.tsx"],
+    legacyNames: /\b(lmsCan\([^,]+, ?"[A-Z_]+"|isLmsAdmin|canManageLeads|canManageCampaigns|canViewLmsAnalytics)/,
+  },
+  "cashflow-ai": {
+    roots: CASHFLOW_ROOTS,
+    coverage: CASHFLOW_COVERAGE,
+    extra: CASHFLOW_EXTRA,
+    libDirs: ["src/lib/products/cashflow-ai", "src/components/products/cashflow-ai", "src/lib/fms-access.ts", "src/lib/ai/agent/entities/fms.ts"],
+    // sign-in entry gates only; the old per-capability functions are no longer called by the product
+    legacyAllowed: ["src/lib/fms-auth.ts", "src/components/products/cashflow-ai/FmsProfileMenu.tsx"],
+    legacyNames: /@\/lib\/fms-roles"[^\n]*\b(can[A-Z]\w+|isFmsAdmin)\b|import \{[^}]*\b(can[A-Z]\w+|isFmsAdmin)\b[^}]*\} from "@\/lib\/fms-roles"/,
+  },
+  "huddle-ai": {
+    roots: HUDDLE_ROOTS,
+    coverage: HUDDLE_COVERAGE,
+    extra: HUDDLE_EXTRA,
+    libDirs: ["src/lib/products/huddle-ai", "src/components/products/huddle-ai", "src/lib/messenger-access.ts", "src/lib/ai/agent/entities/messenger.ts"],
+    // sign-in entry gate and the role screens; the old capability functions are no longer called by the product
+    legacyAllowed: ["src/lib/messenger-auth.ts", "src/components/products/huddle-ai/MessengerProfileMenu.tsx", "src/lib/products/huddle-ai/conversations.ts"],
+    legacyNames: /import \{[^}]*\b(isChatAdmin|canCreateTeamChannel|canPostAnnouncements|canViewWorkspaceAnalytics|canViewAuditLog|hasChatStaffRole)\b[^}]*\} from "@\/lib\/messenger-roles"/,
+  },
+  talentos: {
+    roots: TALENTOS_ROOTS,
+    coverage: TALENTOS_COVERAGE,
+    extra: TALENTOS_EXTRA,
+    // staged: only the converted modules' folders are enforced so far (see micro/staged.ts); the product-wide helpers are listed once
+    libDirs: ["src/lib/talentos-access.ts", "src/lib/products/talentos/scope.ts", "src/lib/products/talentos/page-guard.tsx", "src/components/products/talentos/MyLeavePanel.tsx"],
+    legacyAllowed: [],
+    legacyNames: /import \{[^}]*\b(can[A-Z]\w+|hasStaffRole|isEmployeeOnly)\b[^}]*\} from "@\/lib\/hrms-roles"/,
   },
   "rankmax-ai": {
     roots: RANKMAX_ROOTS,
@@ -84,7 +164,7 @@ for (const [product, cfg] of Object.entries(PRODUCTS)) {
     assert.deepEqual(unmapped, [], `unmapped in ${product}: ${unmapped.join(", ")}`);
     const stale = Object.keys(cfg.coverage).filter((id) => !ids.has(id));
     assert.deepEqual(stale, [], `mapped but missing in ${product}: ${stale.join(", ")}`);
-    assert.ok(found.length >= 15, "the enumeration found the product");
+    assert.ok(found.length >= (STAGED[product] ? 5 : 15), "the enumeration found the product");
   });
   T(`${product}: every key in the map is a real micro feature, and the code of each mapped item mentions its guard`, () => {
     for (const it of found) {
@@ -92,7 +172,8 @@ for (const [product, cfg] of Object.entries(PRODUCTS)) {
       if ("open" in g) { assert.ok(g.reason.length > 10, `${it.id} needs a reason`); continue; }
       const keys = "any" in g ? g.any : g.all;
       for (const key of keys) assert.ok(shortKeys.has(key), `${it.id} maps to unknown feature ${key}`);
-      const mentions = keys.some((key) => it.text.includes(`"${key}"`)) || (g.via ? it.text.includes(g.via) : false) || /requireWorkspaceAction|lockedUnless\(/.test(it.text) && keys.some((key) => it.text.includes(key));
+      const layoutText = g.viaLayout ? (() => { let d = it.file.split("/").slice(0, -1); while (d.length > 2) { try { return read([...d, "layout.tsx"].join("/")); } catch { d = d.slice(0, -1); } } return ""; })() : "";
+      const mentions = (g.viaLayout && (g.via ? layoutText.includes(g.via) : keys.some((key) => layoutText.includes(`"${key}"`)))) || keys.some((key) => it.text.includes(`"${key}"`)) || (g.via ? it.text.includes(g.via) : false) || /requireWorkspaceAction|lockedUnless\(/.test(it.text) && keys.some((key) => it.text.includes(key));
       assert.ok(mentions, `${it.id} does not enforce ${keys.join(" / ")}`);
     }
   });
@@ -100,8 +181,11 @@ for (const [product, cfg] of Object.entries(PRODUCTS)) {
     const mapped = new Set(Object.values(cfg.coverage).flatMap((g) => ("open" in g ? [] : "any" in g ? g.any : g.all)));
     const code = [...cfg.roots, ...cfg.libDirs].flatMap((d) => (statSync(d).isDirectory() ? walk(d) : [d])).map(read).join("\n");
     const viaType = Boolean(cfg.typed) && /typeKey\(/.test(code);
+    const pendingModules = new Set(STAGED[product]?.pending ?? []);
+    const moduleOf = new Map(microOf(product).map((m) => [m.key.slice(product.length + 1), m.module]));
     for (const key of shortKeys) {
       if (mapped.has(key)) continue;
+      if (pendingModules.has(moduleOf.get(key) ?? "")) continue; // its module is not converted yet (staged); the ledger lists it
       assert.ok(key in cfg.extra, `${key} guards nothing mapped: say where it is enforced`);
       const [mod, what] = key.split(".");
       const literal = code.includes(`"${key}"`);
@@ -112,14 +196,14 @@ for (const [product, cfg] of Object.entries(PRODUCTS)) {
   });
   T(`${product}: every literal key passed to the checks exists, so a typo can never silently deny or allow`, () => {
     const code = [...cfg.roots, ...cfg.libDirs].flatMap((d) => (statSync(d).isDirectory() ? walk(d) : [d])).filter((f) => /\.tsx?$/.test(f)).map((f) => ({ f, t: read(f) }));
-    const pats = [/\bcan\(\s*[\w.]+\s*,\s*"([a-z.]+)"/g, /lockedUnless\(\s*\w+\s*,\s*"([a-z.]+)"/g, /\brun\(\s*(?:id \? )?"([a-z.]+)"/g, /\bcan\("([a-z.]+)"\)/g, /featureScope\("([a-z.]+)"\)/g, /typeKey\(\w+, "(view|create|edit|delete)"\)/g];
+    const pats = [/\bhrCan\(\s*[\w.{}]+\s*,\s*"([a-z.]+)"/g, /hrPage\("([a-z.]+)"/g, /requireHrAct\([^,]+,\s*"\w+",\s*"([a-z.]+)"/g, /\bhrCan\(\{ subject \}, "([a-z.]+)"/g, /(?:requireChatPage|requireSessionFor|requireChat)\("([a-z.]+)"/g, /\bchatCan\(\s*[\w.{}: ]+\s*,\s*"([a-z.]+)"/g, /\bF\("([a-z.]+)"/g, /\bfmsCan\(\s*\w+\s*,\s*"([a-z.]+)"/g, /(?:requireLms\w*|useLmsCan|isAuthorizedLmsRequest)\((?:req, )?"([a-z.]+)"/g, /\blmsCan\(\s*[\w.]+\s*,\s*"([a-z.]+)"/g, /\bcan\(\s*[\w.]+\s*,\s*"([a-z.]+)"/g, /lockedUnless\(\s*\w+\s*,\s*"([a-z.]+)"/g, /\brun\(\s*(?:id \? )?"([a-z]+\.[a-z.]+)"/g, /\bcan\("([a-z.]+)"\)/g, /featureScope\("([a-z.]+)"\)/g, /typeKey\(\w+, "(view|create|edit|delete)"\)/g];
     let n = 0;
     for (const { f, t } of code) for (const re of pats) for (const m of t.matchAll(re)) {
       n++;
       if (/^(view|create|edit|delete)$/.test(m[1])) continue;
       assert.ok(shortKeys.has(m[1]), `${f} uses unknown key "${m[1]}"`);
     }
-    assert.ok(n > 15, `found ${n} checks`);
+    assert.ok(n > (STAGED[product] ? 5 : 15), `found ${n} checks`);
     // `run(id ? "a" : "b"` has a second key
     for (const { f, t } of code) for (const m of t.matchAll(/run\(id \? "[a-z.]+" : "([a-z.]+)"/g)) assert.ok(shortKeys.has(m[1]), `${f} ${m[1]}`);
   });
@@ -128,7 +212,7 @@ for (const [product, cfg] of Object.entries(PRODUCTS)) {
     const bad = files.filter((f) => !cfg.legacyAllowed.includes(f) && cfg.legacyNames.test(read(f)));
     assert.deepEqual(bad, []);
     // the one allowed file that still names the old permission function only offers tools: the server re-checks through the micro features
-    assert.ok(!cfg.legacyNames.test(read(`src/lib/products/${product}/viewer.ts`)));
+    try { assert.ok(!cfg.legacyNames.test(read(`src/lib/products/${product}/viewer.ts`))); } catch (e) { if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e; }
   });
 }
 

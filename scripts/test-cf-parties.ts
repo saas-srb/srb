@@ -1,3 +1,4 @@
+import { legacyToAccess } from "../src/lib/access/adapter";
 import assert from "node:assert/strict";
 
 // Party model and adapters (B9). Throwaway database only: MONGODB_URI=mongodb://127.0.0.1:27017/zz_throwaway_<n>. No network.
@@ -15,7 +16,7 @@ const t = async (name: string, fn: () => Promise<void> | void) => { await fn(); 
   assert.ok(/zz_throwaway_/.test(pdb.databaseName), "refusing to run on " + pdb.databaseName);
   await pdb.dropDatabase();
 
-  const viewer = (roles: string[], companyId = "coA"): Viewer => ({ userId: "u_" + roles.join("_"), email: "x@test.invalid", roles, overrides: {}, lpmsRoles: [], employeeId: null, companyId });
+  const viewer = (roles: string[], companyId = "coA"): Viewer => ({ userId: "u_" + roles.join("_"), email: "x@test.invalid", roles, overrides: {}, subject: legacyToAccess({ roles, permissionOverrides: null }), lpmsRoles: [], employeeId: null, companyId });
   const HR = viewer(["hr", "lpms_viewer"]);
   const SALES = viewer(["pms_manager", "lpms_author"]);
   const PROC = viewer(["procurement_manager", "lpms_author"]);

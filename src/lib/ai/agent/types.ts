@@ -12,6 +12,8 @@ export interface AgentUser {
   studentId?: string | null;
   /** The Director's per-person capability overrides; every product's own `canX(user)` rules honour them. */
   permissionOverrides?: Record<string, boolean>;
+  /** The person's access (micro features of every product). Products finished on micro features decide from this, never from the role lists. */
+  subject?: import("@/lib/access/can").AccessSubject;
   /** Platform Console only: the platform permissions of this person (e.g. "companies.read"; "*" = Platform Owner). */
   platformPermissions?: string[];
   /** Products this company can't use right now (not in the plan, switched off): the agent offers nothing from them. */

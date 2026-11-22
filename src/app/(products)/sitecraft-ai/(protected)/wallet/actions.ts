@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireLmsOrCms } from "@/lib/lms-auth";
+import { requireGrowth, requireGrowthExport } from "@/lib/products/sitecraft-ai/growth";
 import { adjustWalletManually } from "@/lib/wallet/adjustments";
 import { freezeWallet, unfreezeWallet } from "@/lib/wallet/wallets";
 import { reverseTransaction, reverseReferralRewards, refundRedemption } from "@/lib/wallet/reversals";
@@ -9,7 +9,7 @@ import { runExpirySweep } from "@/lib/wallet/expiry";
 import { rewardReferral, rejectReferral } from "@/lib/wallet/referrals";
 
 async function requireLmsUser() {
-  const u = await requireLmsOrCms("MANAGE_WALLET");
+  const u = await requireGrowth("wallet");
   if (!u) throw new Error("Forbidden");
   return u;
 }

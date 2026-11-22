@@ -5,7 +5,7 @@ import { Megaphone, Plus, Clock, FileEdit } from "lucide-react";
 import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { getCurrentChatUser } from "@/lib/messenger-auth";
-import { canPostAnnouncements } from "@/lib/messenger-roles";
+import { canPostAnnouncements } from "@/lib/messenger-access";
 import { listForViewer, listForAuthor, PRIORITY_META } from "@/lib/products/huddle-ai/announcements";
 import { cn } from "@/lib/utils";
 

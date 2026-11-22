@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/viralpulse-ai/gate";
 import { notFound, redirect } from "next/navigation";
 import { Copy, Archive, ArchiveRestore, Trash2, Rocket, CalendarClock, CalendarX, XCircle } from "lucide-react";
 import { PageHeader, SectionCard, Notice } from "@/components/products/viralpulse-ai/SmmsUi";
@@ -27,14 +28,15 @@ export const maxDuration = 300;
 export default async function AdPage({ params }: { params: Promise<{ id: string; adId: string }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/viralpulse-ai/login");
-  if (!can(viewer, "VIEW_CAMPAIGNS")) redirect("/viralpulse-ai");
+  const gate = lockedUnless(viewer, "campaigns.view", "Campaigns");
+  if (gate) return gate;
   const { id, adId } = await params;
   const [c, ad] = await Promise.all([getCampaign(id), getAd(adId)]);
   if (!c || !ad || ad.campaignId !== id) notFound();
   const [media, thumb, versions, brand] = await Promise.all([getMediaMany(ad.mediaIds), ad.thumbnailId ? getMedia(ad.thumbnailId) : null, listVersions("ad", adId), getBrandSnapshot()]);
   const metaAd = ad.platform === "facebook" || ad.platform === "instagram";
   const locked = ad.status === "archived" || ad.status === "published" || c.status === "archived";
-  const canEdit = can(viewer, "CREATE_ADS") && !locked;
+  const canEdit = can(viewer, "ads.create") && !locked;
   const hasContent = Boolean(ad.content.headline || ad.content.primaryText);
 
   return (
@@ -53,9 +55,9 @@ export default async function AdPage({ params }: { params: Promise<{ id: string;
         }
         actions={
           <>
-            {can(viewer, "CREATE_ADS") && c.status !== "archived" && <ActionButton action={duplicateAdAction.bind(null, id, adId, undefined)} success="Duplicated" redirectPrefix={`/viralpulse-ai/campaigns/${id}/ads/`}><Copy className="size-3.5" /> Duplicate</ActionButton>}
-            {can(viewer, "CREATE_ADS") && c.status !== "archived" && <AdaptButton campaignId={id} adId={adId} platforms={c.platforms} current={ad.platform} canGenerate={can(viewer, "GENERATE_AI_CONTENT") && (await isOpenAIConfigured())} />}
-            {!locked && !metaAd && can(viewer, "SCHEDULE_POSTS") && (ad.status === "scheduled" ? (
+            {can(viewer, "ads.create") && c.status !== "archived" && <ActionButton action={duplicateAdAction.bind(null, id, adId, undefined)} success="Duplicated" redirectPrefix={`/viralpulse-ai/campaigns/${id}/ads/`}><Copy className="size-3.5" /> Duplicate</ActionButton>}
+            {can(viewer, "ads.create") && c.status !== "archived" && <AdaptButton campaignId={id} adId={adId} platforms={c.platforms} current={ad.platform} canGenerate={can(viewer, "posts.generate") && (await isOpenAIConfigured())} />}
+            {!locked && !metaAd && can(viewer, "posts.schedule") && (ad.status === "scheduled" ? (
               <ActionButton action={scheduleAdAction.bind(null, id, adId, null)} success="Unscheduled"><CalendarX className="size-3.5" /> Unschedule</ActionButton>
             ) : (
               <InputDialogButton title="Schedule go-live" description="Put this ad on the calendar. Publishers are reminded when it's due — the ad itself is launched by hand in the ads manager." inputLabel="Go-live date & time" inputType="datetime-local" defaultValue={defaultScheduleInput(ad.scheduledAt)} required submitLabel="Schedule" success="Scheduled" action={scheduleAdAction.bind(null, id, adId)}>
@@ -63,7 +65,7 @@ export default async function AdPage({ params }: { params: Promise<{ id: string;
               </InputDialogButton>
             ))}
             {metaAd && <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/viralpulse-ai/campaigns/${id}/edit?step=ads`} />}><Rocket className="size-3.5" /> Launch from the campaign</Button>}
-            {!locked && !metaAd && can(viewer, "PUBLISH_CONTENT") && (
+            {!locked && !metaAd && can(viewer, "posts.publish") && (
               <>
                 <InputDialogButton variant="default" title="Mark this ad as tracked by hand (audited)" description="Confirm you've launched it in the platform's ads manager. Optionally paste the ad's id or URL there." inputLabel="Ad id or URL (optional)" placeholder="e.g. 120210000000000 or https://…" submitLabel="Mark live" success="Marked live" action={markAdLiveAction.bind(null, id, adId)}>
                   <Rocket className="size-3.5" /> Mark live
@@ -71,12 +73,12 @@ export default async function AdPage({ params }: { params: Promise<{ id: string;
                 {ad.status === "scheduled" && <ActionButton action={markAdLiveAction.bind(null, id, adId, "", true)} success="Marked failed"><XCircle className="size-3.5" /> Mark failed</ActionButton>}
               </>
             )}
-            {can(viewer, "CREATE_ADS") && c.status !== "archived" && (ad.status === "archived" ? (
+            {can(viewer, "ads.create") && c.status !== "archived" && (ad.status === "archived" ? (
               <ActionButton action={archiveAdAction.bind(null, id, adId, false)} success="Restored"><ArchiveRestore className="size-3.5" /> Restore</ActionButton>
             ) : (
               <ActionButton action={archiveAdAction.bind(null, id, adId, true)} success="Archived"><Archive className="size-3.5" /> Archive</ActionButton>
             ))}
-            {can(viewer, "DELETE_CAMPAIGNS") && (
+            {can(viewer, "campaigns.delete") && (
               <ActionButton variant="destructive" aria-label="Delete ad" action={deleteAdAction.bind(null, id, adId)} success="Ad deleted" redirectTo={`/viralpulse-ai/campaigns/${id}`} confirm={{ title: "Delete this ad?", description: `“${ad.name}” will be removed. Its media stays in the library.`, confirmLabel: "Delete" }}>
                 <Trash2 className="size-3.5" />
               </ActionButton>
@@ -91,7 +93,7 @@ export default async function AdPage({ params }: { params: Promise<{ id: string;
         hasContent={hasContent}
         label={`Generate ${ad.format} ad with AI`}
         generate={generateAdAction.bind(null, id, adId)}
-        disabled={!canEdit || !can(viewer, "GENERATE_AI_CONTENT") || !(await isOpenAIConfigured())}
+        disabled={!canEdit || !can(viewer, "posts.generate") || !(await isOpenAIConfigured())}
         disabledReason={!(await isOpenAIConfigured()) ? "OpenAI isn't connected for this workspace (Settings → Integrations)." : locked ? "This ad is locked in its current state." : "You can view this ad but not generate content for it."}
       />
 
@@ -108,8 +110,8 @@ export default async function AdPage({ params }: { params: Promise<{ id: string;
         landingPage={c.landingPage}
         campaign={campaignBriefContext(c)}
         canEdit={canEdit}
-        canGenerate={can(viewer, "GENERATE_AI_CONTENT") && (await isOpenAIConfigured())}
-        canUpload={can(viewer, "MANAGE_MEDIA")}
+        canGenerate={can(viewer, "posts.generate") && (await isOpenAIConfigured())}
+        canUpload={can(viewer, "media.manage")}
       />
 
       <SectionCard title="Version history" description="Every AI generation and saved edit of this ad.">

@@ -13,7 +13,7 @@ const deny = () => NextResponse.json({ ok: false, error: "Not allowed" }, { stat
 
 /** GET /api/dealflow-ai/meetings?status=&agentId=&staffId=&q= — the meetings the signed-in person may see (everyone's for managers). */
 async function handleGET(req: NextRequest) {
-  const user = await requireLms("VIEW_LEADS");
+  const user = await requireLms("meetings.view");
   if (!user) return deny();
   try {
     const sp = new URL(req.url).searchParams;
@@ -37,7 +37,7 @@ async function handleGET(req: NextRequest) {
 }
 
 async function handlePOST(req: NextRequest) {
-  const user = await requireLms("VIEW_LEADS");
+  const user = await requireLms("meetings.view");
   if (!user) return deny();
   try {
     const body = await req.json().catch(() => null);

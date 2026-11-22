@@ -399,7 +399,7 @@ export async function decideLeaveRequest(
     type: "leave_decided",
     title: `Your leave was ${decision}`,
     body: `${req.days} day(s) from ${req.startDate}${note ? ` — ${note}` : ""}`,
-    link: "/talentos/me/leave",
+    link: "/talentos/leave",
     entityType: "leave_request",
     entityId: req._id,
   });
@@ -537,11 +537,11 @@ export interface LeaveAnalytics {
   totalDaysApproved: number;
 }
 
-export async function getLeaveAnalytics(from: string, to: string): Promise<LeaveAnalytics> {
+export async function getLeaveAnalytics(from: string, to: string, restrictToEmployeeIds?: string[]): Promise<LeaveAnalytics> {
   const db = await getDb();
   const collection = await getRequestsCollection();
   const [rows, types, depts, employees] = await Promise.all([
-    collection.find({ startDate: { $lte: to }, endDate: { $gte: from }, ...notDeleted }).toArray(),
+    collection.find({ startDate: { $lte: to }, endDate: { $gte: from }, ...(restrictToEmployeeIds ? { employeeId: { $in: restrictToEmployeeIds } } : {}), ...notDeleted }).toArray(),
     listLeaveTypes(true),
     db.collection<Department>(DEPARTMENTS_COLLECTION).find(notDeleted).toArray(),
     db.collection<Employee>(EMPLOYEES_COLLECTION).find(notDeleted, { projection: { "professional.departmentId": 1 } }).toArray(),

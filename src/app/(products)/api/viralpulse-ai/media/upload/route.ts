@@ -17,7 +17,7 @@ import { blobAuth } from "@/lib/storage/blob-token";
 async function handlePOST(req: NextRequest) {
   const viewer = await getViewer();
   if (!viewer) return NextResponse.json({ error: "Your session has expired — please sign in again." }, { status: 401 });
-  if (!can(viewer, "MANAGE_MEDIA")) return NextResponse.json({ error: "You don't have permission to upload media." }, { status: 403 });
+  if (!can(viewer, "media.manage")) return NextResponse.json({ error: "You don't have permission to upload media." }, { status: 403 });
 
   let body: HandleUploadBody;
   try {

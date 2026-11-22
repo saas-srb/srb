@@ -1,6 +1,7 @@
 import "server-only";
 import * as A from "@/app/(products)/viralpulse-ai/(protected)/actions";
-import { smmsCan, type SmmsPermission } from "@/lib/smms-roles";
+type SmmsPermission = string;
+import { microLegacy, microAny, microOr, featureScope as microFeatureScope, holds } from "@/lib/ai/agent/micro-gate";
 import { AD_PLATFORMS, POST_PLATFORMS, TONES, LANGUAGES, CTAS, INDUSTRIES, GENERATOR_TYPES } from "@/lib/products/viralpulse-ai/constants";
 import { requireCampaign } from "@/lib/products/viralpulse-ai/campaigns";
 import { requirePost } from "@/lib/products/viralpulse-ai/posts";
@@ -13,8 +14,9 @@ import type { ActionDef, AgentUser, EntityDef, FieldDef, Json } from "@/lib/ai/a
  * rules (publishing needs a publisher), version history and the audit log behave exactly as on the screens.
  */
 
-const ctx = (u: AgentUser) => ({ roles: u.roles, permissionOverrides: u.permissionOverrides });
-const can = (p: SmmsPermission) => (u: AgentUser) => smmsCan(ctx(u), p);
+const can = microLegacy("smms");
+/** The offer list above is only a hint: what the agent can read is decided here by the person's micro features, on the server. */
+const featureScope = (k: string) => microFeatureScope("viralpulse-ai." + k);
 const soft = { deletedAt: null };
 
 const AD_P = [...AD_PLATFORMS] as string[]; const POST_P = [...POST_PLATFORMS] as string[];
@@ -28,12 +30,12 @@ const act = (key: string, label: string, description: string, params: FieldDef[]
 const brief = (v: Json) => ({ ...v, platforms: v.platforms ?? [] });
 
 export const SMMS_ENTITIES: EntityDef[] = [
-  { key: "smms.campaign", panel: "smms", label: "Campaign", description: "Ad campaigns: brief, AI strategy, status (draft → edited → scheduled → published), platforms, budget.", collection: "smms_campaigns", idType: "string", baseFilter: soft, titleField: "name", search: ["name", "objective", "industry"], read: "staff", allowRead: can("VIEW_CAMPAIGNS") },
-  { key: "smms.ad", panel: "smms", label: "Ad", description: "Ads inside campaigns (image/video, headline, text, platform, status).", collection: "smms_ads", idType: "string", baseFilter: soft, titleField: "name", search: ["name"], read: "staff", allowRead: can("VIEW_CAMPAIGNS") },
-  { key: "smms.post", panel: "smms", label: "Social post", description: "Organic posts with a version per platform: topic, copy, schedule, approval and publish state.", collection: "smms_posts", idType: "string", baseFilter: soft, titleField: "title", search: ["title", "topic", "idea"], read: "staff", allowRead: can("VIEW_CAMPAIGNS") },
-  { key: "smms.media", panel: "smms", label: "Media", description: "Images and videos in the media library.", collection: "smms_media", idType: "string", baseFilter: soft, titleField: "name", search: ["name"], read: "staff", allowRead: can("MANAGE_MEDIA") },
-  { key: "smms.generation", panel: "smms", label: "AI generation", description: "History of AI generations and saved versions.", collection: "smms_generations", idType: "string", read: "staff", allowRead: can("VIEW_CAMPAIGNS") },
-  { key: "smms.activity", panel: "smms", label: "Audit log", description: "Who changed what in ViralPulse.", collection: "smms_activity_logs", idType: "string", search: ["entityLabel", "summary", "actorEmail"], read: "admin", allowRead: can("VIEW_AUDIT_LOG") },
+  { key: "smms.campaign", panel: "smms", label: "Campaign", description: "Ad campaigns: brief, AI strategy, status (draft → edited → scheduled → published), platforms, budget.", collection: "smms_campaigns", scope: featureScope("campaigns.view"), idType: "string", baseFilter: soft, titleField: "name", search: ["name", "objective", "industry"], read: "staff", allowRead: can("VIEW_CAMPAIGNS") },
+  { key: "smms.ad", panel: "smms", label: "Ad", description: "Ads inside campaigns (image/video, headline, text, platform, status).", collection: "smms_ads", scope: featureScope("campaigns.view"), idType: "string", baseFilter: soft, titleField: "name", search: ["name"], read: "staff", allowRead: can("VIEW_CAMPAIGNS") },
+  { key: "smms.post", panel: "smms", label: "Social post", description: "Organic posts with a version per platform: topic, copy, schedule, approval and publish state.", collection: "smms_posts", scope: featureScope("posts.view"), idType: "string", baseFilter: soft, titleField: "title", search: ["title", "topic", "idea"], read: "staff", allowRead: can("VIEW_CAMPAIGNS") },
+  { key: "smms.media", panel: "smms", label: "Media", description: "Images and videos in the media library.", collection: "smms_media", scope: featureScope("library.view"), idType: "string", baseFilter: soft, titleField: "name", search: ["name"], read: "staff", allowRead: can("MANAGE_MEDIA") },
+  { key: "smms.generation", panel: "smms", label: "AI generation", description: "History of AI generations and saved versions.", collection: "smms_generations", scope: featureScope("posts.generate"), idType: "string", read: "staff", allowRead: can("VIEW_CAMPAIGNS") },
+  { key: "smms.activity", panel: "smms", label: "Audit log", description: "Who changed what in ViralPulse.", collection: "smms_activity_logs", scope: featureScope("activity.view"), idType: "string", search: ["entityLabel", "summary", "actorEmail"], read: "admin", allowRead: can("VIEW_AUDIT_LOG") },
 ];
 
 export const SMMS_ACTIONS: ActionDef[] = [
@@ -76,7 +78,7 @@ export const SMMS_ACTIONS: ActionDef[] = [
   act("smms.approve_post", "Approve (or withdraw approval of) a scheduled post", "Publishers approve scheduled posts so they go out automatically.", [f.ref("postId", "Post id", "smms.post", true), f.bool("approve", "Approve (false = withdraw)")], "PUBLISH_CONTENT", (v) => A.approvePostAction(String(v.postId), v.approve !== false), "Approval updated.", true),
   act("smms.publish_post", "Publish a post now to the connected accounts", "Publish to the platforms you name, immediately. This posts publicly.", [f.ref("postId", "Post id", "smms.post", true), f.list("platforms", `Platforms (${POST_P.join(", ")})`)], "PUBLISH_CONTENT", (v) => A.publishPostAction(String(v.postId), (v.platforms as string[]) ?? []), "Publishing started.", true),
   act("smms.mark_post_published", "Record that a post was published by hand", "Mark one platform's version as published (with its URL) when it was posted outside the system.", [f.ref("postId", "Post id", "smms.post", true), f.enum("platform", "Platform", POST_P, true), f.str("url", "URL of the live post")], "PUBLISH_CONTENT", (v) => A.markPostPublishedAction(String(v.postId), String(v.platform), String(v.url ?? "")), "Marked published.", true),
-  act("smms.save_post_metrics", "Enter a published post's performance numbers", "Record impressions, reach, likes, comments, shares, clicks etc. for one platform.", [f.ref("postId", "Post id", "smms.post", true), f.enum("platform", "Platform", POST_P, true), f.json("metrics", "Metrics object, e.g. {impressions, reach, likes, comments, shares, clicks}", true)], "VIEW_ANALYTICS", (v) => A.savePostMetricsAction(String(v.postId), String(v.platform), (v.metrics as Json) ?? {}), "Metrics saved."),
+  act("smms.save_post_metrics", "Enter a published post's performance numbers", "Record impressions, reach, likes, comments, shares, clicks etc. for one platform.", [f.ref("postId", "Post id", "smms.post", true), f.enum("platform", "Platform", POST_P, true), f.json("metrics", "Metrics object, e.g. {impressions, reach, likes, comments, shares, clicks}", true)], "MANAGE_POSTS", (v) => A.savePostMetricsAction(String(v.postId), String(v.platform), (v.metrics as Json) ?? {}), "Metrics saved."),
   act("smms.restore_version", "Restore an earlier version of AI content", "Bring back a saved version of a campaign strategy, ad or post.", [f.enum("targetType", "What", ["campaign", "ad", "post"], true), f.str("targetId", "Its id", true), f.str("versionId", "Version id (from smms.generation)", true), f.str("campaignId", "Campaign id (for ads)")], "EDIT_CAMPAIGNS", (v) => A.restoreVersionAction(v.targetType as never, String(v.targetId), String(v.versionId), str(v.campaignId) ?? undefined), "Version restored."),
   act("smms.delete_media", "Delete a media file", "Delete an image or video from the media library.", [f.ref("mediaId", "Media id", "smms.media", true)], "MANAGE_MEDIA", (v) => A.deleteMediaAction(String(v.mediaId)), "Media deleted.", true),
   act("smms.generate_library_image", "Create an image in the media library with AI", "Generate an image for the library. Uses AI credits.", [f.str("prompt", "Describe the image", true), f.enum("platform", "For platform", [...AD_P, "google_business"], true), f.str("formatKey", "Size key (e.g. square, story)"), f.str("name", "Name")], "MANAGE_MEDIA", (v) => A.generateLibraryImageAction({ prompt: String(v.prompt), platform: String(v.platform), formatKey: String(v.formatKey ?? ""), name: String(v.name ?? "AI image") }), "Image created."),

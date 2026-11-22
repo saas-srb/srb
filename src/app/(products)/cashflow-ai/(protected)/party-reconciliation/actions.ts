@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canApproveTransactions, canReconcile, canViewCommercialFinance, canViewFinancialStatements } from "@/lib/fms-roles";
+import { canApproveTransactions, canReconcile, canViewCommercialFinance, canViewFinancialStatements } from "@/lib/fms-access";
 import { approveWriteOff, parseAmount, previewConfirmation, proposeWriteOff, saveConfirmation, withdrawWriteOff, CONFIRMATION_STATUSES, type ConfirmationStatus } from "@/lib/products/cashflow-ai/party-recon/store";
 import type { ConfirmationComparison, PartyKind } from "@/lib/products/cashflow-ai/party-recon/core";
 

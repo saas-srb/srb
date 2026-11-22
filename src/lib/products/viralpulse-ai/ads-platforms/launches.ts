@@ -4,7 +4,6 @@ import { smmsCollection, notDeleted, updateStamp } from "@/lib/products/viralpul
 import { can, ForbiddenError, NotFoundError, SmmsInputError, type SmmsViewer } from "@/lib/products/viralpulse-ai/viewer";
 import { getCampaign, campaignsCollection } from "@/lib/products/viralpulse-ai/campaigns";
 import { listAdsForCampaign } from "@/lib/products/viralpulse-ai/ads";
-import type { SmmsPermission } from "@/lib/smms-roles";
 import { AD_COLLECTIONS, err, result, type FieldError, type ValidationResult } from "./types";
 import { defaultDeps, type AdsDeps, type MediaLite } from "./deps";
 import { MetaApiError } from "./meta/errors";
@@ -136,7 +135,7 @@ export class LaunchBlockedError extends SmmsInputError {
   }
 }
 
-const assertCan = (v: SmmsViewer, p: SmmsPermission) => {
+const assertCan = (v: SmmsViewer, p: string) => {
   if (!can(v, p)) throw new ForbiddenError(p);
 };
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -445,8 +444,8 @@ async function runBuild(launch: LaunchDoc, deps: AdsDeps, by: string): Promise<L
 }
 
 export async function createLaunch(campaignId: string, viewer: SmmsViewer, deps: AdsDeps = defaultDeps): Promise<LaunchOutcome> {
-  assertCan(viewer, "CREATE_ADS");
-  assertCan(viewer, "EDIT_CAMPAIGNS");
+  assertCan(viewer, "ads.create");
+  assertCan(viewer, "campaigns.edit");
   const col = await launchesCollection();
   const d = await loadDraft(campaignId);
   const hash = sha(stable({ c: d.campaign, a: d.ads.map((a) => ({ ...a, id: a.id })) }));
@@ -521,7 +520,7 @@ export async function createLaunch(campaignId: string, viewer: SmmsViewer, deps:
 }
 
 export async function resumeLaunch(launchId: string, viewer: SmmsViewer, deps: AdsDeps = defaultDeps): Promise<LaunchOutcome> {
-  assertCan(viewer, "CREATE_ADS");
+  assertCan(viewer, "ads.create");
   const l = await requireLaunch(launchId);
   if (l.state !== "partial" && l.state !== "creating") throw new LaunchBlockedError("Only an unfinished launch can be resumed.");
   const hash = (await currentHash(l.campaignId)).hash;
@@ -536,7 +535,7 @@ async function currentHash(campaignId: string) {
 
 /** Removes everything an unfinished launch created, then frees the campaign for a new launch. */
 export async function rollbackLaunch(launchId: string, viewer: SmmsViewer, deps: AdsDeps = defaultDeps): Promise<LaunchDoc> {
-  assertCan(viewer, "CREATE_ADS");
+  assertCan(viewer, "ads.create");
   const l = await requireLaunch(launchId);
   if (l.delivery === "active") throw new LaunchBlockedError("Pause the launch before rolling it back.");
   if (l.state === "rolled_back") return l;
@@ -581,7 +580,7 @@ export function approvalCovers(l: Pick<LaunchDoc, "approval" | "commitment">): b
 }
 
 export async function approveLaunch(launchId: string, viewer: SmmsViewer, input: { note?: string } = {}, deps: AdsDeps = defaultDeps): Promise<LaunchDoc> {
-  assertCan(viewer, "APPROVE_AD_SPEND");
+  assertCan(viewer, "ads.approve");
   const l = await requireLaunch(launchId);
   if (l.state !== "ready") throw new LaunchBlockedError("Only a launch that was created in Meta can be approved.");
   if (l.delivery === "archived") throw new LaunchBlockedError("An archived launch cannot be approved.");
@@ -600,7 +599,7 @@ async function doApprove(l: LaunchDoc, viewer: SmmsViewer, note: string, deps: A
 }
 
 export async function revokeApproval(launchId: string, viewer: SmmsViewer, deps: AdsDeps = defaultDeps): Promise<LaunchDoc> {
-  assertCan(viewer, "APPROVE_AD_SPEND");
+  assertCan(viewer, "ads.approve");
   const l = await requireLaunch(launchId);
   const doc = await patch(launchId, { approval: null }, event(viewer.userId, "approval_revoked", "Approval withdrawn."));
   if (l.delivery === "active") return pauseLaunch(launchId, viewer, deps);
@@ -637,7 +636,7 @@ export function withSpendLock<T>(deps: Pick<AdsDeps, "now" | "sleep">, fn: () =>
 }
 
 export async function activateLaunch(launchId: string, viewer: SmmsViewer, deps: AdsDeps = defaultDeps): Promise<LaunchDoc> {
-  assertCan(viewer, "PUBLISH_CONTENT");
+  assertCan(viewer, "posts.publish");
   return withSpendLock(deps, () => activateLocked(launchId, viewer, deps));
 }
 
@@ -666,7 +665,7 @@ async function activateLocked(launchId: string, viewer: SmmsViewer, deps: AdsDep
 }
 
 export async function pauseLaunch(launchId: string, viewer: SmmsViewer, deps: AdsDeps = defaultDeps): Promise<LaunchDoc> {
-  assertCan(viewer, "PUBLISH_CONTENT");
+  assertCan(viewer, "posts.publish");
   const l = await requireLaunch(launchId);
   if (l.state !== "ready") throw new LaunchBlockedError("The launch is not created in Meta.");
   if (l.delivery === "archived") throw new LaunchBlockedError("An archived launch cannot be paused.");
@@ -680,7 +679,7 @@ export async function pauseLaunch(launchId: string, viewer: SmmsViewer, deps: Ad
 export const resumeDelivery = activateLaunch;
 
 export async function archiveLaunch(launchId: string, viewer: SmmsViewer, deps: AdsDeps = defaultDeps): Promise<LaunchDoc> {
-  assertCan(viewer, "PUBLISH_CONTENT");
+  assertCan(viewer, "posts.publish");
   const l = await requireLaunch(launchId);
   if (l.state !== "ready") throw new LaunchBlockedError("The launch is not created in Meta.");
   if (l.objects.campaign) await deps.withMeta(l.adAccountId, (c) => c.post(l.objects.campaign!, { status: "ARCHIVED" }, { idempotentWrite: true }));
@@ -704,7 +703,7 @@ export interface PauseResult {
  * cannot be read is paused anyway: pausing is safe to repeat. Returns one result per launch.
  */
 export async function pauseAllRunning(viewer: SmmsViewer, deps: AdsDeps = defaultDeps, opts: { reason?: string } = {}): Promise<{ paused: number; failed: number; results: PauseResult[] }> {
-  assertCan(viewer, "APPROVE_AD_SPEND");
+  assertCan(viewer, "ads.approve");
   const col = await launchesCollection();
   const candidates = await col.find({ active: true, state: "ready", delivery: { $ne: "archived" }, "objects.campaign": { $exists: true, $ne: null } }).toArray();
   const reason = opts.reason ?? "Paused by the kill switch.";
@@ -741,7 +740,7 @@ export async function pauseAllRunning(viewer: SmmsViewer, deps: AdsDeps = defaul
  * stays flagged and is retried by every ads sync while the switch is on.
  */
 export async function engageKillSwitch(viewer: SmmsViewer, deps: AdsDeps = defaultDeps): Promise<{ guard: GuardSettings; paused: number; failed: number; results: PauseResult[] }> {
-  assertCan(viewer, "APPROVE_AD_SPEND");
+  assertCan(viewer, "ads.approve");
   const guard = await setKillSwitch(true, viewer.userId);
   const r = await pauseAllRunning(viewer, deps);
   await deps.audit({ actorId: viewer.userId, actorEmail: viewer.email, action: "status", entity: "campaign", entityId: "ads-guard", entityLabel: "Ad spending limits", recordId: "ads-guard", summary: `Ads kill switch turned on: ${r.paused} paused${r.failed ? `, ${r.failed} could not be paused` : ""}`, metadata: { results: r.results.map((x) => ({ launchId: x.launchId, found: x.found, ok: x.ok, error: x.error ?? null })) } });
@@ -768,7 +767,7 @@ export interface LaunchEdit {
  * get the new amount approved, start again.
  */
 export async function editLaunch(launchId: string, viewer: SmmsViewer, edit: LaunchEdit, deps: AdsDeps = defaultDeps): Promise<LaunchDoc> {
-  assertCan(viewer, "EDIT_CAMPAIGNS");
+  assertCan(viewer, "campaigns.edit");
   return withSpendLock(deps, () => editLocked(launchId, viewer, edit, deps));
 }
 

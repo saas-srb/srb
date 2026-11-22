@@ -12,7 +12,7 @@ import StatementLineForm from "@/components/products/cashflow-ai/StatementLineFo
 import MatchTransactionDialog from "@/components/products/cashflow-ai/MatchTransactionDialog";
 import { StatementLineStatusBadge } from "@/components/products/cashflow-ai/StatusBadges";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canReconcile } from "@/lib/fms-roles";
+import { canReconcile } from "@/lib/fms-access";
 import { getBankAccount, serializeBankAccount } from "@/lib/products/cashflow-ai/bank-accounts";
 import { listStatementLines, candidateTransactionsForLine, serializeStatementLine } from "@/lib/products/cashflow-ai/bank-reconciliation";
 import { formatMoney } from "@/lib/products/cashflow-ai/constants";

@@ -158,7 +158,7 @@ export const PDF_TYPES: PdfType[] = [
     description: "The certificate given to a candidate who passes a test, with a code anyone can verify.",
     contains: ["Candidate, test and score", "Certificate number, issue and validity dates", "Verification code and link", "Signatory"],
     generated: "On demand, when staff or the candidate open it. The certificate is issued when a result is published; it can later be revoked or restored.",
-    usedIn: [{ label: "EvalIQ → Certificates", href: "/evaliq/certificates" }, { label: "EvalIQ → My results (candidate)", href: "/evaliq/my-results" }],
+    usedIn: [{ label: "EvalIQ → Certificates", href: "/evaliq/certificates" }, { label: "EvalIQ → Results (candidate)", href: "/evaliq/results" }],
     access: "Test staff, and the candidate for their own.", delivery: "Downloaded in the product. The candidate is notified when it is issued, revoked or restored.",
     events: ["ots_certificate", "ots_certificate_revoked_alert", "ots_certificate_restored"], route: "/api/evaliq/certificates/{id}/pdf", fileName: "<certificate number>.pdf", letterhead: "company", status: "active",
   },

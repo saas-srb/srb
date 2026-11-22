@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/viralpulse-ai/gate";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Megaphone, PauseCircle, PlayCircle, Plus, SearchCheck, ShieldCheck, Wallet, MousePointerClick } from "lucide-react";
@@ -30,7 +31,9 @@ const TABS: { key: "all" | ListStatus; label: string }[] = [{ key: "all", label:
 export default async function CampaignsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/viralpulse-ai/login");
-  if (!can(viewer, "VIEW_CAMPAIGNS")) redirect("/viralpulse-ai");
+  const locked = lockedUnless(viewer, "campaigns.view", "Campaigns");
+  if (locked) return locked;
+  if (!can(viewer, "campaigns.view")) redirect("/viralpulse-ai");
   const sp = await searchParams;
   const status = TABS.some((t) => t.key === sp.status) ? (sp.status as string) : "all";
   const r = await loadCampaignList({ q: sp.q, status, platform: sp.platform, objective: sp.objective, account: sp.account, from: sp.from, to: sp.to });
@@ -45,9 +48,9 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
         description="Plan, check, launch and track paid campaigns on Meta. Numbers on this page come from what Meta last reported to us; nothing is typed in by hand."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            {can(viewer, "APPROVE_AD_SPEND") && s.running > 0 && <PauseAllButton running={s.running} />}
-            {can(viewer, "APPROVE_AD_SPEND") && <Link href="/viralpulse-ai/campaigns/limits" className={buttonVariants({ variant: "outline", size: "sm" })}><ShieldCheck className="size-3.5" /> Spending limits</Link>}
-            {can(viewer, "CREATE_CAMPAIGNS") && can(viewer, "CREATE_ADS") && <Link href="/viralpulse-ai/campaigns/new" className={buttonVariants({ size: "sm" })}><Plus className="size-3.5" /> New campaign</Link>}
+            {can(viewer, "ads.approve") && s.running > 0 && <PauseAllButton running={s.running} />}
+            {can(viewer, "ads.approve") && <Link href="/viralpulse-ai/campaigns/limits" className={buttonVariants({ variant: "outline", size: "sm" })}><ShieldCheck className="size-3.5" /> Spending limits</Link>}
+            {can(viewer, "campaigns.create") && can(viewer, "ads.create") && <Link href="/viralpulse-ai/campaigns/new" className={buttonVariants({ size: "sm" })}><Plus className="size-3.5" /> New campaign</Link>}
           </div>
         }
         filters={
@@ -82,7 +85,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
         <CardContent>
           {r.rows.length === 0 ? (
             <EmptyState icon={<Megaphone className="size-5" />} title={r.counts.all === 0 ? "No campaigns yet" : "Nothing matches these filters"}>
-              {r.counts.all === 0 ? (can(viewer, "CREATE_CAMPAIGNS") ? "Create a campaign to plan it step by step, check it against Meta and launch it paused." : "Campaigns created by your team will appear here.") : "Change the filters or pick another tab."}
+              {r.counts.all === 0 ? (can(viewer, "campaigns.create") ? "Create a campaign to plan it step by step, check it against Meta and launch it paused." : "Campaigns created by your team will appear here.") : "Change the filters or pick another tab."}
             </EmptyState>
           ) : (
             <div className="overflow-x-auto">

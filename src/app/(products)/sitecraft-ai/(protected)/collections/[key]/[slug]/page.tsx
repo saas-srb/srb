@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/sitecraft-ai/gate";
 import { notFound, redirect } from "next/navigation";
 import { getViewer, can } from "@/lib/products/sitecraft-ai/viewer";
 import { COLLECTIONS } from "@/lib/products/sitecraft-ai/collections/registry";
@@ -12,6 +13,8 @@ export default async function CmsCollectionRecordPage({ params }: { params: Prom
   const { key, slug } = await params;
   const viewer = await getViewer();
   if (!viewer) redirect("/sitecraft-ai/login");
+  const locked = lockedUnless(viewer, "collections.view", "Collections");
+  if (locked) return locked;
   if (!(key in COLLECTIONS)) notFound();
   const def = COLLECTIONS[key as CollectionKey];
   const rec = await getEditableRecord(key as CollectionKey, slug);
@@ -39,8 +42,8 @@ export default async function CmsCollectionRecordPage({ params }: { params: Prom
         isArchived={Boolean(rec.doc?.archived)}
         hasUnpublishedChanges={Boolean(rec.doc?.hasUnpublishedChanges)}
         publicPath={def.pathOf ? def.pathOf(slug) : null}
-        canEdit={can(viewer, "COLLECTIONS_EDIT")}
-        canPublish={can(viewer, "COLLECTIONS_PUBLISH")}
+        canEdit={can(viewer, "collections.edit")}
+        canPublish={can(viewer, "collections.publish")}
       />
     </div>
   );

@@ -26,7 +26,7 @@ const platformOf = (v: unknown): PostPlatform => {
 };
 
 export async function saveWizardAction(state: unknown, checkpoint: boolean) {
-  return run(["MANAGE_POSTS"], async (v) => ({ saved: await saveWizardDraft(state, { checkpoint: checkpoint === true }, v) }), { revalidate: false });
+  return run(["posts.manage"], async (v) => ({ saved: await saveWizardDraft(state, { checkpoint: checkpoint === true }, v) }), { revalidate: false });
 }
 
 type VariantOut = { platform: PostPlatform; title: string; content: string; hashtags: string[]; keywords: string[]; cta: string };
@@ -38,7 +38,7 @@ async function variantsOf(postId: string): Promise<VariantOut[]> {
 
 /** Writes a version for every selected platform from the brief (the "Generate the whole draft with AI" button). The post must be saved first. */
 export async function generateDraftAction(postId: string, instruction: string) {
-  return run(["MANAGE_POSTS", "GENERATE_AI_CONTENT"], async (v) => {
+  return run(["posts.manage", "posts.generate"], async (v) => {
     const p = await requirePost(id(postId));
     await generatePostContent(p, v, typeof instruction === "string" && instruction.trim() ? instruction.trim().slice(0, 1000) : null);
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "generate", entity: "post", entityId: p._id, entityLabel: p.title, recordId: p._id, summary: "Whole draft from the wizard" });
@@ -48,7 +48,7 @@ export async function generateDraftAction(postId: string, instruction: string) {
 
 /** Rewrites one platform's version in that platform's style. */
 export async function adaptPlatformAction(postId: string, platform: string, instruction: string) {
-  return run(["MANAGE_POSTS", "GENERATE_AI_CONTENT"], async (v) => {
+  return run(["posts.manage", "posts.generate"], async (v) => {
     const p = await requirePost(id(postId));
     const pl = platformOf(platform);
     await regenerateVariant(p, pl, v, typeof instruction === "string" && instruction.trim() ? instruction.trim().slice(0, 1000) : null);
@@ -59,7 +59,7 @@ export async function adaptPlatformAction(postId: string, platform: string, inst
 
 /** The problem list and per-platform plan (what `publishNow` / `schedulePost` will check). */
 export async function wizardPlanAction(postId: string) {
-  return run(["MANAGE_POSTS"], async (v) => ({ plan: await getPublishPlan(id(postId), v) }), { revalidate: false });
+  return run(["posts.manage"], async (v) => ({ plan: await getPublishPlan(id(postId), v) }), { revalidate: false });
 }
 
 export interface SubmitInput {
@@ -72,7 +72,7 @@ export interface SubmitInput {
 }
 
 export async function submitPostAction(input: SubmitInput) {
-  return run(["MANAGE_POSTS"], async (v) => {
+  return run(["posts.manage"], async (v) => {
     const postId = id(input?.postId);
     const p = await requirePost(postId);
     if (input.mode === "now") {
@@ -83,7 +83,7 @@ export async function submitPostAction(input: SubmitInput) {
     const r = await schedulePost(postId, { local: String(input.local ?? ""), timezone: typeof input.timezone === "string" ? input.timezone : undefined, approve: input.approve === true }, v);
     if (!r.approved) {
       // Nobody with Publish has approved it yet: tell them it is waiting.
-      const approvers = (await smmsUsersWith("PUBLISH_CONTENT")).filter((u) => u !== v.userId);
+      const approvers = (await smmsUsersWith("posts.publish")).filter((u) => u !== v.userId);
       if (approvers.length) await notifySmmsUsers(approvers, { type: "smms_approval_needed", title: `Approval needed: ${p.title}`, body: `Scheduled for ${r.plan.scheduledDisplay ?? r.scheduledAt.toISOString()}. It publishes only after someone with Publish approves it.`, link: `/viralpulse-ai/posts/${postId}`, dedupeKey: `smms-approve-${postId}-${r.scheduledAt.toISOString()}` });
     }
     return { mode: "schedule" as const, results: null, scheduled: { at: r.scheduledAt.toISOString(), display: r.plan.scheduledDisplay, approved: r.approved } };
@@ -91,7 +91,7 @@ export async function submitPostAction(input: SubmitInput) {
 }
 
 export async function attemptsAction(postId: string) {
-  return run(["MANAGE_POSTS"], async (v) => {
+  return run(["posts.manage"], async (v) => {
     const attempts = await listAttempts(id(postId), v);
     const p = await requirePost(id(postId));
     return { attempts, status: p.status, scheduledAt: p.scheduledAt?.toISOString() ?? null, approved: Boolean(p.approvedBy), variants: p.variants.map((x) => ({ platform: x.platform, state: x.publish.state, url: x.publish.url, error: x.publish.error })) };
@@ -99,16 +99,16 @@ export async function attemptsAction(postId: string) {
 }
 
 export async function retryAttemptAction(postId: string, platform: string, force: boolean) {
-  return run(["MANAGE_POSTS", "PUBLISH_CONTENT"], async (v) => ({ result: await retryPublish(id(postId), platformOf(platform), { force: force === true }, v) }));
+  return run(["posts.manage", "posts.publish"], async (v) => ({ result: await retryPublish(id(postId), platformOf(platform), { force: force === true }, v) }));
 }
 
 export async function cancelScheduleAction(postId: string) {
-  return run(["MANAGE_POSTS"], async (v) => ({ cancelled: (await cancelScheduled(id(postId), v)).cancelled }));
+  return run(["posts.manage"], async (v) => ({ cancelled: (await cancelScheduled(id(postId), v)).cancelled }));
 }
 
 /** Saves the alt text of a library picture (it is what Instagram, LinkedIn and X receive). Keeps every other field of the item. */
 export async function setAltTextAction(mediaId: string, altText: string) {
-  return run(["MANAGE_MEDIA"], async (v) => {
+  return run(["media.manage"], async (v) => {
     const m = await getMedia(id(mediaId));
     if (!m) throw new SmmsInputError("That file no longer exists.");
     if (m.kind !== "image") throw new SmmsInputError("Only pictures have alt text.");

@@ -63,4 +63,5 @@ ok(lines.includes("Phone: +91 80 4000 1234") && lines.includes("Website: www.nor
   const docx = await renderDocx(branded, ro);
   ok(docx.buffer.length > 1000, "DOCX renders with the block");
   console.log(`identity block: ${n} checks passed`);
+  process.exit(0); // an open handle from the renderers would otherwise keep the test chain waiting
 })().catch((e) => { console.error(e); process.exit(1); });

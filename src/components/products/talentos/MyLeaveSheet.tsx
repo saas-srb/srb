@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { todayDateString } from "@/lib/products/talentos/time";
-import { applyMyLeaveAction, previewMyLeaveDaysAction } from "@/app/(products)/talentos/(protected)/me/leave/actions";
+import { applyMyLeaveAction, previewLeaveDaysAction } from "@/app/(products)/talentos/(protected)/leave/actions";
 
 export default function MyLeaveSheet({ leaveTypes }: { leaveTypes: { code: string; label: string }[] }) {
   const router = useRouter();
@@ -33,7 +33,7 @@ export default function MyLeaveSheet({ leaveTypes }: { leaveTypes: { code: strin
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    previewMyLeaveDaysAction({
+    previewLeaveDaysAction({
       startDate: form.startDate,
       endDate: form.endDate,
       halfDayStart: form.halfDayStart,

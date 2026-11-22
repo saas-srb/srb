@@ -9,7 +9,7 @@ import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import { ExpenseStatusBadge, ExpenseCategoryBadge } from "@/components/products/spendiq/StatusBadges";
 import RecordReimbursementForm from "@/components/products/cashflow-ai/RecordReimbursementForm";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageTransactions } from "@/lib/fms-roles";
+import { canManageTransactions } from "@/lib/fms-access";
 import { getEmployeeExpenseDetail } from "@/lib/products/cashflow-ai/employee-expenses";
 import { listReimbursementsForExpense, serializeReimbursement } from "@/lib/products/cashflow-ai/reimbursements";
 import { listFundAccountOptions } from "@/lib/products/cashflow-ai/fund-accounts";

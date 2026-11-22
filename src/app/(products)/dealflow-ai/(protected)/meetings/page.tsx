@@ -28,7 +28,7 @@ const TABS = ["upcoming", "live", "past", "cancelled"] as const;
 type Tab = (typeof TABS)[number];
 
 export default async function MeetingsPage({ searchParams }: { searchParams: Promise<SP> }) {
-  const user = await requireLmsPage("VIEW_LEADS");
+  const user = await requireLmsPage("meetings.view");
   const sp = await searchParams;
   const tab: Tab = (TABS as readonly string[]).includes(sp.tab ?? "") ? (sp.tab as Tab) : "upcoming";
   const view = sp.view === "week" || sp.view === "month" ? sp.view : "list";

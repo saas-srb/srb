@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/evaliq/gate";
 import { notFound, redirect } from "next/navigation";
 import { PageHeader, SectionCard, Notice } from "@/components/products/evaliq/OtsUi";
 import TestInfoForm from "@/components/products/evaliq/TestInfoForm";
@@ -15,7 +16,8 @@ import { QUESTION_TYPES } from "@/lib/products/evaliq/question-types";
 export default async function TestBuilderPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ step?: string }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/evaliq/login");
-  if (!can(viewer, "EDIT_TEST")) redirect("/evaliq/tests");
+  const locked = lockedUnless(viewer, "tests.edit", "Edit tests");
+  if (locked) return locked;
   const { id } = await params;
   const { step: rawStep } = await searchParams;
   const step = rawStep === "config" || rawStep === "sections" ? rawStep : "info";

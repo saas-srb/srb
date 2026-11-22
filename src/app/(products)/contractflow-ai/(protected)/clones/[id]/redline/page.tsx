@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/contractflow-ai/gate";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
@@ -13,6 +14,8 @@ export default async function CloneRedlinePage({ params }: { params: Promise<{ i
   const { id } = await params;
   const viewer = await getViewer();
   if (!viewer) redirect("/contractflow-ai/login");
+  const locked = lockedUnless(viewer, "signatures.view", "Signatures");
+  if (locked) return locked;
   const g = await getClone(viewer, id);
   if (!g.ok) notFound();
   const r = await compareWithSource(viewer, id);

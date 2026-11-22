@@ -33,7 +33,6 @@ const PAGES: [string, number, "daily" | "weekly" | "monthly" | "yearly"][] = [
   ["/data-policy", 0.3, "yearly"],
   ["/refund-policy", 0.3, "yearly"],
   ["/dpa", 0.4, "yearly"],
-  ["/subprocessors", 0.4, "monthly"],
   ["/data-requests", 0.4, "yearly"],
   ["/vulnerability-disclosure", 0.4, "yearly"],
 ];

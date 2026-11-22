@@ -1,3 +1,4 @@
+import { lockedUnless } from "@/lib/products/evaliq/gate";
 import { notFound, redirect } from "next/navigation";
 import { PageHeader, Notice } from "@/components/products/evaliq/OtsUi";
 import QuestionEditor from "@/components/products/evaliq/QuestionEditor";
@@ -9,7 +10,8 @@ import { questionToDraft } from "@/lib/products/evaliq/question-draft";
 export default async function EditQuestionPage({ params }: { params: Promise<{ id: string }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/evaliq/login");
-  if (!can(viewer, "EDIT_QUESTION")) redirect("/evaliq/questions");
+  const locked = lockedUnless(viewer, "questions.edit", "Edit questions");
+  if (locked) return locked;
   const { id } = await params;
   const q = await getQuestion(id);
   if (!q) notFound();

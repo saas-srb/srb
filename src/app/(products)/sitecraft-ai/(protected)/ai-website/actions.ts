@@ -12,7 +12,7 @@ type Result = { ok: true; pages: number } | { ok: false; error: string };
 export async function generateWebsiteAction(ownerPrompt?: string): Promise<Result> {
   const v = await requireViewer().catch(() => null);
   if (!v) return { ok: false, error: "Your session has expired — please sign in again." };
-  if (!can(v, "THEME_PUBLISH")) return { ok: false, error: "You don't have permission to do that." };
+  if (!can(v, "aiwebsite.use")) return { ok: false, error: "You don't have permission to do that." };
   const res = await generateAiWebsite({ force: true, ownerPrompt });
   if (res.ok) {
     expireSiteCache();
@@ -26,7 +26,7 @@ export async function generateWebsiteAction(ownerPrompt?: string): Promise<Resul
 export async function restoreWebsiteVersionAction(id: string): Promise<{ ok: true; number: number } | { ok: false; error: string }> {
   const v = await requireViewer().catch(() => null);
   if (!v) return { ok: false, error: "Your session has expired — please sign in again." };
-  if (!can(v, "THEME_PUBLISH")) return { ok: false, error: "You don't have permission to do that." };
+  if (!can(v, "aiwebsite.use")) return { ok: false, error: "You don't have permission to do that." };
   const res = await restoreAiWebsiteVersion(id);
   if (res.ok) {
     expireSiteCache();

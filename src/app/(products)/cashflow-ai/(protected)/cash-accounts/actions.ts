@@ -3,7 +3,7 @@
 import { getDepartment } from "@/lib/platform/organization";
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageBanking } from "@/lib/fms-roles";
+import { canManageBanking } from "@/lib/fms-access";
 import { createCashAccount, updateCashAccount, deleteCashAccount, getCashAccount, type CashAccountWriteData } from "@/lib/products/cashflow-ai/cash-accounts";
 import { isValidFundAccountStatus, DEFAULT_CURRENCY } from "@/lib/products/cashflow-ai/constants";
 import { recordAudit } from "@/lib/products/cashflow-ai/audit";

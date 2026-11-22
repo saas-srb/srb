@@ -52,3 +52,6 @@ export const SELF_SERVICE: { key: string; label: string; description: string }[]
   { key: "me.chat", label: "My chats", description: "Use team chat as myself." },
 ];
 export const isSelfService = (key: string) => SELF_SERVICE.some((s) => s.key === key);
+
+/** The entry gate of a product ("who can open it": `hasXAccess`, or TalentOS's `hasAnyHrmsRole`): derived from what a person is given, never picked. Other tiers (staff tier, employee-only, Director) are identity tiers and are carried. */
+export const isAccessGate = (fn: string): boolean => /^has\w*Access$|^hasAny\w*Role$/.test(fn);

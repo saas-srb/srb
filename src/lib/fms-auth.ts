@@ -1,3 +1,5 @@
+import type { AccessSubject } from "@/lib/access/can";
+import { subjectFromRow } from "@/lib/access/server";
 import { passwordPolicyError } from "@/lib/security/password";
 import { accountWithinSeats } from "@/lib/platform/billing/enforce";
 import "server-only";
@@ -55,6 +57,8 @@ export interface CurrentFmsUser {
   /** Per-capability overrides from the Director — see `permission-overrides.ts`. */
   permissionOverrides: Record<string, boolean>;
   employeeId: string | null;
+  /** The person's access (micro features of CashFlow). */
+  subject: AccessSubject;
   mustChangePassword: boolean;
   createdAt: Date;
   lastLoginAt: Date | null;
@@ -172,6 +176,7 @@ export async function getFmsUserForAccount(adminId: ObjectId): Promise<CurrentFm
     allRoles: user.roles ?? [],
     permissionOverrides: user.permissionOverrides ?? {},
     employeeId: user.employeeId ?? null,
+    subject: subjectFromRow(user as never),
     mustChangePassword: user.mustChangePassword === true,
     createdAt: user.createdAt,
     lastLoginAt: user.lastLoginAt,
@@ -245,7 +250,7 @@ export async function changeOwnFmsPassword(
 export { FMS_ROLES };
 
 /** Page guard for a section of FMS: the signed-in user when `allowed(user)`, else back to the FMS home (or sign-in). */
-export async function requireFmsPage(allowed: (user: { roles: readonly string[]; permissionOverrides?: Record<string, boolean> | null }) => boolean): Promise<CurrentFmsUser> {
+export async function requireFmsPage(allowed: (user: CurrentFmsUser) => boolean): Promise<CurrentFmsUser> {
   const user = await getCurrentFmsUser();
   if (!user) redirect("/cashflow-ai/login");
   if (!allowed(user)) redirect("/cashflow-ai");

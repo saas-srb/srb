@@ -3,7 +3,9 @@ import { panelUnread } from "@/lib/notify";
 import { runLmsSweep } from "@/lib/notify/sweeps";
 import { redirect } from "next/navigation";
 import { getCurrentLmsUser } from "@/lib/lms-auth";
-import { hasLmsAccess, lmsCan, LMS_PERMISSIONS } from "@/lib/lms-roles";
+import { hasLmsAccess } from "@/lib/lms-roles";
+import { lmsCan } from "@/lib/lms-auth";
+import { microOf } from "@/lib/access/micro";
 import { LmsAccessProvider } from "@/components/products/dealflow-ai/LmsAccess";
 import LmsSidebarShell from "@/components/products/dealflow-ai/LmsSidebarShell";
 import LmsTopbar from "@/components/products/dealflow-ai/LmsTopbar";
@@ -25,7 +27,7 @@ export default async function ProtectedLmsLayout({ children }: { children: React
   await runLmsSweep().catch(() => {});
   const unread = await panelUnread(lmsUser.id, "lms").catch(() => 0);
 
-  const allowed = LMS_PERMISSIONS.filter((p) => lmsCan(lmsUser, p));
+  const allowed = microOf("dealflow-ai").map((m) => m.key.slice("dealflow-ai.".length)).filter((k) => lmsCan(lmsUser, k));
 
   return (
     <LmsAccessProvider allowed={allowed}>

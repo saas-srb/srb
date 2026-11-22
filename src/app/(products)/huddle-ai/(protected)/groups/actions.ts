@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getCurrentChatUser } from "@/lib/messenger-auth";
+import { chatCan } from "@/lib/messenger-access";
 import { createChannel } from "@/lib/products/huddle-ai/channels";
 import { recordAudit } from "@/lib/products/huddle-ai/audit";
 
@@ -19,6 +20,7 @@ export async function createGroupAction(input: {
 }): Promise<{ error: string } | never> {
   const user = await getCurrentChatUser();
   if (!user) redirect("/huddle-ai/login");
+  if (!chatCan(user, "groups.create")) return { error: "You don't have permission to create group chats." };
 
   const name = input.name.trim();
   if (name.length < 2) return { error: "Give the group a name." };

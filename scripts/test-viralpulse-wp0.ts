@@ -280,7 +280,7 @@ async function main() {
     d.jobs[2] = { ...d.jobs[2], health: "overdue", healthNote: "It should have run at 00:00 UTC and did not." };
     let h = buildHealth(d);
     assert.match(item(h, "cron.viralpulse-publisher").detail, /Paused/);
-    assert.match(item(h, "cron.viralpulse-ugc").fix ?? "", /CRON_SECRET/);
+    assert.match(item(h, "cron.viralpulse-ugc").fix ?? "", /scheduled jobs are running/); // plain wording: the hint never names an environment variable
     d.jobs = [];
     h = buildHealth(d);
     assert.equal(item(h, "cron.viralpulse-publisher").status, "attention");

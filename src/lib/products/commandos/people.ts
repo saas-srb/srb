@@ -3,11 +3,11 @@ import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/mongodb";
 import { accessToLegacy, baselineFeatures, completeAccess, legacyToAccess } from "@/lib/access/adapter";
 import { normalizeAccess } from "@/lib/access/can";
-import { CATALOGUE, PRODUCTS } from "@/lib/access/catalogue";
+import { CATALOGUE, PRODUCTS, isAccessGate } from "@/lib/access/catalogue";
 import { completeWith, WORKSPACE_PRODUCT } from "@/lib/access/complete";
 import type { AccessMap } from "@/lib/access/types";
 import { buildAccessUi } from "@/lib/access/ui-model";
-import { microByKey, isFinished, microOf } from "@/lib/access/micro";
+import { microByKey, isFinished, microOf, FINISHED_PRODUCTS } from "@/lib/access/micro";
 import { withMicros } from "@/lib/access/micro/derive";
 import { summarizeAccess, productCount, type ProductSummary } from "@/lib/access/summary";
 import { listDepartments, listDesignations, listTeams } from "@/lib/platform/organization";
@@ -92,6 +92,13 @@ export function splitPicked(input: AccessMap): AccessMap {
     const explained = new Set(PRODUCTS.filter((q) => q !== product && Object.keys(real[q] ?? {}).length > 0).flatMap((q) => baselineFeatures(q)));
     if (keys.some((k) => !explained.has(k))) used.add(product);
   }
+  // A finished product whose ordinary people hold nothing but the product tier (Huddle: every employee) is still "used" when they hold one of its
+  // non-baseline features: without this their whole access would not be shown as picked.
+  for (const product of FINISHED_PRODUCTS) {
+    if (used.has(product) || product === WORKSPACE_PRODUCT || !Object.keys(tiers[product] ?? {}).length) continue;
+    const tierKeys = new Set(CATALOGUE.filter((e) => e.product === product && e.kind === "tier").map((e) => e.key));
+    if (microOf(product).some((m) => access[product]?.[m.key] && !m.baseline && m.legacy.every((l) => tierKeys.has(l)))) used.add(product);
+  }
   const picked: AccessMap = {};
   for (const product of used) {
     const own = new Set(baselineFeatures(product));
@@ -99,7 +106,7 @@ export function splitPicked(input: AccessMap): AccessMap {
     if (isFinished(product)) { for (const m of microOf(product)) { const held = access[product]?.[m.key]; if (held) (picked[product] ??= {})[m.key] = held; } continue; }
     for (const k of Object.keys(real[product] ?? {})) (picked[product] ??= {})[k] = real[product][k];
     void own;
-    for (const [k, v] of Object.entries(tiers[product] ?? {})) if (!/^[a-z]+\.has\w*Access$/.test(k)) (picked[product] ??= {})[k] = v;
+    for (const [k, v] of Object.entries(tiers[product] ?? {})) if (!isAccessGate(k.split(".")[1] ?? "")) (picked[product] ??= {})[k] = v;
   }
   return picked;
 }

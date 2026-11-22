@@ -1,3 +1,5 @@
+import { lockedUnless } from "@/lib/products/contractflow-ai/gate";
+import { can } from "@/lib/products/contractflow-ai/viewer";
 import PanelTabs from "@/components/platform/panel/PanelTabs";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { redirect } from "next/navigation";
@@ -8,7 +10,6 @@ import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getViewer } from "@/lib/products/contractflow-ai/viewer";
-import { lpmsCan } from "@/lib/lpms-roles";
 import { listDocuments } from "@/lib/products/contractflow-ai/documents";
 import { LPMS_STATUSES } from "@/lib/products/contractflow-ai/constants";
 
@@ -29,10 +30,12 @@ export default async function LpmsDocumentsPage({
 }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/contractflow-ai/login");
+  const locked = lockedUnless(viewer, "archive.view", "Archive");
+  if (locked) return locked;
 
   const sp = await searchParams;
   const ctx = { roles: viewer.roles, permissionOverrides: viewer.overrides };
-  const canCreate = lpmsCan(ctx, "CREATE");
+  const canCreate = can(viewer, "documents.create");
 
   const { items, total } = await listDocuments(
     {

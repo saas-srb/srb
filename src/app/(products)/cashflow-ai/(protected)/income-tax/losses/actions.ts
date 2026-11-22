@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
-import { canManageCompliance } from "@/lib/fms-roles";
+import { canManageCompliance } from "@/lib/fms-access";
 import { removeLoss, saveLoss } from "@/lib/products/cashflow-ai/income-tax/losses-store";
 
 type Result = { ok: true } | { ok: false; error: string };

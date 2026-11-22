@@ -56,7 +56,7 @@ export async function markNotificationsReadAction(ids?: string[]) {
 // ── Categories ─────────────────────────────────────────────────────────────
 
 export async function saveCategoryAction(kind: CategoryKind, id: string | null, input: { name: string; description: string }) {
-  return run(["MANAGE_SETTINGS"], async (v) => {
+  return run(["settings.manage"], async (v) => {
     const c = id ? await updateCategory(id, input, v.userId) : await createCategory(kind, input, v.userId);
     await recordAudit({ ...who(v), action: id ? "update" : "create", entity: "category", entityId: c._id, entityLabel: c.name, summary: `${kind} category` });
     return { id: c._id };
@@ -64,7 +64,7 @@ export async function saveCategoryAction(kind: CategoryKind, id: string | null, 
 }
 
 export async function deleteCategoryAction(id: string) {
-  return run(["MANAGE_SETTINGS"], async (v) => {
+  return run(["settings.manage"], async (v) => {
     const c = await deleteCategory(id, v.userId);
     await recordAudit({ ...who(v), action: "delete", entity: "category", entityId: id, entityLabel: c.name, summary: `${c.kind} category` });
     return {};
@@ -76,7 +76,7 @@ export async function deleteCategoryAction(id: string) {
 const Q_FIELDS = ["type", "prompt", "categoryId", "subject", "topic", "difficulty", "marks", "negativeMarks", "status", "tags"];
 
 export async function saveQuestionAction(id: string | null, raw: Record<string, unknown>) {
-  return run([id ? "EDIT_QUESTION" : "CREATE_QUESTION"], async (v) => {
+  return run([id ? "questions.edit" : "questions.create"], async (v) => {
     const input = parseQuestionInput(raw);
     if (!id) {
       const q = await createQuestion(input, v.userId);
@@ -94,7 +94,7 @@ export async function saveQuestionAction(id: string | null, raw: Record<string, 
 
 /** Bulk creation: several questions from one form. Each row is validated independently. */
 export async function bulkCreateQuestionsAction(rows: Record<string, unknown>[]) {
-  return run(["CREATE_QUESTION"], async (v) => {
+  return run(["questions.create"], async (v) => {
     const list = rows.slice(0, 50);
     const errors: { row: number; error: string }[] = [];
     const inputs = list.map((r, i) => {
@@ -117,7 +117,7 @@ export async function bulkCreateQuestionsAction(rows: Record<string, unknown>[])
 }
 
 export async function duplicateQuestionAction(id: string) {
-  return run(["CREATE_QUESTION"], async (v) => {
+  return run(["questions.create"], async (v) => {
     const q = await duplicateQuestion(id, v.userId);
     await recordAudit({ ...who(v), action: "duplicate", entity: "question", entityId: q._id, entityLabel: q.code, summary: `Copied from ${id}` });
     return { id: q._id };
@@ -125,7 +125,7 @@ export async function duplicateQuestionAction(id: string) {
 }
 
 export async function setQuestionStatusAction(id: string, status: "active" | "draft" | "archived") {
-  return run(["EDIT_QUESTION"], async (v) => {
+  return run(["questions.edit"], async (v) => {
     const q = await setQuestionStatus(id, status, v.userId);
     await recordAudit({ ...who(v), action: status === "archived" ? "archive" : status === "active" ? "restore" : "update", entity: "question", entityId: id, entityLabel: q.code, summary: `Status → ${status}` });
     return {};
@@ -133,7 +133,7 @@ export async function setQuestionStatusAction(id: string, status: "active" | "dr
 }
 
 export async function deleteQuestionAction(id: string) {
-  return run(["DELETE_QUESTION"], async (v) => {
+  return run(["questions.delete"], async (v) => {
     const q = await deleteQuestion(id, v.userId);
     await recordAudit({ ...who(v), action: "delete", entity: "question", entityId: id, entityLabel: q.code, summary: q.prompt.slice(0, 80) });
     return {};
@@ -143,7 +143,7 @@ export async function deleteQuestionAction(id: string) {
 // ── Tests ──────────────────────────────────────────────────────────────────
 
 export async function createTestAction(raw: Record<string, unknown>) {
-  return run(["CREATE_TEST"], async (v) => {
+  return run(["tests.create"], async (v) => {
     const t = await createTest(parseTestInfo(raw), v.userId);
     await recordAudit({ ...who(v), action: "create", entity: "test", entityId: t._id, entityLabel: t.name, summary: `${t.code} · ${t.testType}` });
     return { id: t._id };
@@ -153,7 +153,7 @@ export async function createTestAction(raw: Record<string, unknown>) {
 const INFO_FIELDS = ["name", "testType", "categoryId", "subject", "difficulty", "language", "tags", "departmentIds", "designationIds"];
 
 export async function saveTestInfoAction(id: string, raw: Record<string, unknown>) {
-  return run(["EDIT_TEST"], async (v) => {
+  return run(["tests.edit"], async (v) => {
     const info = parseTestInfo(raw);
     const { before, after } = await updateTest(id, info, v.userId);
     await recordAudit({ ...who(v), action: "update", entity: "test", entityId: id, entityLabel: after.name, summary: diffSummary(before as unknown as Record<string, unknown>, after as unknown as Record<string, unknown>, INFO_FIELDS) ?? "Information saved" });
@@ -164,7 +164,7 @@ export async function saveTestInfoAction(id: string, raw: Record<string, unknown
 const CONFIG_FIELDS = ["durationMinutes", "autoSubmit", "startAt", "endAt", "maxAttempts", "allowRetake", "questionsPerAttempt", "randomizeQuestions", "randomizeOptions", "negativeMarking", "passMode", "passingPercentage", "passingMarks", "allowNavigation", "allowBack", "allowReview", "resultRelease", "resultDetail", "showExplanations", "attemptScoring", "security"];
 
 export async function saveTestConfigAction(id: string, raw: Record<string, unknown>) {
-  return run(["EDIT_TEST"], async (v) => {
+  return run(["tests.edit"], async (v) => {
     const config = parseTestConfig(raw);
     const { before, after } = await updateTest(id, { config }, v.userId);
     await recordAudit({ ...who(v), action: "update", entity: "test", entityId: id, entityLabel: after.name, summary: `Configuration: ${diffSummary(before.config as unknown as Record<string, unknown>, config as unknown as Record<string, unknown>, CONFIG_FIELDS) ?? "no changes"}` });
@@ -173,7 +173,7 @@ export async function saveTestConfigAction(id: string, raw: Record<string, unkno
 }
 
 export async function saveTestSectionsAction(id: string, rawSections: unknown) {
-  return run(["EDIT_TEST"], async (v) => {
+  return run(["tests.edit"], async (v) => {
     const sections = parseSections(rawSections);
     const { after } = await updateTest(id, { sections }, v.userId);
     const summary = await summarizeTest(after);
@@ -185,7 +185,7 @@ export async function saveTestSectionsAction(id: string, rawSections: unknown) {
 /** Live builder preview — no write. */
 export async function previewSectionsAction(id: string, rawSections: unknown): Promise<{ ok: true; summary: TestSummary } | { ok: false; error: string }> {
   return run(
-    ["VIEW_TESTS"],
+    ["tests.view"],
     async () => {
       const t = await requireTest(id);
       return { summary: await summarizeTest({ config: t.config, sections: parseSections(rawSections) }) };
@@ -195,7 +195,7 @@ export async function previewSectionsAction(id: string, rawSections: unknown): P
 }
 
 export async function publishTestAction(id: string) {
-  return run(["PUBLISH_TEST"], async (v) => {
+  return run(["tests.publish"], async (v) => {
     const t = await publishTest(id, v.userId);
     await recordAudit({ ...who(v), action: "publish", entity: "test", entityId: id, entityLabel: t.name, summary: t.code });
     return {};
@@ -203,7 +203,7 @@ export async function publishTestAction(id: string) {
 }
 
 export async function closeTestAction(id: string) {
-  return run(["PUBLISH_TEST"], async (v) => {
+  return run(["tests.publish"], async (v) => {
     const t = await setTestStatus(id, "closed", v.userId);
     await recordAudit({ ...who(v), action: "close", entity: "test", entityId: id, entityLabel: t.name, summary: "Closed — no new attempts" });
     return {};
@@ -211,7 +211,7 @@ export async function closeTestAction(id: string) {
 }
 
 export async function archiveTestAction(id: string, archive: boolean) {
-  return run(["ARCHIVE_TEST"], async (v) => {
+  return run(["tests.archive"], async (v) => {
     const t = await setTestStatus(id, archive ? "archived" : "draft", v.userId);
     await recordAudit({ ...who(v), action: archive ? "archive" : "restore", entity: "test", entityId: id, entityLabel: t.name, summary: archive ? "Archived" : "Restored as draft" });
     return {};
@@ -219,7 +219,7 @@ export async function archiveTestAction(id: string, archive: boolean) {
 }
 
 export async function duplicateTestAction(id: string) {
-  return run(["CREATE_TEST"], async (v) => {
+  return run(["tests.create"], async (v) => {
     const t = await duplicateTest(id, v.userId);
     await recordAudit({ ...who(v), action: "duplicate", entity: "test", entityId: t._id, entityLabel: t.name, summary: `Copied from ${id}` });
     return { id: t._id };
@@ -227,7 +227,7 @@ export async function duplicateTestAction(id: string) {
 }
 
 export async function deleteTestAction(id: string) {
-  return run(["DELETE_TEST"], async (v) => {
+  return run(["tests.delete"], async (v) => {
     const t = await deleteTest(id, v.userId);
     await recordAudit({ ...who(v), action: "delete", entity: "test", entityId: id, entityLabel: t.name, summary: t.code });
     return {};
@@ -238,7 +238,7 @@ export async function deleteTestAction(id: string) {
 
 export async function previewAssignmentAction(raw: Record<string, unknown>): Promise<{ ok: true; rows: PreviewRow[]; newCount: number; duplicateCount: number } | { ok: false; error: string }> {
   return run(
-    ["ASSIGN_TEST"],
+    ["assignments.assign"],
     async () => {
       const input = parseAssignInput({ ...raw, testId: raw.testId || "x" });
       const r = await previewAssignment({ testId: String(raw.testId ?? ""), targets: input.targets, applicantStatuses: input.applicantStatuses });
@@ -249,7 +249,7 @@ export async function previewAssignmentAction(raw: Record<string, unknown>): Pro
 }
 
 export async function assignTestAction(raw: Record<string, unknown>) {
-  return run(["ASSIGN_TEST"], async (v) => {
+  return run(["assignments.assign"], async (v) => {
     const input = parseAssignInput(raw);
     const dir = await getDirectory();
     const targetSummary = input.targets.map((t) => `${labelOf(TARGET_TYPES, t.type)}: ${describeTarget(t, dir)}`).join(" · ");
@@ -273,7 +273,7 @@ export async function assignTestAction(raw: Record<string, unknown>) {
 }
 
 export async function resyncDispatchAction(id: string) {
-  return run(["ASSIGN_TEST"], async (v) => {
+  return run(["assignments.assign"], async (v) => {
     const { dispatch, created } = await resyncDispatch(id, v.userId);
     const test = await requireTest(dispatch.testId);
     await recordAudit({ ...who(v), action: "resync", entity: "assignment", entityId: id, entityLabel: test.name, testId: test._id, summary: `${created.length} newly eligible people assigned` });
@@ -284,7 +284,7 @@ export async function resyncDispatchAction(id: string) {
 }
 
 export async function updateAssignmentAction(id: string, raw: Record<string, unknown>) {
-  return run(["EDIT_ASSIGNMENT"], async (v) => {
+  return run(["assignments.edit"], async (v) => {
     const { before, after } = await updateAssignment(id, raw, v.userId);
     await recordAudit({
       ...who(v),
@@ -300,7 +300,7 @@ export async function updateAssignmentAction(id: string, raw: Record<string, unk
 }
 
 export async function cancelAssignmentAction(id: string, reason: string) {
-  return run(["CANCEL_ASSIGNMENT"], async (v) => {
+  return run(["assignments.cancel"], async (v) => {
     const a = await cancelAssignment(id, String(reason ?? ""), v.userId);
     await recordAudit({ ...who(v), action: "cancel", entity: "assignment", entityId: id, entityLabel: a.candidateLabel, testId: a.testId, summary: reason || null });
     return {};
@@ -311,9 +311,9 @@ export async function cancelAssignmentAction(id: string, reason: string) {
 
 export async function markAnswerAction(attemptId: string, index: number, marks: number, comment: string) {
   return run(
-    ["EVALUATE_ANSWERS", "OVERRIDE_MARKS"],
+    ["answers.evaluate", "answers.override"],
     async (v) => {
-      await markItem(attemptId, index, { marks, comment }, { id: v.userId, email: v.email }, { override: can(v, "OVERRIDE_MARKS") });
+      await markItem(attemptId, index, { marks, comment }, { id: v.userId, email: v.email }, { override: can(v, "answers.override") });
       return {};
     },
     { any: true }
@@ -321,14 +321,14 @@ export async function markAnswerAction(attemptId: string, index: number, marks: 
 }
 
 export async function publishResultsAction(attemptIds: string[]) {
-  return run(["PUBLISH_RESULTS"], async (v) => {
+  return run(["results.publish"], async (v) => {
     const r = await publishResults(attemptIds.filter((x) => typeof x === "string").slice(0, 500), { id: v.userId, email: v.email });
     return r;
   });
 }
 
 export async function grantAttemptAction(assignmentId: string) {
-  return run(["EDIT_ASSIGNMENT"], async (v) => {
+  return run(["assignments.edit"], async (v) => {
     const a = await requireAssignment(assignmentId);
     await updateAssignment(assignmentId, { extraAttempts: (a.extraAttempts ?? 0) + 1 }, v.userId);
     await recordAudit({ ...who(v), action: "assignment_update", entity: "assignment", entityId: assignmentId, entityLabel: a.candidateLabel, testId: a.testId, summary: "Granted one extra attempt" });
@@ -339,14 +339,14 @@ export async function grantAttemptAction(assignmentId: string) {
 // ── Certificates ───────────────────────────────────────────────────────────
 
 export async function generateCertificateAction(assignmentId: string) {
-  return run(["GENERATE_CERTIFICATE"], async (v) => {
+  return run(["certificates.generate"], async (v) => {
     const c = await generateCertificate(assignmentId, { id: v.userId, email: v.email });
     return { id: c._id };
   });
 }
 
 export async function revokeCertificateAction(id: string, revoke: boolean, reason: string) {
-  return run(["REVOKE_CERTIFICATE"], async (v) => {
+  return run(["certificates.revoke"], async (v) => {
     await setRevoked(id, revoke, String(reason ?? ""), { id: v.userId, email: v.email });
     return {};
   });
@@ -355,7 +355,7 @@ export async function revokeCertificateAction(id: string, revoke: boolean, reaso
 // ── Settings ───────────────────────────────────────────────────────────────
 
 export async function saveSettingsAction(raw: Record<string, unknown>) {
-  return run(["MANAGE_SETTINGS"], async (v) => {
+  return run(["settings.manage"], async (v) => {
     const { before, after } = await saveOtsSettings(raw, v.userId);
     await recordAudit({ ...who(v), action: "settings", entity: "settings", entityId: "global", entityLabel: "EvalIQ settings", summary: diffSummary(before as unknown as Record<string, unknown>, after as unknown as Record<string, unknown>, ["organizationName", "certificateNumberFormat", "signatoryName", "signatoryTitle", "defaultValidityMonths", "reminderHoursBeforeDue", "graceSeconds", "evaluatorUserIds"]) });
     return {};
@@ -378,7 +378,7 @@ export interface QuestionLite {
 
 export async function searchQuestionsAction(f: { q?: string; type?: string; difficulty?: string; categoryId?: string; subject?: string; exclude?: string[] }) {
   return run(
-    ["VIEW_QUESTIONS"],
+    ["questions.view"],
     async () => {
       const r = await listQuestions({ q: f.q, type: f.type, difficulty: f.difficulty, categoryId: f.categoryId, subject: f.subject, status: "active", pageSize: 60 });
       const ex = new Set(f.exclude ?? []);

@@ -26,7 +26,7 @@ export default function DeleteButton({
   /** When provided (e.g. from the row Sheet), deletes in place instead of redirecting. */
   onDeleted?: () => void;
 }) {
-  const allowed = useLmsCan("MANAGE_CAREERS");
+  const allowed = useLmsCan("careers.manage");
   const [isPending, startTransition] = useTransition();
 
   function handleDelete() {

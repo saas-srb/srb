@@ -3,7 +3,8 @@
  * Only pages that exist are listed. The old authoring pages (templates, makers, workflows, signature requests, approvals) stay off the sidebar by design.
  */
 
-export interface CfNavFlags { settings: boolean }
+/** Which pages the person may open (micro features): the menu shows an item only when they hold the feature of that page. */
+export interface CfNavFlags { settings: boolean; dashboard?: boolean; documents?: boolean; archive?: boolean }
 export type CfNavIcon = "dashboard" | "documents" | "sop" | "kpi" | "archive" | "settings";
 export type CfNavGroupKey = "overview" | "track" | "governance";
 
@@ -16,11 +17,11 @@ export const CF_NAV_GROUPS: readonly { key: CfNavGroupKey; label: string }[] = [
 ];
 
 export const CF_NAV_ITEMS: readonly CfNavItem[] = [
-  { key: "dashboard", href: "/contractflow-ai/dashboard", label: "Dashboard", icon: "dashboard", group: "overview" },
-  { key: "documents", href: "/contractflow-ai/documents", label: "Documents", icon: "documents", group: "track" },
-  { key: "sops", href: "/contractflow-ai/sops", label: "SOPs", icon: "sop", group: "track" },
-  { key: "kpis", href: "/contractflow-ai/kpis", label: "KPIs", icon: "kpi", group: "track" },
-  { key: "archive", href: "/contractflow-ai/archive", label: "Archive", icon: "archive", group: "governance" },
+  { key: "dashboard", href: "/contractflow-ai/dashboard", label: "Dashboard", icon: "dashboard", group: "overview", anyOf: ["dashboard"] },
+  { key: "documents", href: "/contractflow-ai/documents", label: "Documents", icon: "documents", group: "track", anyOf: ["documents"] },
+  { key: "sops", href: "/contractflow-ai/sops", label: "SOPs", icon: "sop", group: "track", anyOf: ["dashboard"] },
+  { key: "kpis", href: "/contractflow-ai/kpis", label: "KPIs", icon: "kpi", group: "track", anyOf: ["dashboard"] },
+  { key: "archive", href: "/contractflow-ai/archive", label: "Archive", icon: "archive", group: "governance", anyOf: ["archive"] },
   { key: "settings", href: "/contractflow-ai/settings", label: "Settings", icon: "settings", group: "governance", anyOf: ["settings"] },
 ];
 

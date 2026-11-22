@@ -1,5 +1,5 @@
 import "server-only";
-import { lpmsCan } from "@/lib/lpms-roles";
+import { can } from "@/lib/products/contractflow-ai/viewer";
 import { cfClones, cfEvents, cfRequests, cfSigners } from "@/lib/products/contractflow-ai/cf-db";
 import { canViewClone } from "@/lib/products/contractflow-ai/clones";
 import { getCatalogueMeta } from "@/lib/products/playbook-ai/catalogue/registry";
@@ -25,7 +25,7 @@ const dayMs = (s: string | null | undefined): number | null => { const m = /^(\d
 
 export function cfDashboardScope(v: LpmsViewer): { all: boolean; userId: string } {
   const ctx = { roles: v.roles, permissionOverrides: v.overrides ?? undefined };
-  return { all: lpmsCan(ctx as never, "SIGN") || lpmsCan(ctx as never, "MANAGE_DOCUMENTS"), userId: v.userId };
+  return { all: can(v, "signatures.sign") || can(v, "signatures.manage"), userId: v.userId };
 }
 
 async function ensureIndexes(): Promise<void> {
@@ -40,7 +40,7 @@ async function ensureIndexes(): Promise<void> {
 }
 
 export async function loadCfDashboard(v: LpmsViewer, range: DateRange, filters: CfFilters = EMPTY_CF_FILTERS, now = Date.now()): Promise<CfDashboardData | null> {
-  if (!lpmsCan({ roles: v.roles, permissionOverrides: v.overrides ?? undefined } as never, "VIEW")) return null;
+  if (!can(v, "documents.view")) return null;
   const scope = cfDashboardScope(v);
   const key = `${v.userId}|${scope.all}|${range.key}|${range.from}|${range.to}|${cfFiltersKey(filters)}`;
   const hit = cache.get(key);

@@ -304,3 +304,10 @@ Rule: a popup that is a FORM (the user fills in or chooses something) is a page,
 - Build log 2026-11-17 (2): micro-level access framework + CyberVault finished; test:micro-coverage and test:cybervault-access added.
 - Build log 2026-11-17 (3): RankMax finished on the micro framework.
 - Build log 2026-11-17 (4): AgentOS finished on micro features; P8-C AgentOS done.
+- Build log 2026-11-22: EvalIQ finished on micro features.
+- Build log 2026-11-22 (2): ViralPulse finished on micro features.
+- Build log 2026-11-22 (3): ContractFlow finished on micro features.
+- Build log 2026-11-22 (4): SiteCraft and DealFlow finished on micro features.
+- 2026-11-22 CashFlow COMPLETE (see ledger).
+- 2026-11-23 Huddle COMPLETE (see ledger).
+- 2026-11-23 TalentOS shared pieces + Leave module (staged).

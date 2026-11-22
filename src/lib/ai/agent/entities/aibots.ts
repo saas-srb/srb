@@ -1,8 +1,8 @@
 import "server-only";
 import * as A from "@/app/(products)/agentos/(protected)/actions";
-import { aibotsCan, type AibotsPermission } from "@/lib/aibots-roles";
+type AibotsPermission = string;
+import { microLegacy, microAny, microOr, featureScope as microFeatureScope, holds } from "@/lib/ai/agent/micro-gate";
 import { getBot } from "@/lib/products/agentos/bots";
-import { getViewer as aibotsViewer, can as viewerCan } from "@/lib/products/agentos/viewer";
 import { getSettings } from "@/lib/products/agentos/settings";
 import { viaAction, f, str, fail } from "@/lib/ai/agent/entities/helpers";
 import type { ActionDef, AgentUser, EntityDef, FieldDef, Json } from "@/lib/ai/agent/types";
@@ -12,14 +12,13 @@ import type { ActionDef, AgentUser, EntityDef, FieldDef, Json } from "@/lib/ai/a
  * and chats, and the product settings — through the product's own actions.
  */
 
-const ctx = (u: AgentUser) => ({ roles: u.roles, permissionOverrides: u.permissionOverrides });
-const can = (p: AibotsPermission) => (u: AgentUser) => aibotsCan(ctx(u), p);
+const can = microLegacy("aibots");
 /** The offer list above is only a hint: what the agent can read is decided here by the person's micro features, on the server. */
-const featureScope = (key: string) => async (): Promise<Json | null> => { const v = await aibotsViewer().catch(() => null); return v && viewerCan(v, key) ? {} : { _id: "__none__" }; };
+const featureScope = (k: string) => microFeatureScope("agentos." + k);
 const soft = { deletedAt: null };
 
 export const AIBOTS_ENTITIES: EntityDef[] = [
-  { key: "aibots.bot", panel: "aibots", label: "AI bot", description: "Assistants built here: name, category, model, instructions, status, who can use them.", collection: "aibots_bots", scope: featureScope("agents.view"), idType: "string", baseFilter: soft, titleField: "name", search: ["name", "category", "description"], read: "any", allowRead: can("USE_BOT") },
+  { key: "aibots.bot", panel: "aibots", label: "AI bot", description: "Assistants built here: name, category, model, instructions, status, who can use them.", collection: "aibots_bots", scope: featureScope("agents.view"), idType: "string", baseFilter: soft, titleField: "name", search: ["name", "category", "description"], read: "any", allowRead: microAny("agentos.agents.view") },
   { key: "aibots.file", panel: "aibots", label: "Knowledge file", description: "Files that teach a bot (title, category, enabled, processing status).", collection: "aibots_files", scope: featureScope("knowledge.manage"), idType: "string", baseFilter: soft, titleField: "title", search: ["title", "category"], read: "staff", allowRead: can("MANAGE_KB") },
   { key: "aibots.chat", panel: "aibots", label: "Chat", description: "Conversations with bots. People see their own; auditors with permission see everyone's.", collection: "aibots_chats", idType: "string", baseFilter: soft, titleField: "title", search: ["title", "userEmail"], read: "staff", allowRead: can("VIEW_CHATS"), self: (u) => ({ userId: u.id }), hide: ["messages"] },
   { key: "aibots.run", panel: "aibots", label: "Usage run", description: "Each bot reply with model, tokens and estimated cost.", collection: "aibots_runs", scope: featureScope("chats.all"), idType: "string", read: "staff", allowRead: can("VIEW_CHATS") },
