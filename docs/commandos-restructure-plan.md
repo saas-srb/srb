@@ -171,3 +171,19 @@ All: dry-run by default, `--apply`, `--revert`, `--id`, refuse a database that i
 - Billing details (the GST invoice-to record of the subscription) still hold their own legal name and GSTIN; they are read as a fallback by the migration but not yet prefilled from the identity.
 - The AgentOS ElevenLabs post-call webhook secret stays with the AgentOS call routing (a per-address signing secret, not an account key).
 - `defaultCurrency` in SprintOS, Cohort AI and SpendIQ stays a declared product override of the company currency.
+
+## 10. Status 2026-11-24 (after the People & access program and the white-label rule)
+Evidence is a test name; "not verified" means no real browser or sign-in was used.
+
+| Req | Status | Evidence |
+|---|---|---|
+| R1 Sidebar regroup | Done | `test:restructure`, `test:shell` |
+| R2-R4 One organization service (departments, teams, designations) | Done; migration tools exist, never run on real data | `test:organization`, dry-run mode in `data-archive` / migrations (needs an owner-supplied throwaway copy to apply) |
+| R5-R8 People list, 3-step create, edit, preview, bulk, matrix | Done in code | `test:people` (all create/edit/refuse/seat/status/invitation cases), `test:access-bundles`; matrix has search, accordions, only-granted, per-area and per-product bulk (read in `AccessMatrix.tsx`; usability at 300+ features not clicked in a browser) |
+| R9, R10 Same shell for everyone, items locked by access | Done in code | `test:shell` (nav parity over every product preset), `test:access-sweep` (runtime fake sessions over every nav item) |
+| R11 Server enforcement in every product | Done for all 16 micro products and the Workspace menus | `test:micro-coverage` (every page/route/action mapped), `test:guard-sweep` (569 files), `test:access-sweep`, per-product `test:*-access`, `test:no-legacy-role-checks` |
+| R12-R27 Billing, branding, domains, system default, security, engagement, analytics | Done in code | `test:restructure`, `test:settings-cards` |
+| R28-R41 Integrations and product settings in one place | Done | `test:connections`, `test:shared-config`, `test:setup-progress`, `test:leftovers` |
+| R42, R43 Shared service by default, own account optional | Done; wording changed 2026-11-24: "Included default" (the old "Using SRB" is gone from everything a customer reads) | `test:connections`, `test:white-label` |
+| White label (new) | Done in code; see `docs/white-label.md` | `test:white-label` |
+| Not done | (a) migrations apply on real data (waiting for a throwaway copy); (b) real-browser checks of every screen; (c) FAQ/docs text under `lib/platform/saas` still names the platform (marketing only, allowlisted); (d) mobile layout of People & access only checked in dev-harness screenshots at 390px | |

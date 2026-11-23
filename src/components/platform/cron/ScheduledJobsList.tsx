@@ -8,7 +8,7 @@ import type { CompanyJobState, CompanyJobView } from "@/lib/cron/company-view";
 const STATE: Record<CompanyJobState, { label: string; tone: string }> = {
   on_schedule: { label: "On schedule", tone: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" },
   delayed: { label: "Delayed", tone: "bg-amber-500/15 text-amber-700 dark:text-amber-300" },
-  paused: { label: "Paused by SelfRun", tone: "bg-muted text-muted-foreground" },
+  paused: { label: "Paused", tone: "bg-muted text-muted-foreground" },
   not_yet: { label: "Not run yet", tone: "bg-muted text-muted-foreground" },
 };
 const local = (iso: string | null) => (iso ? new Date(iso).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "—");
@@ -58,7 +58,7 @@ function JobRow({ j, open, onToggle, productName }: { j: CompanyJobView; open: b
         <td className="px-3 py-3">
           <button type="button" onClick={onToggle} aria-expanded={open} className="flex items-start gap-1.5 text-left">
             {open ? <ChevronDown className="mt-0.5 size-4 shrink-0" /> : <ChevronRight className="mt-0.5 size-4 shrink-0" />}
-            <span><span className="block font-medium">{j.name}</span><span className="text-xs text-muted-foreground">{productName} · {j.scope === "each company" ? "every company" : "SelfRun"}</span></span>
+            <span><span className="block font-medium">{j.name}</span><span className="text-xs text-muted-foreground">{productName} · {j.scope === "each company" ? "every company" : "platform"}</span></span>
           </button>
         </td>
         <td className="px-3 py-3"><span className="block">{j.when}</span>{j.frequent && <span className="text-xs text-muted-foreground">checks very often</span>}</td>

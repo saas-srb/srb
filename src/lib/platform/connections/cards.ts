@@ -9,9 +9,9 @@ export type CardStatus = "ready" | "using_srb" | "using_own" | "srb_unavailable"
 
 export const STATUS_LABEL: Record<CardStatus, string> = {
   ready: "Ready",
-  using_srb: "Using SRB",
+  using_srb: "Included default",
   using_own: "Using your own",
-  srb_unavailable: "Not available from SRB, add your own",
+  srb_unavailable: "No included default, add your own",
   not_set_up: "Not set up",
   needs_attention: "Needs attention",
 };

@@ -375,8 +375,8 @@ function pdfDocument(c: Ctx) {
       title={p.meta.title}
       author={p.meta.author}
       subject={p.meta.subject}
-      creator="SelfRun Playbook"
-      producer="SelfRun Playbook"
+      creator="Playbook"
+      producer="Playbook"
       language="en-IN"
       creationDate={new Date(`${p.meta.dateIso}T00:00:00Z`)}
       modificationDate={new Date(`${p.meta.dateIso}T00:00:00Z`)}

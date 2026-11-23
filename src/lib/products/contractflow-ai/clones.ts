@@ -1,5 +1,5 @@
-import { pbCan } from "@/lib/playbook-access";
 import "server-only";
+import { pbCan } from "@/lib/playbook-access";
 import { can } from "@/lib/products/contractflow-ai/viewer";
 import { randomUUID } from "node:crypto";
 import { getDb } from "@/lib/mongodb";

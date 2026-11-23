@@ -73,7 +73,7 @@ export async function gatherFacts(): Promise<SetupFacts> {
       const m = new Map(managed.map((x) => [x.key, x]));
       out.razorpay = m.get("razorpay")?.connected ? { state: "done", detail: "Razorpay is connected." } : { state: "todo", detail: "Razorpay is not connected." };
       out.webhooks = m.get("webhooks")?.connected ? { state: "done", detail: "A webhook automation is active." } : { state: "todo", detail: "No webhook automation yet." };
-      out.storage = { state: "done", detail: "SRB's storage is used. Nothing to set up." };
+      out.storage = { state: "done", detail: "The included storage is used. Nothing to set up." };
       out["dealflow-sync"] = { state: "done", detail: "The lead inbox and careers page are built in." };
       out["ai-chatbot"] = out.openai ?? { state: "todo", detail: "Connect an AI account first." };
       out["social-accounts"] = ["meta", "google", "linkedin", "x"].some((k) => out[k]?.state === "done") ? { state: "done", detail: "A social app is connected." } : { state: "todo", detail: "No social app is connected." };

@@ -219,7 +219,7 @@ T("products and product settings: only products that are on; saved settings or a
   assert.equal(state("first:hrms", { ...f, usage: { hrms: 0 } }).status, "todo");
   assert.equal(state("products:choose", { ...f, onboarding: { completedSteps: [] } }).status, "todo");
 });
-T("integrations: 'Using SRB' is done; own keys are done when Test passes, partial when untested or failed; only cards the products on actually use count", () => {
+T("integrations: 'Included default' is done; own keys are done when Test passes, partial when untested or failed; only cards the products on actually use count", () => {
   assert.deepEqual(connectionState("using_srb").state, "done");
   assert.deepEqual(connectionState("using_own", { testable: true, lastTestOk: true }).state, "done");
   assert.deepEqual(connectionState("using_own", { testable: true, lastTestOk: null }).state, "partial");

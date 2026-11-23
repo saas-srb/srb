@@ -31,7 +31,7 @@ export interface PanelProvider {
 }
 
 /**
- * Inside the right-hand panel: first the choice "Use SRB (recommended)" or "Use my own account" (saved per connection, SRB by default), then, for
+ * Inside the right-hand panel: first the choice "Use the included default (recommended)" or "Use my own account" (saved per connection, SRB by default), then, for
  * the own account only, the keys. Secrets are masked and never shown back. Switching to SRB keeps the saved own keys.
  */
 export default function ConnectionPanel({ p, encryptionReady }: { p: PanelProvider; encryptionReady: boolean }) {
@@ -52,7 +52,7 @@ export default function ConnectionPanel({ p, encryptionReady }: { p: PanelProvid
       if (next === "srb" || hasKeys) {
         const r = await setConnectionModeAction(p.key, next).catch(() => ({ ok: false, error: "Something went wrong. Please try again." }));
         if (!r.ok) { toast.error(r.error ?? "Could not change this."); return; }
-        toast.success(next === "srb" ? "Using SRB's account" : "Using your own account");
+        toast.success(next === "srb" ? "Using the included default" : "Using your own account");
         router.refresh();
       }
       setMode(next);
@@ -88,7 +88,7 @@ export default function ConnectionPanel({ p, encryptionReady }: { p: PanelProvid
       {!encryptionReady && <p role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">Secure storage is not available right now, so keys cannot be saved. Please try again in a few minutes, or contact support.</p>}
       <fieldset className="space-y-2" aria-label="Which account to use">
         <legend className="mb-1 text-sm font-semibold">Which account should be used?</legend>
-        {option("srb", "Use SRB (recommended)", p.canSrb ? (p.srbReady ? "SelfRun's own account. Nothing to set up and nothing to pay separately for this service." : "Not available from SRB, add your own.") : "SelfRun does not provide this service. Connect your own account.", !p.canSrb)}
+        {option("srb", "Use the included default (recommended)", p.canSrb ? (p.srbReady ? "Included with your plan. Nothing to set up and nothing to pay separately for this service." : "No included default, add your own.") : "No included default is available for this service. Connect your own account.", !p.canSrb)}
         {option("own", "Use my own account", "Your company's own keys. Used only by your workspace.")}
         {mode === "srb" && hasKeys && <p className="text-xs text-muted-foreground">Your saved keys are kept. They are used again if you switch back.</p>}
       </fieldset>

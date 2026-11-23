@@ -17,7 +17,7 @@ const STATUS: Record<PdfType["status"], { label: string; tone: string }> = {
   browser: { label: "Printed from the page", tone: "bg-primary/15 text-primary" },
   unused: { label: "Not used yet", tone: "bg-muted text-muted-foreground" },
 };
-const ROLE: Record<string, string> = { staff: "Team member", client: "Client", student: "Student", candidate: "Candidate", employee: "Employee", platform: "SelfRun staff" };
+const ROLE: Record<string, string> = { staff: "Team member", client: "Client", student: "Student", candidate: "Candidate", employee: "Employee", platform: "support staff" };
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "Never");
 const ago = (iso: string) => {
   const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60_000));
@@ -31,7 +31,7 @@ export default function PdfLibrary({ types, stats, products, disabled }: { types
   const [category, setCategory] = useState("all");
   const [status, setStatus] = useState<"all" | PdfType["status"]>("all");
   const [preview, setPreview] = useState<{ type: PdfType; variant: string } | null>(null);
-  const productName = (k: string) => (k === "account" ? "SelfRun billing" : (products[k] ?? k));
+  const productName = (k: string) => (k === "account" ? "Billing" : (products[k] ?? k));
   const productKeys = useMemo(() => [...new Set(types.map((t) => t.product))].sort((a, b) => productName(a).localeCompare(productName(b))), [types, products]); // eslint-disable-line react-hooks/exhaustive-deps
   const categories = useMemo(() => [...new Set(types.map((t) => t.category))], [types]);
   const shown = types.filter((t) => (product === "all" || t.product === product) && (category === "all" || t.category === category) && (status === "all" || t.status === status) && (!q.trim() || `${t.name} ${t.description} ${t.contains.join(" ")} ${t.variants?.map((v) => v.label).join(" ") ?? ""}`.toLowerCase().includes(q.trim().toLowerCase())));
@@ -98,7 +98,7 @@ function DocumentCard({ t, stat, productName, off, onPreview }: { t: PdfType; st
     <li data-pdf={t.key} className="rounded-2xl border border-border/60 bg-card/70">
       <div className="flex flex-wrap items-start justify-between gap-3 p-4">
         <div className="min-w-0 flex-1">
-          <p className="flex flex-wrap items-center gap-2 font-semibold"><FileText className="size-4 text-primary" /> {t.name}<span className={`rounded-full px-2 py-0.5 text-xs font-medium ${off ? "bg-destructive/15 text-destructive" : s.tone}`}>{off ? "Turned off by SelfRun" : s.label}</span><span className="rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">{productName}</span><span className="rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">{t.category}</span></p>
+          <p className="flex flex-wrap items-center gap-2 font-semibold"><FileText className="size-4 text-primary" /> {t.name}<span className={`rounded-full px-2 py-0.5 text-xs font-medium ${off ? "bg-destructive/15 text-destructive" : s.tone}`}>{off ? "Turned off by the platform" : s.label}</span><span className="rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">{productName}</span><span className="rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">{t.category}</span></p>
           <p className="mt-1 text-sm text-muted-foreground">{t.description}</p>
           {t.variants && <p className="mt-2 flex flex-wrap gap-1.5">{t.variants.map((v) => <span key={v.key} className="rounded-full border px-2 py-0.5 text-xs">{v.label}{stat?.byVariant[v.key] ? ` · ${stat.byVariant[v.key]}` : ""}</span>)}</p>}
           <p className="mt-2 text-xs text-muted-foreground">

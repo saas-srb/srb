@@ -60,7 +60,7 @@ export async function setConnectionModeAction(provider: string, mode: Connection
   const key = providerByKey.get(typeof provider === "string" ? provider : "");
   if (!key || key.fields.length === 0 || HIDDEN_FROM_COMPANIES.includes(key.key)) return { ok: false, error: "Unknown connection." };
   if (mode !== "srb" && mode !== "own") return { ok: false, error: "Unknown choice." };
-  if (mode === "srb" && !canUseSrb(key.key)) return { ok: false, error: "SelfRun does not provide this service. Connect your own account." };
+  if (mode === "srb" && !canUseSrb(key.key)) return { ok: false, error: "No included default is available for this service. Connect your own account." };
   const r = await setConnectionMode(key.key, mode, user.id);
   if (!r.ok) return { ok: false, error: "Save your own keys first." };
   await auditConnection("connection.mode_changed", key.key, user.id, { mode });

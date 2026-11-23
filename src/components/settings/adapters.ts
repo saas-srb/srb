@@ -24,7 +24,7 @@ export function integrationCardData(c: IntegrationCard): SettingsCardData {
     description: CARD_COPY[c.key] ?? c.description,
     category: c.category,
     status,
-    note: c.status === "srb_unavailable" ? "Not available from SRB, add your own." : c.status === "needs_attention" ? c.note : null,
+    note: c.status === "srb_unavailable" ? "No included default, add your own." : c.status === "needs_attention" ? c.note : null,
     meta: c.usedBy.length > 0 ? { label: "Used by", items: c.usedBy.map(plainProductName) } : null,
     icon: ICON_BY_CATEGORY[c.category] ?? "plug",
     href: c.kind === "page" && !c.testable ? (c.href ?? INTEGRATIONS_PATH) : `${INTEGRATIONS_PATH}?open=${c.key}`,

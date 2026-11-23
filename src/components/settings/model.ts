@@ -9,7 +9,7 @@ export const SETTINGS_STATUSES: SettingsStatus[] = ["ready", "using_srb", "using
 /** The words on the badge. The same on every page. */
 export const STATUS_WORDS: Record<SettingsStatus, string> = {
   ready: "Ready",
-  using_srb: "Using SRB",
+  using_srb: "Included default",
   using_own: "Using your own",
   not_set_up: "Not set up",
   needs_attention: "Needs attention",

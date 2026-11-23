@@ -1,4 +1,5 @@
 import "server-only";
+import { senderForTenant } from "@/lib/platform/white-label";
 import { emailBlockReason } from "@/lib/platform/billing/enforce";
 import { recordUsage } from "@/lib/platform/billing/usage";
 import { createConsoleEmailProvider } from "@/lib/platform/email/console";
@@ -109,11 +110,13 @@ async function deliver(input: Omit<EmailMessage, "from"> & { from?: string }): P
     // A company's own verified address wins; otherwise the platform's sender (replies still go to the company's reply-to when it set one).
     const mine = message.from || own || provider.id !== "resend" ? null : await companySenderForSending();
     const replyTo = message.replyTo ?? mine?.replyTo ?? (own ? undefined : await companyReplyTo());
-    let result = await provider.send({ ...message, from: message.from ?? own?.from ?? mine?.from ?? cfg!.from, ...(replyTo ? { replyTo } : {}) });
+    // The platform's default sender is shown to a customer under the customer's own brand name, never the platform's.
+    const platformSender = cfg ? await senderForTenant(cfg.from) : null;
+    let result = await provider.send({ ...message, from: message.from ?? own?.from ?? mine?.from ?? platformSender!, ...(replyTo ? { replyTo } : {}) });
     // The provider no longer accepts the company's domain (DNS changed, domain removed): send from the platform's sender now and mark it for a re-check.
     if (!result.ok && mine && /domain|verif|from/i.test(result.error)) {
       await markSenderFailing();
-      result = await provider.send({ ...message, from: cfg!.from, ...(replyTo ? { replyTo } : {}) });
+      result = await provider.send({ ...message, from: platformSender!, ...(replyTo ? { replyTo } : {}) });
     }
     if (!result.ok) console.error(`[email:${provider.id}] send failed`, result.error);
     else if (!own) await recordUsage("emails", 1, new Date(), { source: "Email sent", detail: `${String(message.subject ?? "").slice(0, 120)}${message.to ? ` → ${emailDomain(message.to)}` : ""}` }).catch(() => {});

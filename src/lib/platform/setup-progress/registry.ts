@@ -161,7 +161,7 @@ export const STEPS: StepDef[] = [
   ...firstSteps,
 
   // ── Integrations ──
-  connStep({ id: "integration:email", cards: ["smtp", "resend", "sendgrid"], title: "Choose how emails are sent", description: "Send emails from SRB or from your own account.", why: "Invitations, invoices and reminders are all emails.", tier: "required", minutes: 3, usedBy: ["email"], open: "smtp" }),
+  connStep({ id: "integration:email", cards: ["smtp", "resend", "sendgrid"], title: "Choose how emails are sent", description: "Send emails from the included default address or from your own account.", why: "Invitations, invoices and reminders are all emails.", tier: "required", minutes: 3, usedBy: ["email"], open: "smtp" }),
   connStep({ id: "integration:push", cards: ["vapid"], title: "Turn on push notifications", description: "Send alerts to phones and computers.", why: "People hear about approvals and reminders at once.", tier: "optional", minutes: 2, usedBy: ["push"], open: "vapid" }),
   connStep({ id: "integration:payments", cards: ["razorpay"], title: "Connect Razorpay", description: "Collect payments and pay salaries.", why: "Payment links and payroll payouts need it.", tier: "recommended", minutes: 6, usedBy: ["razorpay"], open: "razorpay" }),
   connStep({ id: "integration:ai", cards: ["openai", "ai-chatbot"], title: "Connect an AI account", description: "Power assistants, chatbots and content writing.", why: "Every AI feature in your products uses it.", tier: "required", minutes: 2, usedBy: ["openai"], open: "openai", mode: "any" }),
@@ -169,7 +169,7 @@ export const STEPS: StepDef[] = [
   connStep({ id: "integration:voice", cards: ["elevenlabs"], title: "Add a voice", description: "Give your chatbot and phone agents a natural voice.", why: "Voice makes calls and the chatbot feel human.", tier: "optional", minutes: 2, usedBy: ["elevenlabs"], open: "elevenlabs" }),
   connStep({ id: "integration:video", cards: ["gemini"], title: "Connect AI video", description: "Create AI videos with your Google Gemini account.", why: "Needed only for AI video posts.", tier: "optional", minutes: 3, usedBy: ["gemini"], open: "gemini" }),
   connStep({ id: "integration:phone", cards: ["twilio", "whatsapp-cloud"], title: "Connect phone and WhatsApp", description: "Send WhatsApp messages and make phone calls.", why: "Lead follow-up and voice agents use it.", tier: "optional", minutes: 5, usedBy: ["twilio", "whatsapp-cloud"], open: "twilio" }),
-  connStep({ id: "integration:meetings", cards: ["livekit", "turn"], title: "Check meetings and calls", description: "Run video meetings and calls.", why: "Meetings need a server; SRB provides one.", tier: "optional", minutes: 2, usedBy: ["livekit", "turn"], open: "livekit", mode: "any" }),
+  connStep({ id: "integration:meetings", cards: ["livekit", "turn"], title: "Check meetings and calls", description: "Run video meetings and calls.", why: "Meetings need a server; an included one is provided.", tier: "optional", minutes: 2, usedBy: ["livekit", "turn"], open: "livekit", mode: "any" }),
   connStep({ id: "integration:storage", cards: ["storage"], title: "Check file storage", description: "Keep uploaded files, documents and backups safe.", why: "Every upload and backup is stored there.", tier: "recommended", minutes: 1, usedBy: ["storage"], open: "storage" }),
   connStep({ id: "integration:google", cards: ["google-service-account", "pagespeed"], title: "Connect Google search data", description: "Read Search Console and Analytics and request indexing.", why: "Rankings and SEO reports come from it.", tier: "recommended", minutes: 8, usedBy: ["google-service-account", "pagespeed"], open: "google-service-account", mode: "any" }),
   connStep({ id: "integration:social", cards: ["meta", "google", "linkedin", "x", "social-accounts"], title: "Connect your social apps", description: "Publish to Facebook, Instagram, YouTube, LinkedIn and X.", why: "Posts can only go out to accounts you connect.", tier: "recommended", minutes: 10, usedBy: ["meta", "google", "linkedin", "x", "social-accounts"], open: "meta", mode: "any" }),
@@ -184,14 +184,14 @@ export const STEPS: StepDef[] = [
     check: (f) => yes(f.branding!.logo, "Your logo is set.", "No logo yet."),
   },
   {
-    id: "branding:domain", group: "branding", title: "Use your own web address", description: "Serve your workspace and website from your own domain.", why: "It looks professional and builds trust.", tier: "optional", minutes: 10,
+    id: "branding:domain", group: "branding", title: "Use your own web address", description: "Serve your workspace and website from your own domain, so your address carries only your name.", why: "It looks professional and builds trust.", tier: "optional", minutes: 10,
     href: "/commandos/settings/domains", feature: "company.domains", needs: ["domain"], covers: ["integration:domains", "nav:company.domains", "nav:company.addresses"],
     check: (f) => (f.domain!.customVerified ? done("Your domain is verified.") : f.domain!.customPending ? partial("Your domain is waiting for DNS.") : todo("Using the default address.")),
   },
   {
     id: "branding:sender", group: "branding", title: "Send emails from your own address", description: "Use an address like hello@yourbusiness.com.", why: "Customers trust emails that come from your name.", tier: "optional", minutes: 8,
     href: "/commandos/settings/domains#sender-email", feature: "company.email", needs: ["sender"], covers: ["nav:company.email"],
-    check: (f) => (f.sender!.status === "verified" ? done("Your sender address is verified.") : f.sender!.status === "pending" ? partial("Waiting for DNS.") : f.sender!.status === "failed" ? partial("Verification failed. Check the records.", 0.25) : todo("Using SRB's address.")),
+    check: (f) => (f.sender!.status === "verified" ? done("Your sender address is verified.") : f.sender!.status === "pending" ? partial("Waiting for DNS.") : f.sender!.status === "failed" ? partial("Verification failed. Check the records.", 0.25) : todo("Included default's address.")),
   },
   {
     id: "branding:apps", group: "branding", title: "Offer your own apps", description: "Generate the phone and computer apps with your brand.", why: "People install your workspace like any other app.", tier: "optional", minutes: 5,
@@ -275,5 +275,5 @@ export const NOT_PART_OF_SETUP: Record<string, string> = {
   "nav:company.progress": "This is the Setup progress page itself.",
   "nav:company.products": "The Product settings page is covered product by product.",
   "nav:company.integrations": "The Integrations page is covered card by card.",
-  "product:resolveiq": "Help and support is provided by SRB for every company; there is nothing to set up.",
+  "product:resolveiq": "Help and support is provided for every company; there is nothing to set up.",
 };

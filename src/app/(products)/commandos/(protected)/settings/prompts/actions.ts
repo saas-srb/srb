@@ -24,7 +24,7 @@ const who = (u: { id: string; email: string }) => ({ id: u.id, email: u.email })
 export async function saveCompanyPromptAction(key: string, text: string, note: string): Promise<CompanyPromptResult> {
   const user = await requireWorkspaceAction(NAV_KEY);
   const k = String(key ?? "");
-  if (!PROMPT_BY_KEY.get(k)?.companyEditable) return { ok: false, error: "This prompt is managed by SelfRun." };
+  if (!PROMPT_BY_KEY.get(k)?.companyEditable) return { ok: false, error: "This prompt is managed for you and can't be changed." };
   return done(await saveCompanyPrompt(k, String(text ?? ""), await standard(k), String(note ?? ""), who(user)));
 }
 export async function setCompanyPromptEnabledAction(key: string, enabled: boolean): Promise<CompanyPromptResult> {
@@ -34,13 +34,13 @@ export async function setCompanyPromptEnabledAction(key: string, enabled: boolea
 export async function resetCompanyPromptAction(key: string): Promise<CompanyPromptResult> {
   const user = await requireWorkspaceAction(NAV_KEY);
   const k = String(key ?? "");
-  if (!PROMPT_BY_KEY.get(k)?.companyEditable) return { ok: false, error: "This prompt is managed by SelfRun." };
+  if (!PROMPT_BY_KEY.get(k)?.companyEditable) return { ok: false, error: "This prompt is managed for you and can't be changed." };
   return done(await resetCompanyPrompt(k, await standard(k), who(user)));
 }
 export async function restoreCompanyPromptAction(key: string, versionId: string): Promise<CompanyPromptResult> {
   const user = await requireWorkspaceAction(NAV_KEY);
   const k = String(key ?? "");
-  if (!PROMPT_BY_KEY.get(k)?.companyEditable) return { ok: false, error: "This prompt is managed by SelfRun." };
+  if (!PROMPT_BY_KEY.get(k)?.companyEditable) return { ok: false, error: "This prompt is managed for you and can't be changed." };
   return done(await restoreCompanyPromptVersion(k, String(versionId ?? ""), await standard(k), who(user)));
 }
 export async function companyPromptHistoryAction(key: string): Promise<HistoryRow[]> {
@@ -54,7 +54,7 @@ const recent = new Map<string, number[]>();
 export async function testCompanyPromptAction(key: string, text: string, sample: string): Promise<{ ok: true; output: string; ms: number } | { ok: false; error: string }> {
   const user = await requireWorkspaceAction(NAV_KEY);
   const def = PROMPT_BY_KEY.get(String(key ?? ""));
-  if (!def?.companyEditable) return { ok: false, error: "This prompt is managed by SelfRun." };
+  if (!def?.companyEditable) return { ok: false, error: "This prompt is managed for you and can't be changed." };
   const problem = checkCompanyPrompt(def, String(text ?? ""), await standard(def.key));
   if (problem) return { ok: false, error: problem };
   const id = `${await currentCompanyId()}:${user.id}`;

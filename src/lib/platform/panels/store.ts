@@ -43,7 +43,7 @@ export async function listPanels(): Promise<PanelRecord[]> {
     const updates: Promise<unknown>[] = [];
     for (const d of docs) {
       const def = defaultByKey.get(d._id || d.key);
-      if (def && (!d.name?.startsWith("SelfRun ") || d.name !== def.name)) {
+      if (def && d.name !== def.name) {
         d.name = def.name;
         d.shortName = def.shortName;
         d.description = def.description;

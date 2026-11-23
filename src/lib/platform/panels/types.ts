@@ -58,7 +58,7 @@ export interface PanelMeta {
 
 /** Remove the platform brand when a product name is shown inside a customer's white-label workspace. */
 export function whiteLabelProductName(name: string): string {
-  return name.replace(/\bSelfRun(?:\s+AI)?\b/gi, "").replace(/\s{2,}/g, " ").trim();
+  return name.replace(/\b(?:SelfRun|SRB)(?:\s+AI)?\b/gi, "").replace(/\s{2,}/g, " ").trim();
 }
 
 /**
@@ -66,25 +66,25 @@ export function whiteLabelProductName(name: string): string {
  * These seed each product's `aliases`; the Platform Console can change them.
  */
 const ALIASES: Record<string, string[]> = {
-  hrms: ["HRMS", "Human Resource Management System", "HR & Payroll", "SRB HR", "SRB People", "SelfRun HR"],
-  pms: ["PMS", "Project Management System", "Projects", "SRB Projects", "SelfRun Projects"],
-  prms: ["PRMS", "Procurement Management System", "Procurement & Expense", "Procurement & Assets", "SRB Procure"],
-  tms: ["TMS", "Training Management System", "Training", "SRB Academy"],
-  fms: ["FMS", "Financial Management System", "Finance Management", "Finance", "SRB Books"],
-  lms: ["LMS", "Lead Management System", "Lead Management", "CRM & Sales", "SRB CRM"],
-  messenger: ["Team Chat", "Team Messenger", "Team Communication", "SRB Connect"],
-  sop: ["Standard Operating Procedures", "SOPs & Policies", "SRB SOPs"],
-  lpms: ["LPMS", "Legal & Document Automation", "Legal & Documents", "SRB Legal"],
-  dlms: ["DLMS", "Digi Locker", "SRB Vault"],
-  ots: ["OTS", "Online Test System", "Online Tests", "SRB Assess"],
-  aibots: ["AI Bots", "AI Assistants", "SRB AI Studio"],
-  smms: ["SMMS", "Social Media Marketing", "Social Media", "SRB Social"],
-  seo: ["Search Engine Optimization", "SEO", "SRB SEO"],
-  cms: ["Website CMS", "Website", "SRB Web Studio"],
-  portal: ["External Portal", "Client & Student Portal", "SRB Portal"],
-  workspace: ["Staff Hub", "Workspace", "SRB Workspace"],
-  support: ["Help & Support", "SRB Desk"],
-  website: ["Public Website", "SRB Sites"],
+  hrms: ["HRMS", "Human Resource Management System", "HR & Payroll"],
+  pms: ["PMS", "Project Management System", "Projects"],
+  prms: ["PRMS", "Procurement Management System", "Procurement & Expense", "Procurement & Assets"],
+  tms: ["TMS", "Training Management System", "Training"],
+  fms: ["FMS", "Financial Management System", "Finance Management", "Finance"],
+  lms: ["LMS", "Lead Management System", "Lead Management", "CRM & Sales"],
+  messenger: ["Team Chat", "Team Messenger", "Team Communication"],
+  sop: ["Standard Operating Procedures", "SOPs & Policies"],
+  lpms: ["LPMS", "Legal & Document Automation", "Legal & Documents"],
+  dlms: ["DLMS", "Digi Locker"],
+  ots: ["OTS", "Online Test System", "Online Tests"],
+  aibots: ["AI Bots", "AI Assistants"],
+  smms: ["SMMS", "Social Media Marketing", "Social Media"],
+  seo: ["Search Engine Optimization", "SEO"],
+  cms: ["Website CMS", "Website"],
+  portal: ["External Portal", "Client & Student Portal"],
+  workspace: ["Staff Hub", "Workspace"],
+  support: ["Help & Support"],
+  website: ["Public Website"],
 };
 /** The connections each built-in product uses (what the old hand-written "Used by" map said, now held by the registry). */
 const CONNECTIONS: Record<string, string[]> = {
@@ -133,27 +133,27 @@ const P = (key: string, name: string, shortName: string, description: string, ic
 
 /** The starter registry written on first start (and used as a fallback until it has run). */
 export const DEFAULT_PANELS: PanelRecord[] = [
-  P("workspace", "SRB CommandOS", "CommandOS", "Autonomous business operating system, command center and workflow automations", "dashboard", 0, true),
-  P("hrms", "SRB TalentOS", "TalentOS", "Autonomous HR, employee directory, attendance, leave, payroll and recruitment", "users", 10),
-  P("pms", "SRB SprintOS", "SprintOS", "Agile project delivery, Kanban boards, tasks, milestones, timesheets and costing", "projects", 20),
-  P("lms", "SRB DealFlow AI", "DealFlow", "Autonomous sales CRM, lead pipeline, campaigns, deal closing and client onboarding", "grid", 30),
-  P("fms", "SRB CashFlow AI", "CashFlow", "Autonomous invoicing, accounting, payment links, bank reconciliation and ledger", "finance", 40),
-  P("prms", "SRB SpendIQ", "SpendIQ", "Autonomous procurement, purchase orders, vendor bills, asset registry and expenses", "cart", 50),
-  P("tms", "SRB Cohort AI", "Cohort AI", "Interactive training programs, batch scheduling, student curriculum and certificates", "training", 60),
-  P("messenger", "SRB Huddle AI", "Huddle", "Context-aware team chat channels, direct messaging, voice meetings and company calls", "chat", 70, true),
-  P("sop", "SRB Playbook AI", "Playbook", "Digital standard operating procedures, policy versioning and staff compliance", "book", 80),
-  P("lpms", "SRB ContractFlow AI", "ContractFlow", "A register of agreements and policy documents with approval history; signing and a signed-document vault are being built", "file", 90),
-  P("dlms", "SRB CyberVault", "CyberVault", "Zero-trust encrypted credential vault, sensitive document lockers and expiry alerts", "vault", 100),
-  P("ots", "SRB EvalIQ", "EvalIQ", "Timed online skill assessments, automated anti-cheat grading and verifiable certificates", "test", 110),
-  P("aibots", "SRB AgentOS", "AgentOS", "Custom AI agents, trained bots, enterprise knowledge grounding and chat copilots", "bot", 120),
-  P("intelligence", "SRB DataBrain AI", "DataBrain", "Conversational AI business intelligence, live querying and metric analytics", "chart", 130),
-  P("smms", "SRB ViralPulse AI", "ViralPulse", "AI social post generation, viral campaigns, multi-platform calendars and analytics", "megaphone", 140),
-  P("seo", "SRB RankMax AI", "RankMax", "Automated Google rank tracking, technical SEO audits, backlinks and sitemaps", "search", 150),
-  P("cms", "SRB SiteCraft AI", "SiteCraft", "No-code AI website builder, CMS, blogs, custom themes and lead conversion forms", "website", 160),
-  P("portal", "SRB ClientOS", "ClientOS", "White-label client, student, partner and applicant self-service portal", "globe", 170),
-  P("support", "SRB ResolveIQ", "ResolveIQ", "Self-solving AI customer support desk, help assistant and searchable knowledgebase", "help", 180),
+  P("workspace", "CommandOS", "CommandOS", "Autonomous business operating system, command center and workflow automations", "dashboard", 0, true),
+  P("hrms", "TalentOS", "TalentOS", "Autonomous HR, employee directory, attendance, leave, payroll and recruitment", "users", 10),
+  P("pms", "SprintOS", "SprintOS", "Agile project delivery, Kanban boards, tasks, milestones, timesheets and costing", "projects", 20),
+  P("lms", "DealFlow AI", "DealFlow", "Autonomous sales CRM, lead pipeline, campaigns, deal closing and client onboarding", "grid", 30),
+  P("fms", "CashFlow AI", "CashFlow", "Autonomous invoicing, accounting, payment links, bank reconciliation and ledger", "finance", 40),
+  P("prms", "SpendIQ", "SpendIQ", "Autonomous procurement, purchase orders, vendor bills, asset registry and expenses", "cart", 50),
+  P("tms", "Cohort AI", "Cohort AI", "Interactive training programs, batch scheduling, student curriculum and certificates", "training", 60),
+  P("messenger", "Huddle AI", "Huddle", "Context-aware team chat channels, direct messaging, voice meetings and company calls", "chat", 70, true),
+  P("sop", "Playbook AI", "Playbook", "Digital standard operating procedures, policy versioning and staff compliance", "book", 80),
+  P("lpms", "ContractFlow AI", "ContractFlow", "A register of agreements and policy documents with approval history; signing and a signed-document vault are being built", "file", 90),
+  P("dlms", "CyberVault", "CyberVault", "Zero-trust encrypted credential vault, sensitive document lockers and expiry alerts", "vault", 100),
+  P("ots", "EvalIQ", "EvalIQ", "Timed online skill assessments, automated anti-cheat grading and verifiable certificates", "test", 110),
+  P("aibots", "AgentOS", "AgentOS", "Custom AI agents, trained bots, enterprise knowledge grounding and chat copilots", "bot", 120),
+  P("intelligence", "DataBrain AI", "DataBrain", "Conversational AI business intelligence, live querying and metric analytics", "chart", 130),
+  P("smms", "ViralPulse AI", "ViralPulse", "AI social post generation, viral campaigns, multi-platform calendars and analytics", "megaphone", 140),
+  P("seo", "RankMax AI", "RankMax", "Automated Google rank tracking, technical SEO audits, backlinks and sitemaps", "search", 150),
+  P("cms", "SiteCraft AI", "SiteCraft", "No-code AI website builder, CMS, blogs, custom themes and lead conversion forms", "website", 160),
+  P("portal", "ClientOS", "ClientOS", "White-label client, student, partner and applicant self-service portal", "globe", 170),
+  P("support", "ResolveIQ", "ResolveIQ", "Self-solving AI customer support desk, help assistant and searchable knowledgebase", "help", 180),
   // The public website each company publishes (switching it off takes that company's public pages offline).
-  { ...P("website", "SRB Sites", "Sites", "Public company website, custom domain hosting and automatic SSL", "globe", 190), route: "/" },
+  { ...P("website", "Sites", "Sites", "Public company website, custom domain hosting and automatic SSL", "globe", 190), route: "/" },
 ];
 
 /**

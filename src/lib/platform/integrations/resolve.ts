@@ -1,5 +1,9 @@
 import "server-only";
 import { siteUrl } from "@/lib/seo";
+import { SAAS_BRAND } from "@/lib/platform/saas/brand";
+
+/** The platform's own mail sender name (Console and platform mail only; a customer's mail is sent under the customer's brand, see `senderForTenant`). */
+const PLATFORM_SENDER_NAME = SAAS_BRAND.name;
 import { decryptPlatformSecret } from "@/lib/platform/crypto";
 import { loadIntegrationsDoc, resolvedRootDomain, type IntegrationsDoc, type StoredSecret } from "@/lib/platform/integrations/store";
 import type { VercelConfig } from "@/lib/platform/domains/vercel";
@@ -33,7 +37,7 @@ export type DomainProviderId = (typeof DOMAIN_PROVIDERS)[number];
 /** The sender when none is set: `no-reply@` on the platform's own root domain (Console → Integrations, `PLATFORM_ROOT_DOMAIN`, or the production domain). */
 export function defaultEmailFrom(): string {
   const root = resolvedRootDomain().replace(/:\d+$/, "");
-  return `SelfRun AI <no-reply@${root === "localhost" ? new URL(siteUrl).hostname : root}>`;
+  return `${PLATFORM_SENDER_NAME} <no-reply@${root === "localhost" ? new URL(siteUrl).hostname : root}>`;
 }
 
 function env(name: string): string | null {

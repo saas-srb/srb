@@ -127,7 +127,7 @@ export default async function BillingSettingsPage() {
         <GlassCard interactive={false} containerClassName="h-auto">
           <CardHeader>
             <CardTitle className="text-base">Adjusted for your workspace</CardTitle>
-            <CardDescription>SelfRun has changed these for you on top of your plan. They are already in effect.</CardDescription>
+            <CardDescription>These were changed for you on top of your plan. They are already in effect.</CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="space-y-1 text-sm">

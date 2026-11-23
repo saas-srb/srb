@@ -1,4 +1,5 @@
 import "server-only";
+import { SAAS_BRAND } from "@/lib/platform/saas/brand";
 import { createHash, randomUUID } from "node:crypto";
 import { Binary } from "mongodb";
 import { getDb } from "@/lib/mongodb";
@@ -132,7 +133,7 @@ async function mail(to: string, c: { heading: string; paragraphs: string[]; foot
   try {
     const owner = await getPlatformOwnerCompanyId();
     const send = async () => {
-      const { html, text } = renderEmail({ brand: "SelfRun AI", ...c });
+      const { html, text } = renderEmail({ brand: SAAS_BRAND.name, ...c });
       await sendEmail({ to, subject: c.heading, html, text });
     };
     if (owner) await runAsCompany(owner, send);

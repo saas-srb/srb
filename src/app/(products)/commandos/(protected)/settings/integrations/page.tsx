@@ -45,11 +45,11 @@ async function buildCards(registry: RegistryProduct[], unavailable: ReadonlySet<
       const m = managedByKey.get((p.key === "domains" ? "domain" : p.key) as "webhooks" | "razorpay" | "domain");
       const status = cardStatus({ canSrb: false, srbReady: false, mode: "own", hasOwnKeys: false, lastTestOk: null, managedConnected: m ? m.connected : false });
       // File storage is run by SRB inside the workspace database: always SRB, nothing to connect.
-      if (p.key === "storage") { cards.push({ key: p.key, name: p.name, description: p.description, category: "storage", status: "using_srb", note: "SelfRun's storage is used. Nothing to set up.", usedBy: usedBy(p.key), kind: "page", href: p.managedElsewhere.href, canSrb: true, testable: true, appliesToAll: true }); continue; }
+      if (p.key === "storage") { cards.push({ key: p.key, name: p.name, description: p.description, category: "storage", status: "using_srb", note: "The included storage is used. Nothing to set up.", usedBy: usedBy(p.key), kind: "page", href: p.managedElsewhere.href, canSrb: true, testable: true, appliesToAll: true }); continue; }
       cards.push({ key: p.key, name: p.name, description: p.description, category: categoryOf(p.key), status, note: m?.status ?? null, usedBy: usedBy(p.key), kind: "page", href: p.managedElsewhere.href, canSrb: false, testable: !!p.testable, appliesToAll: true });
       continue;
     }
-    // "Using SRB" only when the platform really has the service set up: the same function the product summaries and the staff checklist use.
+    // "Included default" only when the platform really has the service set up: the same function the product summaries and the staff checklist use.
     const { status, canSrb } = await connectionStatus(p.key, view ?? null);
     const note = noteFor(status, canSrb, view?.lastTest?.message);
     cards.push({ key: p.key, name: p.key === "elevenlabs" ? "Voice (ElevenLabs)" : p.name, description: p.description, category: categoryOf(p.key), status, note, usedBy: usedBy(p.key), kind: "panel", canSrb, testable: !!p.testable, appliesToAll: true });
@@ -90,7 +90,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
     const ready = isPlatformEncryptionConfigured();
     if (current.kind === "page") {
       const meta = providerByKey.get(current.key);
-      panel = <ManagedPanel provider={current.key} name={current.name} text={current.key === "storage" ? "Uploaded files, documents and backups are kept in your workspace storage, run by SRB. Press Test to write, read back and remove a small test file." : current.key === "webhooks" ? "Press Test to send a signed test message to every webhook your automations call." : `${current.description} Press Test to check the connection safely.`} href={meta?.managedElsewhere?.href ?? (current.key === "webhooks" ? "/commandos/settings/automations" : null)} linkLabel={meta?.managedElsewhere ? `Open ${meta.managedElsewhere.label}` : current.key === "webhooks" ? "Open Automations" : null} />;
+      panel = <ManagedPanel provider={current.key} name={current.name} text={current.key === "storage" ? "Uploaded files, documents and backups are kept in your workspace storage, managed for you. Press Test to write, read back and remove a small test file." : current.key === "webhooks" ? "Press Test to send a signed test message to every webhook your automations call." : `${current.description} Press Test to check the connection safely.`} href={meta?.managedElsewhere?.href ?? (current.key === "webhooks" ? "/commandos/settings/automations" : null)} linkLabel={meta?.managedElsewhere ? `Open ${meta.managedElsewhere.label}` : current.key === "webhooks" ? "Open Automations" : null} />;
     } else if (current.key === "dealflow-sync") {
       panel = <DealFlowSyncStatus integrations={dealFlowStatus} />;
     } else if (current.key === "ai-chatbot") {

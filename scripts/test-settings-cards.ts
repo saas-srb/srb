@@ -65,7 +65,7 @@ T("the panel header and footer are the same everywhere: icon, name and status; T
 console.log("one status vocabulary");
 T("six statuses with the exact words, one colour family and one icon each", () => {
   assert.deepEqual(SETTINGS_STATUSES, ["ready", "using_srb", "using_own", "not_set_up", "needs_attention", "locked"]);
-  assert.deepEqual(SETTINGS_STATUSES.map((s) => STATUS_WORDS[s]), ["Ready", "Using SRB", "Using your own", "Not set up", "Needs attention", "Locked"]);
+  assert.deepEqual(SETTINGS_STATUSES.map((s) => STATUS_WORDS[s]), ["Ready", "Included default", "Using your own", "Not set up", "Needs attention", "Locked"]);
   for (const s of SETTINGS_STATUSES) assert.ok(STATUS_LOOK[s]);
   assert.equal(STATUS_LOOK.needs_attention.tone, "warn");
   assert.equal(STATUS_LOOK.locked.icon, "lock");
@@ -79,7 +79,7 @@ T("the Integrations and Product settings statuses map onto it; SRB-not-available
   assert.equal(fromProductStatus("needs_setup", false), "not_set_up");
   assert.equal(fromProductStatus("ready", true), "locked");
   const card = integrationCardData({ key: "elevenlabs", name: "Voice (ElevenLabs)", description: "x", category: "voice", status: "srb_unavailable", note: null, usedBy: ["AgentOS"], kind: "panel", canSrb: true, testable: true, appliesToAll: true });
-  assert.deepEqual([card.status, card.note], ["not_set_up", "Not available from SRB, add your own."]);
+  assert.deepEqual([card.status, card.note], ["not_set_up", "No included default, add your own."]);
 });
 T("the button says Set up when nothing is configured, Manage when it works, Configure when a card has no state", () => {
   assert.deepEqual([primaryLabel("not_set_up"), primaryLabel("ready"), primaryLabel("using_srb"), primaryLabel("using_own"), primaryLabel("needs_attention"), primaryLabel(null)], ["Set up", "Manage", "Manage", "Manage", "Manage", "Configure"]);
@@ -153,9 +153,9 @@ T("a card has ONE button: no secondary Test on the card, and no page-specific ov
 T("the muted line shows at most three names then '+N more', without the SRB prefix; the full list is in the tooltip", () => {
   assert.equal(metaLine("Used by", ["A", "B", "C"]), "Used by: A, B, C");
   assert.equal(metaLine("Used by", ["A", "B", "C", "D", "E"]), "Used by: A, B, C +2 more");
-  assert.equal(plainProductName("SRB TalentOS"), "TalentOS");
+  assert.equal(plainProductName("TalentOS"), "TalentOS");
   assert.equal(plainProductName("SelfRun HR"), "HR");
-  const card = integrationCardData({ key: "smtp", name: "SMTP", description: "x", category: "email", status: "using_srb", note: null, usedBy: ["SRB CommandOS", "SRB TalentOS"], kind: "panel", canSrb: true, testable: true, appliesToAll: true });
+  const card = integrationCardData({ key: "smtp", name: "SMTP", description: "x", category: "email", status: "using_srb", note: null, usedBy: ["CommandOS", "TalentOS"], kind: "panel", canSrb: true, testable: true, appliesToAll: true });
   assert.deepEqual(card.meta?.items, ["CommandOS", "TalentOS"]);
   assert.match(read("src/components/settings/SettingsCard.tsx"), /title=\{full\}/);
 });

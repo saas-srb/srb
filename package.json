@@ -93,6 +93,7 @@
     "test:databrain-access": "npx --yes tsx scripts/test-databrain-access.ts",
     "test:no-legacy-role-checks": "npx --yes tsx scripts/test-no-legacy-role-checks.ts",
     "test:access-sweep": "npx --yes tsx --require ./scripts/lib/next-server-shims.cjs scripts/test-access-sweep.ts",
+    "test:white-label": "MONGODB_URI=mongodb://127.0.0.1:27017/zz_throwaway_whitelabel PLATFORM_ENCRYPTION_KEY=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY= npx --yes tsx --require ./scripts/lib/next-server-shims.cjs scripts/test-white-label.ts",
     "test:search-notifications": "MONGODB_URI=mongodb://127.0.0.1:27017/zz_throwaway_test_search PLATFORM_ENCRYPTION_KEY=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY= npx --yes tsx --require ./scripts/lib/next-server-shims.cjs scripts/test-search-notifications.ts",
     "test:intelligence-chat": "MONGODB_URI=mongodb://127.0.0.1:27017/zz_throwaway_test_intchat PLATFORM_ENCRYPTION_KEY=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY= npx --yes tsx --require ./scripts/lib/next-server-shims.cjs scripts/test-intelligence-chat.ts",
     "test:intelligence-planner": "MONGODB_URI=mongodb://127.0.0.1:27017/zz_throwaway_test_intplan PLATFORM_ENCRYPTION_KEY=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY= npx --yes tsx --require ./scripts/lib/next-server-shims.cjs scripts/test-intelligence-planner.ts",

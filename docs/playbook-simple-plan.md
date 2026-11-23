@@ -312,3 +312,4 @@ Rule: a popup that is a FORM (the user fills in or chooses something) is a page,
 - 2026-11-23 Huddle COMPLETE (see ledger).
 - 2026-11-23 TalentOS shared pieces + Leave module (staged).
 - 2026-11-23: Playbook access moved to micro features (`pbCan`/`pbDoc`/`pbSop`); send-from-Playbook, the signing allowlist, brand/letterhead, library preview and PDF/DOCX export are unchanged. `test-pb-numbering` shows a timing race in the 6-way simultaneous issue case (winner expected to be number 21); it is unrelated to access.
+- 2026-11-24: Playbook numbering proven safe under concurrency (unique, no hole); `test-pb-numbering` expectation fixed; PDF/DOCX creator metadata is now "Playbook".

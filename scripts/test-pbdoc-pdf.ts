@@ -130,7 +130,7 @@ const blocked = async (d: PBDoc, o: RenderOptions): Promise<RenderBlockedError> 
       const i = info(offerFile);
       assert.match(i, /Title:\s+Offer of Employment/);
       assert.match(i, /Author:\s+Orbit HR/);
-      assert.match(i, /Creator:\s+SelfRun Playbook/);
+      assert.match(i, /Creator:\s+Playbook/);
     }
   });
   await t("text extraction: resolved values, Indian formats, clause numbering, tables, lists and signature lines", () => {

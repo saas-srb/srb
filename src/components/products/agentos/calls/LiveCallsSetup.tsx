@@ -67,7 +67,7 @@ export default function LiveCallsSetup({ setup }: { setup: ConferenceSetup }) {
       {setup.twilio && twilioProblems.length > 0 && (
         <Notice tone="warn">
           {setup.twilio.source === "platform"
-            ? "Only SelfRun's shared Twilio account is available, and it is never used for live calls. Add your own Twilio account's details."
+            ? "Only the shared Twilio account is available, and it is never used for live calls. Add your own Twilio account's details."
             : setup.twilio.source === "none"
               ? "Twilio isn't connected."
               : "Your Twilio connection is missing details live calls need."}{" "}

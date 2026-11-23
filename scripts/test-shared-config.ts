@@ -120,8 +120,8 @@ function interfaceFields(src: string, name: string): string[] {
   });
   await T("every in-product settings address for something managed in CommandOS only redirects there", () => {
     const pages = [
-      "talentos/(protected)/(staff)/settings", "agentos/(protected)/settings", "rankmax-ai/(protected)/settings", "sitecraft-ai/(protected)/settings", "spendiq/(protected)/(staff)/settings",
-      "sprintos/(protected)/(staff)/settings", "cohort-ai/(protected)/(staff)/settings", "evaliq/(protected)/settings", "cybervault/(protected)/settings", "playbook-ai/(protected)/settings", "viralpulse-ai/(protected)/settings",
+      "talentos/(protected)/settings", "agentos/(protected)/settings", "rankmax-ai/(protected)/settings", "sitecraft-ai/(protected)/settings", "spendiq/(protected)/settings",
+      "sprintos/(protected)/settings", "cohort-ai/(protected)/settings", "evaliq/(protected)/settings", "cybervault/(protected)/settings", "playbook-ai/(protected)/settings", "viralpulse-ai/(protected)/settings",
     ];
     for (const p of pages) {
       const f = `src/app/(products)/${p}/page.tsx`;

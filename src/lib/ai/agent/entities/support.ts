@@ -26,7 +26,7 @@ export const SUPPORT_REPORTS: ReportDef[] = [
 export const SUPPORT_ACTIONS: ActionDef[] = [
   {
     key: "support.create_request", panel: "support", label: "Raise a support request", level: "any",
-    description: "Send a request to the SelfRun support team. Ask for the type first (see support.request_form), then a clear title and description.",
+    description: "Send a request to the support team. Ask for the type first (see support.request_form), then a clear title and description.",
     params: [f.str("type", "Request type key", true), f.str("title", "Title", true), f.text("description", "Description with the steps and what you expected", true), f.str("category", "Category key"), f.str("priority", "Priority key"), f.str("severity", "Severity key")],
     run: (v) => viaAction(() => S.createRequestAction({ type: String(v.type ?? ""), title: String(v.title ?? ""), description: String(v.description ?? ""), category: str(v.category), priority: str(v.priority), severity: str(v.severity), source: "chat" }), "Request sent to the support team."),
   },

@@ -16,10 +16,11 @@ export default async function AddressesPage() {
       <div className="space-y-6">
         <PanelPageHeader title={<>Default domain</>} description={<>Your company&apos;s two addresses: the public website and the app where your team signs in.</>} />
         <CompanyAddresses />
-        <p className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Globe className="size-4 text-primary" />Want your own domain, like yourcompany.com? Add it in{" "}
-          <Link href="/commandos/settings/domains" className="font-semibold text-primary hover:underline">Settings → Domains</Link>.
-        </p>
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm">
+          <Globe className="size-5 shrink-0 text-primary" />
+          <p className="min-w-0 flex-1"><strong>Use your own domain.</strong> These default addresses end in the hosting service&apos;s name. Add your own domain, like yourcompany.com, and your website, your sign-in page and your emails all use it instead.</p>
+          <Link href="/commandos/settings/domains" className="shrink-0 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90">Use your own domain</Link>
+        </div>
       </div>
     </div>
   );

@@ -38,7 +38,7 @@ export async function channelStatus(channel: ChannelKind): Promise<ChannelStatus
     if (saved && Object.keys(saved).length) return { connected: true, via: label };
   }
   const platform = await activeEmailProvider().catch(() => null);
-  return platform && platform.id !== "console" ? { connected: true, via: "SelfRun's email service" } : { connected: false, via: "" };
+  return platform && platform.id !== "console" ? { connected: true, via: "the included email service" } : { connected: false, via: "" };
 }
 
 export interface ChannelMessage {

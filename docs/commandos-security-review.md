@@ -86,3 +86,8 @@ Not covered: a penetration test, browser-based checks, and a review of every leg
 - Playbook: `feedback` submission is its own write feature (it was behind the read-level view); the `sop` Ask-AI tools for the checklist and feedback are write-gated. Payroll banking settings in the Workspace use the payroll features instead of the old role functions.
 - Names with titles in the audit log, SOP details/versions/feedback/assignments and the approval-needed notice (never a product role).
 - Known test noise, unrelated to access: `test-pb-numbering` (6 people issuing one document at once expects the winner to hold number 21) fails about 2 runs in 3 on this machine, a timing race in the number counter's give-back, not an access change; `test-search-notifications` "usage was metered" counts 2 where 1 is expected, and `test-intelligence-chat` / `test-intelligence-planner` still expect old /pms paths and the pre-move databrain folder (not in any chain).
+
+## White-label and sweep (2026-11-24)
+- The customer-facing leak was brand, not access: product names, shared-service wording, the default email sender name and file metadata named the platform. Fixed and guarded by `test:white-label`. The platform's name remains only on the marketing site, the Console, platform mail and the platform owner's own workspace, through one rule (`isPlatformBrandVisible`).
+- `test:access-sweep`: no feature of one product opens another product, Director holds everything, nobody without access holds anything, Read only never writes, and a closed Workspace item never resolves open.
+- Metering check: the AI token meter records each model call once (4 calls x 50 tokens = 200 in the assistant test); the earlier "2 rows" was the separate email meter. No double billing.

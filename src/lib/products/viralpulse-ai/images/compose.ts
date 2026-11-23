@@ -98,7 +98,7 @@ export interface ComposeResult {
 
 const IPTC_AI = "http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia";
 export function xmpPacket(meta: { description: string; aiGenerated: boolean }): string {
-  return `<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?><x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xmp="http://ns.adobe.com/xap/1.0/" xmlns:Iptc4xmpExt="http://iptc.org/std/Iptc4xmpExt/2008-02-29/"><dc:description><rdf:Alt><rdf:li xml:lang="x-default">${xml(meta.description.slice(0, 500))}</rdf:li></rdf:Alt></dc:description><xmp:CreatorTool>SelfRun ViralPulse AI Image Studio</xmp:CreatorTool>${meta.aiGenerated ? `<Iptc4xmpExt:DigitalSourceType>${IPTC_AI}</Iptc4xmpExt:DigitalSourceType>` : ""}</rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end="w"?>`;
+  return `<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?><x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xmp="http://ns.adobe.com/xap/1.0/" xmlns:Iptc4xmpExt="http://iptc.org/std/Iptc4xmpExt/2008-02-29/"><dc:description><rdf:Alt><rdf:li xml:lang="x-default">${xml(meta.description.slice(0, 500))}</rdf:li></rdf:Alt></dc:description><xmp:CreatorTool>ViralPulse AI Image Studio</xmp:CreatorTool>${meta.aiGenerated ? `<Iptc4xmpExt:DigitalSourceType>${IPTC_AI}</Iptc4xmpExt:DigitalSourceType>` : ""}</rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end="w"?>`;
 }
 
 /** The whole pipeline for one destination size. */
@@ -179,7 +179,7 @@ export async function composeExport(o: ComposeOptions): Promise<ComposeResult> {
   const description = o.meta?.description ?? "";
   const withMeta = (s: Sharp) => {
     if (!o.meta) return s;
-    const withDesc = s.withExif({ IFD0: { ImageDescription: description.slice(0, 500), Software: "SelfRun ViralPulse AI Image Studio" } });
+    const withDesc = s.withExif({ IFD0: { ImageDescription: description.slice(0, 500), Software: "ViralPulse AI Image Studio" } });
     return withDesc.withXmp(xmpPacket(o.meta));
   };
   const flat = await img.toBuffer();

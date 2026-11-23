@@ -30,7 +30,7 @@ export default async function CompanyPromptsPage() {
         <PanelPageHeader
           breadcrumbs={[{ label: "Company settings", href: "/commandos/settings" }, { label: "AI prompts" }]}
           title={<>AI prompts</>}
-          description={<>How your AI assistants are told to write and behave. Change the wording for your own workspace, see exactly what is sent, try it, and go back to any earlier version at any time. Other companies are never affected, and SelfRun&apos;s fixed security rules are always applied around your wording.</>}
+          description={<>How your AI assistants are told to write and behave. Change the wording for your own workspace, see exactly what is sent, try it, and go back to any earlier version at any time. Other companies are never affected, and the fixed security rules are always applied around your wording.</>}
         />
         {!controls.companyPrompts && <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">SelfRun has turned off changes to AI prompts. Your assistants use the standard wording; what you saved is kept and applies again when it is turned back on.</p>}
         {readOnly && <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">{readOnly}</p>}

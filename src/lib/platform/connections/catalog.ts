@@ -108,7 +108,7 @@ export const CONNECTION_PROVIDERS: ConnectionProvider[] = [
   },
   {
     key: "gemini", name: "Google Gemini (video)", group: "ai", testable: true, docsUrl: "https://aistudio.google.com/apikey",
-    description: "Your Gemini API key renders the AI UGC Studio videos (Gemini Omni Flash, Veo). Video generation is billed to your Google account by the second of video; SelfRun never pays for it, so there is no shared fallback key.",
+    description: "Your Gemini API key renders the AI UGC Studio videos (Gemini Omni Flash, Veo). Video generation is billed to your Google account by the second of video; it is never paid for you, so there is no shared fallback key.",
     fields: [secret("apiKey", "API key", "Starts with AIza")],
   },
   // ── Social & Advertising ─────────────────────────────────────────────
@@ -154,7 +154,7 @@ export const CONNECTION_PROVIDERS: ConnectionProvider[] = [
   // ── Push ─────────────────────────────────────────────────────────────
   {
     key: "vapid", name: "Web Push (VAPID keys)", group: "push", testable: true,
-    description: "Your own VAPID key pair for push notifications to your team's and visitors' devices. Without it, SelfRun's keys are used. Create the pair once with  npx web-push generate-vapid-keys  and do not change it later: every device would have to subscribe again.",
+    description: "Your own VAPID key pair for push notifications to your team's and visitors' devices. Without it, the included keys are used. Create the pair once with  npx web-push generate-vapid-keys  and do not change it later: every device would have to subscribe again.",
     fields: [text("publicKey", "Public key"), secret("privateKey", "Private key"), text("subject", "Contact", "mailto:support@yourcompany.com", "A mailto: address or https URL the push services can contact.", false)],
   },
   // ── Calls & Realtime ─────────────────────────────────────────────────
@@ -165,7 +165,7 @@ export const CONNECTION_PROVIDERS: ConnectionProvider[] = [
   },
   {
     key: "livekit", name: "LiveKit (meetings)", group: "realtime", testable: true, docsUrl: "https://docs.livekit.io/home/cloud/keys-and-tokens/",
-    description: "The video and audio server behind DealFlow Meetings. Use your own LiveKit Cloud project or self-hosted server. Without it, SelfRun's server is used and its use counts against your plan.",
+    description: "The video and audio server behind DealFlow Meetings. Use your own LiveKit Cloud project or self-hosted server. Without it, the included server is used and its use counts against your plan.",
     fields: [text("url", "Server URL", "wss://your-project.livekit.cloud"), text("apiKey", "API key", "API…"), secret("apiSecret", "API secret")],
   },
   // ── Managed on their own pages ───────────────────────────────────────
@@ -187,7 +187,7 @@ export const CONNECTION_PROVIDERS: ConnectionProvider[] = [
   },
   {
     key: "storage", name: "File storage", group: "other", testable: true,
-    description: "Where uploaded files, documents, PDFs and backups are kept. SRB runs it inside your own workspace database, so there is nothing to set up.", fields: [], managedElsewhere: { href: "/commandos/settings/usage", label: "Usage & limits" },
+    description: "Where uploaded files, documents, PDFs and backups are kept. It runs inside your own workspace database, so there is nothing to set up.", fields: [], managedElsewhere: { href: "/commandos/settings/usage", label: "Usage & limits" },
   },
   {
     key: "social-accounts", name: "Connected social accounts", group: "other", description: "Connect and manage your Facebook, Instagram, LinkedIn, YouTube and Google Business accounts.",

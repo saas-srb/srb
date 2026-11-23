@@ -13,7 +13,6 @@ import { listCompanyDomains, MAX_CUSTOM_DOMAINS } from "@/lib/platform/domains/c
 import DomainsManager from "@/components/platform/DomainsManager";
 import { getOnboarding } from "@/lib/platform/onboarding/state";
 import { getCompanySender, suggestedSenderDomain } from "@/lib/platform/email/sender";
-import { defaultFrom } from "@/lib/platform/email";
 import EmailSenderManager from "../email/EmailSenderManager";
 import { checkSenderAction, removeSenderAction, saveSenderAction } from "../email/actions";
 import { addDomainAction, removeDomainAction, setPrimaryDomainAction, verifyDomainAction } from "./actions";
@@ -25,7 +24,9 @@ export default async function DomainsSettingsPage() {
   if (!user) redirect("/commandos/login");
   await requireWorkspaceAccess("company.domains"); // Director-only item: anyone else sees the locked page inside this shell
   const domains = await listCompanyDomains();
-  const [sender, { company }, platformFrom] = await Promise.all([getCompanySender(), getOnboarding(), defaultFrom()]);
+  const [sender, { company }] = await Promise.all([getCompanySender(), getOnboarding()]);
+  // The included default address is shown under the company's own name; the platform's domain is never printed.
+  const platformFrom = `${company.name} (included default address)`;
   const suggested = sender ? null : await suggestedSenderDomain();
   const panelsUrl = await appUrlForCompany(await currentCompanyId());
 
@@ -52,7 +53,7 @@ export default async function DomainsSettingsPage() {
             <CardHeader>
               <CardTitle id="sender-email-title">Send emails from your own address</CardTitle>
               <CardDescription>
-                By default your emails (invitations, sign-in codes, invoices, notifications) go out from SRB&apos;s address, <strong>{platformFrom}</strong>, and nothing needs setting up. If you would rather they come from your own address, like <strong>hello@yourbusiness.com</strong>, do these three steps.
+                By default your emails (invitations, sign-in codes, invoices, notifications) go out from the included default address, <strong>{platformFrom}</strong>, and nothing needs setting up. If you would rather they come from your own address, like <strong>hello@yourbusiness.com</strong>, do these three steps.
               </CardDescription>
             </CardHeader>
             <CardContent>

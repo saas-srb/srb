@@ -29,7 +29,7 @@ export const CONFIG_SECTIONS: ConfigSection[] = [
   {
     id: "ai",
     title: "AI",
-    description: "SelfRun's OpenAI account. Every company that has not saved its own key uses it for AI features (chatbots, assistants, Intelligence, content generation) run on it and are metered against the company's plan.",
+    description: "The included OpenAI account. Every company that has not saved its own key uses it for AI features (chatbots, assistants, Intelligence, content generation) run on it and are metered against the company's plan.",
     fields: [{ key: "OPENAI_API_KEY", label: "OpenAI API key", secret: true, help: "From platform.openai.com → API keys.", placeholder: "sk-…" }],
   },
   {
@@ -62,7 +62,7 @@ export const CONFIG_SECTIONS: ConfigSection[] = [
   {
     id: "push",
     title: "Push notifications",
-    description: "SelfRun's key pair for push notifications, used by every company that has not saved its own. Create it once with `npx web-push generate-vapid-keys` and do not change it later — every device would have to subscribe again.",
+    description: "The included key pair for push notifications, used by every company that has not saved its own. Create it once with `npx web-push generate-vapid-keys` and do not change it later — every device would have to subscribe again.",
     fields: [
       { key: "VAPID_PUBLIC_KEY", label: "VAPID public key", secret: false, help: "The public half of the pair." },
       { key: "VAPID_PRIVATE_KEY", label: "VAPID private key", secret: true, help: "The private half of the pair." },

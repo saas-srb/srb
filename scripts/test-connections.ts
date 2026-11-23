@@ -154,7 +154,7 @@ function sample(provider: string): Record<string, string> {
   });
 
   console.log("status badges from the real state");
-  await T("'Using SRB' only when the platform really has the service; otherwise 'Not available from SRB, add your own'", () => {
+  await T("'Included default' only when the platform really has the service; otherwise 'No included default, add your own'", () => {
     const base = { canSrb: true, srbReady: true, mode: "srb" as const, hasOwnKeys: false, lastTestOk: null };
     assert.equal(cardStatus(base), "using_srb");
     assert.equal(cardStatus({ ...base, srbReady: false }), "srb_unavailable");
@@ -165,17 +165,17 @@ function sample(provider: string): Record<string, string> {
   console.log("used by, from the live product registry");
   const registry = DEFAULT_PANELS.map((p) => ({ key: p.key, name: p.name, connections: p.connections }));
   await T("a card lists the products whose registry row declares it, in registry order", () => {
-    assert.deepEqual(usedByProducts("razorpay", registry), ["SRB TalentOS", "SRB CashFlow AI", "SRB SpendIQ", "SRB Cohort AI"]);
+    assert.deepEqual(usedByProducts("razorpay", registry), ["TalentOS", "CashFlow AI", "SpendIQ", "Cohort AI"]);
     assert.ok(usedByProducts("resend", registry).length >= 15, "email is used by every product");
     assert.equal(connectionIdOf("smtp"), "email");
     assert.equal(connectionIdOf("vapid"), "push");
-    assert.deepEqual(usedByProducts("elevenlabs", registry), ["SRB TalentOS", "SRB DealFlow AI", "SRB AgentOS", "SRB SiteCraft AI"]);
+    assert.deepEqual(usedByProducts("elevenlabs", registry), ["TalentOS", "DealFlow AI", "AgentOS", "SiteCraft AI"]);
   });
   await T("changing a registry row moves the card's list; a product switched off for the company drops out; nothing is hand-written", () => {
     const edited = registry.map((p) => (p.key === "pms" ? { ...p, connections: [...p.connections, "openai"] } : p));
-    assert.ok(usedByProducts("openai", edited).includes("SRB SprintOS"));
-    assert.ok(!usedByProducts("openai", registry).includes("SRB SprintOS"));
-    assert.ok(!usedByProducts("openai", registry, new Set(["aibots"])).includes("SRB AgentOS"));
+    assert.ok(usedByProducts("openai", edited).includes("SprintOS"));
+    assert.ok(!usedByProducts("openai", registry).includes("SprintOS"));
+    assert.ok(!usedByProducts("openai", registry, new Set(["aibots"])).includes("AgentOS"));
     const fs = require("node:fs") as typeof import("node:fs");
     assert.ok(!/USED_BY/.test(fs.readFileSync("src/lib/platform/connections/cards.ts", "utf8")), "the hand-written map is gone");
     assert.ok(!/usedBy:/.test(fs.readFileSync("src/lib/platform/connections/catalog.ts", "utf8")), "no hand-written list in the catalog either");

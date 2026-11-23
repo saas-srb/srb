@@ -84,8 +84,8 @@ export type CompanyPromptResult = { ok: true; version: number } | { ok: false; e
 
 async function guardEdit(key: string): Promise<{ def: PromptDef; companyId: string } | string> {
   const def = PROMPT_BY_KEY.get(key);
-  if (!def || !def.companyEditable) return "This prompt is managed by SelfRun and can't be changed by a company.";
-  if (!companyMayEditPrompt(await getFeatureControls(), key)) return "SelfRun has turned off changes to this prompt.";
+  if (!def || !def.companyEditable) return "This prompt is managed for you and can't be changed.";
+  if (!companyMayEditPrompt(await getFeatureControls(), key)) return "Changes to this prompt are turned off.";
   const companyId = await currentCompanyIdOrNull();
   if (!companyId) return "No workspace.";
   return { def, companyId };

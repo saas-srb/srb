@@ -601,8 +601,8 @@ export async function renderDocx(doc: PBDoc, opts: DocxOptions): Promise<DocxRes
 
   const m = t.page.margins;
   const document = new Document({
-    creator: p.meta.author ?? "SelfRun Playbook",
-    lastModifiedBy: p.meta.author ?? "SelfRun Playbook",
+    creator: p.meta.author ?? "Playbook",
+    lastModifiedBy: p.meta.author ?? "Playbook",
     title: p.meta.title,
     subject: p.meta.subject,
     description: p.meta.docNumber ? `${p.meta.title} (${p.meta.docNumber})` : p.meta.title,
