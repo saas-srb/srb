@@ -13,7 +13,7 @@ import ProjectTeamManager from "@/components/products/sprintos/ProjectTeamManage
 import ProjectTabs from "@/components/products/sprintos/ProjectTabs";
 import MilestonesManager from "@/components/products/sprintos/MilestonesManager";
 import { getCurrentPmsUser } from "@/lib/pms-auth";
-import { canManageProjects } from "@/lib/pms-roles";
+import { pmsCan, pmsSeesAll } from "@/lib/pms-access";
 import { checkProjectAccess } from "@/lib/products/sprintos/access";
 import { getProject, serializeProject } from "@/lib/products/sprintos/projects";
 import { getClient } from "@/lib/products/sprintos/clients";
@@ -37,7 +37,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   if (!project) notFound();
   if (user && !(await checkProjectAccess(user, id)).allowed) notFound();
 
-  const canManage = user ? canManageProjects(user) : false;
+  const canManage = user ? pmsCan(user, "projects.manage") : false;
   const serialized = serializeProject(project);
 
   const [client, members, employees, activity, manager, taskCounts, hasTasks, milestones, topTasks] = await Promise.all([

@@ -9,9 +9,9 @@ import { hrCan } from "@/lib/talentos-access";
  * Page guard for a TalentOS section: the signed-in user when they hold `key`; otherwise the polite locked page, shown inside the product's own shell
  * (the menu already hides what a person cannot use, so this is only what a typed address shows).
  */
-export async function hrPage(key: string, feature: string): Promise<{ user: CurrentHrmsUser; locked: null } | { user: null; locked: ReactNode }> {
+export async function hrPage(key: string | string[], feature: string): Promise<{ user: CurrentHrmsUser; locked: null } | { user: null; locked: ReactNode }> {
   const user = await getCurrentHrmsUser();
   if (!user) redirect("/talentos/login");
-  if (!hrCan(user, key)) return { user: null, locked: <ProductLocked product="talentos" feature={feature} /> };
+  if (!(Array.isArray(key) ? key : [key]).some((k) => hrCan(user, k))) return { user: null, locked: <ProductLocked product="talentos" feature={feature} /> };
   return { user, locked: null };
 }

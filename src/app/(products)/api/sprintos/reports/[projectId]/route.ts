@@ -1,7 +1,8 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentPmsUser } from "@/lib/pms-auth";
-import { canViewCosting } from "@/lib/pms-roles";
+import { pmsCan, pmsSeesAll } from "@/lib/pms-access";
+import { checkProjectAccess } from "@/lib/products/sprintos/access";
 import { buildProjectReport } from "@/lib/products/sprintos/reports";
 import { getPortfolioCosting } from "@/lib/products/sprintos/costing";
 import { renderProjectReportPdf } from "@/components/products/sprintos/reports/ProjectReportPdf";
@@ -25,9 +26,11 @@ function fileResponse(body: Buffer | string, type: string, filename: string) {
 async function handleGET(req: NextRequest, { params }: Context) {
   const user = await getCurrentPmsUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canViewCosting(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!pmsCan(user, "reports.export")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { projectId } = await params;
+  // The portfolio spans every project: only the everyone's scope; one project: only a project the person may open.
+  if (projectId === "portfolio" ? !pmsSeesAll(user) : !(await checkProjectAccess(user, projectId)).allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const sp = req.nextUrl.searchParams;
   const format = (sp.get("format") ?? "pdf").toLowerCase();
   const dateFrom = sp.get("dateFrom") ?? undefined;

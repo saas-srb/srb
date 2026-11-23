@@ -1,0 +1,83 @@
+import type { Guard } from "../types";
+
+/** SprintOS coverage: see `coverage/cybervault.ts` for the rules. Keys are paths under src/app/(products), `#function` for server actions. Section pages are checked by their folder's layout (`viaLayout`); project pages and routes by `checkProjectAccess` (a person opens only the projects they manage or belong to, unless they hold the everyone's scope). */
+const P = "sprintos/(protected)";
+const open = (open: "self-service" | "session" | "public" | "redirect", reason: string): Guard => ({ open, reason });
+const layout = (...any: string[]): Guard => ({ any, viaLayout: true, via: "pmsPage" });
+
+export const SPRINTOS_ROOTS = ["src/app/(products)/sprintos", "src/app/(products)/api/sprintos"];
+
+export const SPRINTOS_COVERAGE: Record<string, Guard> = {
+  [`${P}/[...notFound]/page.tsx`]: open("public", "A placeholder page inside the product."),
+  [`${P}/actions.ts#pmsLogoutAction`]: open("self-service", "Signs the person out."),
+  [`${P}/analytics/page.tsx`]: layout("analytics.view"),
+  [`${P}/calendar/page.tsx`]: layout("calendar.view"),
+  [`${P}/clients/[id]/page.tsx`]: layout("clients.view"),
+  [`${P}/clients/actions.ts#saveClientAction`]: { any: ["clients.manage"], via: "requireManage" },
+  [`${P}/clients/actions.ts#deleteClientAction`]: { any: ["clients.manage"], via: "requireManage" },
+  [`${P}/clients/actions.ts#setClientDoNotContactAction`]: { any: ["clients.manage"], via: "requireManage" },
+  [`${P}/clients/page.tsx`]: layout("clients.view"),
+  [`${P}/costing/[id]/page.tsx`]: layout("costing.view"),
+  [`${P}/costing/actions.ts#saveCostingConfigAction`]: { any: ["costing.manage"] },
+  [`${P}/costing/page.tsx`]: layout("costing.view"),
+  [`${P}/me/page.tsx`]: open("redirect", "The old Me home only sends the person to the normal Dashboard."),
+  [`${P}/me/projects/page.tsx`]: open("redirect", "The old My Projects address only sends the person to the Projects page."),
+  [`${P}/me/tasks/page.tsx`]: open("redirect", "The old My Tasks address only sends the person to the Tasks page."),
+  [`${P}/me/timesheet/page.tsx`]: open("redirect", "The old My Timesheet address only sends the person to the Timesheets page."),
+  [`${P}/notifications/page.tsx`]: open("session", "The person's own notifications."),
+  [`${P}/notifications-actions.ts#markNotificationsReadAction`]: open("self-service", "Marks the person's own notifications read."),
+  [`${P}/notifications-actions.ts#markAllNotificationsReadAction`]: open("self-service", "Marks the person's own notifications read."),
+  [`${P}/page.tsx`]: { any: ["dashboard.view"] },
+  [`${P}/projects/[id]/board/page.tsx`]: { any: ["projects.view", "projects.all"], via: "checkProjectAccess" },
+  [`${P}/projects/[id]/documents/page.tsx`]: { any: ["projects.view", "projects.all"], via: "checkProjectAccess" },
+  [`${P}/projects/[id]/edit/page.tsx`]: { any: ["projects.manage"] },
+  [`${P}/projects/[id]/milestone-actions.ts#saveMilestoneAction`]: { any: ["projects.manage"], via: "requireManage" },
+  [`${P}/projects/[id]/milestone-actions.ts#deleteMilestoneAction`]: { any: ["projects.manage"], via: "requireManage" },
+  [`${P}/projects/[id]/page.tsx`]: { any: ["projects.view", "projects.all"], via: "checkProjectAccess" },
+  [`${P}/projects/[id]/task-actions.ts#saveTaskAction`]: { any: ["projects.manage"], via: "requireManage" },
+  [`${P}/projects/[id]/task-actions.ts#moveTaskAction`]: { any: ["projects.manage"], via: "requireManage" },
+  [`${P}/projects/[id]/task-actions.ts#setTaskStatusAction`]: { any: ["tasks.update", "projects.manage"], via: "checkProjectAccess" },
+  [`${P}/projects/[id]/task-actions.ts#deleteTaskAction`]: { any: ["projects.manage"], via: "requireManage" },
+  [`${P}/projects/[id]/task-actions.ts#addTaskCommentAction`]: { any: ["tasks.update", "projects.manage"], via: "checkProjectAccess" },
+  [`${P}/projects/[id]/task-actions.ts#deleteTaskCommentAction`]: { any: ["projects.all"], via: "pmsSeesAll" },
+  [`${P}/projects/[id]/tasks/[taskId]/page.tsx`]: { any: ["projects.view", "projects.all"], via: "checkProjectAccess" },
+  [`${P}/projects/[id]/tasks/page.tsx`]: { any: ["projects.view", "projects.all"], via: "checkProjectAccess" },
+  [`${P}/projects/[id]/timeline/page.tsx`]: { any: ["projects.view", "projects.all"], via: "checkProjectAccess" },
+  [`${P}/projects/actions.ts#saveProjectAction`]: { any: ["projects.manage"], via: "requireManage" },
+  [`${P}/projects/actions.ts#changeStatusAction`]: { any: ["projects.manage"], via: "requireManage" },
+  [`${P}/projects/actions.ts#updateProgressAction`]: { any: ["projects.manage"], via: "requireManage" },
+  [`${P}/projects/actions.ts#deleteProjectAction`]: { any: ["projects.manage"], via: "requireManage" },
+  [`${P}/projects/member-actions.ts#saveMemberAction`]: { any: ["projects.manage"], via: "requireManage" },
+  [`${P}/projects/member-actions.ts#removeMemberAction`]: { any: ["projects.manage"], via: "requireManage" },
+  [`${P}/projects/new/page.tsx`]: { any: ["projects.manage"] },
+  [`${P}/projects/page.tsx`]: { any: ["projects.view", "projects.all"], via: "pmsSeesAll" },
+  [`${P}/settings/actions.ts#savePmsSettingsAction`]: { any: ["settings.manage"] },
+  [`${P}/settings/page.tsx`]: layout("settings.view"),
+  [`${P}/tasks/page.tsx`]: layout("projects.view"),
+  [`${P}/timesheets/actions.ts#saveTimesheetAction`]: { any: ["timesheets.submit"] },
+  [`${P}/timesheets/actions.ts#deleteTimesheetAction`]: { any: ["timesheets.submit"] },
+  [`${P}/timesheets/actions.ts#submitTimesheetAction`]: { any: ["timesheets.submit"] },
+  [`${P}/timesheets/page.tsx`]: layout("timesheets.view"),
+  [`${P}/timesheets/review/page.tsx`]: { any: ["timesheets.review"] },
+  [`${P}/timesheets/review-actions.ts#reviewTimesheetAction`]: { any: ["timesheets.review"], via: "requireReviewer" },
+  [`${P}/timesheets/review-actions.ts#bulkReviewTimesheetsAction`]: { any: ["timesheets.review"], via: "requireReviewer" },
+  "sprintos/change-password/actions.ts#changePmsPasswordAction": open("self-service", "Changes the person's own password."),
+  "sprintos/change-password/page.tsx": open("self-service", "The person's own password change."),
+  "sprintos/login/page.tsx": open("public", "The sign-in page."),
+  "api/sprintos/attachments/[id]/route.ts": { any: ["documents.view"], via: "checkProjectAccess" },
+  "api/sprintos/attachments/route.ts": { any: ["documents.view"], via: "checkProjectAccess" },
+  "api/sprintos/clients/export/route.ts": { any: ["clients.export"], via: "isAuthorizedPmsRequest" },
+  "api/sprintos/documents/[id]/route.ts": { any: ["documents.view", "documents.manage"] },
+  "api/sprintos/documents/route.ts": { any: ["documents.manage"] },
+  "api/sprintos/projects/[id]/pdf/route.ts": { any: ["clients.view"] },
+  "api/sprintos/projects/export/route.ts": { any: ["clients.export"], via: "isAuthorizedPmsRequest" },
+  "api/sprintos/reports/[projectId]/route.ts": { any: ["reports.export"] },
+};
+
+/** Features that guard something without a mapped page or action: where they are enforced. */
+export const SPRINTOS_EXTRA: Record<string, string> = {
+  "dashboard.team": "The Dashboard shows the person's own projects' numbers (ProjectDashboard).",
+  "dashboard.all": "The Dashboard shows every project's numbers (ProjectDashboard, pmsSeesAll).",
+  "activity.view": "Enforced where the module reads its data: the pages and the Ask AI tools confine records to the person's scope.",
+  "projects.all": "checkProjectAccess and the project list open every project for the everyone's scope.",
+};

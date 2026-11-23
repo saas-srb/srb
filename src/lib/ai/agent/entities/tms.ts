@@ -21,7 +21,7 @@ import {
   PROGRAM_CATEGORIES, PROGRAM_STATUSES, TRAINING_MODES, BATCH_STATUSES, STUDENT_STATUSES, CLASS_STATUSES, ATTENDANCE_STATUSES, LIVE_PROJECT_STATUSES, CERTIFICATE_TYPES, PAYMENT_METHODS, PLACEMENT_TYPES, SUPPORTED_CURRENCIES,
   isValidStudentStatus,
 } from "@/lib/products/cohort-ai/constants";
-import { canManageTraining, canManageProgramsBatches, canManageStudents, canIssueCertificates, canManagePayments, canManageSettings, canViewAuditLog } from "@/lib/tms-roles";
+import { microAny, holds } from "@/lib/ai/agent/micro-gate";
 import { check, crudOps, f, fail, values, str } from "@/lib/ai/agent/entities/helpers";
 import type { ActionDef, AgentUser, EntityDef, Json, ReportDef } from "@/lib/ai/agent/types";
 
@@ -41,7 +41,7 @@ const mine = (u: AgentUser): Json | null => (u.studentId ? { studentId: u.studen
 export const TMS_ENTITIES: EntityDef[] = [
   {
     key: "tms.program", panel: "tms", label: "Program", description: "Training programs (category, mode, duration, fees, outcomes, status).", collection: "training_programs", idType: "string", baseFilter: soft, titleField: "name", search: ["name", "programCode", "technology"],
-    read: "any", write: "staff", allow: canManageProgramsBatches, canDelete: true,
+    allowRead: microAny("cohort-ai.programs.view", "cohort-ai.programs.all"), read: "any", write: "staff", allow: microAny("cohort-ai.programs.manage"), canDelete: true,
     fields: [f.str("name", "Name", true), f.enum("category", "Category", CATEGORY, true), f.enum("mode", "Mode", MODE), f.enum("status", "Status", PSTATUS), f.num("durationWeeks", "Duration (weeks)"), f.num("fees", "Fees"), f.enum("currency", "Currency", CURRENCIES), f.num("liveProjectCount", "Live projects"), f.str("technology", "Technology / track"), f.text("description", "Description"), f.list("learningOutcomes", "Learning outcomes"), f.list("tools", "Tools"), f.bool("certificateIncluded", "Certificate included"), f.bool("placementAssistance", "Placement assistance")],
     ops: crudOps<Program>({
       entity: "program", validate: validateProgram, get: getProgram, label: L("name"), audit,
@@ -50,7 +50,7 @@ export const TMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "tms.batch", panel: "tms", label: "Batch", description: "Batches of a program: dates, timing, mentor, capacity, status.", collection: "training_batches", idType: "string", baseFilter: soft, titleField: "name", search: ["name", "batchCode"],
-    read: "any", write: "staff", allow: canManageProgramsBatches, canDelete: true,
+    allowRead: microAny("cohort-ai.batches.view", "cohort-ai.batches.all"), read: "any", write: "staff", allow: microAny("cohort-ai.batches.manage"), canDelete: true,
     fields: [f.ref("programId", "Program (tms.program id)", "tms.program", true), f.str("name", "Name", true), f.enum("mode", "Mode", MODE), f.enum("status", "Status", BSTATUS), f.date("startDate", "Start date"), f.date("endDate", "End date"), f.num("capacity", "Capacity (seats)"), f.str("timing", "Timing (e.g. Mon–Fri 7–9 PM)"), f.ref("mentorId", "Mentor (hrms.employee id)", "hrms.employee"), f.text("notes", "Notes")],
     ops: crudOps<Batch>({
       entity: "batch", validate: validateBatch, get: getBatch, label: L("name"), audit,
@@ -60,7 +60,7 @@ export const TMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "tms.student", panel: "tms", label: "Student", description: "Enrolled training students: contact, education, guardian, links and status.", collection: "training_students", idType: "string", baseFilter: soft, titleField: "fullName", search: ["fullName", "email", "mobile", "studentCode"],
-    read: "staff", write: "staff", allow: canManageStudents, hide: ["links", "guardian"],
+    allowRead: microAny("cohort-ai.students.all"), read: "staff", write: "staff", allow: microAny("cohort-ai.students.manage"), hide: ["links", "guardian"],
     self: (u) => (u.studentId ? { _id: u.studentId } : null),
     fields: [f.str("fullName", "Full name", true), f.email("email", "Email"), f.str("mobile", "Mobile"), f.str("address", "Address"), f.str("college", "College"), f.str("university", "University"), f.str("branch", "Branch"), f.str("semester", "Semester"), f.num("graduationYear", "Graduation year"), f.str("guardianName", "Guardian name"), f.str("guardianPhone", "Guardian phone"), f.str("guardianRelation", "Guardian relation"), f.str("linkedin", "LinkedIn URL"), f.str("github", "GitHub URL"), f.str("resumeUrl", "Resume URL"), f.str("photoUrl", "Photo URL"), f.enum("status", "Status", SSTATUS), f.text("notes", "Notes")],
     ops: crudOps<Student>({
@@ -69,10 +69,10 @@ export const TMS_ENTITIES: EntityDef[] = [
       create: (d, u) => createStudent(d, u.id), update: (id, d, u) => updateStudent(id, d, u.id),
     }),
   },
-  { key: "tms.enrollment", panel: "tms", label: "Enrollment", description: "Which student is in which batch, with status and progress.", collection: "student_enrollments", idType: "string", baseFilter: soft, read: "staff", self: mine },
+  { key: "tms.enrollment", panel: "tms", label: "Enrollment", description: "Which student is in which batch, with status and progress.", collection: "student_enrollments", idType: "string", baseFilter: soft, allowRead: microAny("cohort-ai.students.all"), read: "staff", self: mine },
   {
     key: "tms.class", panel: "tms", label: "Class", description: "Scheduled classes per batch (topic, date, time, mentor, status).", collection: "class_schedules", idType: "string", baseFilter: soft, titleField: "topic", search: ["topic"],
-    read: "staff", write: "staff", allow: canManageTraining, canDelete: true,
+    allowRead: microAny("cohort-ai.classes.all"), read: "staff", write: "staff", allow: microAny("cohort-ai.classes.manage"), canDelete: true,
     fields: [f.ref("batchId", "Batch (tms.batch id)", "tms.batch", true), f.str("topic", "Topic", true), f.date("date", "Date", true), f.str("startTime", "Start time HH:MM"), f.num("durationMinutes", "Duration (minutes)"), f.str("meetingLink", "Meeting link"), f.str("recordingUrl", "Recording URL"), f.enum("status", "Status", CSTATUS), f.ref("mentorId", "Mentor (hrms.employee id)", "hrms.employee"), f.text("notes", "Notes")],
     ops: crudOps<ClassSchedule>({
       entity: "class", validate: validateClass, get: getClass, label: L("topic"), audit,
@@ -83,7 +83,7 @@ export const TMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "tms.assignment", panel: "tms", label: "Assignment", description: "Assignments set for a batch (title, due date, max marks).", collection: "assignments", idType: "string", baseFilter: soft, titleField: "title", search: ["title"],
-    read: "staff", write: "staff", allow: canManageTraining, canDelete: true,
+    allowRead: microAny("cohort-ai.assignments.all"), read: "staff", write: "staff", allow: microAny("cohort-ai.assignments.manage"), canDelete: true,
     fields: [f.ref("batchId", "Batch (tms.batch id)", "tms.batch", true), f.str("title", "Title", true), f.date("dueDate", "Due date"), f.num("maxMarks", "Maximum marks"), f.str("attachmentUrl", "Attachment URL"), f.text("description", "Description")],
     ops: crudOps<Assignment>({
       entity: "assignment", validate: validateAssignment, get: getAssignment, label: L("title"), audit,
@@ -94,7 +94,7 @@ export const TMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "tms.live_project", panel: "tms", label: "Live project", description: "Live projects students work on (status, repo, milestones, mentor).", collection: "live_projects", idType: "string", baseFilter: soft, titleField: "title", search: ["title", "projectCode"],
-    read: "staff", write: "staff", allow: canManageTraining, canDelete: true,
+    allowRead: microAny("cohort-ai.projects.all"), read: "staff", write: "staff", allow: microAny("cohort-ai.projects.manage"), canDelete: true,
     fields: [f.str("title", "Title", true), f.ref("programId", "Program (tms.program id)", "tms.program", true), f.enum("status", "Status", LPSTATUS), f.str("repoUrl", "Repo URL"), f.str("demoUrl", "Demo URL"), f.date("startDate", "Start date"), f.date("dueDate", "Due date"), f.num("progressPercent", "Progress %"), f.text("description", "Description"), f.ref("batchId", "Batch (tms.batch id)", "tms.batch"), f.ref("mentorId", "Mentor (hrms.employee id)", "hrms.employee"), f.list("studentIds", "Student ids (tms.student)"), f.json("milestones", "Milestones: [{id?, title, done, dueDate}]")],
     ops: crudOps<LiveProject>({
       entity: "project", validate: validateLiveProject, get: getLiveProject, label: L("title"), audit,
@@ -104,7 +104,7 @@ export const TMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "tms.placement", panel: "tms", label: "Placement", description: "Students placed in jobs/internships: company, role, package.", collection: "placement_records", idType: "string", baseFilter: soft, titleField: "company", search: ["company", "role"],
-    read: "staff", write: "staff", allow: canManageTraining, canDelete: true, self: mine,
+    allowRead: microAny("cohort-ai.placements.view"), read: "staff", write: "staff", allow: microAny("cohort-ai.placements.manage"), canDelete: true, self: mine,
     fields: [f.ref("studentId", "Student (tms.student id)", "tms.student", true), f.str("company", "Company", true), f.str("role", "Role", true), f.enum("type", "Type", PTYPE), f.date("placedOn", "Placed on"), f.num("packageLpa", "Package (LPA)"), f.str("offerLetterUrl", "Offer letter URL"), f.ref("programId", "Program (tms.program id)", "tms.program"), f.str("location", "Location"), f.text("notes", "Notes")],
     ops: crudOps<PlacementRecord>({
       entity: "placement", validate: validatePlacement, get: getPlacement, label: L("company"), audit,
@@ -114,7 +114,7 @@ export const TMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "tms.payment_plan", panel: "tms", label: "Fee plan", description: "A student's fees: total, discount, installments paid and balance.", collection: "payments", idType: "string", baseFilter: soft, search: ["notes"],
-    read: "staff", allowRead: canManagePayments, write: "staff", allow: canManagePayments, canDelete: true, self: mine,
+    read: "staff", allowRead: microAny("cohort-ai.payments.manage"), write: "staff", allow: microAny("cohort-ai.payments.manage"), canDelete: true, self: mine,
     fields: [f.ref("studentId", "Student (tms.student id)", "tms.student", true, true), f.ref("programId", "Program (tms.program id)", "tms.program", true, true), f.num("totalFees", "Total fees", true), f.num("discount", "Discount"), f.ref("batchId", "Batch (tms.batch id)", "tms.batch"), f.str("enrollmentId", "Enrollment id"), f.enum("currency", "Currency", CURRENCIES), f.text("notes", "Notes")],
     ops: {
       create: async (v, u) => {
@@ -143,15 +143,15 @@ export const TMS_ENTITIES: EntityDef[] = [
       },
     },
   },
-  { key: "tms.certificate", panel: "tms", label: "Certificate", description: "Certificates issued to students (number, type, program, revoked or not).", collection: "certificates", idType: "string", baseFilter: soft, titleField: "certificateNumber", search: ["certificateNumber", "title"], read: "staff", self: mine },
-  { key: "tms.class_attendance", panel: "tms", label: "Class attendance", description: "Attendance of students per class.", collection: "class_attendance", read: "staff", self: mine },
-  { key: "tms.submission", panel: "tms", label: "Assignment submission", description: "Student submissions with marks and feedback.", collection: "assignment_submissions", read: "staff", self: mine },
-  { key: "tms.activity", panel: "tms", label: "Audit log", description: "Who changed what in Cohort AI.", collection: "training_audit_logs", idType: "string", search: ["entityLabel", "summary", "actorEmail"], read: "admin", allowRead: canViewAuditLog },
+  { key: "tms.certificate", panel: "tms", label: "Certificate", description: "Certificates issued to students (number, type, program, revoked or not).", collection: "certificates", idType: "string", baseFilter: soft, titleField: "certificateNumber", search: ["certificateNumber", "title"], allowRead: microAny("cohort-ai.certificates.all"), read: "staff", self: mine },
+  { key: "tms.class_attendance", panel: "tms", label: "Class attendance", description: "Attendance of students per class.", collection: "class_attendance", allowRead: microAny("cohort-ai.classes.all"), read: "staff", self: mine },
+  { key: "tms.submission", panel: "tms", label: "Assignment submission", description: "Student submissions with marks and feedback.", collection: "assignment_submissions", allowRead: microAny("cohort-ai.assignments.all"), read: "staff", self: mine },
+  { key: "tms.activity", panel: "tms", label: "Audit log", description: "Who changed what in Cohort AI.", collection: "training_audit_logs", idType: "string", search: ["entityLabel", "summary", "actorEmail"], read: "admin", allowRead: microAny("cohort-ai.audit.view") },
 ];
 
 export const TMS_ACTIONS: ActionDef[] = [
   {
-    key: "tms.assign_batch", panel: "tms", label: "Enrol a student in a batch", description: "Put a student into a batch of a program (uses a seat).", level: "staff", allow: canManageStudents,
+    key: "tms.assign_batch", panel: "tms", label: "Enrol a student in a batch", description: "Put a student into a batch of a program (uses a seat).", level: "staff", allow: microAny("cohort-ai.students.manage"),
     params: [f.ref("studentId", "Student id", "tms.student", true), f.ref("batchId", "Batch id", "tms.batch", true)],
     run: async (v, u) => {
       const student = await getStudent(String(v.studentId));
@@ -165,7 +165,7 @@ export const TMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "tms.update_enrollment", panel: "tms", label: "Update a student's status or progress in a batch", description: "Set the enrolment status and/or progress %.", level: "staff", allow: canManageStudents,
+    key: "tms.update_enrollment", panel: "tms", label: "Update a student's status or progress in a batch", description: "Set the enrolment status and/or progress %.", level: "staff", allow: microAny("cohort-ai.students.manage"),
     params: [f.ref("studentId", "Student id", "tms.student", true), f.ref("batchId", "Batch id", "tms.batch", true), f.enum("status", "Status", SSTATUS), f.num("progressPercent", "Progress %")],
     run: async (v, u) => {
       const enrollment = await getEnrollment(String(v.studentId), String(v.batchId));
@@ -178,7 +178,7 @@ export const TMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "tms.mark_attendance", panel: "tms", label: "Mark class attendance", description: "Record each student's attendance for a class: entries [{studentId, status}].", level: "staff", allow: canManageTraining,
+    key: "tms.mark_attendance", panel: "tms", label: "Mark class attendance", description: "Record each student's attendance for a class: entries [{studentId, status}].", level: "staff", allow: microAny("cohort-ai.classes.manage"),
     params: [f.ref("classId", "Class id (tms.class)", "tms.class", true), f.json("entries", `Entries: [{studentId, status: ${ATT.join("|")}}]`, true)],
     run: async (v, u) => {
       const cls = await getClass(String(v.classId));
@@ -191,7 +191,7 @@ export const TMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "tms.review_submission", panel: "tms", label: "Review a student's assignment submission", description: "Give marks and feedback, or send it back for rework.", level: "staff", allow: canManageTraining,
+    key: "tms.review_submission", panel: "tms", label: "Review a student's assignment submission", description: "Give marks and feedback, or send it back for rework.", level: "staff", allow: microAny("cohort-ai.assignments.manage"),
     params: [f.ref("assignmentId", "Assignment id", "tms.assignment", true), f.ref("studentId", "Student id", "tms.student", true), f.num("marks", "Marks"), f.text("feedback", "Feedback"), f.bool("approved", "Approved (false = send back)")],
     run: async (v, u) => {
       const a = await getAssignment(String(v.assignmentId));
@@ -206,12 +206,12 @@ export const TMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "tms.toggle_milestone", panel: "tms", label: "Tick or untick a live-project milestone", description: "Mark a milestone done or reopen it. Students can do this on their own project.", level: "any",
+    key: "tms.toggle_milestone", panel: "tms", label: "Tick or untick a live-project milestone", description: "Mark a milestone done or reopen it. Students can do this on their own project.", level: "any", allow: microAny("cohort-ai.projects.manage", "cohort-ai.projects.update"),
     params: [f.ref("projectId", "Live project id (tms.live_project)", "tms.live_project", true), f.str("milestoneId", "Milestone id", true), f.bool("done", "Done")],
     run: async (v, u) => {
       const p = await getLiveProject(String(v.projectId));
       if (!p) return fail("Project not found.");
-      const staff = canManageTraining(u);
+      const staff = holds(u.subject, "cohort-ai.projects.manage");
       if (!staff && !(u.studentId && p.studentIds.includes(u.studentId))) return fail("You're not assigned to this project.");
       await toggleMilestone(p._id, String(v.milestoneId), v.done === true, u.id);
       await audit(u, { action: "update", entity: "project", entityId: p._id, entityLabel: p.title, summary: `milestone ${v.done === true ? "completed" : "reopened"}` });
@@ -219,7 +219,7 @@ export const TMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "tms.record_installment", panel: "tms", label: "Record a fee payment (installment)", description: "Record money received from a student against their fee plan; notifies the student and issues a receipt number.", level: "staff", allow: canManagePayments,
+    key: "tms.record_installment", panel: "tms", label: "Record a fee payment (installment)", description: "Record money received from a student against their fee plan; notifies the student and issues a receipt number.", level: "staff", allow: microAny("cohort-ai.payments.manage"),
     params: [f.ref("planId", "Fee plan id (tms.payment_plan)", "tms.payment_plan", true), f.num("amount", "Amount", true), f.enum("method", "Method", METHODS, true), f.date("paidOn", "Paid on"), f.str("transactionId", "Transaction / reference id"), f.str("note", "Note")],
     run: async (v, u) => {
       const c = check(validateInstallment(v));
@@ -233,7 +233,7 @@ export const TMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "tms.remove_installment", panel: "tms", label: "Remove a recorded fee payment", description: "Delete an installment from a fee plan.", level: "staff", allow: canManagePayments, destructive: true,
+    key: "tms.remove_installment", panel: "tms", label: "Remove a recorded fee payment", description: "Delete an installment from a fee plan.", level: "staff", allow: microAny("cohort-ai.payments.manage"), destructive: true,
     params: [f.ref("planId", "Fee plan id", "tms.payment_plan", true), f.str("installmentId", "Installment id (inside the plan)", true)],
     run: async (v, u) => {
       if (!(await removeInstallment(String(v.planId), String(v.installmentId), u.id))) return fail("Could not remove that payment.");
@@ -242,7 +242,7 @@ export const TMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "tms.issue_certificate", panel: "tms", label: "Issue a certificate to a student", description: "Issue a completion/participation/project certificate (numbered, verifiable); notifies the student.", level: "staff", allow: canIssueCertificates,
+    key: "tms.issue_certificate", panel: "tms", label: "Issue a certificate to a student", description: "Issue a completion/participation/project certificate (numbered, verifiable); notifies the student.", level: "staff", allow: microAny("cohort-ai.certificates.manage"),
     params: [f.enum("type", "Type", CERT, true), f.ref("studentId", "Student id", "tms.student", true), f.ref("programId", "Program id", "tms.program", true), f.date("issuedOn", "Issued on"), f.ref("batchId", "Batch id", "tms.batch"), f.str("title", "Title (e.g. project name)"), f.str("grade", "Grade")],
     run: async (v, u) => {
       const c = check(validateCertificate(v));
@@ -257,7 +257,7 @@ export const TMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "tms.reissue_certificate", panel: "tms", label: "Reissue a certificate", description: "Replace a certificate with a fresh one (the old one is superseded).", level: "staff", allow: canIssueCertificates,
+    key: "tms.reissue_certificate", panel: "tms", label: "Reissue a certificate", description: "Replace a certificate with a fresh one (the old one is superseded).", level: "staff", allow: microAny("cohort-ai.certificates.manage"),
     params: [f.ref("certificateId", "Certificate id", "tms.certificate", true)],
     run: async (v, u) => {
       const before = await getCertificate(String(v.certificateId));
@@ -268,7 +268,7 @@ export const TMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "tms.revoke_certificate", panel: "tms", label: "Revoke or reinstate a certificate", description: "Revoke a certificate (it stops verifying) or reinstate it.", level: "staff", allow: canIssueCertificates, destructive: true,
+    key: "tms.revoke_certificate", panel: "tms", label: "Revoke or reinstate a certificate", description: "Revoke a certificate (it stops verifying) or reinstate it.", level: "staff", allow: microAny("cohort-ai.certificates.manage"), destructive: true,
     params: [f.ref("certificateId", "Certificate id", "tms.certificate", true), f.bool("revoked", "Revoked (false = reinstate)"), f.str("reason", "Reason")],
     run: async (v, u) => {
       const revoked = v.revoked !== false;
@@ -279,7 +279,7 @@ export const TMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "tms.delete_certificate", panel: "tms", label: "Delete a certificate", description: "Permanently delete a certificate record.", level: "staff", allow: canIssueCertificates, destructive: true,
+    key: "tms.delete_certificate", panel: "tms", label: "Delete a certificate", description: "Permanently delete a certificate record.", level: "staff", allow: microAny("cohort-ai.certificates.manage"), destructive: true,
     params: [f.ref("certificateId", "Certificate id", "tms.certificate", true)],
     run: async (v, u) => {
       const before = await getCertificate(String(v.certificateId));
@@ -289,7 +289,7 @@ export const TMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "tms.save_settings", panel: "tms", label: "Change Cohort AI settings", description: "Track/technology suggestions and the default currency.", level: "admin", allow: canManageSettings,
+    key: "tms.save_settings", panel: "tms", label: "Change Cohort AI settings", description: "Track/technology suggestions and the default currency.", level: "admin", allow: microAny("cohort-ai.settings.manage"),
     params: [f.list("technologySuggestions", "Track suggestions"), f.enum("defaultCurrency", "Default currency", CURRENCIES)],
     run: async (v, u) => {
       const cur = await getTmsSettings();
@@ -303,8 +303,8 @@ export const TMS_ACTIONS: ActionDef[] = [
 
 const D = (v: unknown) => (v ? new Date(String(v)) : undefined);
 export const TMS_REPORTS: ReportDef[] = [
-  { key: "tms.dashboard", panel: "tms", label: "Training dashboard numbers", description: "Students, programs, batches, enrolments, revenue and trends.", level: "staff", params: [f.date("dateFrom", "From"), f.date("dateTo", "To"), f.ref("programId", "Program id", "tms.program")], run: async (v) => (await getTmsDashboardStats({ dateFrom: D(v.dateFrom), dateTo: v.dateTo ? new Date(`${String(v.dateTo)}T23:59:59`) : undefined, programId: str(v.programId) ?? undefined })) as unknown as Json },
-  { key: "tms.fees_summary", panel: "tms", label: "Fee collection summary", description: "Total fees, collected, pending and the collection trend.", level: "staff", allow: canManagePayments, params: [], run: async () => (await getPaymentAnalytics()) as unknown as Json },
-  { key: "tms.batch_attendance", panel: "tms", label: "Attendance rate of a batch", description: "Attendance summary across all classes of a batch.", level: "staff", params: [f.ref("batchId", "Batch id", "tms.batch", true)], run: async (v) => ({ summary: await batchAttendanceSummary(String(v.batchId)) }) as unknown as Json },
-  { key: "tms.report", panel: "tms", label: "Full report", description: `One of the product's reports: ${REPORT_TYPES.map((r) => r.value).join(", ")}.`, level: "staff", params: [f.enum("type", "Report", REPORT_TYPES.map((r) => r.value as string), true)], run: async (v) => { const r = await buildReport(String(v.type) as never); return { title: r.title, meta: r.meta, rows: r.rows.slice(0, 200), totalRows: r.rows.length } as unknown as Json; } },
+  { key: "tms.dashboard", panel: "tms", label: "Training dashboard numbers", description: "Students, programs, batches, enrolments, revenue and trends.", level: "staff", allow: microAny("cohort-ai.dashboard.all"), params: [f.date("dateFrom", "From"), f.date("dateTo", "To"), f.ref("programId", "Program id", "tms.program")], run: async (v) => (await getTmsDashboardStats({ dateFrom: D(v.dateFrom), dateTo: v.dateTo ? new Date(`${String(v.dateTo)}T23:59:59`) : undefined, programId: str(v.programId) ?? undefined })) as unknown as Json },
+  { key: "tms.fees_summary", panel: "tms", label: "Fee collection summary", description: "Total fees, collected, pending and the collection trend.", level: "staff", allow: microAny("cohort-ai.payments.manage"), params: [], run: async () => (await getPaymentAnalytics()) as unknown as Json },
+  { key: "tms.batch_attendance", panel: "tms", label: "Attendance rate of a batch", description: "Attendance summary across all classes of a batch.", level: "staff", allow: microAny("cohort-ai.classes.all"), params: [f.ref("batchId", "Batch id", "tms.batch", true)], run: async (v) => ({ summary: await batchAttendanceSummary(String(v.batchId)) }) as unknown as Json },
+  { key: "tms.report", panel: "tms", label: "Full report", description: `One of the product's reports: ${REPORT_TYPES.map((r) => r.value).join(", ")}.`, level: "staff", allow: microAny("cohort-ai.reports.export"), params: [f.enum("type", "Report", REPORT_TYPES.map((r) => r.value as string), true)], run: async (v) => { const r = await buildReport(String(v.type) as never); return { title: r.title, meta: r.meta, rows: r.rows.slice(0, 200), totalRows: r.rows.length } as unknown as Json; } },
 ];

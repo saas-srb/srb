@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { SUPPORTED_CURRENCIES } from "@/lib/products/cohort-ai/constants";
-import { saveTmsSettingsAction } from "@/app/(products)/cohort-ai/(protected)/(staff)/settings/actions";
+import { saveTmsSettingsAction } from "@/app/(products)/cohort-ai/(protected)/settings/actions";
 import type { TmsSettings } from "@/lib/products/cohort-ai/settings";
 
 export default function TmsSettingsForm({ settings }: { settings: TmsSettings }) {

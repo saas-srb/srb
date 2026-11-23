@@ -7,13 +7,13 @@ import { getViewer } from "@/lib/products/playbook-ai/viewer";
 import { getTaxonomy } from "@/lib/products/playbook-ai/taxonomy";
 import { listVisibleSummaries } from "@/lib/products/playbook-ai/sops";
 import { listHrmsDepartments } from "@/lib/products/playbook-ai/people";
-import { sopCan } from "@/lib/sop-roles";
+import { pbSop } from "@/lib/playbook-access";
 
 export default async function DepartmentsPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/playbook-ai/login");
   const [tax, summaries, hrms] = await Promise.all([getTaxonomy(), listVisibleSummaries(viewer), listHrmsDepartments()]);
-  const canManage = sopCan({ roles: viewer.roles, permissionOverrides: viewer.overrides }, "MANAGE_TEMPLATES");
+  const canManage = pbSop(viewer, "MANAGE_TEMPLATES");
   const hrmsName = new Map(hrms.map((h) => [h._id, h.name]));
 
   // Counts reflect only what this viewer can see.

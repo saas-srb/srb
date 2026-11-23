@@ -9,7 +9,7 @@ import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { updateOwnProfileAction } from "@/app/(products)/cohort-ai/(protected)/me/profile/actions";
+import { updateOwnProfileAction } from "@/app/(products)/cohort-ai/(protected)/students/profile-actions";
 import type { SerializedStudent } from "@/lib/products/cohort-ai/students";
 
 type FormState = Record<string, string>;

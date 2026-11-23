@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { LIVE_PROJECT_STATUSES } from "@/lib/products/cohort-ai/constants";
-import { saveLiveProjectAction } from "@/app/(products)/cohort-ai/(protected)/(staff)/projects/actions";
+import { saveLiveProjectAction } from "@/app/(products)/cohort-ai/(protected)/projects/actions";
 import type { SerializedLiveProject, Milestone } from "@/lib/products/cohort-ai/projects";
 
 export interface StudentMembership {

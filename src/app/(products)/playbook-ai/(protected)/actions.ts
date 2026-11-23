@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { ObjectId } from "mongodb";
 import { getCurrentSopUser } from "@/lib/sop-auth";
 import { signOutThisDevice } from "@/lib/security/sessions";
-import { sopCan } from "@/lib/sop-roles";
 import { requireViewer } from "@/lib/products/playbook-ai/viewer";
 import { toAccessDoc } from "@/lib/products/playbook-ai/access";
 import { todayIso } from "@/lib/products/playbook-ai/db";
@@ -38,6 +37,7 @@ import { updateSettings } from "@/lib/products/playbook-ai/settings";
 import { markSopNotificationsRead } from "@/lib/products/playbook-ai/notifications";
 import type { SopViewer } from "@/lib/products/playbook-ai/types";
 import { writeBlockReason } from "@/lib/platform/billing/enforce";
+import { pbSop } from "@/lib/playbook-access";
 
 /**
  * Every SOP mutation. Each action resolves the viewer from the SESSION COOKIE
@@ -249,7 +249,7 @@ export async function resolveFeedbackAction(id: string, feedbackId: string, note
 // --- structure (departments / functions / processes / categories) ------------
 
 function requireStructure(v: SopViewer): Fail | null {
-  return sopCan({ roles: v.roles, permissionOverrides: v.overrides }, "MANAGE_TEMPLATES") ? null : { ok: false, error: "You don't have permission to manage SOP structure." };
+  return pbSop(v, "MANAGE_TEMPLATES") ? null : { ok: false, error: "You don't have permission to manage SOP structure." };
 }
 
 async function structureAudit(v: SopViewer, entity: "department" | "function" | "process" | "category", id: string, label: string, summary: string) {
@@ -397,7 +397,7 @@ export async function deleteTemplateAction(id: string) {
 
 export async function updateSettingsAction(input: { expiringSoonDays: number; defaultReviewMonths: number; defaultDueDays: number; reackOnNewVersion: boolean; reminderRepeatDays: number; defaultAllowDownload: boolean }) {
   return run(async (v) => {
-    if (!sopCan({ roles: v.roles, permissionOverrides: v.overrides }, "MANAGE_PERMISSIONS")) return { ok: false as const, error: "You don't have permission to change SOP settings." };
+    if (!pbSop(v, "MANAGE_PERMISSIONS")) return { ok: false as const, error: "You don't have permission to change SOP settings." };
     await updateSettings(
       {
         expiringSoonDays: Number(input?.expiringSoonDays),

@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentPmsUser } from "@/lib/pms-auth";
-import { canManageProjects } from "@/lib/pms-roles";
+import { checkProjectAccess } from "@/lib/products/sprintos/access";
+import { pmsCan, pmsSeesAll } from "@/lib/pms-access";
 import {
   createProject,
   updateProject,
@@ -24,10 +25,12 @@ export interface ProjectActionResult {
   id?: string;
 }
 
-async function requireManage() {
+async function requireManage(projectId?: string) {
   const user = await getCurrentPmsUser();
   if (!user) throw new Error("Unauthorized");
-  if (!canManageProjects(user)) throw new Error("Forbidden");
+  if (!pmsCan(user, "projects.manage")) throw new Error("Forbidden");
+  // A manager manages only the projects they manage or belong to (everyone's scope: any); the action cannot be pointed at a stranger's project by id.
+  if (projectId && !(await checkProjectAccess(user, projectId)).allowed) throw new Error("Forbidden");
   return user;
 }
 
@@ -54,7 +57,7 @@ export async function saveProjectAction(
   input: Record<string, unknown>,
   id?: string
 ): Promise<ProjectActionResult> {
-  const user = await requireManage();
+  const user = await requireManage(id);
   const readOnly = await writeBlockReason();
   if (readOnly) return { ok: false, error: readOnly };
   const v = validateProject(input);
@@ -105,7 +108,7 @@ export async function saveProjectAction(
 }
 
 export async function changeStatusAction(id: string, status: string): Promise<ProjectActionResult> {
-  const user = await requireManage();
+  const user = await requireManage(id);
   if (!isValidProjectStatus(status)) return { ok: false, error: "Unknown status." };
   const before = await getProject(id);
   const res = await changeProjectStatus(id, status, user.id);
@@ -142,7 +145,7 @@ export async function changeStatusAction(id: string, status: string): Promise<Pr
 }
 
 export async function updateProgressAction(id: string, progressPercent: number): Promise<ProjectActionResult> {
-  const user = await requireManage();
+  const user = await requireManage(id);
   const pct = Math.min(100, Math.max(0, Math.round(Number(progressPercent))));
   if (!Number.isFinite(pct)) return { ok: false, error: "Invalid progress value." };
   const before = await getProject(id);
@@ -163,7 +166,7 @@ export async function updateProgressAction(id: string, progressPercent: number):
 }
 
 export async function deleteProjectAction(id: string): Promise<ProjectActionResult> {
-  const user = await requireManage();
+  const user = await requireManage(id);
   const before = await getProject(id);
   const result = await deleteProject(id, user.id);
   if (!result.ok) return { ok: false, error: "Could not delete project." };

@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { getCurrentSopUser, type CurrentSopUser } from "@/lib/sop-auth";
-import { isSopAdmin, isSopManagerTier } from "@/lib/sop-roles";
+import { pbSeesAllSops, pbManagesDepartment } from "@/lib/playbook-access";
 import { getEmployeeContextForUser, headedHrmsDepartmentIds } from "@/lib/products/playbook-ai/people";
 import { getTaxonomy } from "@/lib/products/playbook-ai/taxonomy";
 import type { SopViewer } from "@/lib/products/playbook-ai/types";
@@ -30,13 +30,13 @@ export async function buildViewer(user: CurrentSopUser): Promise<SopViewer> {
   const headedHrms = emp ? await headedHrmsDepartmentIds(emp.employeeId) : [];
   const headedDepartmentIds = headedHrms.map((h) => byHrms.get(h)).filter((x): x is string => !!x);
 
-  const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides };
-  const isAdmin = isSopAdmin(ctx);
-  const isManagerTier = isSopManagerTier(ctx);
+  const isAdmin = pbSeesAllSops(user);
+  const isManagerTier = pbManagesDepartment(user);
   // A manager manages their own department; a department head manages theirs even without a manager role.
   const manageDepartmentIds = Array.from(new Set([...(isManagerTier ? memberDepartmentIds : []), ...headedDepartmentIds]));
 
   return {
+    subject: user.subject,
     userId: user.id,
     email: user.email,
     name: emp?.name ?? nameFromEmail(user.email),

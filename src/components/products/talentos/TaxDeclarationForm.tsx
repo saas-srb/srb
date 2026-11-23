@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { RegimeSummary, TaxPreview } from "@/lib/products/talentos/tax-preview";
 import { formatCurrency } from "@/lib/utils";
-import { previewMyTaxAction, saveMyDeclarationAction } from "@/app/(products)/talentos/(protected)/me/tax/actions";
+import { previewMyTaxAction, saveMyDeclarationAction } from "@/app/(products)/talentos/(protected)/payroll/tax/actions";
 
 type D = Record<string, number | boolean | string>;
 
@@ -40,7 +40,10 @@ export default function TaxDeclarationForm({
   hrNote,
   initial,
   verified,
+  canDeclare = true,
 }: {
+  /** Only people who hold tax.declare may change or submit the declaration; others see it read only. */
+  canDeclare?: boolean;
   fy: string;
   status: "none" | "draft" | "submitted" | "verified";
   hrNote: string | null;
@@ -54,7 +57,7 @@ export default function TaxDeclarationForm({
   const [d, setD] = useState<Record<string, string | boolean>>(() => Object.fromEntries(Object.entries(initial.declared).map(([k, v]) => [k, typeof v === "boolean" || typeof v === "string" ? v : v ? String(v) : ""])));
   const [prev, setPrev] = useState({ employerName: initial.previousEmployer.employerName, taxableSalary: String(initial.previousEmployer.taxableSalary || ""), employeePf: String(initial.previousEmployer.employeePf || ""), professionalTax: String(initial.previousEmployer.professionalTax || ""), tds: String(initial.previousEmployer.tds || "") });
   const [pan, setPan] = useState(initial.landlordPan ?? "");
-  const locked = status === "verified";
+  const locked = status === "verified" || !canDeclare;
   const [preview, setPreview] = useState<TaxPreview | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [calculating, startCalc] = useTransition();

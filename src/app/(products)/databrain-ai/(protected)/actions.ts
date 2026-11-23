@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { ObjectId } from "mongodb";
 import { getCurrentIntelligenceUser } from "@/lib/intelligence-auth";
-import { intelligenceCan } from "@/lib/intelligence-roles";
+import { dbCanAsk } from "@/lib/databrain-access";
 import { signOutThisDevice } from "@/lib/security/sessions";
 import { deleteConversation } from "@/lib/products/databrain-ai/conversations";
 
@@ -11,7 +11,7 @@ import { deleteConversation } from "@/lib/products/databrain-ai/conversations";
 
 export async function deleteConversationAction(id: string): Promise<{ ok: boolean; error?: string }> {
   const user = await getCurrentIntelligenceUser();
-  if (!user || !intelligenceCan(user, "USE")) return { ok: false, error: "Your session has expired — please sign in again." };
+  if (!user || !dbCanAsk(user)) return { ok: false, error: "Your session has expired — please sign in again." };
   if (typeof id !== "string" || id.length === 0 || id.length > 64) return { ok: false, error: "That conversation no longer exists." };
   const done = await deleteConversation(user.id, id);
   return done ? { ok: true } : { ok: false, error: "That conversation no longer exists." };

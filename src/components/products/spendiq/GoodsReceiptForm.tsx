@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { createGrnAction } from "@/app/(products)/spendiq/(protected)/(staff)/grn/actions";
+import { createGrnAction } from "@/app/(products)/spendiq/(protected)/grn/actions";
 
 export interface GrnPoItem {
   itemIndex: number;

@@ -12,6 +12,7 @@ import { hrCan, hrScope } from "../src/lib/talentos-access";
 import { hrReach, reaches, reachFilter, requireHrAct } from "../src/lib/products/talentos/scope";
 import { buildAccessUi } from "../src/lib/access/ui-model";
 import * as OLD from "../src/lib/hrms-roles";
+import { uploadTarget, mayReadDocument, maySeeSignedDocument } from "../src/lib/products/talentos/doc-access";
 import { STAGED } from "../src/lib/access/micro/staged";
 
 // TalentOS: Director vs partial vs old roles vs Read only vs own-only vs manager with a reporting line, per converted module. Throwaway database only.
@@ -155,8 +156,77 @@ const k = (s: string) => `${P}.${s}`;
       assert.equal(hrCan(await holder(rows.manager), "holidays.manage"), false);
       assert.ok(hrCan(await holder(rows.hr), "holidays.manage"));
     });
-    await T("staged conversion: Leave is converted and nothing else is half converted", async () => {
-      assert.ok(STAGED[P].converted.includes("Leave") && STAGED[P].converted.includes("Attendance") && STAGED[P].converted.includes("Requests") && STAGED[P].converted.includes("Holidays"));
+    // ---- Security patches (leaks found by the sweep) ---------------------------------------------------------------------------
+    await T("document upload: an employee and a manager upload to their OWN record only; HR uploads for anyone; a manager without the document right can no longer upload onto a stranger", async () => {
+      const e = await holder(rows.employee), m = await holder(rows.manager), h = await holder(rows.hr);
+      const asUser = (x: typeof e) => ({ ...x, permissionOverrides: {} as Record<string, boolean> });
+      assert.deepEqual(await uploadTarget(asUser(e) as never, "R1"), { employeeId: "EMP", role: "employee" }, "an employee's request for someone else lands on their own record");
+      assert.deepEqual(await uploadTarget(asUser(m) as never, "X"), { employeeId: "MGR", role: "employee" }, "a manager cannot choose another employee");
+      assert.deepEqual(await uploadTarget(asUser(h) as never, "X"), { employeeId: "X", role: "staff" });
+      assert.deepEqual(await uploadTarget(asUser(h) as never, "R2"), { employeeId: "R2", role: "staff" });
+    });
+    await T("document upload with the document right: a manager given it reaches only their reporting line", async () => {
+      const row = (await people.insertOne({ _id: new ObjectId(), email: "mdoc@x", roles: ["manager"], employeeId: "MGR", permissionOverrides: { "hrms.canManageEmployeeDocuments": true } } as never)).insertedId;
+      const r = (await people.findOne({ _id: row })) as never as { roles: string[]; employeeId: string; permissionOverrides: Record<string, boolean> };
+      const m = { roles: r.roles, employeeId: r.employeeId, permissionOverrides: r.permissionOverrides, subject: subjectFromRow(r as never) } as never;
+      assert.deepEqual(await uploadTarget(m, "R2"), { employeeId: "R2", role: "staff" });
+      assert.deepEqual(await uploadTarget(m, "X"), { error: "forbidden" }, "a stranger is outside the reporting line");
+    });
+    await T("document download: own, or staff inside their reach; a manager cannot read a stranger's document, an employee cannot read a colleague's", async () => {
+      const e = await holder(rows.employee), m = await holder(rows.manager), h = await holder(rows.hr);
+      const w = (x: typeof e) => ({ ...x, permissionOverrides: {} }) as never;
+      assert.ok(await mayReadDocument(w(e), "EMP"));
+      assert.equal(await mayReadDocument(w(e), "R1"), false, "a colleague's document");
+      assert.ok(await mayReadDocument(w(m), "R2"));
+      assert.equal(await mayReadDocument(w(m), "X"), false, "a stranger's document");
+      assert.ok(await mayReadDocument(w(h), "X"));
+    });
+    await T("signed ContractFlow document: own, or HR for an employee in reach; a manager without the HR right sees only their own", async () => {
+      const e = await holder(rows.employee), m = await holder(rows.manager), h = await holder(rows.hr);
+      const w = (x: typeof e) => ({ ...x, permissionOverrides: {} }) as never;
+      assert.ok(await maySeeSignedDocument(w(e), "EMP"));
+      assert.equal(await maySeeSignedDocument(w(e), "R1"), false);
+      assert.equal(await maySeeSignedDocument(w(m), "R1"), false, "a manager has no HR right");
+      assert.ok(await maySeeSignedDocument(w(h), "X"));
+    });
+    await T("employee profile reach: the profile of an employee outside the reporting line is outside a manager's reach (the page answers not found)", async () => {
+      const m = await holder(rows.manager);
+      const reach = await hrReach(m, "employees");
+      assert.ok(reaches(reach, "R2") && reaches(reach, "MGR") && !reaches(reach, "X"));
+      assert.equal(reaches(await hrReach(await holder(rows.employee), "employees"), "R1"), false);
+    });
+    await T("recruitment: only HR-level (manage employees) opens candidates and offers; the micro feature follows", async () => {
+      assert.equal(hrCan(await holder(rows.manager), "recruitment.view"), false);
+      assert.ok(hrCan(await holder(rows.hr), "recruitment.view"));
+    });
+    // ---- Payroll --------------------------------------------------------------------------------------------------------------
+    await T("Payroll: everybody sees their own pay and tax; only HR (payroll right) sees the runs; a manager sees neither runs nor anybody's salary; the Read only person cannot declare tax", async () => {
+      const e = await holder(rows.employee), m = await holder(rows.manager), h = await holder(rows.hr);
+      for (const x of [e, m, h]) assert.ok(hrCan(x, "salary.view") && hrCan(x, "tax.view") && hrCan(x, "tax.declare"));
+      assert.equal(hrCan(e, "payroll.view"), false); assert.equal(hrCan(m, "payroll.view"), false); assert.equal(hrCan(m, "payroll.run"), false);
+      assert.ok(hrCan(h, "payroll.view") && hrCan(h, "payroll.run") && hrCan(h, "salary.manage"));
+      assert.equal(hrCan(h, "payrollrates.manage"), false, "statutory rates are a separate right (nobody has it by default)");
+      const ro = await holder(rows.readOnly);
+      assert.equal(hrCan(ro, "tax.declare"), false); assert.equal(hrCan(ro, "payroll.run"), false);
+    });
+    // ---- Dashboard, Employees, Documents ---------------------------------------------------------------------------------------
+    await T("Dashboard: everybody has their own day; a manager sees their team's numbers only; only the company scope sees headcount and hiring (managers no longer see company-wide numbers)", async () => {
+      const e = await holder(rows.employee), m = await holder(rows.manager), h = await holder(rows.hr);
+      assert.equal(hrScope(e, "dashboard"), "own"); assert.equal(hrScope(m, "dashboard"), "team"); assert.equal(hrScope(h, "dashboard"), "all");
+      assert.equal(hrCan(m, "dashboard.all"), false); assert.ok(hrCan(h, "dashboard.all"));
+      assert.equal(hrCan(e, "analytics.view"), false); assert.ok(hrCan(m, "analytics.view"));
+    });
+    await T("Employees: an employee has a profile and a directory but no employee list; a manager lists and opens their reporting line only; HR everyone and the export; managing needs the manage right", async () => {
+      const e = await holder(rows.employee), m = await holder(rows.manager), h = await holder(rows.hr);
+      assert.ok(hrCan(e, "profile.view") && hrCan(e, "directory.view") && hrCan(e, "profile.edit"));
+      assert.equal(hrScope(e, "employees"), "own");
+      assert.equal(hrScope(m, "employees"), "team"); assert.equal(hrCan(m, "employees.manage"), false); assert.equal(hrCan(m, "employees.export"), false);
+      assert.equal(hrScope(h, "employees"), "all"); assert.ok(hrCan(h, "employees.manage") && hrCan(h, "employees.export"));
+      await assert.rejects(requireHrAct(m, "employees", "employees.manage", "R1"), /Forbidden/, "a manager has no manage right");
+      await requireHrAct(h, "employees", "employees.manage", "R1");
+    });
+    await T("staged conversion: every TalentOS module is converted (nothing pending, nothing half converted)", async () => {
+      assert.ok(STAGED[P].converted.includes("Leave") && STAGED[P].converted.includes("Attendance") && STAGED[P].converted.includes("Requests") && STAGED[P].converted.includes("Holidays") && STAGED[P].converted.includes("Recruitment") && STAGED[P].converted.includes("Settings") && STAGED[P].converted.includes("Payroll") && STAGED[P].converted.includes("Dashboard") && STAGED[P].converted.includes("Employees") && STAGED[P].converted.includes("Documents") && STAGED[P].pending.length === 0);
       assert.ok(!STAGED[P].pending.includes("Leave"));
     });
   });

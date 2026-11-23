@@ -23,7 +23,7 @@ import {
 import TimesheetLogger from "@/components/products/sprintos/timesheet/TimesheetLogger";
 import { getTimesheetStatusMeta, EDITABLE_TIMESHEET_STATUSES } from "@/lib/products/sprintos/constants";
 import { cn, formatDate } from "@/lib/utils";
-import { deleteTimesheetAction, submitTimesheetAction } from "@/app/(products)/sprintos/(protected)/me/timesheet/actions";
+import { deleteTimesheetAction, submitTimesheetAction } from "@/app/(products)/sprintos/(protected)/timesheets/actions";
 import type { SerializedTimesheetEntry } from "@/lib/products/sprintos/timesheets";
 
 interface Row extends SerializedTimesheetEntry {

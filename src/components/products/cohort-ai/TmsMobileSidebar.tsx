@@ -9,14 +9,17 @@ import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/
 import TmsSidebar from "@/components/products/cohort-ai/TmsSidebar";
 import SidebarBrand from "@/components/SidebarBrand";
 import type { TmsRole } from "@/lib/tms-roles";
+import type { AccessSubject } from "@/lib/access/can";
 
 export default function TmsMobileSidebar({
   roles,
   permissionOverrides,
+  subject,
   studentId,
 }: {
   roles: TmsRole[];
   permissionOverrides?: Record<string, boolean>;
+  subject: AccessSubject;
   studentId: string | null;
 }) {
   const [open, setOpen] = useState(false);
@@ -34,7 +37,7 @@ export default function TmsMobileSidebar({
             <SidebarBrand />
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <TmsSidebar roles={roles} permissionOverrides={permissionOverrides} studentId={studentId} onNavigate={() => setOpen(false)} />
+            <TmsSidebar roles={roles} permissionOverrides={permissionOverrides} subject={subject} studentId={studentId} onNavigate={() => setOpen(false)} />
           </div>
           <MobileSidebarProfile />
         </SheetContent>

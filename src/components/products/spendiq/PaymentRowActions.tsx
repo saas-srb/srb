@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DeleteRowButton from "@/components/products/spendiq/DeleteRowButton";
-import { processPaymentAction, deletePaymentAction } from "@/app/(products)/spendiq/(protected)/(staff)/invoices/actions";
+import { processPaymentAction, deletePaymentAction } from "@/app/(products)/spendiq/(protected)/invoices/actions";
 
 export default function PaymentRowActions({ id, code, status }: { id: string; code: string; status: string }) {
   const router = useRouter();

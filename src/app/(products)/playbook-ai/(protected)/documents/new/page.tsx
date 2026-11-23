@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { getViewer } from "@/lib/products/playbook-ai/viewer";
-import { playbookCan } from "@/lib/playbook-roles";
 import { LEGAL_REVIEW_BANNER, STATUTE_NOTICE } from "@/lib/products/playbook-ai/catalogue";
 import { resolveTemplate } from "@/lib/products/playbook-ai/tpl/store";
 import { requireActor } from "@/lib/products/playbook-ai/tpl/actor";
@@ -12,6 +11,7 @@ import { brandSummary } from "@/lib/products/playbook-ai/brand/summary";
 import ItemWizard from "@/components/products/playbook-ai/items/ItemWizard";
 import { getPbSettings } from "@/lib/products/playbook-ai/pb-settings";
 import NewDocumentForm from "@/components/products/playbook-ai/templates/NewDocumentForm";
+import { pbDoc } from "@/lib/playbook-access";
 
 export const dynamic = "force-dynamic";
 
@@ -21,14 +21,14 @@ export default async function NewDocumentPage({ searchParams }: { searchParams: 
   const viewer = await getViewer();
   if (!viewer) redirect("/playbook-ai/login");
   const actor = await requireActor();
-  if (!playbookCan(actor, "CREATE")) redirect("/playbook-ai/documents");
+  if (!pbDoc(actor, "CREATE")) redirect("/playbook-ai/documents");
   if (!sp.type && !sp.template) {
     const settings = await getPbSettings();
     return (
       <div className="space-y-4">
         <PanelPageHeader title={<>Create document</>} description={<>Three steps: details, an AI draft you check, then the editor with a live PDF preview.</>} />
         <p className="rounded-xl border border-border/50 bg-card p-3 text-sm">Need a specific kind of document, such as an offer letter, NDA or service agreement? <Link href="/playbook-ai/documents/library" className="font-medium text-primary underline-offset-2 hover:underline">Choose it from the Document Library</Link>, and the form is built from what that document needs.</p>
-        <ItemWizard kind="document" aiEnabled={settings.ai.enabled && playbookCan(actor, "USE_AI")} brand={await brandSummary(actor)} org={await orgForWizard()} />
+        <ItemWizard kind="document" aiEnabled={settings.ai.enabled && pbDoc(actor, "USE_AI")} brand={await brandSummary(actor)} org={await orgForWizard()} />
       </div>
     );
   }

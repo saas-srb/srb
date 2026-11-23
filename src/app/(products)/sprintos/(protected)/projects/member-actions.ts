@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentPmsUser } from "@/lib/pms-auth";
-import { canManageProjects } from "@/lib/pms-roles";
+import { checkProjectAccess } from "@/lib/products/sprintos/access";
+import { pmsCan, pmsSeesAll } from "@/lib/pms-access";
 import { getProject } from "@/lib/products/sprintos/projects";
 import { upsertMember, updateMember, removeMember, getMember } from "@/lib/products/sprintos/project-members";
 import { validateMember } from "@/lib/products/sprintos/validation";
@@ -15,10 +16,12 @@ export interface MemberActionResult {
   fieldErrors?: Record<string, string>;
 }
 
-async function requireManage() {
+async function requireManage(projectId?: string) {
   const user = await getCurrentPmsUser();
   if (!user) throw new Error("Unauthorized");
-  if (!canManageProjects(user)) throw new Error("Forbidden");
+  if (!pmsCan(user, "projects.manage")) throw new Error("Forbidden");
+  // A manager manages only the projects they manage or belong to (everyone's scope: any); the action cannot be pointed at a stranger's project by id.
+  if (projectId && !(await checkProjectAccess(user, projectId)).allowed) throw new Error("Forbidden");
   return user;
 }
 
@@ -37,7 +40,7 @@ export async function saveMemberAction(
   input: Record<string, unknown>,
   memberId?: string
 ): Promise<MemberActionResult> {
-  const user = await requireManage();
+  const user = await requireManage(projectId);
   const project = await getProject(projectId);
   if (!project) return { ok: false, error: "Project not found." };
 
@@ -78,7 +81,7 @@ export async function saveMemberAction(
 }
 
 export async function removeMemberAction(projectId: string, memberId: string): Promise<MemberActionResult> {
-  const user = await requireManage();
+  const user = await requireManage(projectId);
   const existing = await getMember(memberId);
   if (!existing || existing.projectId !== projectId) return { ok: false, error: "Member not found." };
   await removeMember(memberId, user.id);

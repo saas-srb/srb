@@ -2,7 +2,6 @@ import "server-only";
 import { getDb } from "@/lib/mongodb";
 import { PB_COLLECTIONS } from "@/lib/products/playbook-ai/pb-collections";
 import { newId } from "@/lib/products/playbook-ai/db";
-import { playbookCan } from "@/lib/playbook-roles";
 import { emptyDoc, parseDoc } from "@/lib/products/playbook-ai/doc/validate";
 import { validatePage, type PageSettings } from "@/lib/products/playbook-ai/doc/page";
 import { canonicalJson } from "@/lib/products/playbook-ai/doc/canonical";
@@ -30,6 +29,7 @@ import { deniedCategories, getPbSettings, isLegalType, numberingFor, restrictedR
 import { pbEvents } from "@/lib/products/playbook-ai/pb-notify";
 import { cleanItemMeta, isItemKind, type ItemKind } from "@/lib/products/playbook-ai/items-types";
 import { hasDraftOnly, stripDraftOnly } from "@/lib/products/playbook-ai/tpl/strip";
+import { pbDoc } from "@/lib/playbook-access";
 
 /**
  * Documents data layer (`pb_documents`): the head and the editable draft of every Playbook document.
@@ -213,7 +213,7 @@ export interface CreateDocumentInput {
 }
 
 export async function createDocument(actor: PbActor, input: CreateDocumentInput): Promise<PbResult<{ document: PbDocumentRecord }>> {
-  if (!playbookCan(actor, "CREATE")) return fail(err.forbidden("create documents"));
+  if (!pbDoc(actor, "CREATE")) return fail(err.forbidden("create documents"));
   const title = cleanTitle(input.title);
   if (!title) return fail({ code: "invalid", message: "Give the document a title of up to 200 characters.", issues: [{ path: "title", message: "required" }] });
   const content = input.pbdoc === undefined ? { ok: true as const, doc: emptyDoc() } : parseContent(input.pbdoc);
@@ -255,7 +255,7 @@ export interface ListDocumentsInput {
 }
 
 export async function listDocuments(actor: PbActor, input: ListDocumentsInput = {}): Promise<PbResult<{ items: PbDocumentSummary[]; total: number; page: number; pageSize: number }>> {
-  if (!playbookCan(actor, "VIEW")) return fail(err.forbidden("view documents"));
+  if (!pbDoc(actor, "VIEW")) return fail(err.forbidden("view documents"));
   const filter: Record<string, unknown> = { deletedAt: input.deleted ? { $ne: null } : null };
   if (!seesAllDocuments(actor)) filter.$or = [{ createdBy: actor.id }, { "acl.userId": actor.id }];
   if (input.status) filter.status = Array.isArray(input.status) ? { $in: input.status } : input.status;
@@ -399,7 +399,7 @@ export async function releaseLock(actor: PbActor, id: string): Promise<PbResult<
 
 /** An administrator (SETTINGS) releases someone else's lock. */
 export async function breakLock(actor: PbActor, id: string): Promise<PbResult<object>> {
-  if (!playbookCan(actor, "SETTINGS")) return fail(err.forbidden("release another person's edit lock"));
+  if (!pbDoc(actor, "SETTINGS")) return fail(err.forbidden("release another person's edit lock"));
   const l = await load(actor, id);
   if (!l.ok) return fail(l.error);
   const c = await col();
@@ -568,7 +568,7 @@ export async function transitionDocument(actor: PbActor, input: TransitionInput)
   const step = nextStatus(doc.status, t, doc.archivedFrom);
   if (!step.ok) return fail({ code: "bad_status", message: `Not possible: ${step.reason}.`, status: doc.status });
   const perm = transitionPermission(t, doc.status);
-  if (!playbookCan(actor, perm)) return fail(err.forbidden(`${TRANSITION_META[t].label.toLowerCase()}`));
+  if (!pbDoc(actor, perm)) return fail(err.forbidden(`${TRANSITION_META[t].label.toLowerCase()}`));
   if (perm !== "APPROVE" && perm !== "ISSUE" && !canEditDoc(actor, doc)) return fail(err.forbidden("change this document"));
   const reason = cleanText(input.reason, 1000);
   if (TRANSITION_META[t].needsReason && !reason) return fail({ code: "reason_required", message: "Give a reason so the author knows what to change." });
@@ -737,7 +737,7 @@ export async function restoreDeletedDocument(actor: PbActor, id: string): Promis
 }
 
 export async function setLegalHold(actor: PbActor, input: { id: string; hold: boolean; reason?: string }): Promise<PbResult<object>> {
-  if (!playbookCan(actor, "MANAGE_RETENTION")) return fail(err.forbidden("place or lift a legal hold"));
+  if (!pbDoc(actor, "MANAGE_RETENTION")) return fail(err.forbidden("place or lift a legal hold"));
   const c = await col();
   const d = await c.findOne({ _id: input.id });
   if (!d) return fail(err.notFound());
@@ -748,7 +748,7 @@ export async function setLegalHold(actor: PbActor, input: { id: string; hold: bo
 
 /** Permanently removes a document and all its versions. Needs MANAGE_RETENTION; the document must be in the trash or archived, past its retention period, and not on legal hold. */
 export async function purgeDocument(actor: PbActor, id: string, opts: { now?: Date } = {}): Promise<PbResult<{ versionsRemoved: number }>> {
-  if (!playbookCan(actor, "MANAGE_RETENTION")) return fail(err.forbidden("purge documents"));
+  if (!pbDoc(actor, "MANAGE_RETENTION")) return fail(err.forbidden("purge documents"));
   const c = await col();
   const d = await c.findOne({ _id: id });
   if (!d) return fail(err.notFound());
@@ -774,7 +774,7 @@ export async function purgeDocument(actor: PbActor, id: string, opts: { now?: Da
 export async function setDocumentAccess(actor: PbActor, input: { id: string; acl: AclEntry[] }): Promise<PbResult<object>> {
   const l = await load(actor, input.id, "edit");
   if (!l.ok) return fail(l.error);
-  if (!playbookCan(actor, "SHARE")) return fail(err.forbidden("share documents"));
+  if (!pbDoc(actor, "SHARE")) return fail(err.forbidden("share documents"));
   const acl = input.acl.filter((a) => typeof a.userId === "string" && a.userId.length <= 64 && (a.level === "view" || a.level === "edit")).slice(0, 100);
   const c = await col();
   await c.updateOne({ _id: input.id } as never, { $set: { acl } });

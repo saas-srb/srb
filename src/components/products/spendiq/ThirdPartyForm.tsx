@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import ResourceForm, { type FieldSpec } from "@/components/products/spendiq/ResourceForm";
 import { BILLING_CYCLES, RESOURCE_STATUSES, SUPPORTED_CURRENCIES } from "@/lib/products/spendiq/constants";
-import { saveThirdPartyAction } from "@/app/(products)/spendiq/(protected)/(staff)/third-party/actions";
+import { saveThirdPartyAction } from "@/app/(products)/spendiq/(protected)/third-party/actions";
 import type { ThirdPartyService } from "@/lib/products/spendiq/third-party-services";
 
 export default function ThirdPartyForm({

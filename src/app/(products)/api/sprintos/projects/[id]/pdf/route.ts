@@ -2,7 +2,8 @@ import { withTransport } from "@/lib/security/transport";
 import { recordPdf } from "@/lib/pdf/activity";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentPmsUser } from "@/lib/pms-auth";
-import { hasPmsStaffRole } from "@/lib/pms-roles";
+import { pmsCan } from "@/lib/pms-access";
+import { checkProjectAccess } from "@/lib/products/sprintos/access";
 import { getDb } from "@/lib/mongodb";
 import { getProject, getProjectByCode } from "@/lib/products/sprintos/projects";
 import { getClient } from "@/lib/products/sprintos/clients";
@@ -21,7 +22,7 @@ async function handleGET(req: NextRequest, { params }: Context) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   // Invoices and receipts are billing documents: PMS staff only (a project member doesn't see the client's invoice).
-  if (!hasPmsStaffRole(user.roles)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!pmsCan(user, "clients.view")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   const searchParams = req.nextUrl.searchParams;
@@ -33,6 +34,8 @@ async function handleGET(req: NextRequest, { params }: Context) {
   if (!project) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
+  // A manager gets the billing document of a project they manage or belong to, not of every project (everyone's scope sees all).
+  if (!(await checkProjectAccess(user, project._id)).allowed) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
   // Fetch Client
   let clientName = "Client Organization";

@@ -41,3 +41,9 @@ export const hrSeesOthers = (holder: HrHolder | null | undefined, module: keyof 
   const s = hrScope(holder, module);
   return s === "team" || s === "all";
 };
+
+/** May the person read the TalentOS audit trail? (The Ask AI activity-log entity asks the same feature.) */
+export const canViewAudit = (holder: HrHolder | null | undefined): boolean => hrCan(holder, "audit.view");
+
+/** May the person manage departments, designations and teams? (Managed in CommandOS; the Ask AI master-data tools ask the same feature.) */
+export const canManageMasters = (holder: HrHolder | null | undefined): boolean => hrCan(holder, "masters.manage");

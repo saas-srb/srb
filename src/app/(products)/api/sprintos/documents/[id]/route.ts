@@ -1,7 +1,8 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentPmsUser } from "@/lib/pms-auth";
-import { canManageProjects } from "@/lib/pms-roles";
+import { pmsCan } from "@/lib/pms-access";
+import { checkProjectAccess } from "@/lib/products/sprintos/access";
 import { getDocument, deleteDocument } from "@/lib/products/sprintos/documents";
 import { readDocumentStream } from "@/lib/products/sprintos/document-storage";
 import { recordActivity } from "@/lib/products/sprintos/activity";
@@ -15,6 +16,8 @@ async function handleGET(req: NextRequest, { params }: Context) {
   const { id } = await params;
   const doc = await getDocument(id);
   if (!doc) return NextResponse.json({ error: "Document not found." }, { status: 404 });
+  // A project's documents open only for people who may open that project (it was any signed-in person before).
+  if (!pmsCan(user, "documents.view") || !(await checkProjectAccess(user, doc.projectId)).allowed) return NextResponse.json({ error: "Document not found." }, { status: 404 });
 
   const inline = req.nextUrl.searchParams.get("inline") === "1";
   const object = await readDocumentStream(doc.storageKey);
@@ -33,11 +36,11 @@ async function handleGET(req: NextRequest, { params }: Context) {
 async function handleDELETE(_req: NextRequest, { params }: Context) {
   const user = await getCurrentPmsUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canManageProjects(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!pmsCan(user, "documents.manage")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   const doc = await getDocument(id);
-  if (!doc) return NextResponse.json({ error: "Document not found." }, { status: 404 });
+  if (!doc || !(await checkProjectAccess(user, doc.projectId)).allowed) return NextResponse.json({ error: "Document not found." }, { status: 404 });
 
   const result = await deleteDocument(id);
   if (!result.ok) return NextResponse.json({ error: "Could not delete document." }, { status: 400 });

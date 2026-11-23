@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 import { getCurrentPmsUser, changeOwnPmsPassword } from "@/lib/pms-auth";
-import { hasPmsStaffRole } from "@/lib/pms-roles";
 
 export interface ChangePasswordState {
   error?: string;
@@ -25,5 +24,5 @@ export async function changePmsPasswordAction(
   const result = await changeOwnPmsPassword(user.id, current, next);
   if (!result.ok) return { error: result.error };
 
-  redirect(hasPmsStaffRole(user.roles) ? "/sprintos" : "/sprintos/me");
+  redirect("/sprintos");
 }

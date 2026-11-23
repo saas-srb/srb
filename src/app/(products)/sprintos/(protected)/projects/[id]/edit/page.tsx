@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import ProjectForm from "@/components/products/sprintos/ProjectForm";
 import { getCurrentPmsUser } from "@/lib/pms-auth";
-import { canManageProjects } from "@/lib/pms-roles";
+import { pmsCan, pmsSeesAll } from "@/lib/pms-access";
 import { getProject, serializeProject } from "@/lib/products/sprintos/projects";
 import { listClientOptions } from "@/lib/products/sprintos/clients";
 import { listEmployeeOptions } from "@/lib/products/talentos/employees";
@@ -12,7 +12,7 @@ import { getPmsSettings } from "@/lib/products/sprintos/settings";
 export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await getCurrentPmsUser();
-  if (!user || !canManageProjects(user)) redirect(`/sprintos/projects/${id}`);
+  if (!user || !pmsCan(user, "projects.manage")) redirect(`/sprintos/projects/${id}`);
 
   const [project, clients, employees, settings] = await Promise.all([
     getProject(id),

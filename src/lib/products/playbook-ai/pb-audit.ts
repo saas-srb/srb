@@ -2,8 +2,8 @@ import "server-only";
 import { getDb } from "@/lib/mongodb";
 import { PB_COLLECTIONS } from "@/lib/products/playbook-ai/pb-collections";
 import { newId } from "@/lib/products/playbook-ai/db";
-import { playbookCan } from "@/lib/playbook-roles";
 import type { PbActor } from "@/lib/products/playbook-ai/documents-types";
+import { pbDoc } from "@/lib/playbook-access";
 
 /**
  * Append-only audit trail for Playbook documents (`pb_audit`). There is deliberately no update or delete export. `recordPbAudit` never
@@ -80,7 +80,7 @@ export async function recordPbAudit(entry: {
 
 /** The trail of one document, newest first. Requires VIEW_AUDIT. */
 export async function listPbAudit(actor: PbActor, opts: { documentId?: string; page?: number; pageSize?: number } = {}): Promise<{ ok: true; items: PbAuditEntry[]; total: number } | { ok: false }> {
-  if (!playbookCan(actor, "VIEW_AUDIT")) return { ok: false };
+  if (!pbDoc(actor, "VIEW_AUDIT")) return { ok: false };
   const c = await col();
   const filter = opts.documentId ? { documentId: opts.documentId } : {};
   const page = Math.max(opts.page ?? 1, 1);

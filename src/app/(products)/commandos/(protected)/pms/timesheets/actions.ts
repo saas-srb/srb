@@ -30,7 +30,7 @@ export async function reviewTimesheetAction(
       type: "timesheet_reviewed",
       title: `Timesheet ${decision}: ${updated.hours}h on ${updated.date}`,
       body: note.trim() || null,
-      link: "/sprintos/me/timesheet",
+      link: "/sprintos/timesheets",
       projectId: updated.projectId,
     }),
     admin.id

@@ -1,7 +1,7 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentPrmsUser } from "@/lib/prms-auth";
-import { canManageProcurement, canApproveRequisitions, canManageExpenses, canManageFinance } from "@/lib/prms-roles";
+import { prmsCan } from "@/lib/prms-access";
 import { exportVendors } from "@/lib/products/spendiq/vendors";
 import { exportRequisitions } from "@/lib/products/spendiq/requisitions";
 import { exportPurchaseOrders } from "@/lib/products/spendiq/purchase-orders";
@@ -297,28 +297,28 @@ async function handleGET(req: NextRequest, { params }: Context) {
 
   let spec: ExportSpec;
   if (entity === "vendors") {
-    if (!canManageProcurement(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!prmsCan(user, "vendors.manage")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     spec = await buildVendorExport();
   } else if (entity === "requisitions") {
-    if (!canApproveRequisitions(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!prmsCan(user, "requisitions.approve")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     spec = await buildRequisitionExport();
   } else if (entity === "purchase-orders") {
-    if (!canManageProcurement(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!prmsCan(user, "purchaseorders.manage")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     spec = await buildPoExport();
   } else if (entity === "expenses") {
-    if (!canManageExpenses(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!prmsCan(user, "expenses.manage")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     spec = await buildExpenseExport();
   } else if (entity === "assets") {
-    if (!canManageProcurement(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!prmsCan(user, "assets.manage")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     spec = await buildAssetExport();
   } else if (entity === "inventory") {
-    if (!canManageProcurement(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!prmsCan(user, "inventory.manage")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     spec = await buildInventoryExport();
   } else if (entity === "invoices") {
-    if (!canManageFinance(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!prmsCan(user, "invoices.manage")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     spec = await buildInvoiceExport();
   } else if (entity === "payments") {
-    if (!canManageFinance(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!prmsCan(user, "payments.manage")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     spec = await buildPaymentExport();
   } else {
     return NextResponse.json({ error: "Unknown export" }, { status: 404 });

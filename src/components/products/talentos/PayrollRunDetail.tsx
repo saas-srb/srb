@@ -29,7 +29,7 @@ import PayslipView, { type PayslipViewData } from "@/components/products/talento
 import RunPayoutsPanel from "@/components/products/talentos/RunPayoutsPanel";
 import { payrollRunStatusMeta, monthLabelLong } from "@/lib/products/talentos/payroll-status";
 import { formatCurrency } from "@/lib/utils";
-import { approveRunAction, recomputeRunAction, savePayslipOverridesAction, setPayslipHoldAction } from "@/app/(products)/talentos/(protected)/(staff)/payroll/actions";
+import { approveRunAction, recomputeRunAction, savePayslipOverridesAction, setPayslipHoldAction } from "@/app/(products)/talentos/(protected)/payroll/actions";
 
 interface Line {
   name: string;

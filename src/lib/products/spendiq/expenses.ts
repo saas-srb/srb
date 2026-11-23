@@ -349,7 +349,7 @@ export async function decideExpense(
       type: approve ? "expense_approved" : "expense_rejected",
       title: `Expense ${expense.expenseCode} ${approve ? "approved" : "rejected"}`,
       body: approve ? null : note?.trim() || null,
-      link: `/spendiq/me/expenses/${id}`,
+      link: `/spendiq/expenses/${id}`,
     });
   }
   return { ok: true, expense };
@@ -367,7 +367,7 @@ export async function markExpenseReimbursed(id: string, actorId: string): Promis
     type: "expense_reimbursed",
     title: `Expense ${existing.expenseCode} reimbursed`,
     body: "The amount has been paid out to you.",
-    link: `/spendiq/me/expenses/${id}`,
+    link: `/spendiq/expenses/${id}`,
   });
   return { ok: true };
 }

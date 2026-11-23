@@ -21,7 +21,8 @@ import {
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import type { TmsRole } from "@/lib/tms-roles";
-import { canManagePayments, canManageTraining, hasTmsStaffRole } from "@/lib/tms-roles";
+import type { AccessSubject } from "@/lib/access/can";
+import { tmsCan } from "@/lib/tms-access";
 
 function NavLink({
   href,
@@ -82,12 +83,14 @@ function NavLink({
 export default function TmsSidebar({
   roles,
   permissionOverrides,
+  subject,
   studentId,
   onNavigate,
   collapsed = false,
 }: {
   roles: TmsRole[];
   permissionOverrides?: Record<string, boolean>;
+  subject: AccessSubject;
   studentId: string | null;
   onNavigate?: () => void;
   collapsed?: boolean;
@@ -95,46 +98,29 @@ export default function TmsSidebar({
   const nav = (props: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean ; locked?: boolean }) => (
     (props.locked ? null : <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />)
   );
-  const roleCtx = { roles, permissionOverrides };
-  const isStaff = hasTmsStaffRole(roles);
+  void roles; void permissionOverrides;
 
   return (
     <nav className="flex h-full flex-col gap-1 p-3">
-      {nav({ href: "/cohort-ai", label: "Dashboard", icon: LayoutDashboard, exact: true, locked: !isStaff })}
+      {nav({ href: "/cohort-ai", label: "Dashboard", icon: LayoutDashboard, exact: true, locked: !tmsCan({ subject }, "dashboard.view") })}
 
       <NavGroup collapsed={collapsed} label="Training">
-        {nav({ href: "/cohort-ai/programs", label: "Programs", icon: GraduationCap, locked: !isStaff })}
-        {nav({ href: "/cohort-ai/batches", label: "Batches", icon: Layers, locked: !isStaff })}
-        {nav({ href: "/cohort-ai/students", label: "Students", icon: Users, locked: !isStaff })}
-
+        {nav({ href: "/cohort-ai/programs", label: "Programs", icon: GraduationCap, locked: !tmsCan({ subject }, "programs.view") })}
+        {nav({ href: "/cohort-ai/batches", label: "Batches", icon: Layers, locked: !tmsCan({ subject }, "batches.view") })}
+        {nav({ href: "/cohort-ai/students", label: "Students", icon: Users, locked: !tmsCan({ subject }, "students.view") })}
       </NavGroup>
       <NavGroup collapsed={collapsed} label="Delivery">
-        {nav({ href: "/cohort-ai/classes", label: "Classes", icon: CalendarDays, locked: !isStaff })}
-        {nav({ href: "/cohort-ai/projects", label: "Projects", icon: FolderGit2, locked: !isStaff })}
-        {nav({ href: "/cohort-ai/assignments", label: "Assignments", icon: ClipboardList, locked: !isStaff })}
-
+        {nav({ href: "/cohort-ai/classes", label: "Classes", icon: CalendarDays, locked: !tmsCan({ subject }, "classes.view") })}
+        {nav({ href: "/cohort-ai/projects", label: "Projects", icon: FolderGit2, locked: !tmsCan({ subject }, "projects.view") })}
+        {nav({ href: "/cohort-ai/assignments", label: "Assignments", icon: ClipboardList, locked: !tmsCan({ subject }, "assignments.view") })}
       </NavGroup>
       <NavGroup collapsed={collapsed} label="Records">
-        {nav({ href: "/cohort-ai/certificates", label: "Certificates", icon: BadgeCheck, locked: !isStaff })}
-        {nav({ href: "/cohort-ai/payments", label: "Payments", icon: Wallet , locked: !(isStaff && canManagePayments(roleCtx)) })}
-        {nav({ href: "/cohort-ai/placements", label: "Placements", icon: Briefcase , locked: !(isStaff && canManageTraining(roleCtx)) })}
-
+        {nav({ href: "/cohort-ai/certificates", label: "Certificates", icon: BadgeCheck, locked: !tmsCan({ subject }, "certificates.view") })}
+        {nav({ href: "/cohort-ai/payments", label: "Payments", icon: Wallet, locked: !tmsCan({ subject }, "payments.view") })}
+        {nav({ href: "/cohort-ai/placements", label: "Placements", icon: Briefcase, locked: !tmsCan({ subject }, "placements.view") })}
       </NavGroup>
       <NavGroup collapsed={collapsed} label="Governance">
-        {nav({ href: "/cohort-ai/reports", label: "Analytics", icon: BarChart3 , locked: !(isStaff && canManageTraining(roleCtx)) })}
-
-      </NavGroup>
-      <NavGroup collapsed={collapsed} label="Me">
-        {nav({ href: "/cohort-ai/me", label: "My Dashboard", icon: CircleUser, exact: true })}
-        {nav({ href: "/cohort-ai/me/program", label: "My Program", icon: GraduationCap })}
-        {nav({ href: "/cohort-ai/me/batch", label: "My Batch", icon: Layers })}
-        {nav({ href: "/cohort-ai/me/schedule", label: "Class Schedule", icon: CalendarDays })}
-        {nav({ href: "/cohort-ai/me/assignments", label: "My Assignments", icon: ClipboardList })}
-        {nav({ href: "/cohort-ai/me/projects", label: "Live Projects", icon: FolderGit2 })}
-        {nav({ href: "/cohort-ai/me/certificates", label: "My Certificates", icon: BadgeCheck })}
-        {nav({ href: "/cohort-ai/me/payments", label: "My Payments", icon: Wallet })}
-        {nav({ href: "/cohort-ai/me/profile", label: "Profile", icon: CircleUser })}
-    
+        {nav({ href: "/cohort-ai/reports", label: "Analytics", icon: BarChart3, locked: !tmsCan({ subject }, "reports.view") })}
       </NavGroup>
     </nav>
   );

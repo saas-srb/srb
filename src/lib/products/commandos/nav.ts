@@ -11,26 +11,12 @@
  *   2. The product is switched on for this company and in the product registry.
  *   3. `platform` items: the Platform Console's own access check passed.
  */
-import { normalizeRoles } from "@/lib/hrms-roles";
-import { normalizePmsRoles } from "@/lib/pms-roles";
-import { normalizePrmsRoles } from "@/lib/prms-roles";
-import { normalizeTmsRoles } from "@/lib/tms-roles";
-import { normalizeFmsRoles } from "@/lib/fms-roles";
-import { normalizeChatRoles } from "@/lib/messenger-roles";
 import { hasAdminAccess } from "@/lib/admin-roles";
 import { productAnalyticsPath, productSlugFor } from "@/lib/platform/saas/product-routes";
-import { hasSopAccess, sopCan } from "@/lib/sop-roles";
-import { hasLpmsAccess, isLpmsManagerTier, lpmsCan } from "@/lib/lpms-roles";
-import { hasSeoAccess, seoCan } from "@/lib/seo-roles";
-import { hasDlmsAccess, isDlmsManagerTier } from "@/lib/dlms-roles";
-import { hasAibotsAccess, isAibotsManagerTier } from "@/lib/aibots-roles";
-import { hasIntelligenceAccess } from "@/lib/intelligence-roles";
-import { hasSmmsAccess, smmsCan } from "@/lib/smms-roles";
-import { hasOtsAccess, otsCan } from "@/lib/ots-roles";
-import { cmsCan, hasCmsAccess } from "@/lib/cms-roles";
-import { canViewLmsAnalytics, hasLmsAccess, lmsCan } from "@/lib/lms-roles";
 import { canViewWorkspaceAnalytics } from "@/lib/workspace-roles";
 import { resolvePermission, type RoleContext } from "@/lib/permission-overrides";
+import type { AccessSubject } from "@/lib/access/can";
+import { holdsLegacy, holdsProduct } from "@/lib/access/holds";
 
 export type NavSectionKey = "dashboard" | "panels" | "analytics" | "manage" | "company" | "insight" | "account" | "platform";
 
@@ -98,30 +84,36 @@ interface NavItemDef {
 }
 
 const anyone = () => true;
+
+/**
+ * Product access in the Workspace comes from the person's micro features (People & access), not from role names: the subject the sign-in loaded
+ * (their stored access, or what their roles grant until they are migrated). A product is open to a person who holds ANY of its features; an analytics
+ * entry needs the feature(s) that carry the matching old capability name (`legacy[]` in the micro catalogue). See `access/holds.ts`.
+ */
+const microProduct = (product: string) => (u: RoleContext) => holdsProduct(u, product);
+const microLegacyRule = (product: string, ...names: string[]) => (u: RoleContext) => holdsLegacy(u, product, ...names);
 /** `super_admin` only (`admin-roles.ts`) — what every company-settings page (`/commandos/settings/*`) checks. */
 const superAdmin = (u: RoleContext) => hasAdminAccess(u.roles);
-const has = (normalize: (roles: unknown) => unknown[]) => (u: RoleContext) => normalize([...u.roles]).length > 0;
-const orAdmin = (rule: (u: RoleContext) => boolean) => (u: RoleContext) => superAdmin(u) || rule(u);
 
 // ── Products: the same role test each product's own sign-in uses ────────────────
 const PANELS: NavItemDef[] = (
   [
-    ["hrms", "Human Resources", "users", has(normalizeRoles)],
-    ["pms", "Projects", "projects", has(normalizePmsRoles)],
-    ["lms", "CRM & Leads", "grid", (u) => hasLmsAccess(u.roles)], // follows the access matrix like every other product (people who used it before keep it through the one-time migration)
-    ["fms", "Finance", "finance", has(normalizeFmsRoles)],
-    ["prms", "Procurement & Expenses", "cart", has(normalizePrmsRoles)],
-    ["tms", "Training", "training", has(normalizeTmsRoles)],
-    ["messenger", "Team Chat", "chat", has(normalizeChatRoles)],
-    ["sop", "Playbook Library", "book", (u) => hasSopAccess(u.roles)],
-    ["lpms", "Legal & Documents", "file", (u) => hasLpmsAccess(u.roles)],
-    ["dlms", "CyberVault", "vault", (u) => hasDlmsAccess(u.roles)],
-    ["ots", "Online Tests", "test", (u) => hasOtsAccess(u.roles)],
-    ["aibots", "AgentOS", "bot", (u) => hasAibotsAccess(u.roles)],
-    ["intelligence", "DataBrain", "chart", (u) => hasIntelligenceAccess(u.roles)],
-    ["smms", "Social Media", "megaphone", (u) => hasSmmsAccess(u.roles)],
-    ["seo", "SEO", "search", (u) => hasSeoAccess(u.roles)],
-    ["cms", "Website", "website", (u) => hasCmsAccess(u.roles)],
+    ["hrms", "Human Resources", "users", microProduct("talentos")],
+    ["pms", "Projects", "projects", microProduct("sprintos")],
+    ["lms", "CRM & Leads", "grid", microProduct("dealflow-ai")],
+    ["fms", "Finance", "finance", microProduct("cashflow-ai")],
+    ["prms", "Procurement & Expenses", "cart", microProduct("spendiq")],
+    ["tms", "Training", "training", microProduct("cohort-ai")],
+    ["messenger", "Team Chat", "chat", microProduct("huddle-ai")],
+    ["sop", "Playbook Library", "book", microProduct("playbook-ai")],
+    ["lpms", "Legal & Documents", "file", microProduct("contractflow-ai")],
+    ["dlms", "CyberVault", "vault", microProduct("cybervault")],
+    ["ots", "Online Tests", "test", microProduct("evaliq")],
+    ["aibots", "AgentOS", "bot", microProduct("agentos")],
+    ["intelligence", "DataBrain", "chart", microProduct("databrain-ai")],
+    ["smms", "Social Media", "megaphone", microProduct("viralpulse-ai")],
+    ["seo", "SEO", "search", microProduct("rankmax-ai")],
+    ["cms", "Website", "website", microProduct("sitecraft-ai")],
   ] as [string, string, NavIcon, NavItemDef["allow"]][]
 ).map(([key, label, icon, allow]) => ({ key: `product.${key}`, section: "panels", label, href: `/${productSlugFor(key)}`, icon, module: key, allow: (u: RoleContext) => superAdmin(u) || allow(u) }));
 
@@ -132,22 +124,22 @@ const PANELS: NavItemDef[] = (
 // analytics permission where it has one, otherwise its see-everything tier.
 const ANALYTICS: NavItemDef[] = (
   [
-    ["aibots", "AgentOS Analytics", "bot", (u) => hasAibotsAccess(u.roles) && isAibotsManagerTier(u)],
-    ["cms", "Website Analytics", "website", (u) => hasCmsAccess(u.roles) && cmsCan(u, "VIEW")],
-    ["dlms", "CyberVault Analytics", "vault", (u) => hasDlmsAccess(u.roles) && isDlmsManagerTier(u)],
-    ["fms", "Finance Analytics", "finance", orAdmin(has(normalizeFmsRoles))],
-    ["hrms", "HR Analytics", "users", orAdmin(has(normalizeRoles))],
-    ["lms", "Lead Analytics", "grid", canViewLmsAnalytics],
-    ["lpms", "ContractFlow Analytics", "file", (u) => hasLpmsAccess(u.roles) && isLpmsManagerTier(u)],
-    ["messenger", "Messenger Analytics", "chat", orAdmin(has(normalizeChatRoles))],
-    ["ots", "Online Tests Analytics", "test", (u) => hasOtsAccess(u.roles) && otsCan(u, "VIEW_REPORTS")],
-    ["pms", "Project Analytics", "projects", orAdmin(has(normalizePmsRoles))],
+    ["aibots", "AgentOS Analytics", "bot", microLegacyRule("agentos", "aibots.isAibotsManagerTier")],
+    ["cms", "Website Analytics", "website", microLegacyRule("sitecraft-ai", "cms.VIEW")],
+    ["dlms", "CyberVault Analytics", "vault", microLegacyRule("cybervault", "dlms.isDlmsManagerTier")],
+    ["fms", "Finance Analytics", "finance", microProduct("cashflow-ai")],
+    ["hrms", "HR Analytics", "users", microProduct("talentos")],
+    ["lms", "Lead Analytics", "grid", microLegacyRule("dealflow-ai", "lms.VIEW_ANALYTICS")],
+    ["lpms", "ContractFlow Analytics", "file", microLegacyRule("contractflow-ai", "lpms.isLpmsManagerTier")],
+    ["messenger", "Messenger Analytics", "chat", microProduct("huddle-ai")],
+    ["ots", "Online Tests Analytics", "test", microLegacyRule("evaliq", "ots.VIEW_REPORTS")],
+    ["pms", "Project Analytics", "projects", microProduct("sprintos")],
     ["portal", "Portal Analytics", "globe", (u) => resolvePermission(u, "portal.isPortalAdmin", () => u.roles.includes("portal_admin"))],
-    ["prms", "Procurement Analytics", "cart", orAdmin(has(normalizePrmsRoles))],
-    ["seo", "RankMax Analytics", "search", (u) => hasSeoAccess(u.roles) && seoCan(u, "VIEW")],
-    ["smms", "Social Media Analytics", "megaphone", (u) => hasSmmsAccess(u.roles) && smmsCan(u, "VIEW_ANALYTICS")],
-    ["sop", "Playbook Analytics", "book", (u) => hasSopAccess(u.roles) && sopCan(u, "EXPORT")],
-    ["tms", "Training Analytics", "training", orAdmin(has(normalizeTmsRoles))],
+    ["prms", "Procurement Analytics", "cart", microProduct("spendiq")],
+    ["seo", "RankMax Analytics", "search", microLegacyRule("rankmax-ai", "seo.VIEW")],
+    ["smms", "Social Media Analytics", "megaphone", microLegacyRule("viralpulse-ai", "smms.VIEW_ANALYTICS")],
+    ["sop", "Playbook Analytics", "book", microLegacyRule("playbook-ai", "sop.EXPORT")],
+    ["tms", "Training Analytics", "training", microProduct("cohort-ai")],
     ["workspace", "Workspace Analytics", "chart", canViewWorkspaceAnalytics],
   ] as [string, string, NavIcon, NavItemDef["allow"]][]
 ).map(([key, label, icon, allow]) => ({
@@ -200,9 +192,9 @@ export const canViewWorkspaceEvents = (u: RoleContext): boolean => superAdmin(u)
 
 const P = MANAGE_PERMISSIONS;
 const chatbotAccess = (u: RoleContext) =>
-  may(P.chatbot)(u) || lmsCan(u, "VIEW_CHATBOT") || cmsCan(u, "SETTINGS_MANAGE");
+  may(P.chatbot)(u) || microLegacyRule("dealflow-ai", "lms.VIEW_CHATBOT")(u) || microLegacyRule("sitecraft-ai", "cms.SETTINGS_MANAGE")(u);
 const websitePushAccess = (u: RoleContext) =>
-  resolvePermission(u, P.pushNotifications, () => cmsCan(u, "SETTINGS_MANAGE"));
+  resolvePermission(u, P.pushNotifications, () => microLegacyRule("sitecraft-ai", "cms.SETTINGS_MANAGE")(u));
 const MANAGE_PAGES: [group: string, path: string, label: string, icon: NavIcon, permission: string, module?: string][] = [
   ["CRM", "crm/leads", "Leads", "grid", P.crm, "lms"],
   ["CRM", "crm/clients", "Clients", "grid", P.crm, "pms"],
@@ -348,7 +340,7 @@ export const NAV_KEYS: string[] = NAV_ITEMS.map((i) => i.key);
 
 /** Everything a rule may look at. Loaded on the server by `access.ts`. */
 export interface NavContext {
-  user: RoleContext;
+  user: RoleContext & { subject?: AccessSubject };
   /** Result of the Platform Console's own access check (owner company + platform role). */
   platformAccess: boolean;
   /** Products the platform switched off (for everyone, or for this company): their items are hidden. */

@@ -76,15 +76,20 @@ function tierBundle(tierKey: string): string[] {
   const hit = bundleMemo.get(tierKey);
   if (hit) return hit;
   const V = vectors();
-  let best: string[] | null = null;
+  // Only what EVERY role that gives the tier also gives (the tiers one role adds beyond that, e.g. a mentor's test-staff tier, are not implied by the tier itself).
+  let common = null as Set<string> | null;
   for (const r of ALL_ROLES) {
     const v = V.get(r)!;
     if (!v.has(tierKey)) continue;
-    const fixed = [...v].filter((k) => FIXED.has(k) && !NON_MONOTONE.has(k));
-    if (!best || fixed.length < best.length) best = fixed;
+    // keys the Director's per-capability overrides can switch off (a derived "is staff" answer built from overridable capabilities) are never implied: the overrides the adapter writes would contradict them
+    const denyAll: Record<string, boolean> = {};
+    for (const e of CATALOGUE) if (e.overrideKey) denyAll[e.overrideKey] = false;
+    const fixed = new Set([...v].filter((k) => FIXED.has(k) && !NON_MONOTONE.has(k) && legacyAnswer(CATALOGUE.find((e) => e.key === k)!, { roles: [r], permissionOverrides: denyAll })));
+    common = common ? new Set([...common].filter((k: string) => fixed.has(k))) : fixed;
   }
-  bundleMemo.set(tierKey, best ?? [tierKey]);
-  return best ?? [tierKey];
+  const out = common ? [...common] : [tierKey];
+  bundleMemo.set(tierKey, out);
+  return out;
 }
 
 let disqualifiers: Map<string, Set<string>> | null = null;
@@ -270,14 +275,16 @@ export function completeAccess(input: AccessMap): AccessMap {
     if (opened) for (const m of baselineMicros(product)) (out[product] ??= {})[m.key] ??= m.level;
   }
   // "Employee only" gates are an identity, not an access: true exactly while the product is opened without its staff tier. Recomputed here for every product that has both.
-  for (const only of CATALOGUE.filter((e) => e.kind === "tier" && /Only$/.test(e.fn) && isFinished(e.product))) {
+  for (const only of CATALOGUE.filter((e) => e.kind === "tier" && /Only$/.test(e.fn))) {
     const staff = CATALOGUE.find((e) => e.product === only.product && e.kind === "tier" && /StaffRole$/.test(e.fn));
     if (!staff) continue;
     const cur = out[only.product];
     if (!cur) continue;
+    if (cur[staff.key]) { delete cur[only.key]; continue; } // a person with the staff tier is not "only" an employee, in any product
+    if (!isFinished(only.product)) continue; // other products keep what the legacy roles bundle
     const opened = Object.keys(cur).some((k) => { const e = CATALOGUE.find((x) => x.key === k); return !e || e.kind !== "tier" || isAccessGate(e.fn); });
     if (!opened) continue; // only the implied baseline of another product: left as the legacy roles bundle it
-    if (cur[staff.key]) delete cur[only.key]; else cur[only.key] = "read";
+    cur[only.key] = "read";
   }
   return out;
 }

@@ -18,7 +18,8 @@ import {
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import type { PrmsRole } from "@/lib/prms-roles";
-import { hasPrmsStaffRole, canManageSettings, canViewAuditLog } from "@/lib/prms-roles";
+import type { AccessSubject } from "@/lib/access/can";
+import { prmsCan } from "@/lib/prms-access";
 
 function NavLink({
   href,
@@ -79,11 +80,13 @@ function NavLink({
 export default function PrmsSidebar({
   roles,
   permissionOverrides,
+  subject,
   onNavigate,
   collapsed = false,
 }: {
   roles: PrmsRole[];
   permissionOverrides?: Record<string, boolean>;
+  subject: AccessSubject;
   onNavigate?: () => void;
   collapsed?: boolean;
 }) {
@@ -95,38 +98,24 @@ export default function PrmsSidebar({
     exact?: boolean;
   }) => (props.locked ? null : <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />);
 
-  const isStaff = hasPrmsStaffRole(roles);
-  const roleCtx = { roles, permissionOverrides };
+  void roles; void permissionOverrides;
 
   return (
     <nav className="flex h-full flex-col gap-1 p-3">
+      {nav({ href: "/spendiq", label: "Dashboard", icon: LayoutDashboard, exact: true, locked: !prmsCan({ subject }, "dashboard.view") })}
 
-      {/* Overview */}
-      {nav({ href: "/spendiq", label: "Dashboard", icon: LayoutDashboard, exact: true, locked: !isStaff })}
-
-      {/* ── Procurement ── */}
       <NavGroup collapsed={collapsed} label="Procurement">
-        {nav({ href: "/spendiq/requisitions", label: "Purchase Requests", icon: ClipboardList, locked: !isStaff })}
-        {nav({ href: "/spendiq/purchase-orders", label: "Purchase Orders", icon: FileText, locked: !isStaff })}
-        {nav({ href: "/spendiq/expenses", label: "Expenses", icon: Receipt, locked: !isStaff })}
-        {nav({ href: "/spendiq/vendors", label: "Vendors", icon: Building2, locked: !isStaff })}
-
-      {/* ── Company Assets ── */}
+        {nav({ href: "/spendiq/requisitions", label: "Purchase Requests", icon: ClipboardList, locked: !prmsCan({ subject }, "requisitions.view") })}
+        {nav({ href: "/spendiq/purchase-orders", label: "Purchase Orders", icon: FileText, locked: !prmsCan({ subject }, "purchaseorders.view") })}
+        {nav({ href: "/spendiq/expenses", label: "Expenses", icon: Receipt, locked: !prmsCan({ subject }, "expenses.view") })}
+        {nav({ href: "/spendiq/vendors", label: "Vendors", icon: Building2, locked: !prmsCan({ subject }, "vendors.view") })}
       </NavGroup>
       <NavGroup collapsed={collapsed} label="Company Assets">
-        {nav({ href: "/spendiq/assets", label: "Hardware & Assets", icon: Boxes, locked: !isStaff })}
-        {nav({ href: "/spendiq/subscriptions", label: "Subscriptions", icon: Cloud, locked: !isStaff })}
-
+        {nav({ href: "/spendiq/assets", label: "Hardware & Assets", icon: Boxes, locked: !prmsCan({ subject }, "assets.view") })}
+        {nav({ href: "/spendiq/subscriptions", label: "Subscriptions", icon: Cloud, locked: !prmsCan({ subject }, "subscriptions.view") })}
       </NavGroup>
       <NavGroup collapsed={collapsed} label="Governance">
-        {nav({ href: "/spendiq/analytics", label: "Analytics", icon: BarChart3, locked: !isStaff })}
-
-      </NavGroup>
-      <NavGroup collapsed={collapsed} label="Me">
-        {nav({ href: "/spendiq/me", label: "My Dashboard", icon: LayoutDashboard, exact: true })}
-        {nav({ href: "/spendiq/me/requisitions", label: "My Requests", icon: ClipboardList })}
-        {nav({ href: "/spendiq/me/expenses", label: "My Expenses", icon: Receipt })}
-    
+        {nav({ href: "/spendiq/analytics", label: "Analytics", icon: BarChart3, locked: !prmsCan({ subject }, "analytics.view") })}
       </NavGroup>
     </nav>
   );

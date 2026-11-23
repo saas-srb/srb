@@ -1,8 +1,7 @@
 import { twoStepGate } from "@/lib/security/two-step-gate";
 import { redirect } from "next/navigation";
 import { getCurrentSopUser } from "@/lib/sop-auth";
-import { hasSopAccess, sopCan } from "@/lib/sop-roles";
-import { playbookCan } from "@/lib/playbook-roles";
+import { hasSopAccess } from "@/lib/sop-roles";
 import { getViewer } from "@/lib/products/playbook-ai/viewer";
 import { canViewCompliance } from "@/lib/products/playbook-ai/access";
 import { listSopNotifications } from "@/lib/products/playbook-ai/notifications";
@@ -16,6 +15,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { brandedMetadata } from "@/lib/platform/branding/metadata";
 import { requireModule } from "@/lib/platform/billing/enforce";
 import PanelBackBar from "@/components/hub/PanelBackBar";
+import { pbDoc, pbSop } from "@/lib/playbook-access";
 
 export const generateMetadata = () => brandedMetadata("{brand} {product:sop}", { robots: { index: false, follow: false } });
 
@@ -29,21 +29,21 @@ export default async function ProtectedSopLayout({ children }: { children: React
 
   const viewer = await getViewer();
   if (!viewer) redirect("/playbook-ai/login");
-  const ctx = { roles: viewer.roles, permissionOverrides: viewer.overrides };
+  const ctx = viewer;
 
   const [bell, assigned] = await Promise.all([listSopNotifications(viewer.userId), getAssignedToMe(viewer)]);
   const flags: SopNavFlags = {
-    mySops: sopCan(ctx, "CREATE") || sopCan(ctx, "EDIT"),
-    templates: sopCan(ctx, "MANAGE_TEMPLATES") || sopCan(ctx, "CREATE"),
+    mySops: pbSop(ctx, "CREATE") || pbSop(ctx, "EDIT"),
+    templates: pbSop(ctx, "MANAGE_TEMPLATES") || pbSop(ctx, "CREATE"),
     compliance: canViewCompliance(viewer),
-    reports: canViewCompliance(viewer) || sopCan(ctx, "EXPORT"),
-    audit: sopCan(ctx, "VIEW_AUDIT"),
-    settings: sopCan(ctx, "MANAGE_PERMISSIONS"),
-    documents: playbookCan(ctx, "SETTINGS"),
-    brand: playbookCan(ctx, "MANAGE_BRAND"),
-    create: playbookCan(ctx, "CREATE"),
-    templateLibrary: playbookCan(ctx, "CREATE") || playbookCan(ctx, "MANAGE_TEMPLATES"),
-    myTemplates: playbookCan(ctx, "MANAGE_TEMPLATES"),
+    reports: canViewCompliance(viewer) || pbSop(ctx, "EXPORT"),
+    audit: pbSop(ctx, "VIEW_AUDIT"),
+    settings: pbSop(ctx, "MANAGE_PERMISSIONS"),
+    documents: pbDoc(ctx, "SETTINGS"),
+    brand: pbDoc(ctx, "MANAGE_BRAND"),
+    create: pbDoc(ctx, "CREATE"),
+    templateLibrary: pbDoc(ctx, "CREATE") || pbDoc(ctx, "MANAGE_TEMPLATES"),
+    myTemplates: pbDoc(ctx, "MANAGE_TEMPLATES"),
     assignedOpen: assigned.filter((a) => a.state !== "acknowledged").length,
   };
 

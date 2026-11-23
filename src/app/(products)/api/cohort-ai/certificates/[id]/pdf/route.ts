@@ -1,7 +1,7 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextResponse } from "next/server";
 import { getCurrentTmsUser } from "@/lib/tms-auth";
-import { hasTmsStaffRole } from "@/lib/tms-roles";
+import { tmsMayOpen, tmsSeesAll } from "@/lib/tms-access";
 import { certificateWithMeta } from "@/lib/products/cohort-ai/certificates";
 import { getTmsSettings } from "@/lib/products/cohort-ai/settings";
 import { renderCertificatePdf } from "@/components/products/cohort-ai/CertificatePdf";
@@ -18,9 +18,9 @@ async function handleGET(_req: Request, { params }: Context) {
   const cert = await certificateWithMeta(id);
   if (!cert) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const isStaff = hasTmsStaffRole(user.roles);
-  const isOwner = user.studentId === cert.studentId;
-  if (!isStaff && !isOwner) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const isStaff = tmsSeesAll(user, "certificates");
+  // The person's own certificate, or anyone's with the everyone's scope.
+  if (!tmsMayOpen(user, "certificates", cert.studentId, user.studentId)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   if (cert.revoked && !isStaff) return NextResponse.json({ error: "This certificate has been revoked." }, { status: 410 });
 
   const [settings, siteUrl] = await Promise.all([getTmsSettings(), companySiteUrl()]);

@@ -1,7 +1,7 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentTmsUser } from "@/lib/tms-auth";
-import { canManageTraining } from "@/lib/tms-roles";
+import { tmsCan } from "@/lib/tms-access";
 import { buildReport, isValidReportType } from "@/lib/products/cohort-ai/reports";
 import { buildWorkbook } from "@/lib/products/cohort-ai/xlsx";
 import { renderReportPdf } from "@/components/products/cohort-ai/ReportPdf";
@@ -24,7 +24,7 @@ function fileResponse(body: Buffer | string, type: string, filename: string) {
 async function handleGET(req: NextRequest, { params }: Context) {
   const user = await getCurrentTmsUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canManageTraining(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!tmsCan(user, "reports.export")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { type } = await params;
   if (!isValidReportType(type)) return NextResponse.json({ error: "Unknown report" }, { status: 404 });

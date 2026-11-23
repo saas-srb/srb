@@ -1,3 +1,4 @@
+import { titlesOfEmployees, nameWithTitle } from "@/lib/platform/organization/title-server";
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { Inbox, CalendarCheck, CheckCircle2, Tags } from "lucide-react";
@@ -75,6 +76,9 @@ export default async function LeavePage({
     sees ? listEmployeeOptions() : [],
   ]);
 
+  // Everyone in a list is written with the title chosen for them, never a product role.
+  const requestTitles = await titlesOfEmployees(requestsResult.items.map((r) => r.employeeId));
+
   const scopedEmployees = restrictIds ? employees.filter((e) => restrictIds.includes(e._id)) : employees;
   const selectedEmployeeId = sp.employee || (scopedEmployees[0]?._id ?? null);
   const balances = sees && selectedEmployeeId ? await getBalances(selectedEmployeeId, year) : [];
@@ -105,7 +109,7 @@ export default async function LeavePage({
                 items={requestsResult.items.map((r) => ({
                   _id: r._id,
                   employeeId: r.employeeId,
-                  employeeName: r.employeeName,
+                  employeeName: nameWithTitle(r.employeeName, requestTitles.get(r.employeeId)),
                   employeeCode: r.employeeCode,
                   leaveTypeCode: r.leaveTypeCode,
                   leaveTypeLabel: r.leaveTypeLabel,

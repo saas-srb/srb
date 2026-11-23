@@ -2,7 +2,6 @@
 
 import UnifiedProfileMenu from "@/components/platform/panel/UnifiedProfileMenu";
 import { sopLogoutAction } from "@/app/(products)/playbook-ai/(protected)/actions";
-import {  } from "@/lib/sop-roles";
 
 export default function SopProfileMenu({
   email,

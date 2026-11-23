@@ -14,7 +14,7 @@ import PaymentCodeField from "@/components/products/cashflow-ai/PaymentCodeField
 import PayoutStatusBadge from "@/components/products/talentos/PayoutStatusBadge";
 import PayoutRowActions from "@/components/products/talentos/PayoutRowActions";
 import { formatCurrency } from "@/lib/utils";
-import { bulkInitiatePayoutsAction } from "@/app/(products)/talentos/(protected)/(staff)/payroll/actions";
+import { bulkInitiatePayoutsAction } from "@/app/(products)/talentos/(protected)/payroll/actions";
 
 interface Payout {
   _id: string;

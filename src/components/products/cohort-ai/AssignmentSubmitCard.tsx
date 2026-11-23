@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { SubmissionStatusBadge } from "@/components/products/cohort-ai/StatusBadges";
-import { submitAssignmentAction } from "@/app/(products)/cohort-ai/(protected)/me/assignments/actions";
+import { submitAssignmentAction } from "@/app/(products)/cohort-ai/(protected)/assignments/submit-actions";
 import type { StudentAssignmentView } from "@/lib/products/cohort-ai/assignments";
 import { formatDate } from "@/lib/utils";
 

@@ -2,12 +2,12 @@ import "server-only";
 import { getDb } from "@/lib/mongodb";
 import { PB_COLLECTIONS } from "@/lib/products/playbook-ai/pb-collections";
 import { newId, createStamp, updateStamp, type AuditFields } from "@/lib/products/playbook-ai/db";
-import { playbookCan } from "@/lib/playbook-roles";
 import { IDENT_RE } from "@/lib/products/playbook-ai/doc/limits";
 import { recordPbAudit } from "@/lib/products/playbook-ai/pb-audit";
 import { formatIsoDateIndia } from "@/lib/products/playbook-ai/doc/format";
 import type { PbActor } from "@/lib/products/playbook-ai/documents-types";
 import type { CustomVariableDef } from "@/lib/products/playbook-ai/variables-registry";
+import { pbDoc } from "@/lib/playbook-access";
 
 /** Company-defined variables (`custom.*`, collection `pb_variables`). Random ids; uniqueness of `key` is per company (scoped index). */
 
@@ -36,7 +36,7 @@ export type CustomVariableResult = { ok: true; id: string; key: string } | { ok:
 
 /** Creates or edits a custom variable. `name` is the part after `custom.` (lower-case letters, digits, underscore). Needs MANAGE_VARIABLES. */
 export async function saveCustomVariable(actor: PbActor, input: CustomVariableInput): Promise<CustomVariableResult> {
-  if (!playbookCan(actor, "MANAGE_VARIABLES")) return { ok: false, error: "You are not allowed to manage variables." };
+  if (!pbDoc(actor, "MANAGE_VARIABLES")) return { ok: false, error: "You are not allowed to manage variables." };
   if (!IDENT_RE.test(input.name)) return { ok: false, error: "The name must start with a lower-case letter and use only lower-case letters, digits and underscores." };
   const label = input.label.trim();
   if (!label || label.length > 120) return { ok: false, error: "Give the variable a label of up to 120 characters." };
@@ -75,7 +75,7 @@ export async function saveCustomVariable(actor: PbActor, input: CustomVariableIn
 
 /** Soft delete. Issued documents are unaffected (they render from their frozen snapshot); drafts using it will report it as unknown. */
 export async function deleteCustomVariable(actor: PbActor, id: string): Promise<{ ok: boolean; error?: string }> {
-  if (!playbookCan(actor, "MANAGE_VARIABLES")) return { ok: false, error: "You are not allowed to manage variables." };
+  if (!pbDoc(actor, "MANAGE_VARIABLES")) return { ok: false, error: "You are not allowed to manage variables." };
   const c = await col();
   const r = await c.findOneAndUpdate({ _id: id, deletedAt: null }, { $set: { deletedAt: new Date(), ...updateStamp(actor.id) } });
   if (!r) return { ok: false, error: "That variable no longer exists." };

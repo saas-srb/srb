@@ -3,11 +3,11 @@ import { redirect } from "next/navigation";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { Button } from "@/components/ui/button";
 import LibraryGrid from "@/components/products/playbook-ai/items/LibraryGrid";
-import { playbookCan } from "@/lib/playbook-roles";
 import { CATEGORY_LABELS, listCatalogue } from "@/lib/products/playbook-ai/catalogue";
 import { listLibrary } from "@/lib/products/playbook-ai/item-library";
 import { getPbActor } from "@/lib/products/playbook-ai/pb-actor";
 import { ITEM_KIND_INFO, type ItemKind, type LibraryEntryInfo } from "@/lib/products/playbook-ai/items-types";
+import { pbDoc } from "@/lib/playbook-access";
 
 /** "SOP Library", "KPI Library", "Document Library": prebuilt, fully written items. */
 export default async function LibraryPage({ kind }: { kind: ItemKind }) {
@@ -25,7 +25,7 @@ export default async function LibraryPage({ kind }: { kind: ItemKind }) {
         description={<>{entries.length} prebuilt, fully written {info.plural === "Employee KPIs" ? "KPI sheets" : info.plural}. Preview one, then use it to make your own copy.</>}
         actions={<Button variant="outline" nativeButton={false} render={<Link href={`/playbook-ai/${info.segment}`} />}>{info.mine}</Button>}
       />
-      <LibraryGrid kind={kind} entries={entries} canUse={playbookCan(actor, "CREATE")} />
+      <LibraryGrid kind={kind} entries={entries} canUse={pbDoc(actor, "CREATE")} />
     </div>
   );
 }

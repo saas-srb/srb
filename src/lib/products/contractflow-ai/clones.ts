@@ -1,7 +1,7 @@
+import { pbCan } from "@/lib/playbook-access";
 import "server-only";
 import { can } from "@/lib/products/contractflow-ai/viewer";
 import { randomUUID } from "node:crypto";
-import { playbookCan } from "@/lib/playbook-roles";
 import { getDb } from "@/lib/mongodb";
 import { PB_COLLECTIONS } from "@/lib/products/playbook-ai/pb-collections";
 import { getDocumentVersion } from "@/lib/products/playbook-ai/documents";
@@ -230,7 +230,7 @@ export interface CreateCloneFromPlaybookInput extends CloneInput {
  * frozen variable snapshot; sending the same version twice makes a second, independent clone.
  */
 export async function createCloneFromPlaybook(actor: PbActor, input: CreateCloneFromPlaybookInput): Promise<CloneResult<{ clone: CloneDoc }>> {
-  if (!playbookCan({ roles: actor.roles, permissionOverrides: actor.permissionOverrides ?? undefined }, "SEND_FOR_SIGNATURE")) return fail("forbidden", "You may not send documents for signature.");
+  if (!pbCan({ roles: actor.roles, permissionOverrides: actor.permissionOverrides ?? undefined }, "documents.sendsignature")) return fail("forbidden", "You may not send documents for signature.");
   const documentId = clean(input.documentId, 64);
   const versionId = clean(input.versionId, 64);
   const row = documentId && versionId ? await (await getDb()).collection<{ _id: string; documentId: string; number: number }>(PB_COLLECTIONS.versions).findOne({ _id: versionId, documentId }, { projection: { number: 1, documentId: 1 } }) : null;
@@ -259,7 +259,7 @@ export interface CreateCloneFromItemInput extends CloneInput {
  * optional here and required when the clone is sent.
  */
 export async function createCloneFromItem(actor: PbActor, input: CreateCloneFromItemInput): Promise<CloneResult<{ clone: CloneDoc }>> {
-  if (!playbookCan({ roles: actor.roles, permissionOverrides: actor.permissionOverrides ?? undefined }, "SEND_FOR_SIGNATURE")) return fail("forbidden", "You may not send documents to ContractFlow.");
+  if (!pbCan({ roles: actor.roles, permissionOverrides: actor.permissionOverrides ?? undefined }, "documents.sendsignature")) return fail("forbidden", "You may not send documents to ContractFlow.");
   const ok = verifiedSource(input.version);
   if (!ok.ok) return ok;
   return insertClone({ id: actor.id }, { version: { ...input.version, variableSnapshot: input.snapshot }, docTypeId: input.docTypeId }, ok.pbdoc, input, { allowNoSigners: true, kind: input.kind, meta: input.meta });

@@ -1,6 +1,6 @@
 import "server-only";
 import { getCurrentIntelligenceUser } from "@/lib/intelligence-auth";
-import { intelligenceCan } from "@/lib/intelligence-roles";
+import { microAny } from "@/lib/ai/agent/micro-gate";
 import { prepareTurn, executeTurn } from "@/lib/products/databrain-ai/turn";
 import { deleteConversationAction } from "@/app/(products)/databrain-ai/(protected)/actions";
 import { viaAction, f, fail } from "@/lib/ai/agent/entities/helpers";
@@ -11,7 +11,7 @@ import type { ActionDef, AgentUser, EntityDef, Json, ReportDef } from "@/lib/ai/
  * are handed to the Intelligence engine, which reads only what the person may see and shows how each number was calculated.
  */
 
-const can = (u: AgentUser) => intelligenceCan({ roles: u.roles, permissionOverrides: u.permissionOverrides }, "USE");
+const can = microAny("databrain-ai.ask.use");
 
 export const INTELLIGENCE_ENTITIES: EntityDef[] = [
   { key: "intelligence.conversation", panel: "intelligence", label: "Intelligence conversation", description: "Your past questions to DataBrain.", collection: "intel_conversations", idType: "string", titleField: "title", search: ["title"], read: "any", allowRead: can, self: (u) => ({ userId: u.id }), scope: (u) => ({ userId: u.id }) },

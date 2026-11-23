@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { payrollRunStatusMeta, monthLabelLong } from "@/lib/products/talentos/payroll-status";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { createRunAction, deleteRunAction } from "@/app/(products)/talentos/(protected)/(staff)/payroll/actions";
+import { createRunAction, deleteRunAction } from "@/app/(products)/talentos/(protected)/payroll/actions";
 
 interface Run {
   _id: string;

@@ -12,7 +12,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { parseHHmm } from "@/lib/products/sprintos/constants";
-import { saveTimesheetAction } from "@/app/(products)/sprintos/(protected)/me/timesheet/actions";
+import { saveTimesheetAction } from "@/app/(products)/sprintos/(protected)/timesheets/actions";
 import type { SerializedTimesheetEntry } from "@/lib/products/sprintos/timesheets";
 
 const NONE = "__none__";

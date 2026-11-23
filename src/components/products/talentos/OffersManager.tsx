@@ -17,7 +17,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import OfferStatusBadge from "@/components/products/talentos/OfferStatusBadge";
 import { OFFER_TRANSITIONS, type OfferStatus } from "@/lib/products/talentos/offers-status";
 import { formatDate, formatCurrency } from "@/lib/utils";
-import { createOfferAction, updateOfferStatusAction, updateOfferDetailsAction } from "@/app/(products)/talentos/(protected)/(staff)/recruitment/actions";
+import { createOfferAction, updateOfferStatusAction, updateOfferDetailsAction } from "@/app/(products)/talentos/(protected)/recruitment/actions";
 
 interface Offer {
   _id: string;

@@ -5,7 +5,7 @@ import SopLibraryTable from "@/components/products/playbook-ai/SopLibraryTable";
 import { getViewer } from "@/lib/products/playbook-ai/viewer";
 import { parseLibraryQuery, queryLibrary } from "@/lib/products/playbook-ai/library";
 import { creatableDepartmentIds } from "@/lib/products/playbook-ai/access";
-import { sopCan } from "@/lib/sop-roles";
+import { pbSop } from "@/lib/playbook-access";
 
 export default async function SopLibraryPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const viewer = await getViewer();
@@ -25,7 +25,7 @@ export default async function SopLibraryPage({ searchParams }: { searchParams: P
         result={result}
         query={query}
         canCreate={canCreate}
-        canExport={sopCan({ roles: viewer.roles, permissionOverrides: viewer.overrides }, "EXPORT")}
+        canExport={pbSop(viewer, "EXPORT")}
         exportBase="/api/playbook-ai/export/library"
       />
     </div>

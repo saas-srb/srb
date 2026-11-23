@@ -16,7 +16,7 @@ import { notifyEmployees } from "@/lib/products/sprintos/notifications";
 import { validateClient, validateProject, validateTask, validateMilestone, validateMember, validateTimesheet, validateCostingConfig } from "@/lib/products/sprintos/validation";
 import { isTaskDone, getTaskStatusMeta, getProjectStatusMeta, getMemberRoleLabel, EDITABLE_TIMESHEET_STATUSES, PRIORITIES, PROJECT_STATUSES, TASK_STATUSES, PROJECT_MEMBER_ROLES, CLIENT_STATUSES, MILESTONE_STATUSES } from "@/lib/products/sprintos/constants";
 import { hasLevel } from "@/lib/ai/agent/access";
-import { canManageClients, canManageProjects, canReviewTimesheets, canViewCosting, canManageSettings } from "@/lib/pms-roles";
+import { microAny } from "@/lib/ai/agent/micro-gate";
 import { check, fail, formInput, str } from "@/lib/ai/agent/entities/helpers";
 import type { ActionDef, AgentUser, EntityDef, Json, ReportDef } from "@/lib/ai/agent/types";
 
@@ -68,7 +68,7 @@ const clientInput = (c: Client): Json => ({
 export const PMS_ENTITIES: EntityDef[] = [
   {
     key: "pms.client", panel: "pms", label: "Client", description: "Customers you run projects for (company, contact, billing details, status).", collection: "pms_clients", idType: "string", baseFilter: soft,
-    titleField: "companyName", search: ["companyName", "clientCode", "industry", "primaryContact.name", "primaryContact.email"], read: "staff", write: "staff", allow: canManageClients, canDelete: true,
+    titleField: "companyName", search: ["companyName", "clientCode", "industry", "primaryContact.name", "primaryContact.email"], allowRead: microAny("sprintos.clients.view"), read: "staff", write: "staff", allow: microAny("sprintos.clients.manage"), canDelete: true,
     fields: [
       { key: "companyName", label: "Company name", type: "string", required: true },
       { key: "industry", label: "Industry", type: "string" },
@@ -115,7 +115,7 @@ export const PMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "pms.project", panel: "pms", label: "Project", description: "Projects: client, status, priority, dates, budget, manager, progress.", collection: "pms_projects", idType: "string", baseFilter: soft,
-    titleField: "name", search: ["name", "projectCode", "category", "description"], read: "staff", write: "staff", allow: canManageProjects, canDelete: true, self: myProjectFilter,
+    titleField: "name", search: ["name", "projectCode", "category", "description"], allowRead: microAny("sprintos.projects.all"), read: "staff", write: "staff", allow: microAny("sprintos.projects.manage"), canDelete: true, self: myProjectFilter,
     fields: [
       { key: "name", label: "Project name", type: "string", required: true },
       { key: "clientId", label: "Client (pms.client id)", type: "ref", ref: "pms.client", required: true },
@@ -169,7 +169,7 @@ export const PMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "pms.task", panel: "pms", label: "Task", description: "Tasks inside projects (todo → in_progress → review → testing → done) with assignee, priority, dates.", collection: "pms_tasks", idType: "string", baseFilter: soft,
-    titleField: "title", search: ["title", "taskCode", "description"], read: "staff", write: "staff", allow: canManageProjects, canDelete: true,
+    titleField: "title", search: ["title", "taskCode", "description"], allowRead: microAny("sprintos.projects.all"), read: "staff", write: "staff", allow: microAny("sprintos.projects.manage"), canDelete: true,
     self: async (u) => {
       if (!u.employeeId) return null;
       return { $or: [{ assigneeId: u.employeeId }, { projectId: { $in: await myProjectIds(u) } }] };
@@ -232,7 +232,7 @@ export const PMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "pms.milestone", panel: "pms", label: "Milestone", description: "Project milestones with due date, status and progress.", collection: "pms_milestones", idType: "string", baseFilter: soft,
-    titleField: "name", search: ["name", "description"], read: "staff", write: "staff", allow: canManageProjects, canDelete: true, self: inMyProjects("projectId"),
+    titleField: "name", search: ["name", "description"], allowRead: microAny("sprintos.projects.all"), read: "staff", write: "staff", allow: microAny("sprintos.projects.manage"), canDelete: true, self: inMyProjects("projectId"),
     fields: [
       { key: "projectId", label: "Project (pms.project id)", type: "ref", ref: "pms.project", required: true, createOnly: true },
       { key: "name", label: "Name", type: "string", required: true },
@@ -276,7 +276,7 @@ export const PMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "pms.member", panel: "pms", label: "Project member", description: "Who is on a project: role, allocation %, billable and cost rate.", collection: "pms_project_members", idType: "string", baseFilter: soft,
-    read: "staff", write: "staff", allow: canManageProjects, canDelete: true, self: inMyProjects("projectId"),
+    allowRead: microAny("sprintos.projects.all"), read: "staff", write: "staff", allow: microAny("sprintos.projects.manage"), canDelete: true, self: inMyProjects("projectId"),
     fields: [
       { key: "projectId", label: "Project (pms.project id)", type: "ref", ref: "pms.project", required: true, createOnly: true },
       { key: "employeeId", label: "Employee (hrms.employee id)", type: "ref", ref: "hrms.employee", required: true, createOnly: true },
@@ -320,7 +320,7 @@ export const PMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "pms.timesheet", panel: "pms", label: "Timesheet entry", description: "Hours logged on projects and tasks (draft → submitted → approved/rejected). Employees see and log only their own.", collection: "pms_timesheets", idType: "string", baseFilter: soft,
-    search: ["description", "date", "status"], read: "staff", write: "staff", canDelete: true, selfWrite: true,
+    search: ["description", "date", "status"], allowRead: microAny("sprintos.timesheets.review"), read: "staff", write: "staff", allow: microAny("sprintos.timesheets.submit"), canDelete: true, selfWrite: true,
     self: (u) => (u.employeeId ? { employeeId: u.employeeId } : null),
     fields: [
       { key: "employeeId", label: "Employee (hrms.employee id) — leave out to log for yourself", type: "ref", ref: "hrms.employee", createOnly: true },
@@ -342,7 +342,7 @@ export const PMS_ENTITIES: EntityDef[] = [
         void _e;
         const c = check(validateTimesheet(rest));
         if (!c.ok) return c.error;
-        if (!staffOnBehalf && !(await checkProjectAccess({ id: u.id, roles: u.roles as never, employeeId }, c.data.projectId)).allowed) return fail("You're not assigned to that project.");
+        if (!staffOnBehalf && !(await checkProjectAccess({ id: u.id, roles: u.roles as never, employeeId, subject: u.subject as never }, c.data.projectId)).allowed) return fail("You're not assigned to that project.");
         if (c.data.taskId) {
           const task = await getTask(c.data.taskId);
           if (!task || task.projectId !== c.data.projectId) return fail("That task isn't in the selected project.");
@@ -379,7 +379,7 @@ export const PMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "pms.comment", panel: "pms", label: "Task comment", description: "Comments on tasks.", collection: "pms_task_comments", idType: "string", baseFilter: soft,
-    search: ["body"], read: "staff", write: "staff", canDelete: true, selfWrite: true, self: inMyProjects("projectId"),
+    search: ["body"], allowRead: microAny("sprintos.projects.all"), read: "staff", write: "staff", allow: microAny("sprintos.tasks.update"), canDelete: true, selfWrite: true, self: inMyProjects("projectId"),
     fields: [
       { key: "taskId", label: "Task (pms.task id)", type: "ref", ref: "pms.task", required: true, createOnly: true },
       { key: "body", label: "Comment", type: "text", required: true },
@@ -388,7 +388,7 @@ export const PMS_ENTITIES: EntityDef[] = [
       create: async (v, u) => {
         const task = await getTask(String(v.taskId));
         if (!task) return fail("Task not found.");
-        if (!(await checkProjectAccess({ id: u.id, roles: u.roles as never, employeeId: u.employeeId ?? null }, task.projectId)).allowed) return fail("You're not on that project.");
+        if (!(await checkProjectAccess({ id: u.id, roles: u.roles as never, employeeId: u.employeeId ?? null, subject: u.subject as never }, task.projectId)).allowed) return fail("You're not on that project.");
         const text = String(v.body ?? "").trim();
         if (!text || text.length > 4000) return fail("A comment must be 1–4000 characters.");
         const comment = await addComment({ taskId: task._id, projectId: task.projectId, authorId: u.id, authorEmail: u.email, body: text });
@@ -404,16 +404,16 @@ export const PMS_ENTITIES: EntityDef[] = [
       },
     },
   },
-  { key: "pms.costing", panel: "pms", label: "Project costing inputs", description: "Per-project contract value, other costs and default rates (the figures themselves come from the project_financials report).", collection: "pms_project_costing", idType: "string", read: "staff" },
-  { key: "pms.activity", panel: "pms", label: "Activity log", description: "Who changed what in SprintOS, and when.", collection: "pms_activity_logs", idType: "string", search: ["entityLabel", "summary", "actorEmail"], read: "admin" },
-  { key: "pms.notification", panel: "pms", label: "Notification", description: "SprintOS notifications.", collection: "pms_notifications", idType: "string", read: "admin" },
+  { key: "pms.costing", panel: "pms", label: "Project costing inputs", description: "Per-project contract value, other costs and default rates (the figures themselves come from the project_financials report).", collection: "pms_project_costing", idType: "string", allowRead: microAny("sprintos.costing.view"), read: "staff" },
+  { key: "pms.activity", panel: "pms", label: "Activity log", description: "Who changed what in SprintOS, and when.", collection: "pms_activity_logs", idType: "string", search: ["entityLabel", "summary", "actorEmail"], allowRead: microAny("sprintos.activity.view"), read: "admin" },
+  { key: "pms.notification", panel: "pms", label: "Notification", description: "SprintOS notifications.", collection: "pms_notifications", idType: "string", allowRead: microAny("sprintos.dashboard.view"), read: "admin" },
 ];
 
-const taskAccess = async (u: AgentUser, projectId: string) => (await checkProjectAccess({ id: u.id, roles: u.roles as never, employeeId: u.employeeId ?? null }, projectId)).allowed;
+const taskAccess = async (u: AgentUser, projectId: string) => (await checkProjectAccess({ id: u.id, roles: u.roles as never, employeeId: u.employeeId ?? null, subject: u.subject as never }, projectId)).allowed;
 
 export const PMS_ACTIONS: ActionDef[] = [
   {
-    key: "pms.set_task_status", panel: "pms", label: "Move a task to another status", description: "Change a task's status (todo, in_progress, review, testing, done). Employees can do this on tasks in their own projects.", level: "any",
+    key: "pms.set_task_status", panel: "pms", label: "Move a task to another status", description: "Change a task's status (todo, in_progress, review, testing, done). Employees can do this on tasks in their own projects.", level: "any", allow: microAny("sprintos.tasks.update"),
     params: [{ key: "taskId", label: "Task (pms.task id)", type: "ref", ref: "pms.task", required: true }, { key: "status", label: "New status", type: "enum", options: TASK_STATUS, required: true }],
     run: async (v, u) => {
       const task = await getTask(String(v.taskId));
@@ -432,7 +432,7 @@ export const PMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "pms.change_project_status", panel: "pms", label: "Change a project's status", description: "Move a project through its life (planning → in progress → review → testing → completed, on hold, cancelled). Notifies the team.", level: "staff", allow: canManageProjects,
+    key: "pms.change_project_status", panel: "pms", label: "Change a project's status", description: "Move a project through its life (planning → in progress → review → testing → completed, on hold, cancelled). Notifies the team.", level: "staff", allow: microAny("sprintos.projects.manage"),
     params: [{ key: "projectId", label: "Project (pms.project id)", type: "ref", ref: "pms.project", required: true }, { key: "status", label: "New status", type: "enum", options: PROJECT_STATUS, required: true }],
     run: async (v, u) => {
       const before = await getProject(String(v.projectId));
@@ -449,7 +449,7 @@ export const PMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "pms.update_progress", panel: "pms", label: "Set a project's progress %", description: "Set the manual progress percentage of a project.", level: "staff", allow: canManageProjects,
+    key: "pms.update_progress", panel: "pms", label: "Set a project's progress %", description: "Set the manual progress percentage of a project.", level: "staff", allow: microAny("sprintos.projects.manage"),
     params: [{ key: "projectId", label: "Project (pms.project id)", type: "ref", ref: "pms.project", required: true }, { key: "progressPercent", label: "Progress % (0-100)", type: "number", required: true }],
     run: async (v, u) => {
       const before = await getProject(String(v.projectId));
@@ -461,7 +461,7 @@ export const PMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "pms.submit_timesheet", panel: "pms", label: "Submit timesheet entries for review", description: "Send your draft or rejected entries to your project manager for approval.", level: "any",
+    key: "pms.submit_timesheet", panel: "pms", label: "Submit timesheet entries for review", description: "Send your draft or rejected entries to your project manager for approval.", level: "any", allow: microAny("sprintos.timesheets.submit"),
     params: [{ key: "entryIds", label: "Entry ids (pms.timesheet)", type: "stringList", required: true }],
     run: async (v, u) => {
       if (!u.employeeId) return fail("Your login isn't linked to an employee record.");
@@ -479,7 +479,7 @@ export const PMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "pms.review_timesheet", panel: "pms", label: "Approve or reject timesheet entries", description: "Review submitted timesheet entries (one or many) and tell the employee.", level: "staff", allow: canReviewTimesheets,
+    key: "pms.review_timesheet", panel: "pms", label: "Approve or reject timesheet entries", description: "Review submitted timesheet entries (one or many) and tell the employee.", level: "staff", allow: microAny("sprintos.timesheets.review"),
     params: [
       { key: "entryIds", label: "Entry ids (pms.timesheet, status submitted)", type: "stringList", required: true },
       { key: "decision", label: "Decision", type: "enum", options: ["approved", "rejected"], required: true },
@@ -500,7 +500,7 @@ export const PMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "pms.update_costing", panel: "pms", label: "Set a project's costing inputs", description: "Contract value, other costs and default cost/billing rates used to compute project profit.", level: "staff", allow: canViewCosting,
+    key: "pms.update_costing", panel: "pms", label: "Set a project's costing inputs", description: "Contract value, other costs and default cost/billing rates used to compute project profit.", level: "staff", allow: microAny("sprintos.costing.manage"),
     params: [
       { key: "projectId", label: "Project (pms.project id)", type: "ref", ref: "pms.project", required: true },
       { key: "contractValue", label: "Contract value", type: "number" },
@@ -519,7 +519,7 @@ export const PMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "pms.update_settings", panel: "pms", label: "Change SprintOS settings", description: "Project categories, technology suggestions and the default currency.", level: "admin", allow: canManageSettings,
+    key: "pms.update_settings", panel: "pms", label: "Change SprintOS settings", description: "Project categories, technology suggestions and the default currency.", level: "admin", allow: microAny("sprintos.settings.manage"),
     params: [
       { key: "categories", label: "Project categories", type: "stringList" },
       { key: "technologySuggestions", label: "Technology suggestions", type: "stringList" },
@@ -537,22 +537,22 @@ export const PMS_ACTIONS: ActionDef[] = [
 
 export const PMS_REPORTS: ReportDef[] = [
   {
-    key: "pms.dashboard", panel: "pms", label: "Portfolio dashboard numbers", description: "Totals of projects (active, completed, on hold, overdue), clients, team utilisation, status/priority split, deadlines.", level: "staff", allow: (u) => hasLevel(u.roles, "pms", "staff"),
+    key: "pms.dashboard", panel: "pms", label: "Portfolio dashboard numbers", description: "Totals of projects (active, completed, on hold, overdue), clients, team utilisation, status/priority split, deadlines.", level: "staff", allow: microAny("sprintos.dashboard.team", "sprintos.dashboard.all"),
     params: [{ key: "dateFrom", label: "From (YYYY-MM-DD)", type: "dateString" }, { key: "dateTo", label: "To (YYYY-MM-DD)", type: "dateString" }],
     run: async (v) => ({ ...(await getPmsDashboardStats({ dateFrom: v.dateFrom ? new Date(String(v.dateFrom)) : undefined, dateTo: v.dateTo ? new Date(`${String(v.dateTo)}T23:59:59`) : undefined })) }),
   },
   {
-    key: "pms.project_report", panel: "pms", label: "Full report of one project", description: "Client, team, financials, hours, task progress and each person's contribution.", level: "staff", allow: canViewCosting,
+    key: "pms.project_report", panel: "pms", label: "Full report of one project", description: "Client, team, financials, hours, task progress and each person's contribution.", level: "staff", allow: microAny("sprintos.costing.view"),
     params: [{ key: "projectId", label: "Project (pms.project id)", type: "ref", ref: "pms.project", required: true }, { key: "dateFrom", label: "From", type: "dateString" }, { key: "dateTo", label: "To", type: "dateString" }],
     run: async (v) => ((await buildProjectReport(String(v.projectId), { dateFrom: str(v.dateFrom) ?? undefined, dateTo: str(v.dateTo) ?? undefined })) as unknown as Json) ?? fail("Project not found."),
   },
   {
-    key: "pms.project_financials", panel: "pms", label: "Project profit / cost", description: "Revenue, resource cost, other costs, profit and margin of one project, from logged hours and rates.", level: "staff", allow: canViewCosting,
+    key: "pms.project_financials", panel: "pms", label: "Project profit / cost", description: "Revenue, resource cost, other costs, profit and margin of one project, from logged hours and rates.", level: "staff", allow: microAny("sprintos.costing.view"),
     params: [{ key: "projectId", label: "Project (pms.project id)", type: "ref", ref: "pms.project", required: true }, { key: "dateFrom", label: "From", type: "dateString" }, { key: "dateTo", label: "To", type: "dateString" }],
     run: async (v) => ((await computeProjectFinancials(String(v.projectId), { dateFrom: str(v.dateFrom) ?? undefined, dateTo: str(v.dateTo) ?? undefined })) as unknown as Json) ?? fail("Project not found."),
   },
   {
-    key: "pms.portfolio_costing", panel: "pms", label: "Profit / loss across all projects", description: "Total revenue, cost, profit and loss over every project.", level: "staff", allow: canViewCosting,
+    key: "pms.portfolio_costing", panel: "pms", label: "Profit / loss across all projects", description: "Total revenue, cost, profit and loss over every project.", level: "staff", allow: microAny("sprintos.costing.view"),
     params: [{ key: "dateFrom", label: "From", type: "dateString" }, { key: "dateTo", label: "To", type: "dateString" }],
     run: async (v) => (await getPortfolioCosting({ dateFrom: str(v.dateFrom) ?? undefined, dateTo: str(v.dateTo) ?? undefined })) as unknown as Json,
   },

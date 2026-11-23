@@ -4,7 +4,9 @@ import { cookies } from "next/headers";
 import type { ObjectId } from "mongodb";
 import { WORKSPACE_SESSION_COOKIE, workspaceSessionAccountId } from "@/lib/workspace-session";
 import { getDb } from "@/lib/mongodb";
-import { hasIntelligenceAccess } from "@/lib/intelligence-roles";
+import type { AccessSubject } from "@/lib/access/can";
+import { subjectFromRow } from "@/lib/access/server";
+import { dbCanAsk } from "@/lib/databrain-access";
 
 /**
  * AI Intelligence authentication. The product has NO sign-in or session store of
@@ -20,6 +22,8 @@ export interface CurrentIntelligenceUser {
   roles: string[];
   /** Per-capability overrides from the Director — see `permission-overrides.ts`. */
   permissionOverrides: Record<string, boolean>;
+  /** What the person may do, from their micro features (People & access). */
+  subject: AccessSubject;
   employeeId: string | null;
   mustChangePassword: boolean;
   createdAt: Date;
@@ -33,12 +37,14 @@ export async function getIntelligenceUserForAccount(adminId: ObjectId): Promise<
     .findOne({ _id: adminId });
   if (!user || !(await accountWithinSeats(user))) return null;
   const roles = user.roles ?? [];
-  if (!hasIntelligenceAccess(roles)) return null;
+  const subject = subjectFromRow(user as never);
+  if (!dbCanAsk({ subject })) return null;
   return {
     id: user._id.toString(),
     email: user.email,
     roles,
     permissionOverrides: user.permissionOverrides ?? {},
+    subject,
     employeeId: user.employeeId ?? null,
     mustChangePassword: user.mustChangePassword === true,
     createdAt: user.createdAt,

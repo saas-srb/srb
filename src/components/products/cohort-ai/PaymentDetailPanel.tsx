@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { PAYMENT_METHODS } from "@/lib/products/cohort-ai/constants";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { addInstallmentAction, removeInstallmentAction } from "@/app/(products)/cohort-ai/(protected)/(staff)/payments/actions";
+import { addInstallmentAction, removeInstallmentAction } from "@/app/(products)/cohort-ai/(protected)/payments/actions";
 import type { SerializedPaymentPlan } from "@/lib/products/cohort-ai/payments";
 
 export default function PaymentDetailPanel({

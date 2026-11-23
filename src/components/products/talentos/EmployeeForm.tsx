@@ -19,7 +19,7 @@ import {
   WORK_LOCATIONS,
   DEFAULT_EMPLOYEE_STATUS,
 } from "@/lib/products/talentos/employee-status";
-import { createEmployeeAction, updateEmployeeAction, type EmployeeActionResult } from "@/app/(products)/talentos/(protected)/(staff)/employees/actions";
+import { createEmployeeAction, updateEmployeeAction, type EmployeeActionResult } from "@/app/(products)/talentos/(protected)/employees/actions";
 import type { SerializedEmployee } from "@/lib/products/talentos/employees";
 
 type Option = { _id: string; name?: string; title?: string; label?: string };

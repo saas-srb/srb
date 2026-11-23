@@ -1,7 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { getDb } from "@/lib/mongodb";
-import { playbookCan } from "@/lib/playbook-roles";
 import { attachmentRecord, prepareAttachments } from "@/lib/products/playbook-ai/ai/attachments";
 import { applyOps, MAX_MESSAGE, proposeEdit, type EditOp } from "@/lib/products/playbook-ai/ai/edit-core";
 import { askDocument, reviewDocument, transformText, type ToolCtx } from "@/lib/products/playbook-ai/ai/ai-tools";
@@ -15,6 +14,7 @@ import { ITEM_KIND_INFO } from "@/lib/products/playbook-ai/items-types";
 import { PB_COLLECTIONS } from "@/lib/products/playbook-ai/pb-collections";
 import { loadCompanyValues } from "@/lib/products/playbook-ai/brand/company-values";
 import { loadVariableValues } from "@/lib/products/playbook-ai/variables-adapters";
+import { pbDoc } from "@/lib/playbook-access";
 
 /**
  * "Edit with AI" for Playbook items. The shared core (`ai/edit-core.ts`, `ai/ai-tools.ts`) asks the model and validates. Here every applied change
@@ -36,7 +36,7 @@ const toTurn = (r: ChatRow): ChatTurn => ({
 type Fail = { ok: false; message: string };
 
 function blockedReason(actor: PbActor, d: PbDocumentRecord, canEdit: boolean): string | null {
-  if (!playbookCan(actor, "USE_AI")) return "You are not allowed to use AI drafting.";
+  if (!pbDoc(actor, "USE_AI")) return "You are not allowed to use AI drafting.";
   if (!canEdit) return "You can read this document but not edit it.";
   if (d.status !== "draft") return `This document is ${d.status.replace("_", " ")} and cannot be edited. Revise it first.`;
   if (d.lock && d.lock.expiresAt > new Date() && d.lock.userId !== actor.id) return `${d.lock.name || "Someone"} is editing this document right now.`;
@@ -49,7 +49,7 @@ async function open(actor: PbActor, documentId: string, need: "edit" | "read"): 
   if (need === "edit") {
     const b = blockedReason(actor, g.document, g.capabilities.edit);
     if (b) return { ok: false, message: b };
-  } else if (!playbookCan(actor, "USE_AI")) return { ok: false, message: "You are not allowed to use AI drafting." };
+  } else if (!pbDoc(actor, "USE_AI")) return { ok: false, message: "You are not allowed to use AI drafting." };
   return { ok: true, d: g.document, canEdit: g.capabilities.edit };
 }
 

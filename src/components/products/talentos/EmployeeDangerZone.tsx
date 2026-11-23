@@ -16,7 +16,7 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
-import { deleteEmployeeAction } from "@/app/(products)/talentos/(protected)/(staff)/employees/actions";
+import { deleteEmployeeAction } from "@/app/(products)/talentos/(protected)/employees/actions";
 
 export default function EmployeeDangerZone({ employeeId, name }: { employeeId: string; name: string }) {
   const router = useRouter();

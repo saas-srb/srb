@@ -1,7 +1,7 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextResponse } from "next/server";
 import { getCurrentTmsUser } from "@/lib/tms-auth";
-import { hasTmsStaffRole } from "@/lib/tms-roles";
+import { tmsMayOpen } from "@/lib/tms-access";
 import { findInstallment, summarise } from "@/lib/products/cohort-ai/payments";
 import { getStudent } from "@/lib/products/cohort-ai/students";
 import { getProgram } from "@/lib/products/cohort-ai/programs";
@@ -21,8 +21,8 @@ async function handleGET(_req: Request, { params }: Context) {
   if (!found) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const { plan, installment } = found;
-  const isStaff = hasTmsStaffRole(user.roles);
-  if (!isStaff && user.studentId !== plan.studentId) {
+  // The person's own invoice, or anyone's with the everyone's scope.
+  if (!tmsMayOpen(user, "payments", plan.studentId, user.studentId)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -58,7 +58,7 @@ async function handleGET(_req: Request, { params }: Context) {
     },
   });
 
-  await recordPdf({ type: "tms_invoice", ref: invoiceNumber, by: user.email, role: isStaff ? "staff" : "student" });
+  await recordPdf({ type: "tms_invoice", ref: invoiceNumber, by: user.email, role: user.studentId === plan.studentId ? "student" : "staff" });
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",

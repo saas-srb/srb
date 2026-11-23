@@ -18,7 +18,8 @@ import {
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import type { PmsRole } from "@/lib/pms-roles";
-import { canReviewTimesheets, canManageSettings, canViewActivityLog, hasPmsStaffRole } from "@/lib/pms-roles";
+import type { AccessSubject } from "@/lib/access/can";
+import { pmsCan } from "@/lib/pms-access";
 
 function NavLink({
   href,
@@ -79,12 +80,14 @@ function NavLink({
 export default function PmsSidebar({
   roles,
   permissionOverrides,
+  subject,
   employeeId,
   onNavigate,
   collapsed = false,
 }: {
   roles: PmsRole[];
   permissionOverrides?: Record<string, boolean>;
+  subject: AccessSubject;
   employeeId: string | null;
   onNavigate?: () => void;
   collapsed?: boolean;
@@ -93,34 +96,25 @@ export default function PmsSidebar({
   const nav = (props: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean ; locked?: boolean }) => (
     (props.locked ? null : <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />)
   );
-  const isStaff = hasPmsStaffRole(roles);
 
   // One menu for everyone: the Director's. What a person cannot use is locked; "Me" is self-service and always open.
-  const staff = isStaff;
   return (
     <nav className="flex h-full flex-col gap-1 p-3">
-      {nav({ href: "/sprintos", label: "Dashboard", icon: LayoutDashboard, exact: true, locked: !staff })}
+      {nav({ href: "/sprintos", label: "Dashboard", icon: LayoutDashboard, exact: true, locked: !pmsCan({ subject }, "dashboard.view") })}
 
       <NavGroup collapsed={collapsed} label="Delivery">
-        {nav({ href: "/sprintos/projects", label: "Projects", icon: FolderKanban, locked: !staff })}
-        {nav({ href: "/sprintos/clients", label: "Clients", icon: Building2, locked: !staff })}
-        {nav({ href: "/sprintos/calendar", label: "Calendar", icon: CalendarDays, locked: !staff })}
-
+        {nav({ href: "/sprintos/projects", label: "Projects", icon: FolderKanban, locked: !pmsCan({ subject }, "projects.view") && !pmsCan({ subject }, "projects.all") })}
+        {nav({ href: "/sprintos/tasks", label: "My Tasks", icon: CheckSquare, locked: !pmsCan({ subject }, "projects.view") })}
+        {nav({ href: "/sprintos/clients", label: "Clients", icon: Building2, locked: !pmsCan({ subject }, "clients.view") })}
+        {nav({ href: "/sprintos/calendar", label: "Calendar", icon: CalendarDays, locked: !pmsCan({ subject }, "calendar.view") })}
+        {nav({ href: "/sprintos/costing", label: "Costing", icon: BarChart3, locked: !pmsCan({ subject }, "costing.view") })}
       </NavGroup>
       <NavGroup collapsed={collapsed} label="Timesheets & Tracking">
-        {nav({ href: "/sprintos/timesheets", label: "Timesheet", icon: Clock, locked: !(staff && canReviewTimesheets(roleCtx)) })}
-
+        {nav({ href: "/sprintos/timesheets", label: "My Timesheet", icon: Clock, exact: true, locked: !pmsCan({ subject }, "timesheets.view") })}
+        {nav({ href: "/sprintos/timesheets/review", label: "Review timesheets", icon: CheckSquare, locked: !pmsCan({ subject }, "timesheets.review") })}
       </NavGroup>
       <NavGroup collapsed={collapsed} label="Governance">
-        {nav({ href: "/sprintos/analytics", label: "Analytics", icon: BarChart3, locked: !staff })}
-
-      </NavGroup>
-      <NavGroup collapsed={collapsed} label="Me">
-        {nav({ href: "/sprintos/me", label: "My Dashboard", icon: CircleUser, exact: true })}
-        {nav({ href: "/sprintos/me/projects", label: "My Projects", icon: FolderKanban })}
-        {nav({ href: "/sprintos/me/tasks", label: "My Tasks", icon: CheckSquare })}
-        {nav({ href: "/sprintos/me/timesheet", label: "My Timesheet", icon: Clock })}
-    
+        {nav({ href: "/sprintos/analytics", label: "Analytics", icon: BarChart3, locked: !pmsCan({ subject }, "analytics.view") })}
       </NavGroup>
     </nav>
   );

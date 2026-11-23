@@ -32,3 +32,22 @@ export async function titlesOfPeople(userIds: string[]): Promise<Map<string, Dis
   for (const i of userIds) if (!out.has(i)) out.set(i, displayTitle(null, l));
   return out;
 }
+
+/**
+ * Titles for HR employees by employee id (leave requests, payroll, directory): the title of the linked sign-in account when there is one, otherwise the
+ * designation on the employee record. Same words everywhere; no designation gives "Team member".
+ */
+export async function titlesOfEmployees(employeeIds: string[]): Promise<Map<string, DisplayTitle>> {
+  const ids = [...new Set(employeeIds.filter(Boolean))];
+  const out = new Map<string, DisplayTitle>();
+  const l = await lookups();
+  const db = await getDb();
+  const rows = ids.length ? await db.collection<{ _id: string; adminUserId?: string | null; professional?: { designationId?: string | null } }>("hrms_employees").find({ _id: { $in: ids } } as never, { projection: { adminUserId: 1, "professional.designationId": 1 } }).toArray() : [];
+  const accountTitles = await titlesOfPeople(rows.map((r) => r.adminUserId).filter((x): x is string => !!x));
+  for (const r of rows) {
+    const linked = r.adminUserId ? accountTitles.get(r.adminUserId) : undefined;
+    out.set(String(r._id), linked && linked.title !== "Team member" ? linked : displayTitle({ designationId: r.professional?.designationId ?? null }, l));
+  }
+  for (const i of ids) if (!out.has(i)) out.set(i, displayTitle(null, l));
+  return out;
+}

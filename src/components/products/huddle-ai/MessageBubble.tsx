@@ -115,6 +115,7 @@ export default function MessageBubble({
       <div className={cn("min-w-0 max-w-[78%]", mine && "flex flex-col items-end")}>
         <div className={cn("flex items-baseline gap-2", mine && "flex-row-reverse")}>
           <span className="text-sm font-semibold text-foreground">{mine ? "You" : authorName}</span>
+          {!mine && m.author?.title && <span className="max-w-[10rem] truncate text-[11px] text-muted-foreground">{m.author.title}</span>}
           <span className="text-[11px] text-muted-foreground">{timeLabel(m.createdAt)}</span>
           {m.edited && !m.deleted && <span className="text-[11px] text-muted-foreground/70">(edited)</span>}
         </div>

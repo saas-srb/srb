@@ -39,6 +39,7 @@ export default async function ProtectedPmsLayout({ children }: { children: React
             email={user.email}
             roles={user.roles}
             permissionOverrides={user.permissionOverrides}
+              subject={user.subject}
             employeeId={user.employeeId}
             createdAt={user.createdAt.toISOString()}
             lastLoginAt={user.lastLoginAt ? user.lastLoginAt.toISOString() : null}
@@ -50,6 +51,7 @@ export default async function ProtectedPmsLayout({ children }: { children: React
                 roles={user.roles}
                 allRoles={user.allRoles}
                 permissionOverrides={user.permissionOverrides}
+              subject={user.subject}
                 employeeId={user.employeeId}
                 notifications={notifications.map((n) => ({
                   _id: n._id,

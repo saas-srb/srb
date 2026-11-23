@@ -1,3 +1,4 @@
+import { holdsLegacy, holdsProduct } from "@/lib/access/holds";
 import "server-only";
 import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/mongodb";
@@ -8,10 +9,6 @@ import { getClient } from "@/lib/products/sprintos/clients";
 import { getProject } from "@/lib/products/sprintos/projects";
 import { getVendor } from "@/lib/products/spendiq/vendors";
 import { getApplication } from "@/lib/career-applications";
-import { canManageEmployees } from "@/lib/hrms-roles";
-import { canManageClients, canManageProjects } from "@/lib/pms-roles";
-import { canManageProcurement } from "@/lib/prms-roles";
-import { playbookCan } from "@/lib/playbook-roles";
 import { canonicalJson } from "@/lib/products/playbook-ai/doc/canonical";
 import { sha256Hex } from "@/lib/products/playbook-ai/doc/hash";
 import type { PBDoc } from "@/lib/products/playbook-ai/doc/types";
@@ -20,6 +17,7 @@ import type { DocLinks, InputValues, PbActor, VariableSnapshot } from "@/lib/pro
 import { DOC_STATUS_META, type DocStatus } from "@/lib/products/playbook-ai/status";
 import { dateValues, snapshotKeys, type CustomVariableDef } from "@/lib/products/playbook-ai/variables-registry";
 import { listCustomVariables } from "@/lib/products/playbook-ai/variables-custom";
+import { pbDoc } from "@/lib/playbook-access";
 
 /**
  * Reads the real values behind the variable registry. Records are LINKED, not copied: a draft always shows live data, and issuing freezes
@@ -57,7 +55,7 @@ function put(values: VarValues, ns: string, field: string, v: unknown): void {
 
 /** Can the actor read this employee's record? HR (or an override), or the employee themself. */
 function canReadEmployee(actor: PbActor, e: Employee): boolean {
-  return canManageEmployees(actor) || (e.adminUserId !== null && e.adminUserId === actor.id);
+  return holdsLegacy(actor, "talentos", "hrms.canManageEmployees") || (e.adminUserId !== null && e.adminUserId === actor.id);
 }
 
 async function nameOf(collection: string, id: string | null | undefined, field: string): Promise<string | undefined> {
@@ -133,19 +131,19 @@ export async function checkLink(actor: PbActor, kind: LinkKind, id: string): Pro
     }
     case "client": {
       const c = await getClient(id);
-      return !c ? "not_found" : canManageClients(actor) ? "ok" : "no_access";
+      return !c ? "not_found" : holdsLegacy(actor, "sprintos", "pms.canManageClients") ? "ok" : "no_access";
     }
     case "vendor": {
       const v = await getVendor(id);
-      return !v ? "not_found" : canManageProcurement(actor) ? "ok" : "no_access";
+      return !v ? "not_found" : holdsLegacy(actor, "spendiq", "prms.canManageProcurement") ? "ok" : "no_access";
     }
     case "candidate": {
       const a = await getApplication(id);
-      return !a ? "not_found" : canManageEmployees(actor) ? "ok" : "no_access";
+      return !a ? "not_found" : holdsLegacy(actor, "talentos", "hrms.canManageEmployees") ? "ok" : "no_access";
     }
     case "project": {
       const p = await getProject(id);
-      return !p ? "not_found" : canManageProjects(actor) ? "ok" : "no_access";
+      return !p ? "not_found" : holdsLegacy(actor, "sprintos", "pms.canManageProjects") ? "ok" : "no_access";
     }
   }
 }
@@ -181,7 +179,7 @@ export async function loadVariableValues(actor: PbActor, input: LoadInput): Prom
   const sources: LoadedValues["sources"] = [];
   const denied: string[] = [];
   const now = input.now ?? new Date();
-  const mayRead = input.trusted || playbookCan(actor, "EDIT") || playbookCan(actor, "APPROVE") || playbookCan(actor, "ISSUE");
+  const mayRead = input.trusted || pbDoc(actor, "EDIT") || pbDoc(actor, "APPROVE") || pbDoc(actor, "ISSUE");
   const deny = (ns: string) => { if (!denied.includes(ns)) denied.push(ns); };
 
   // Free-form: the document's own form values.
@@ -239,7 +237,7 @@ export async function loadVariableValues(actor: PbActor, input: LoadInput): Prom
     }
     if (clientId) {
       const cl = await getClient(clientId);
-      if (cl && (input.trusted || canManageClients(actor))) {
+      if (cl && (input.trusted || holdsLegacy(actor, "sprintos", "pms.canManageClients"))) {
         put(values, "client", "code", cl.clientCode);
         put(values, "client", "name", cl.companyName);
         put(values, "client", "contact_name", cl.primaryContact?.name);
@@ -256,7 +254,7 @@ export async function loadVariableValues(actor: PbActor, input: LoadInput): Prom
     }
     if (vendorId) {
       const vn = await getVendor(vendorId);
-      if (vn && (input.trusted || canManageProcurement(actor))) {
+      if (vn && (input.trusted || holdsLegacy(actor, "spendiq", "prms.canManageProcurement"))) {
         put(values, "vendor", "code", vn.vendorCode);
         put(values, "vendor", "name", vn.companyName);
         put(values, "vendor", "contact_person", vn.contactPerson);
@@ -273,7 +271,7 @@ export async function loadVariableValues(actor: PbActor, input: LoadInput): Prom
     }
     if (candidateId) {
       const a = await getApplication(candidateId);
-      if (a && (input.trusted || canManageEmployees(actor))) {
+      if (a && (input.trusted || holdsLegacy(actor, "talentos", "hrms.canManageEmployees"))) {
         put(values, "candidate", "name", a.name);
         put(values, "candidate", "email", a.email);
         put(values, "candidate", "phone", a.phone);
@@ -284,7 +282,7 @@ export async function loadVariableValues(actor: PbActor, input: LoadInput): Prom
     }
     if (projectId) {
       const p = await getProject(projectId);
-      if (p && (input.trusted || canManageProjects(actor))) {
+      if (p && (input.trusted || holdsLegacy(actor, "sprintos", "pms.canManageProjects"))) {
         put(values, "project", "code", p.projectCode);
         put(values, "project", "name", p.name);
         put(values, "project", "description", p.description);

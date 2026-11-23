@@ -1,3 +1,4 @@
+import { holdsLegacy, holdsProduct } from "@/lib/access/holds";
 import "server-only";
 import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/mongodb";
@@ -8,7 +9,6 @@ import type { CallDoc, CallTarget } from "@/lib/products/agentos/calls/types";
 import type { AibotsViewer } from "@/lib/products/agentos/viewer";
 import { buildAiCallEntry, loosePhoneRegex, phonesMatch, type AiCallEntry } from "@/lib/products/call-writeback";
 import { registerTargetAuthorizer } from "@/lib/products/agentos/calls/integrations";
-import { canManageEmployees } from "@/lib/hrms-roles";
 import { registerBriefingProvider } from "@/lib/products/agentos/calls/briefing";
 import { talentosBriefing } from "@/lib/products/talentos/call-briefing";
 
@@ -83,7 +83,7 @@ export async function isApplicantDoNotContact(q: DoNotContactQuery): Promise<boo
 /** Who may point a call at a candidate: HR staff who may manage employees (the same rule as the recruitment page's call buttons) and the record must exist. */
 export async function authorizeApplicantTarget(viewer: AibotsViewer, target: CallTarget): Promise<boolean> {
   if (target.product !== TALENTOS_PRODUCT || target.entityType !== APPLICANT_ENTITY) return false;
-  if (!canManageEmployees(viewer.ctx)) return false;
+  if (!holdsLegacy(viewer.ctx, "talentos", "hrms.canManageEmployees")) return false;
   const _id = toObjectId(target.entityId);
   return Boolean(_id && (await (await applications()).findOne({ _id }, { projection: { _id: 1 } })));
 }

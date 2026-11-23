@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { STUDENT_STATUSES } from "@/lib/products/cohort-ai/constants";
-import { updateEnrollmentAction } from "@/app/(products)/cohort-ai/(protected)/(staff)/students/actions";
+import { updateEnrollmentAction } from "@/app/(products)/cohort-ai/(protected)/students/actions";
 
 export default function EnrollmentControls({
   studentId,

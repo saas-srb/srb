@@ -596,6 +596,7 @@ export type SopAnalytics = Awaited<ReturnType<typeof getSopAnalytics>>;
 
 export async function getSopAnalytics(filters?: PanelAnalyticsFilters) {
   const viewer: SopViewer = {
+    subject: { isDirector: true },
     userId: COMPANY_VIEWER_ID,
     email: "",
     name: "",

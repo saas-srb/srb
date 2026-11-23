@@ -17,7 +17,7 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import ProgramForm from "@/components/products/cohort-ai/ProgramForm";
-import { deleteProgramAction } from "@/app/(products)/cohort-ai/(protected)/(staff)/programs/actions";
+import { deleteProgramAction } from "@/app/(products)/cohort-ai/(protected)/programs/actions";
 import type { SerializedProgram } from "@/lib/products/cohort-ai/programs";
 
 export default function ProgramActions({

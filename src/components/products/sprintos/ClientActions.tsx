@@ -17,7 +17,7 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import ClientForm from "@/components/products/sprintos/ClientForm";
-import { deleteClientAction } from "@/app/(products)/sprintos/(protected)/(staff)/clients/actions";
+import { deleteClientAction } from "@/app/(products)/sprintos/(protected)/clients/actions";
 import type { SerializedClient } from "@/lib/products/sprintos/clients";
 
 export default function ClientActions({ client }: { client: SerializedClient }) {

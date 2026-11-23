@@ -12,11 +12,11 @@ import { getReadableSop, getVersion } from "@/lib/products/playbook-ai/sops";
 import { canEditSop, inWriteScope, toAccessDoc } from "@/lib/products/playbook-ai/access";
 import { contentLines, diffLines, diffStats } from "@/lib/products/playbook-ai/content";
 import { getTaxonomy } from "@/lib/products/playbook-ai/taxonomy";
-import { sopCan } from "@/lib/sop-roles";
 import { todayIso } from "@/lib/products/playbook-ai/db";
 import { formatIsoDate, getConfidentialityMeta } from "@/lib/products/playbook-ai/constants";
 import { cn, formatDateTime } from "@/lib/utils";
 import type { SopVersionDoc } from "@/lib/products/playbook-ai/types";
+import { pbSop } from "@/lib/playbook-access";
 
 function metaChanges(a: SopVersionDoc, b: SopVersionDoc, deptName: (id: string) => string, catName: (id: string | null) => string) {
   const rows: { label: string; from: string; to: string }[] = [];
@@ -48,7 +48,7 @@ export default async function CompareVersionsPage({
   if (!found) notFound();
   const acc = toAccessDoc(found.doc, todayIso());
   // Comparing history is for the people who maintain the SOP.
-  const allowed = canEditSop(viewer, acc) || (sopCan({ roles: viewer.roles, permissionOverrides: viewer.overrides }, "ASSIGN") && inWriteScope(viewer, acc));
+  const allowed = canEditSop(viewer, acc) || (pbSop(viewer, "ASSIGN") && inWriteScope(viewer, acc));
   if (!allowed) redirect(`/playbook-ai/library/${id}?tab=versions`);
 
   const [from, to] = await Promise.all([getVersion(id, String(sp.from ?? "")), getVersion(id, String(sp.to ?? ""))]);

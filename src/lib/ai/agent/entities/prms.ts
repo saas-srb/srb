@@ -24,7 +24,7 @@ import {
   isValidExpenseCategory, isValidPaymentMethod, isValidRecurrenceInterval, isValidInvoiceStatus, isValidAssetStatus, isValidInventoryTxnType, isValidBudgetLevel, isValidBudgetPeriod, isValidBillingCycle, isValidResourceStatus, isValidDepreciationMethod,
   type InvoiceStatus, type AssetStatus, type InventoryTxnType, type BudgetLevel, type BudgetPeriod, type BillingCycle, type ResourceStatus,
 } from "@/lib/products/spendiq/constants";
-import { canManageProcurement, canManageFinance, canApproveRequisitions, canManageExpenses, canManageSettings, canViewAuditLog, canViewReports } from "@/lib/prms-roles";
+import { microAny, holds } from "@/lib/ai/agent/micro-gate";
 import { hasLevel } from "@/lib/ai/agent/access";
 import { check, crudOps, f, fail, values, str } from "@/lib/ai/agent/entities/helpers";
 import type { ActionDef, AgentUser, EntityDef, Json, ReportDef } from "@/lib/ai/agent/types";
@@ -60,10 +60,12 @@ function rfqLines(raw: unknown): RfqLine[] {
   return (raw as Json[]).map((l) => ({ description: String(l.description ?? "").trim(), quantity: Number(l.quantity) || 0, uom: String(l.uom ?? "pcs") })).filter((l) => l.description && l.quantity > 0);
 }
 
+const RESOURCE_VIEW: Record<string, string> = { "prms.contract": "contracts.view", "prms.software_subscription": "subscriptions.view", "prms.service": "thirdparty.view", "prms.infrastructure": "infrastructure.view" };
+
 /** A "resource" entity (contract, subscription, service, infrastructure) is saved by its own create/update with a vendor name looked up. */
 function resource<R extends { _id: unknown }>(cfg: { key: string; label: string; description: string; collection: string; entity: string; fields: ReturnType<typeof f.str>[]; get: (id: string) => Promise<R | null>; create: (d: never, uid: string) => Promise<R>; update: (id: string, d: never, uid: string) => Promise<unknown>; remove: (id: string, uid: string) => Promise<unknown>; build: (v: Json, vendor: string | null) => Json | { error: Json }; title: string; code?: string; search: string[]; allow?: (u: AgentUser) => boolean }): EntityDef {
   return {
-    key: cfg.key, panel: "prms", label: cfg.label, description: cfg.description, collection: cfg.collection, idType: "string", baseFilter: soft, titleField: cfg.title, search: cfg.search, read: "staff", write: "staff", allow: cfg.allow ?? canManageProcurement, canDelete: true, fields: cfg.fields,
+    key: cfg.key, panel: "prms", label: cfg.label, description: cfg.description, collection: cfg.collection, idType: "string", baseFilter: soft, titleField: cfg.title, search: cfg.search, allowRead: microAny(`spendiq.${RESOURCE_VIEW[cfg.key] ?? "contracts.view"}`), read: "staff", write: "staff", allow: cfg.allow ?? microAny("spendiq.vendors.manage"), canDelete: true, fields: cfg.fields,
     ops: {
       create: async (v, u) => {
         const data = cfg.build(v, await vendorName(v.vendorId));
@@ -97,7 +99,7 @@ const statusOk = (v: Json): Json | null => (isValidResourceStatus(String(v.statu
 export const PRMS_ENTITIES: EntityDef[] = [
   {
     key: "prms.vendor", panel: "prms", label: "Vendor", description: "Suppliers: company, GSTIN/PAN, contact, category, rating, payment terms.", collection: "prms_vendors", idType: "string", baseFilter: soft, titleField: "companyName", search: ["companyName", "email", "phone", "vendorCode", "gstin"],
-    read: "staff", write: "staff", allow: canManageProcurement, canDelete: true, hide: ["bank"],
+    allowRead: microAny("spendiq.vendors.view"), read: "staff", write: "staff", allow: microAny("spendiq.vendors.manage"), canDelete: true, hide: ["bank"],
     fields: [f.str("companyName", "Company name", true), f.str("gstin", "GSTIN"), f.str("pan", "PAN"), f.email("email", "Email"), f.str("phone", "Phone"), f.enum("category", "Category", VCAT), f.enum("status", "Status", VSTATUS), f.enum("paymentTerms", "Payment terms", TERMS), f.num("rating", "Rating (1–5)"), f.str("contactPerson", "Contact person"), f.str("addressLine", "Address"), f.str("city", "City"), f.str("state", "State"), f.str("pincode", "Pincode"), f.str("bankAccountName", "Bank account name"), f.str("bankAccountNumber", "Bank account number"), f.str("bankIfsc", "IFSC"), f.str("bankName", "Bank name"), f.str("bankBranch", "Bank branch"), f.enum("currency", "Currency", CURRENCIES), f.text("notes", "Notes")],
     ops: crudOps({
       entity: "vendor", validate: validateVendor, get: getVendor, label: (r) => String(r.companyName ?? ""), audit,
@@ -107,7 +109,7 @@ export const PRMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "prms.requisition", panel: "prms", label: "Purchase requisition", description: "Requests to buy something (draft → submitted → approved → converted to PO). Employees raise and see their own.", collection: "prms_requisitions", idType: "string", baseFilter: soft, titleField: "itemName", search: ["itemName", "prCode", "departmentName", "justification"],
-    read: "staff", write: "any", selfWrite: true, canDelete: true, self: mineReq,
+    allowRead: microAny("spendiq.requisitions.all"), read: "staff", write: "any", allow: microAny("spendiq.requisitions.submit"), selfWrite: true, canDelete: true, self: mineReq,
     fields: [f.str("departmentId", "Department id (hrms.department)", true), f.str("departmentName", "Department name"), f.str("category", "Category", true), f.str("subcategory", "Sub-category"), f.str("itemName", "Item / service", true), f.num("quantity", "Quantity", true), f.enum("uom", "Unit", UOM), f.num("estimatedCost", "Estimated total cost", true), f.enum("currency", "Currency", CURRENCIES), f.date("requiredDate", "Required by"), f.enum("priority", "Priority", PRIORITY), f.text("justification", "Justification"), f.ref("preferredVendorId", "Preferred vendor (prms.vendor id)", "prms.vendor"), f.str("projectId", "Project id (pms.project)"), f.str("projectName", "Project name")],
     ops: {
       create: async (v, u) => {
@@ -140,7 +142,7 @@ export const PRMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "prms.purchase_order", panel: "prms", label: "Purchase order", description: "Orders to vendors (draft → issued → received → closed / cancelled) with line items and GST.", collection: "prms_purchase_orders", idType: "string", baseFilter: soft, titleField: "poNumber", search: ["poNumber", "vendorName"],
-    read: "staff", write: "staff", allow: canManageProcurement, canDelete: true,
+    allowRead: microAny("spendiq.purchaseorders.view"), read: "staff", write: "staff", allow: microAny("spendiq.purchaseorders.manage"), canDelete: true,
     fields: [f.ref("vendorId", "Vendor (prms.vendor id)", "prms.vendor", true), f.json("items", "Line items: [{description, hsn?, quantity, uom, unitPrice, gstRate}]", true), f.num("discount", "Discount"), f.enum("currency", "Currency", CURRENCIES), f.ref("requisitionId", "Source requisition (prms.requisition id)", "prms.requisition"), f.str("departmentId", "Department id"), f.str("departmentName", "Department name"), f.str("projectId", "Project id"), f.str("projectName", "Project name"), f.text("deliveryAddress", "Delivery address"), f.date("deliveryDate", "Delivery date"), f.str("paymentTerms", "Payment terms"), f.text("notes", "Notes")],
     ops: {
       create: async (v, u) => {
@@ -181,7 +183,7 @@ export const PRMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "prms.rfq", panel: "prms", label: "RFQ (request for quotation)", description: "Quotation requests sent to vendors; quotations are compared and one vendor is awarded (which creates the PO).", collection: "prms_rfqs", idType: "string", baseFilter: soft, titleField: "title", search: ["title", "rfqCode"],
-    read: "staff", write: "staff", allow: canManageProcurement, canDelete: true,
+    allowRead: microAny("spendiq.rfq.view"), read: "staff", write: "staff", allow: microAny("spendiq.rfq.manage"), canDelete: true,
     fields: [f.str("title", "Title", true), f.text("description", "Description"), f.json("lines", "Lines: [{description, quantity, uom}]", true), f.list("vendorIds", "Vendors to ask (prms.vendor ids)"), f.ref("requisitionId", "Source requisition", "prms.requisition"), f.str("departmentId", "Department id"), f.str("departmentName", "Department name")],
     ops: {
       create: async (v, u) => {
@@ -213,7 +215,7 @@ export const PRMS_ENTITIES: EntityDef[] = [
       },
     },
   },
-  { key: "prms.goods_receipt", panel: "prms", label: "Goods receipt (GRN)", description: "Goods received against purchase orders.", collection: "prms_goods_receipts", idType: "string", baseFilter: soft, titleField: "grnNumber", search: ["grnNumber", "poNumber"], read: "staff", write: "staff", allow: canManageProcurement, canDelete: true,
+  { key: "prms.goods_receipt", panel: "prms", label: "Goods receipt (GRN)", description: "Goods received against purchase orders.", collection: "prms_goods_receipts", idType: "string", baseFilter: soft, titleField: "grnNumber", search: ["grnNumber", "poNumber"], allowRead: microAny("spendiq.grn.view"), read: "staff", write: "staff", allow: microAny("spendiq.grn.manage"), canDelete: true,
     fields: [f.ref("poId", "Purchase order (prms.purchase_order id)", "prms.purchase_order", true), f.json("lines", "Lines: [{itemIndex, receivedQty, acceptedQty, remarks?}]", true), f.str("warehouseLocation", "Warehouse / location"), f.date("receivedDate", "Received on"), f.bool("qualityChecked", "Quality checked"), f.text("remarks", "Remarks")],
     ops: {
       create: async (v, u) => {
@@ -234,7 +236,7 @@ export const PRMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "prms.invoice", panel: "prms", label: "Vendor bill", description: "Bills from vendors (pending → approved → paid) matched to POs and goods receipts.", collection: "prms_invoices", idType: "string", baseFilter: soft, titleField: "invoiceNumber", search: ["invoiceNumber", "vendorName", "vendorInvoiceNumber"],
-    read: "staff", write: "staff", allow: canManageFinance, canDelete: true,
+    allowRead: microAny("spendiq.invoices.view"), read: "staff", write: "staff", allow: microAny("spendiq.invoices.manage"), canDelete: true,
     fields: [f.ref("vendorId", "Vendor (prms.vendor id)", "prms.vendor", true), f.str("vendorInvoiceNumber", "Vendor's invoice number"), f.str("poNumber", "PO number to match"), f.date("invoiceDate", "Invoice date", true), f.date("dueDate", "Due date"), f.num("subtotal", "Taxable amount", true), f.num("gstAmount", "GST amount"), f.num("tdsRate", "TDS rate %"), f.enum("currency", "Currency", CURRENCIES), f.text("notes", "Notes")],
     ops: {
       create: async (v, u) => {
@@ -263,16 +265,16 @@ export const PRMS_ENTITIES: EntityDef[] = [
       },
     },
   },
-  { key: "prms.payment", panel: "prms", label: "Vendor payment", description: "Payments made against vendor bills (scheduled / processed).", collection: "prms_payments", idType: "string", baseFilter: soft, read: "staff", allowRead: canManageFinance },
+  { key: "prms.payment", panel: "prms", label: "Vendor payment", description: "Payments made against vendor bills (scheduled / processed).", collection: "prms_payments", idType: "string", baseFilter: soft, read: "staff", allowRead: microAny("spendiq.payments.manage") },
   {
     key: "prms.expense", panel: "prms", label: "Expense", description: "Business expenses and claims (submitted → approved → reimbursed), one-time or recurring. Employees raise and see their own.", collection: "prms_expenses", idType: "string", baseFilter: soft, titleField: "expenseCode", search: ["expenseCode", "description", "vendorName", "invoiceNumber"],
-    read: "staff", write: "any", selfWrite: true, canDelete: true, self: mineExp,
+    allowRead: microAny("spendiq.expenses.all"), read: "staff", write: "any", allow: microAny("spendiq.expenses.submit"), selfWrite: true, canDelete: true, self: mineExp,
     fields: [f.enum("category", "Category", ECAT, true), f.str("subcategory", "Sub-category"), f.num("amount", "Amount (before GST)", true), f.num("gstRate", "GST rate %"), f.enum("currency", "Currency", CURRENCIES), f.enum("paymentMethod", "Payment method", METHODS), f.date("expenseDate", "Expense date", true), f.str("invoiceNumber", "Invoice number"), f.text("description", "Description"), f.ref("vendorId", "Vendor (prms.vendor id)", "prms.vendor"), f.str("departmentId", "Department id"), f.str("departmentName", "Department name"), f.str("projectId", "Project id"), f.str("projectName", "Project name"), f.enum("expenseType", "One-time or recurring", ["one_time", "recurring"]), f.enum("recurrenceInterval", "Recurrence (for recurring)", RECUR), f.bool("autoApprove", "Approve immediately (needs expense authority)")],
     ops: {
       create: async (v, u) => {
         const d = await expenseData(v);
         if ("error" in d) return d.error;
-        const autoApprove = canManageExpenses(u) && v.autoApprove === true;
+        const autoApprove = holds(u.subject, "spendiq.expenses.manage") && v.autoApprove === true;
         const created = await createExpense(d.data, { userId: u.id, name: nameFromEmail(u.email) }, u.id, autoApprove);
         await audit(u, { action: "create", entity: "expense", entityId: created._id, entityLabel: created.expenseCode });
         if (!autoApprove) await notifyStaff({ type: "expense_submitted", title: `Expense ${created.expenseCode} awaiting approval`, body: `${created.currency} ${created.totalAmount.toLocaleString("en-IN")}`, link: `/spendiq/expenses/${created._id}`, dedupeKey: `expense_submitted:${created._id}` } as never, ["super_admin", "prms_admin", "finance", "procurement_manager"]);
@@ -300,7 +302,7 @@ export const PRMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "prms.asset", panel: "prms", label: "Asset", description: "Company assets: laptops, furniture, equipment — cost, location, depreciation, who holds it, status.", collection: "prms_assets", idType: "string", baseFilter: soft, titleField: "name", search: ["name", "assetCode", "serialNumber", "brand", "model"],
-    read: "staff", write: "staff", allow: canManageProcurement, canDelete: true,
+    allowRead: microAny("spendiq.assets.view"), read: "staff", write: "staff", allow: microAny("spendiq.assets.manage"), canDelete: true,
     fields: [f.str("name", "Name", true), f.enum("category", "Category", ACAT, true), f.str("brand", "Brand"), f.str("model", "Model"), f.str("serialNumber", "Serial number"), f.date("purchaseDate", "Purchase date", true), f.num("purchaseCost", "Purchase cost", true), f.enum("currency", "Currency", CURRENCIES), f.ref("vendorId", "Vendor (prms.vendor id)", "prms.vendor"), f.date("warrantyExpiry", "Warranty expiry"), f.str("officeLocation", "Office location"), f.enum("depreciationMethod", "Depreciation", DEPR), f.num("usefulLifeYears", "Useful life (years)"), f.num("salvageValue", "Salvage value"), f.text("notes", "Notes")],
     ops: {
       create: async (v, u) => {
@@ -330,7 +332,7 @@ export const PRMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "prms.inventory_item", panel: "prms", label: "Inventory item", description: "Stock items: quantity on hand, unit cost, minimum stock, location.", collection: "prms_inventory_items", idType: "string", baseFilter: soft, titleField: "name", search: ["name", "sku", "category"],
-    read: "staff", write: "staff", allow: canManageProcurement, canDelete: true,
+    allowRead: microAny("spendiq.inventory.view"), read: "staff", write: "staff", allow: microAny("spendiq.inventory.manage"), canDelete: true,
     fields: [f.str("name", "Name", true), f.str("category", "Category"), f.enum("uom", "Unit", UOM), f.num("unitCost", "Unit cost"), f.num("minStock", "Minimum stock"), f.ref("vendorId", "Vendor (prms.vendor id)", "prms.vendor"), f.str("location", "Location"), f.text("notes", "Notes")],
     ops: {
       create: async (v, u) => {
@@ -372,7 +374,7 @@ export const PRMS_ENTITIES: EntityDef[] = [
   }),
   {
     key: "prms.budget", panel: "prms", label: "Budget", description: "Budgets per company, department or project with allocated vs consumed amounts.", collection: "prms_budgets", idType: "string", baseFilter: soft, titleField: "name", search: ["name", "budgetCode", "scopeName"],
-    read: "staff", write: "staff", allow: canManageFinance, canDelete: true,
+    allowRead: microAny("spendiq.budgets.view"), read: "staff", write: "staff", allow: microAny("spendiq.budgets.manage"), canDelete: true,
     fields: [f.str("name", "Name", true), f.enum("level", "Level", BLEVEL), f.str("scopeId", "Department/project id (not for company level)"), f.str("scopeName", "Department/project name"), f.enum("period", "Period", BPERIOD), f.date("periodStart", "Period start", true), f.date("periodEnd", "Period end", true), f.num("allocatedAmount", "Allocated amount", true), f.enum("currency", "Currency", CURRENCIES), f.text("notes", "Notes")],
     ops: {
       create: async (v, u) => {
@@ -435,9 +437,9 @@ export const PRMS_ENTITIES: EntityDef[] = [
       return { name, provider: String(v.provider ?? "").trim(), resourceType: String(v.resourceType ?? "").trim(), region: str(v.region), cost: Number(v.cost) || 0, billingCycle: String(v.billingCycle ?? "monthly") as BillingCycle, currency: String(v.currency ?? "INR"), renewalDate: str(v.renewalDate), autoRenew: v.autoRenew === true, vendorId: str(v.vendorId), vendorName: vendor, status: String(v.status ?? "active") as ResourceStatus, notes: str(v.notes) } satisfies InfraWriteInput;
     },
   }),
-  { key: "prms.asset_assignment", panel: "prms", label: "Asset assignment", description: "Who holds which asset and since when.", collection: "prms_asset_assignments", idType: "string", read: "staff" },
-  { key: "prms.inventory_transaction", panel: "prms", label: "Inventory movement", description: "Stock in / out / adjustments per item.", collection: "prms_inventory_transactions", idType: "string", read: "staff" },
-  { key: "prms.activity", panel: "prms", label: "Audit log", description: "Who changed what in SpendIQ.", collection: "prms_activity_logs", idType: "string", search: ["entityLabel", "summary", "actorEmail"], read: "admin", allowRead: canViewAuditLog },
+  { key: "prms.asset_assignment", panel: "prms", label: "Asset assignment", description: "Who holds which asset and since when.", collection: "prms_asset_assignments", idType: "string", allowRead: microAny("spendiq.assets.view"), read: "staff" },
+  { key: "prms.inventory_transaction", panel: "prms", label: "Inventory movement", description: "Stock in / out / adjustments per item.", collection: "prms_inventory_transactions", idType: "string", allowRead: microAny("spendiq.inventory.view"), read: "staff" },
+  { key: "prms.activity", panel: "prms", label: "Audit log", description: "Who changed what in SpendIQ.", collection: "prms_activity_logs", idType: "string", search: ["entityLabel", "summary", "actorEmail"], read: "admin", allowRead: microAny("spendiq.audit.view") },
 ];
 
 async function billData(v: Json): Promise<{ data: InvoiceWriteData } | { error: Json }> {
@@ -502,7 +504,7 @@ const R = (key: string, label: string, description: string, params: ActionDef["p
 const refP = (key: string, label: string, entity: string) => f.ref(key, label, entity, true);
 
 export const PRMS_ACTIONS: ActionDef[] = [
-  R("prms.submit_requisition", "Submit a requisition for approval", "Send a draft requisition to the approvers.", [refP("requisitionId", "Requisition id", "prms.requisition")], "any", undefined, async (v, u) => {
+  R("prms.submit_requisition", "Submit a requisition for approval", "Send a draft requisition to the approvers.", [refP("requisitionId", "Requisition id", "prms.requisition")], "any", microAny("spendiq.requisitions.submit"), async (v, u) => {
     const before = await getRequisition(String(v.requisitionId));
     if (!before || (before.requestedBy.userId !== u.id && !isStaff(u))) return fail("Requisition not found.");
     const r = await submitRequisition(before._id, u.id);
@@ -511,7 +513,7 @@ export const PRMS_ACTIONS: ActionDef[] = [
     await notifyStaff({ type: "requisition_submitted", title: `Requisition ${before.prCode} awaiting approval`, body: `${before.itemName} · ${before.currency} ${before.estimatedCost.toLocaleString("en-IN")}`, link: `/spendiq/requisitions/${before._id}`, dedupeKey: `requisition_submitted:${before._id}` } as never, ["super_admin", "prms_admin", "procurement_manager", "dept_manager"]);
     return { ok: true, id: before._id, result: "Submitted for approval." };
   }),
-  R("prms.decide_requisition", "Approve or reject a requisition", "Decide a requisition waiting for your approval level and tell the requester.", [refP("requisitionId", "Requisition id", "prms.requisition"), f.bool("approve", "Approve (false = reject)"), f.str("note", "Note")], "staff", canApproveRequisitions, async (v, u) => {
+  R("prms.decide_requisition", "Approve or reject a requisition", "Decide a requisition waiting for your approval level and tell the requester.", [refP("requisitionId", "Requisition id", "prms.requisition"), f.bool("approve", "Approve (false = reject)"), f.str("note", "Note")], "staff", microAny("spendiq.requisitions.approve"), async (v, u) => {
     const before = await getRequisition(String(v.requisitionId));
     if (!before) return fail("Requisition not found.");
     const approve = v.approve !== false;
@@ -525,7 +527,7 @@ export const PRMS_ACTIONS: ActionDef[] = [
     }
     return { ok: true, id: before._id, result: res.rejected ? "Requisition rejected." : res.fullyApproved ? "Requisition fully approved." : "Approved at your level; it moves to the next approver." };
   }, true),
-  R("prms.issue_purchase_order", "Issue a purchase order to the vendor", "Move a draft PO to issued (notifies procurement and finance).", [refP("poId", "Purchase order id", "prms.purchase_order")], "staff", canManageProcurement, async (v, u) => {
+  R("prms.issue_purchase_order", "Issue a purchase order to the vendor", "Move a draft PO to issued (notifies procurement and finance).", [refP("poId", "Purchase order id", "prms.purchase_order")], "staff", microAny("spendiq.purchaseorders.manage"), async (v, u) => {
     const before = await getPurchaseOrder(String(v.poId));
     const r = await issuePurchaseOrder(String(v.poId), u.id);
     if (!r.ok) return fail(r.reason);
@@ -533,40 +535,40 @@ export const PRMS_ACTIONS: ActionDef[] = [
     await notifyStaff({ type: "po_issued", title: `${before?.poNumber} issued to ${before?.vendorName}`, body: `Total ${before?.currency} ${before?.totalAmount.toLocaleString("en-IN")}`, link: `/spendiq/purchase-orders/${String(v.poId)}`, dedupeKey: `po_issued:${String(v.poId)}` } as never, ["super_admin", "prms_admin", "procurement_manager", "finance"]);
     return { ok: true, id: String(v.poId), result: "Purchase order issued." };
   }, true),
-  R("prms.set_po_status", "Cancel or close a purchase order", `Set a PO to cancelled or closed (statuses: ${PO.join(", ")}).`, [refP("poId", "Purchase order id", "prms.purchase_order"), f.enum("status", "New status", ["cancelled", "closed"], true)], "staff", canManageProcurement, async (v, u) => {
+  R("prms.set_po_status", "Cancel or close a purchase order", `Set a PO to cancelled or closed (statuses: ${PO.join(", ")}).`, [refP("poId", "Purchase order id", "prms.purchase_order"), f.enum("status", "New status", ["cancelled", "closed"], true)], "staff", microAny("spendiq.purchaseorders.manage"), async (v, u) => {
     const before = await getPurchaseOrder(String(v.poId));
     if (!before) return fail("Purchase order not found.");
     await setPurchaseOrderStatus(before._id, v.status as never, u.id);
     await audit(u, { action: "status_change", entity: "purchase_order", entityId: before._id, entityLabel: before.poNumber, summary: `status: ${before.status} → ${String(v.status)}` });
     return { ok: true, id: before._id, result: `PO is now ${String(v.status)}.` };
   }, true),
-  R("prms.create_rfq_from_requisition", "Start an RFQ from an approved requisition", "Create an RFQ for the vendors you choose, from a requisition.", [refP("requisitionId", "Requisition id", "prms.requisition"), f.list("vendorIds", "Vendors to ask (prms.vendor ids)")], "staff", canManageProcurement, async (v, u) => {
+  R("prms.create_rfq_from_requisition", "Start an RFQ from an approved requisition", "Create an RFQ for the vendors you choose, from a requisition.", [refP("requisitionId", "Requisition id", "prms.requisition"), f.list("vendorIds", "Vendors to ask (prms.vendor ids)")], "staff", microAny("spendiq.requisitions.manage"), async (v, u) => {
     const rfq = await createRfqFromRequisition(String(v.requisitionId), ((v.vendorIds as string[]) ?? []).filter(Boolean), u.id);
     if (!rfq) return fail("Requisition not found.");
     return { ok: true, id: rfq._id, result: "RFQ created." };
   }),
-  R("prms.send_rfq", "Send an RFQ to its vendors", "Mark the RFQ as sent so quotations can be recorded.", [refP("rfqId", "RFQ id", "prms.rfq")], "staff", canManageProcurement, async (v, u) => {
+  R("prms.send_rfq", "Send an RFQ to its vendors", "Mark the RFQ as sent so quotations can be recorded.", [refP("rfqId", "RFQ id", "prms.rfq")], "staff", microAny("spendiq.rfq.manage"), async (v, u) => {
     const before = await getRfq(String(v.rfqId));
     if (!before) return fail("RFQ not found.");
     await setRfqStatus(before._id, "sent", u.id);
     await audit(u, { action: "status_change", entity: "rfq", entityId: before._id, entityLabel: before.title, summary: "status → sent" });
     return { ok: true, id: before._id, result: "RFQ marked as sent." };
   }),
-  R("prms.add_quotation", "Record a vendor's quotation on an RFQ", "Enter the unit price a vendor quoted for each RFQ line (in order).", [refP("rfqId", "RFQ id", "prms.rfq"), refP("vendorId", "Vendor id", "prms.vendor"), f.json("unitPrices", "Unit prices, one per RFQ line, in order: [100, 250]", true), f.num("deliveryDays", "Delivery days"), f.str("paymentTerms", "Payment terms"), f.num("technicalScore", "Technical score"), f.text("notes", "Notes")], "staff", canManageProcurement, async (v, u) => {
+  R("prms.add_quotation", "Record a vendor's quotation on an RFQ", "Enter the unit price a vendor quoted for each RFQ line (in order).", [refP("rfqId", "RFQ id", "prms.rfq"), refP("vendorId", "Vendor id", "prms.vendor"), f.json("unitPrices", "Unit prices, one per RFQ line, in order: [100, 250]", true), f.num("deliveryDays", "Delivery days"), f.str("paymentTerms", "Payment terms"), f.num("technicalScore", "Technical score"), f.text("notes", "Notes")], "staff", microAny("spendiq.rfq.manage"), async (v, u) => {
     const rfq = await getRfq(String(v.rfqId));
     if (!rfq) return fail("RFQ not found.");
     const prices = rfq.lines.map((_, i) => Number((v.unitPrices as unknown[])?.[i]) || 0);
     const r = await addQuotation(rfq._id, { vendorId: String(v.vendorId), unitPrices: prices, deliveryDays: v.deliveryDays ? Number(v.deliveryDays) : null, paymentTerms: str(v.paymentTerms), technicalScore: v.technicalScore ? Number(v.technicalScore) : null, notes: str(v.notes) } as never, u.id);
     return r.ok ? { ok: true, id: rfq._id, result: "Quotation recorded." } : fail(r.reason);
   }),
-  R("prms.award_rfq", "Award an RFQ to a vendor (creates the purchase order)", "Pick the winning vendor; a purchase order is created from their quotation.", [refP("rfqId", "RFQ id", "prms.rfq"), refP("vendorId", "Winning vendor id", "prms.vendor")], "staff", canManageProcurement, async (v, u) => {
+  R("prms.award_rfq", "Award an RFQ to a vendor (creates the purchase order)", "Pick the winning vendor; a purchase order is created from their quotation.", [refP("rfqId", "RFQ id", "prms.rfq"), refP("vendorId", "Winning vendor id", "prms.vendor")], "staff", microAny("spendiq.rfq.manage"), async (v, u) => {
     const before = await getRfq(String(v.rfqId));
     const r = await awardRfq(String(v.rfqId), String(v.vendorId), u.id);
     if (!r.ok) return fail(r.reason);
     await audit(u, { action: "approve", entity: "rfq", entityId: String(v.rfqId), entityLabel: before?.title, summary: `awarded to ${String(v.vendorId)}` });
     return { ok: true, id: r.poId, result: "RFQ awarded and a purchase order created." };
   }, true),
-  R("prms.set_bill_status", "Approve or change a vendor bill's status", `Set a vendor bill's status (${BILLSTATUS.join(", ")}).`, [refP("billId", "Vendor bill id", "prms.invoice"), f.enum("status", "New status", BILLSTATUS, true)], "staff", canManageFinance, async (v, u) => {
+  R("prms.set_bill_status", "Approve or change a vendor bill's status", `Set a vendor bill's status (${BILLSTATUS.join(", ")}).`, [refP("billId", "Vendor bill id", "prms.invoice"), f.enum("status", "New status", BILLSTATUS, true)], "staff", microAny("spendiq.invoices.manage"), async (v, u) => {
     const status = String(v.status);
     if (!isValidInvoiceStatus(status)) return fail("Unknown status.", { allowed: BILLSTATUS });
     const before = await getInvoice(String(v.billId));
@@ -575,7 +577,7 @@ export const PRMS_ACTIONS: ActionDef[] = [
     await audit(u, { action: "status_change", entity: "invoice", entityId: before._id, entityLabel: before.invoiceNumber, summary: `status → ${status}` });
     return { ok: true, id: before._id, result: `Bill is now ${status}.` };
   }),
-  R("prms.record_bill_payment", "Pay a vendor bill", "Record (or schedule) a payment against a vendor bill.", [refP("billId", "Vendor bill id", "prms.invoice"), f.num("amount", "Amount", true), f.enum("method", "Method", METHODS), f.date("paymentDate", "Payment date"), f.str("transactionReference", "Reference / UTR"), f.num("tdsDeducted", "TDS deducted"), f.enum("status", "processed or scheduled", ["processed", "scheduled"]), f.str("notes", "Notes")], "staff", canManageFinance, async (v, u) => {
+  R("prms.record_bill_payment", "Pay a vendor bill", "Record (or schedule) a payment against a vendor bill.", [refP("billId", "Vendor bill id", "prms.invoice"), f.num("amount", "Amount", true), f.enum("method", "Method", METHODS), f.date("paymentDate", "Payment date"), f.str("transactionReference", "Reference / UTR"), f.num("tdsDeducted", "TDS deducted"), f.enum("status", "processed or scheduled", ["processed", "scheduled"]), f.str("notes", "Notes")], "staff", microAny("spendiq.invoices.manage"), async (v, u) => {
     const method = String(v.method ?? "bank_transfer");
     if (!isValidPaymentMethod(method)) return fail("Unknown payment method.", { allowed: METHODS });
     const data: PaymentWriteData = { invoiceId: String(v.billId), amount: Number(v.amount) || 0, paymentDate: dateOk(v.paymentDate) ? String(v.paymentDate) : new Date().toISOString().slice(0, 10), method, transactionReference: str(v.transactionReference), tdsDeducted: Number(v.tdsDeducted) || 0, status: v.status === "scheduled" ? "scheduled" : "processed", notes: str(v.notes) } as PaymentWriteData;
@@ -585,16 +587,16 @@ export const PRMS_ACTIONS: ActionDef[] = [
     if (inv?.status === "paid") await notifyStaff({ type: "invoice_paid", title: `Invoice ${inv.invoiceNumber} fully paid`, body: inv.vendorName, link: `/spendiq/invoices/${inv._id}`, dedupeKey: `invoice_paid:${inv._id}` } as never, ["super_admin", "prms_admin", "finance"]);
     return { ok: true, id: String(v.billId), result: "Payment recorded." };
   }, true),
-  R("prms.process_payment", "Mark a scheduled vendor payment as processed", "Confirm a scheduled payment has gone out.", [refP("paymentId", "Payment id", "prms.payment")], "staff", canManageFinance, async (v, u) => {
+  R("prms.process_payment", "Mark a scheduled vendor payment as processed", "Confirm a scheduled payment has gone out.", [refP("paymentId", "Payment id", "prms.payment")], "staff", microAny("spendiq.payments.manage"), async (v, u) => {
     const r = await markPaymentProcessed(String(v.paymentId), u.id);
     return r.ok ? { ok: true, id: String(v.paymentId), result: "Payment processed." } : fail(r.reason);
   }, true),
-  R("prms.delete_payment", "Delete a vendor payment record", "Remove a recorded vendor payment (balances go back).", [refP("paymentId", "Payment id", "prms.payment")], "staff", canManageFinance, async (v, u) => {
+  R("prms.delete_payment", "Delete a vendor payment record", "Remove a recorded vendor payment (balances go back).", [refP("paymentId", "Payment id", "prms.payment")], "staff", microAny("spendiq.payments.manage"), async (v, u) => {
     const p = await getPayment(String(v.paymentId));
     const r = await deletePayment(String(v.paymentId), u.id);
     return r.ok ? { ok: true, id: p?.invoiceId, result: "Payment deleted." } : fail(r.reason);
   }, true),
-  R("prms.decide_expense", "Approve or reject an expense", "Decide a submitted expense and tell the person who raised it.", [refP("expenseId", "Expense id", "prms.expense"), f.bool("approve", "Approve (false = reject)"), f.str("note", "Note")], "staff", canManageExpenses, async (v, u) => {
+  R("prms.decide_expense", "Approve or reject an expense", "Decide a submitted expense and tell the person who raised it.", [refP("expenseId", "Expense id", "prms.expense"), f.bool("approve", "Approve (false = reject)"), f.str("note", "Note")], "staff", microAny("spendiq.expenses.manage"), async (v, u) => {
     const approve = v.approve !== false;
     const res = await decideExpense(String(v.expenseId), approve, str(v.note), u.id);
     if (!res.ok) return fail(res.reason);
@@ -602,29 +604,29 @@ export const PRMS_ACTIONS: ActionDef[] = [
     if (res.expense) await notify({ recipientUserId: res.expense.raisedByUserId, audience: "employee", type: approve ? "expense_approved" : "expense_rejected", title: `Expense ${res.expense.expenseCode} ${approve ? "approved" : "rejected"}`, body: str(v.note), link: `/spendiq/me/expenses/${String(v.expenseId)}` } as never);
     return { ok: true, id: String(v.expenseId), result: approve ? "Expense approved." : "Expense rejected." };
   }, true),
-  R("prms.reimburse_expense", "Mark an expense as reimbursed", "Record that the person has been paid back for an approved expense.", [refP("expenseId", "Expense id", "prms.expense")], "staff", canManageExpenses, async (v, u) => {
+  R("prms.reimburse_expense", "Mark an expense as reimbursed", "Record that the person has been paid back for an approved expense.", [refP("expenseId", "Expense id", "prms.expense")], "staff", microAny("spendiq.expenses.manage"), async (v, u) => {
     const r = await markExpenseReimbursed(String(v.expenseId), u.id);
     if (!r.ok) return fail(r.reason);
     await audit(u, { action: "record", entity: "expense", entityId: String(v.expenseId), summary: "marked reimbursed" });
     return { ok: true, id: String(v.expenseId), result: "Marked reimbursed." };
   }, true),
-  R("prms.set_recurring_expense", "Pause or resume a recurring expense", "Turn a recurring expense on or off.", [refP("expenseId", "Expense id", "prms.expense"), f.bool("active", "Active")], "staff", canManageExpenses, async (v, u) => {
+  R("prms.set_recurring_expense", "Pause or resume a recurring expense", "Turn a recurring expense on or off.", [refP("expenseId", "Expense id", "prms.expense"), f.bool("active", "Active")], "staff", microAny("spendiq.expenses.manage"), async (v, u) => {
     await setRecurringActive(String(v.expenseId), v.active !== false, u.id);
     return { ok: true, id: String(v.expenseId), result: v.active !== false ? "Recurring expense resumed." : "Recurring expense paused." };
   }),
-  R("prms.assign_asset", "Give an asset to an employee", "Assign an asset (in stock) to an employee.", [refP("assetId", "Asset id", "prms.asset"), f.ref("employeeId", "Employee (hrms.employee id)", "hrms.employee", true), f.str("employeeName", "Employee name", true), f.str("note", "Note")], "staff", canManageProcurement, async (v, u) => {
+  R("prms.assign_asset", "Give an asset to an employee", "Assign an asset (in stock) to an employee.", [refP("assetId", "Asset id", "prms.asset"), f.ref("employeeId", "Employee (hrms.employee id)", "hrms.employee", true), f.str("employeeName", "Employee name", true), f.str("note", "Note")], "staff", microAny("spendiq.assets.manage"), async (v, u) => {
     const r = await assignAsset(String(v.assetId), { id: String(v.employeeId), name: String(v.employeeName) }, str(v.note), u.id);
     if (!r.ok) return fail(r.reason);
     await audit(u, { action: "assign", entity: "asset_assignment", entityId: String(v.assetId), entityLabel: String(v.employeeName) });
     return { ok: true, id: String(v.assetId), result: `Assigned to ${String(v.employeeName)}.` };
   }),
-  R("prms.return_asset", "Take an asset back", "Record that an assigned asset was returned to stock.", [refP("assetId", "Asset id", "prms.asset"), f.str("note", "Note")], "staff", canManageProcurement, async (v, u) => {
+  R("prms.return_asset", "Take an asset back", "Record that an assigned asset was returned to stock.", [refP("assetId", "Asset id", "prms.asset"), f.str("note", "Note")], "staff", microAny("spendiq.assets.manage"), async (v, u) => {
     const r = await returnAsset(String(v.assetId), str(v.note), u.id);
     if (!r.ok) return fail(r.reason);
     await audit(u, { action: "return", entity: "asset_assignment", entityId: String(v.assetId) });
     return { ok: true, id: String(v.assetId), result: "Asset returned." };
   }),
-  R("prms.set_asset_status", "Change an asset's status", `Set an asset's status (${ASTATUS.join(", ")}).`, [refP("assetId", "Asset id", "prms.asset"), f.enum("status", "New status", ASTATUS, true), f.str("note", "Note")], "staff", canManageProcurement, async (v, u) => {
+  R("prms.set_asset_status", "Change an asset's status", `Set an asset's status (${ASTATUS.join(", ")}).`, [refP("assetId", "Asset id", "prms.asset"), f.enum("status", "New status", ASTATUS, true), f.str("note", "Note")], "staff", microAny("spendiq.assets.manage"), async (v, u) => {
     const status = String(v.status);
     if (!isValidAssetStatus(status)) return fail("Unknown status.", { allowed: ASTATUS });
     const r = await changeAssetStatus(String(v.assetId), status as AssetStatus, str(v.note), u.id);
@@ -632,17 +634,17 @@ export const PRMS_ACTIONS: ActionDef[] = [
     await audit(u, { action: "status_change", entity: "asset", entityId: String(v.assetId), summary: `status → ${status}` });
     return { ok: true, id: String(v.assetId), result: `Asset is now ${status}.` };
   }),
-  R("prms.record_stock_movement", "Add or remove stock", `Record stock movement for an inventory item (${TXN.join(", ")}).`, [refP("itemId", "Inventory item id", "prms.inventory_item"), f.enum("type", "Type", TXN, true), f.num("quantity", "Quantity", true), f.num("unitCost", "Unit cost"), f.str("reference", "Reference"), f.str("note", "Note")], "staff", canManageProcurement, async (v, u) => {
+  R("prms.record_stock_movement", "Add or remove stock", `Record stock movement for an inventory item (${TXN.join(", ")}).`, [refP("itemId", "Inventory item id", "prms.inventory_item"), f.enum("type", "Type", TXN, true), f.num("quantity", "Quantity", true), f.num("unitCost", "Unit cost"), f.str("reference", "Reference"), f.str("note", "Note")], "staff", microAny("spendiq.inventory.manage"), async (v, u) => {
     const type = String(v.type);
     if (!isValidInventoryTxnType(type)) return fail("Unknown movement type.", { allowed: TXN });
     const r = await recordInventoryTransaction(String(v.itemId), { type: type as InventoryTxnType, quantity: Number(v.quantity) || 0, unitCost: v.unitCost ? Number(v.unitCost) : null, reference: str(v.reference), note: str(v.note) }, u.id);
     return r.ok ? { ok: true, id: String(v.itemId), result: "Stock updated." } : fail(r.reason);
   }),
-  R("prms.refresh_budgets", "Recalculate budget consumption", "Refresh how much of each budget has been spent.", [], "staff", canManageFinance, async () => {
+  R("prms.refresh_budgets", "Recalculate budget consumption", "Refresh how much of each budget has been spent.", [], "staff", microAny("spendiq.budgets.manage"), async () => {
     await refreshBudgetConsumption();
     return { ok: true, result: "Budgets refreshed." };
   }),
-  R("prms.save_settings", "Change PRMS settings", "Default currency, approval and review thresholds.", [f.enum("defaultCurrency", "Default currency", CURRENCIES), f.num("procurementReviewThreshold", "Procurement review threshold"), f.num("financeNotifyThreshold", "Notify finance above")], "admin", canManageSettings, async (v, u) => {
+  R("prms.save_settings", "Change PRMS settings", "Default currency, approval and review thresholds.", [f.enum("defaultCurrency", "Default currency", CURRENCIES), f.num("procurementReviewThreshold", "Procurement review threshold"), f.num("financeNotifyThreshold", "Notify finance above")], "admin", microAny("spendiq.settings.manage"), async (v, u) => {
     const cur = await getPrmsSettings();
     const data = normalizeSettingsInput({ ...(cur as unknown as Json), ...v });
     await updatePrmsSettings(data, u.id);
@@ -652,5 +654,5 @@ export const PRMS_ACTIONS: ActionDef[] = [
 ];
 
 export const PRMS_REPORTS: ReportDef[] = [
-  { key: "prms.dashboard", panel: "prms", label: "Procurement dashboard numbers", description: "Spend, open requisitions, POs, bills, vendors, assets and trends.", level: "staff", allow: canViewReports, params: [f.date("dateFrom", "From"), f.date("dateTo", "To")], run: async (v) => (await getPrmsDashboardStats({ dateFrom: v.dateFrom ? new Date(String(v.dateFrom)) : undefined, dateTo: v.dateTo ? new Date(`${String(v.dateTo)}T23:59:59`) : undefined } as never)) as unknown as Json },
+  { key: "prms.dashboard", panel: "prms", label: "Procurement dashboard numbers", description: "Spend, open requisitions, POs, bills, vendors, assets and trends.", level: "staff", allow: microAny("spendiq.dashboard.all"), params: [f.date("dateFrom", "From"), f.date("dateTo", "To")], run: async (v) => (await getPrmsDashboardStats({ dateFrom: v.dateFrom ? new Date(String(v.dateFrom)) : undefined, dateTo: v.dateTo ? new Date(`${String(v.dateTo)}T23:59:59`) : undefined } as never)) as unknown as Json },
 ];

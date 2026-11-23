@@ -105,10 +105,15 @@ const num = (r: { document: { docNumber: string | null } }) => r.document.docNum
       const id = await approved();
       const rs = await Promise.all(Array.from({ length: 6 }, () => transitionDocument(mona, { id, transition: "issue" })));
       assert.equal(rs.filter((r) => r.ok).length, 1);
-      const winner = num(ok(rs.find((r) => r.ok)!));
-      assert.equal(Number(winner.split("/")[2]), 21);
-      const next = num(ok(await transitionDocument(mona, { id: await approved(), transition: "issue" })));
-      assert.equal(Number(next.split("/")[2]), 22, "the next document continues straight on");
+      const winner = Number(num(ok(rs.find((r) => r.ok)!)).split("/")[2]);
+      // The guarantee is: unique, and no hole. Which of the six numbers taken at once the winner holds depends on timing (any of 21..26), and the five given back are
+      // reused lowest first. So the winner plus the next five documents must use exactly 21..26, each once, with nothing skipped.
+      assert.ok(winner >= 21 && winner <= 26, `winner ${winner}`);
+      const used = [winner];
+      for (let i = 0; i < 5; i++) used.push(Number(num(ok(await transitionDocument(mona, { id: await approved(), transition: "issue" }))).split("/")[2]));
+      assert.deepEqual([...used].sort((x, y) => x - y), [21, 22, 23, 24, 25, 26], "no number is skipped or used twice");
+      const after = Number(num(ok(await transitionDocument(mona, { id: await approved(), transition: "issue" }))).split("/")[2]);
+      assert.equal(after, 27, "the next document continues straight on");
     });
 
     await t("reissuing after a revision keeps the number and uses none", async () => {

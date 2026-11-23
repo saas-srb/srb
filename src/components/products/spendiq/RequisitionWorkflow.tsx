@@ -28,7 +28,7 @@ import {
   deleteRequisitionAction,
   uploadRequisitionAttachmentAction,
   removeRequisitionAttachmentAction,
-} from "@/app/(products)/spendiq/(protected)/(staff)/requisitions/actions";
+} from "@/app/(products)/spendiq/(protected)/requisitions/actions";
 
 export default function RequisitionWorkflow({
   requisition,

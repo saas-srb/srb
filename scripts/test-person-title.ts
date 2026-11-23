@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { ObjectId } from "mongodb";
-import { displayTitle, FALLBACK_TITLE, type TitleLookups } from "../src/lib/platform/organization/title";
+import { displayTitle, nameWithTitle, FALLBACK_TITLE, type TitleLookups } from "../src/lib/platform/organization/title";
 import { getDb } from "../src/lib/mongodb";
 import { getPlatformDb } from "../src/lib/platform/tenancy/platform-db";
 import { runAsCompany } from "../src/lib/platform/tenancy/context";
@@ -28,6 +28,26 @@ const lookups: TitleLookups = { designations: new Map([["d1", { title: "Senior D
   await T("without a designation (or with one that no longer exists) the words are 'Team member', never a role name", () => {
     for (const p of [null, undefined, {}, { designationId: null }, { designationId: "gone" }]) assert.equal(displayTitle(p as never, lookups).title, FALLBACK_TITLE);
     assert.equal(FALLBACK_TITLE, "Team member");
+  });
+
+  console.log("names with titles (static)");
+  await T("nameWithTitle writes 'Name · Title' and just the name when there is no title", () => {
+    assert.equal(nameWithTitle("Asha Rao", { title: "Senior Developer" }), "Asha Rao · Senior Developer");
+    assert.equal(nameWithTitle("Asha Rao", null), "Asha Rao");
+  });
+  await T("the surfaces that show who did something write the name with the title: Playbook SOP details, versions, feedback and assignments, the Workspace audit log and the approval-needed notice", () => {
+    const need: [string, RegExp[]][] = [
+      ["src/app/(products)/playbook-ai/(protected)/library/[id]/page.tsx", [/titlesOfPeople\(\[doc\.ownerId/, /nameWithTitle\(a\.userName/, /nameWithTitle\(r\.userName/, /nameWithTitle\(v\.authorName/]],
+      ["src/app/(products)/commandos/(protected)/settings/audit-log/page.tsx", [/titlesOfPeople\(list\.items/, /nameWithTitle\(e\.actorEmail/]],
+      ["src/lib/products/huddle-ai/users.ts", [/withCentralTitles\(rows\.filter/, /withCentralTitles\(rows\.map\(toDirectory\)\)/, /titlesOfPeople\(users\.map/]],
+      ["src/components/products/huddle-ai/MessageBubble.tsx", [/m\.author\.title/]],
+      ["src/app/(products)/talentos/(protected)/leave/page.tsx", [/titlesOfEmployees\(requestsResult/, /nameWithTitle\(r\.employeeName/]],
+      ["src/app/(products)/spendiq/(protected)/requisitions/[id]/page.tsx", [/titlesOfPeople\(\[r\.requestedBy/, /nameWithTitle\(r\.requestedBy\.name/, /nameWithTitle\(a\.approverEmail/]],
+      ["src/lib/platform/invitations.ts", [/nameWithTitle\(inviter\.email/, /\$\{inviterLabel\} invited you/]],
+      ["src/lib/notify/triggers/hrms.ts", [/titlesOfEmployees\(\[l\.employeeId\]\)/]],
+      ["src/lib/products/playbook-ai/pb-notify.ts", [/Requested by \$\{await whoIs\(actor\)\}/, /titleOfPerson/]],
+    ];
+    for (const [file, pats] of need) for (const re of pats) assert.match(readFileSync(file, "utf8"), re, `${file} ${re}`);
   });
 
   console.log("no screen prints a role name for a person (static)");

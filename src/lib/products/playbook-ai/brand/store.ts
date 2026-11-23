@@ -1,11 +1,11 @@
 import "server-only";
 import { getDb } from "@/lib/mongodb";
 import { PB_COLLECTIONS } from "@/lib/products/playbook-ai/pb-collections";
-import { playbookCan } from "@/lib/playbook-roles";
 import { recordPbAudit } from "@/lib/products/playbook-ai/pb-audit";
 import type { PbActor } from "@/lib/products/playbook-ai/documents-types";
 import { DEFAULT_BRAND, validateBrandInput, type BrandAssetKind, type BrandSettings } from "@/lib/products/playbook-ai/brand/types";
 import { deleteUnreferencedAssets, getBrandAssetRecords, saveBrandImage, type BrandAssetRecord } from "@/lib/products/playbook-ai/brand/assets";
+import { pbDoc } from "@/lib/playbook-access";
 
 /**
  * The company's brand: one document in `pb_brand` (`_id: "main"`, a KEYED collection, so each company has its own). Server-only.
@@ -62,7 +62,7 @@ async function checkAssets(b: BrandSettings): Promise<string | null> {
 
 /** Validates and saves the brand. Needs MANAGE_BRAND. The revision goes up by one and the change is written to the audit trail. */
 export async function saveBrand(actor: PbActor, input: unknown): Promise<BrandResult<{ brand: BrandSettings }>> {
-  if (!playbookCan(actor, "MANAGE_BRAND")) return { ok: false, error: "You don't have permission to change the brand." };
+  if (!pbDoc(actor, "MANAGE_BRAND")) return { ok: false, error: "You don't have permission to change the brand." };
   const v = validateBrandInput(input);
   if (!v.ok) return { ok: false, error: v.errors[0], errors: v.errors };
   const missing = await checkAssets(v.value);
@@ -98,7 +98,7 @@ export function diffSummary(a: BrandSettings | null, b: BrandSettings): string[]
 
 /** Stores a new brand image (logo, signature or stamp). Needs MANAGE_BRAND. The image is attached when the brand is saved. */
 export async function uploadBrandImage(actor: PbActor, kind: BrandAssetKind, bytes: Uint8Array): Promise<BrandResult<{ asset: BrandAssetRecord }>> {
-  if (!playbookCan(actor, "MANAGE_BRAND")) return { ok: false, error: "You don't have permission to change the brand." };
+  if (!pbDoc(actor, "MANAGE_BRAND")) return { ok: false, error: "You don't have permission to change the brand." };
   const r = await saveBrandImage(kind, bytes, actor.id);
   if (!r.ok) return r;
   await recordPbAudit({ actor, action: "brand_asset", entity: "brand", entityId: r.asset._id, summary: `Uploaded a ${kind} image`, metadata: { kind, sha256: r.asset.sha256, bytes: r.asset.bytes } });

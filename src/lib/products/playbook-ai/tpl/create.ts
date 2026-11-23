@@ -5,10 +5,10 @@ import { buildTemplateDoc } from "@/lib/products/playbook-ai/catalogue/validate"
 import type { PickerNamespace, TemplateDef } from "@/lib/products/playbook-ai/catalogue/types";
 import { PICKER_NAMESPACES } from "@/lib/products/playbook-ai/catalogue/types";
 import { checkLink, loadVariableValues } from "@/lib/products/playbook-ai/variables-adapters";
-import { playbookCan } from "@/lib/playbook-roles";
 import { applyBindings, pendingAiSections, validateInputValues, type RawInputs } from "@/lib/products/playbook-ai/tpl/inputs";
 import { resolveTemplate } from "@/lib/products/playbook-ai/tpl/store";
 import type { PBDoc } from "@/lib/products/playbook-ai/doc/types";
+import { pbDoc } from "@/lib/playbook-access";
 
 /**
  * Creating a document from a template. Server-only.
@@ -54,7 +54,7 @@ export type CreateFromTemplateOk = {
 export type CreateFromTemplateResult = PbResult<CreateFromTemplateOk> | { ok: false; error: { code: "inputs"; message: string; errors: Record<string, string> } };
 
 export async function createDocumentFromTemplate(actor: PbActor, input: CreateFromTemplateInput): Promise<CreateFromTemplateResult> {
-  if (!playbookCan(actor, "CREATE")) return { ok: false, error: { code: "forbidden", message: "You don't have permission to create documents." } };
+  if (!pbDoc(actor, "CREATE")) return { ok: false, error: { code: "forbidden", message: "You don't have permission to create documents." } };
   const r = await resolveTemplate(actor, { typeId: input.typeId, templateId: input.templateId });
   if (!r.ok) {
     const e = r.error;

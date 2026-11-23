@@ -32,7 +32,7 @@ import {
   setBankVerificationAction,
   deleteBankAccountAction,
   revealBankAccountAction,
-} from "@/app/(products)/talentos/(protected)/(staff)/employees/[id]/bank-actions";
+} from "@/app/(products)/talentos/(protected)/employees/[id]/bank-actions";
 
 interface Account {
   _id: string;

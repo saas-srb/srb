@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmissionStatusBadge } from "@/components/products/cohort-ai/StatusBadges";
-import { reviewSubmissionAction } from "@/app/(products)/cohort-ai/(protected)/(staff)/assignments/actions";
+import { reviewSubmissionAction } from "@/app/(products)/cohort-ai/(protected)/assignments/actions";
 import type { SubmissionRow } from "@/lib/products/cohort-ai/assignments";
 
 export default function SubmissionReviewTable({

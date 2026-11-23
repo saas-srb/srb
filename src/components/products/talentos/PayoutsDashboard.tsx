@@ -31,7 +31,7 @@ const STATUS_ICON: Record<string, React.ReactNode> = {
 };
 import { monthLabelLong } from "@/lib/products/talentos/payroll-status";
 import { formatCurrency } from "@/lib/utils";
-import { bulkInitiatePayoutsAction, reconcilePayoutsAction } from "@/app/(products)/talentos/(protected)/(staff)/payroll/actions";
+import { bulkInitiatePayoutsAction, reconcilePayoutsAction } from "@/app/(products)/talentos/(protected)/payroll/actions";
 
 interface Payout {
   _id: string;

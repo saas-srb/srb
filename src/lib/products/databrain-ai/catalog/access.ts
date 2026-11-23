@@ -2,8 +2,7 @@ import "server-only";
 import { accessibleAreas } from "@/lib/platform/access";
 import { getEntitlements } from "@/lib/platform/billing/entitlements";
 import { enabledModules } from "@/lib/platform/onboarding/state";
-import { canManageExpenses, canManageFinance, canManageProcurement } from "@/lib/prms-roles";
-import { canReviewTimesheets, canViewAllProjects, hasPmsStaffRole, normalizePmsRoles } from "@/lib/pms-roles";
+import { holdsLegacy, type SubjectHolder } from "@/lib/access/holds";
 import type { AccessGrant, EntityDef, IntelArea } from "@/lib/products/databrain-ai/catalog/types";
 
 /**
@@ -23,7 +22,7 @@ import type { AccessGrant, EntityDef, IntelArea } from "@/lib/products/databrain
  * Both PRMS rules honour the Director's permission overrides, and the PRMS product must be in the plan and enabled.
  */
 
-export interface IntelAccessUser {
+export interface IntelAccessUser extends SubjectHolder {
   roles: readonly string[];
   permissionOverrides?: Record<string, boolean> | null;
 }
@@ -32,22 +31,20 @@ export async function intelAreas(user: IntelAccessUser): Promise<Set<IntelArea>>
   const base = await accessibleAreas(user);
   const out = new Set<IntelArea>(base);
   // Re-derive the PMS areas from the PMS product's own "see everything" rules (accessibleAreas only knows the staff tier).
-  const ctx0 = { roles: user.roles, permissionOverrides: user.permissionOverrides ?? null };
   out.delete("projects");
   out.delete("tasks");
-  if (base.has("projects") && hasPmsStaffRole(normalizePmsRoles([...user.roles]))) {
-    if (canViewAllProjects(ctx0)) {
+  if (base.has("projects") && holdsLegacy(user, "sprintos", "pms.hasPmsStaffRole")) {
+    if (holdsLegacy(user, "sprintos", "pms.canViewAllProjects")) {
       out.add("projects");
       out.add("tasks");
     }
-    if (canReviewTimesheets(ctx0)) out.add("timesheets");
+    if (holdsLegacy(user, "sprintos", "pms.canReviewTimesheets")) out.add("timesheets");
   }
   const [entitlements, enabled] = await Promise.all([getEntitlements(), enabledModules()]);
   const prmsOn = (entitlements.modules === null || entitlements.modules.has("prms")) && (!enabled || enabled.has("prms"));
   if (prmsOn) {
-    const ctx = { roles: user.roles, permissionOverrides: user.permissionOverrides ?? null };
-    if (canManageProcurement(ctx) || canManageFinance(ctx)) out.add("procurement");
-    if (canManageExpenses(ctx)) out.add("expenses");
+    if (holdsLegacy(user, "spendiq", "prms.canManageProcurement", "prms.canManageFinance")) out.add("procurement");
+    if (holdsLegacy(user, "spendiq", "prms.canManageExpenses")) out.add("expenses");
   }
   return out;
 }

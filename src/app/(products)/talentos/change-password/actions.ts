@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 import { getCurrentHrmsUser, changeOwnPassword } from "@/lib/hrms-auth";
-import { hasStaffRole } from "@/lib/hrms-roles";
 
 export interface ChangePasswordState {
   error?: string;
@@ -25,5 +24,5 @@ export async function changePasswordAction(
   const result = await changeOwnPassword(user.id, current, next);
   if (!result.ok) return { error: result.error };
 
-  redirect(hasStaffRole(user.roles) ? "/talentos" : "/talentos/me");
+  redirect("/talentos");
 }

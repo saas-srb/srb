@@ -1,7 +1,7 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentPrmsUser } from "@/lib/prms-auth";
-import { hasPrmsStaffRole } from "@/lib/prms-roles";
+import { prmsMayOpen } from "@/lib/prms-access";
 import { readAttachmentStream } from "@/lib/products/spendiq/attachment-storage";
 import { getDb } from "@/lib/mongodb";
 
@@ -27,7 +27,7 @@ async function handleGET(_req: NextRequest, { params }: Context) {
 
   if (!req) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  if (!hasPrmsStaffRole(user.roles) && req.requestedBy?.userId !== user.id) {
+  if (!prmsMayOpen(user, "requisitions", req.requestedBy?.userId, user.id)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

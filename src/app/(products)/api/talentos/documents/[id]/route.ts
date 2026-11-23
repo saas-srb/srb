@@ -1,7 +1,7 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentHrmsUser } from "@/lib/hrms-auth";
-import { hasStaffRole } from "@/lib/hrms-roles";
+import { mayReadDocument } from "@/lib/products/talentos/doc-access";
 import { getDocument } from "@/lib/products/talentos/documents";
 import { readDocumentStream } from "@/lib/products/talentos/document-storage";
 import { isInlinePreviewable } from "@/lib/products/talentos/document-categories";
@@ -16,8 +16,8 @@ async function handleGET(req: NextRequest, { params }: Context) {
   const doc = await getDocument(id);
   if (!doc) return NextResponse.json({ error: "Document not found." }, { status: 404 });
 
-  // Staff can read any document; an employee only their own.
-  if (!hasStaffRole(user.roles) && doc.employeeId !== user.employeeId) {
+  // An employee reads their own documents; staff read the documents of the employees they can reach (their reporting line, or everyone), nobody else's.
+  if (!(await mayReadDocument(user, doc.employeeId))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

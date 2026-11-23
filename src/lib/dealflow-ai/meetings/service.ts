@@ -1,8 +1,8 @@
+import { holdsLegacy, holdsProduct } from "@/lib/access/holds";
 import "server-only";
 import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/mongodb";
 import { BLOCKED_STATUSES } from "@/lib/security/account-status";
-import { hasLmsAccess } from "@/lib/lms-roles";
 import { nanoid } from "@/lib/dealflow-ai/nanoid";
 import { scheduleMeeting, MeetingInputError, type MeetingRoom } from "@/lib/dealflow-ai/db-meetings";
 import { checkRoster, normalizeParticipant, parseMeetingFields, type Directory } from "@/lib/dealflow-ai/meetings/validate";
@@ -25,7 +25,7 @@ export async function listStaffOptions(q = "", limit = 200): Promise<StaffOption
   const filter: Record<string, unknown> = { status: { $nin: BLOCKED_STATUSES } };
   if (q.trim()) filter.$or = [{ name: { $regex: escapeRe(q.trim().slice(0, 60)), $options: "i" } }, { email: { $regex: escapeRe(q.trim().slice(0, 60)), $options: "i" } }];
   const rows = await (await getDb()).collection<{ _id: ObjectId; name?: string; email?: string; roles?: string[] }>("admin_users").find(filter, { projection: { name: 1, email: 1, roles: 1 } }).sort({ name: 1 }).limit(Math.min(limit, 500)).toArray();
-  return rows.filter((r) => hasLmsAccess(r.roles)).map((r) => ({ id: String(r._id), name: (r.name ?? "").trim() || (r.email ?? "").split("@")[0], email: r.email ?? "" }));
+  return rows.filter((r) => holdsProduct({ roles: r.roles }, "dealflow-ai")).map((r) => ({ id: String(r._id), name: (r.name ?? "").trim() || (r.email ?? "").split("@")[0], email: r.email ?? "" }));
 }
 
 export interface TargetOption {

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { toggleMilestoneAction } from "@/app/(products)/cohort-ai/(protected)/(staff)/projects/actions";
+import { toggleMilestoneAction } from "@/app/(products)/cohort-ai/(protected)/projects/actions";
 import type { Milestone } from "@/lib/products/cohort-ai/projects";
 
 export default function ProjectMilestones({

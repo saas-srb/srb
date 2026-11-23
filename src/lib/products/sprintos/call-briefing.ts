@@ -1,6 +1,6 @@
 import "server-only";
 import { getDb } from "@/lib/mongodb";
-import { canManageProjects, hasPmsAccess } from "@/lib/pms-roles";
+import { pmsCan } from "@/lib/pms-access";
 import type { AibotsViewer } from "@/lib/products/agentos/viewer";
 import type { CallTarget } from "@/lib/products/agentos/calls/types";
 import type { BriefingItem, BriefingSection } from "@/lib/products/agentos/calls/briefing-core";
@@ -36,7 +36,7 @@ function clientSections(c: Client): BriefingSection[] {
 
 export async function sprintosBriefing(viewer: AibotsViewer, target: CallTarget): Promise<BriefingSection[]> {
   if (target.product !== SPRINTOS_PRODUCT || (target.entityType !== "project" && target.entityType !== "client")) return [];
-  if (!hasPmsAccess(viewer.roles) || !canManageProjects(viewer.ctx)) return [];
+  if (!pmsCan(viewer, "projects.manage")) return [];
   const db = await getDb();
   if (target.entityType === "project") {
     const p = await db.collection<Project>(PROJECTS_COLLECTION).findOne({ _id: target.entityId, ...notDeleted });

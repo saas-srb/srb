@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { SUPPORTED_CURRENCIES } from "@/lib/products/cohort-ai/constants";
-import { savePaymentPlanAction } from "@/app/(products)/cohort-ai/(protected)/(staff)/payments/actions";
+import { savePaymentPlanAction } from "@/app/(products)/cohort-ai/(protected)/payments/actions";
 import type { SerializedPaymentPlan } from "@/lib/products/cohort-ai/payments";
 
 export default function PaymentPlanForm({

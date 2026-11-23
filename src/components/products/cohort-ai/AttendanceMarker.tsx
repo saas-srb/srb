@@ -9,7 +9,7 @@ import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ATTENDANCE_STATUSES } from "@/lib/products/cohort-ai/constants";
-import { markAttendanceAction } from "@/app/(products)/cohort-ai/(protected)/(staff)/classes/actions";
+import { markAttendanceAction } from "@/app/(products)/cohort-ai/(protected)/classes/actions";
 
 export interface RosterRow {
   studentId: string;

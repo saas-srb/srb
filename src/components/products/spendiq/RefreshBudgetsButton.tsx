@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { RefreshCw, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { refreshBudgetsAction } from "@/app/(products)/spendiq/(protected)/(staff)/budgets/actions";
+import { refreshBudgetsAction } from "@/app/(products)/spendiq/(protected)/budgets/actions";
 
 export default function RefreshBudgetsButton() {
   const router = useRouter();

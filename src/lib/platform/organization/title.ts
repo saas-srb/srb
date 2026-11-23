@@ -14,6 +14,9 @@ export interface TitleLookups {
 }
 export interface DisplayTitle { title: string; department: string | null; /** "Engineering · Senior Developer" or just the title */ line: string }
 
+/** A person's name with their title next to it: "Asha Rao · Senior Developer". The one way lists, comments, approvals, audit labels and emails write a name. */
+export const nameWithTitle = (name: string, t: Pick<DisplayTitle, "title"> | null | undefined): string => (t?.title ? `${name} · ${t.title}` : name);
+
 /** The main designation is the first one the person holds (`designationId`, else the first of `designationIds`). */
 export function displayTitle(person: TitleSource | null | undefined, lookups: TitleLookups): DisplayTitle {
   const id = person?.designationId || person?.designationIds?.[0] || null;

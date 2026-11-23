@@ -17,7 +17,7 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import AssignmentForm from "@/components/products/cohort-ai/AssignmentForm";
-import { deleteAssignmentAction } from "@/app/(products)/cohort-ai/(protected)/(staff)/assignments/actions";
+import { deleteAssignmentAction } from "@/app/(products)/cohort-ai/(protected)/assignments/actions";
 import type { SerializedAssignment } from "@/lib/products/cohort-ai/assignments";
 
 export default function AssignmentActions({

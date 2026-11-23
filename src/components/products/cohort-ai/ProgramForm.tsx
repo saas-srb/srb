@@ -17,7 +17,7 @@ import {
   TRAINING_MODES,
   SUPPORTED_CURRENCIES,
 } from "@/lib/products/cohort-ai/constants";
-import { saveProgramAction } from "@/app/(products)/cohort-ai/(protected)/(staff)/programs/actions";
+import { saveProgramAction } from "@/app/(products)/cohort-ai/(protected)/programs/actions";
 import type { SerializedProgram } from "@/lib/products/cohort-ai/programs";
 
 type FormState = Record<string, string | boolean>;

@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { SUPPORTED_CURRENCIES } from "@/lib/products/spendiq/constants";
-import { savePrmsSettingsAction } from "@/app/(products)/spendiq/(protected)/(staff)/settings/actions";
+import { savePrmsSettingsAction } from "@/app/(products)/spendiq/(protected)/settings/actions";
 import type { PrmsSettings } from "@/lib/products/spendiq/settings";
 
 export default function PrmsSettingsForm({ settings }: { settings: PrmsSettings }) {

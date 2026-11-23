@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getCurrentHrmsUser } from "@/lib/hrms-auth";
-import { canViewAllEmployees } from "@/lib/hrms-roles";
+import { hrCan } from "@/lib/talentos-access";
 import { hasBearer } from "@/lib/security/bearer";
 import { hasPlanFlag } from "@/lib/platform/billing/enforce";
 
@@ -15,5 +15,5 @@ export async function isAuthorizedHrmsRequest(req: NextRequest): Promise<boolean
 
   // The product session — and only someone who may see EVERY employee: the export is the whole roster (personal details, contacts).
   const user = await getCurrentHrmsUser();
-  return user !== null && canViewAllEmployees(user);
+  return user !== null && hrCan(user, "employees.export");
 }

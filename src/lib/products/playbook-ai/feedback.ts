@@ -5,8 +5,8 @@ import { cleanText } from "@/lib/products/playbook-ai/content";
 import { canEditSop, toAccessDoc } from "@/lib/products/playbook-ai/access";
 import { recordAudit } from "@/lib/products/playbook-ai/audit";
 import { notifySopUsers } from "@/lib/products/playbook-ai/notifications";
-import { sopCan } from "@/lib/sop-roles";
 import type { FeedbackDoc, SopDoc, SopViewer } from "@/lib/products/playbook-ai/types";
+import { pbCan } from "@/lib/playbook-access";
 
 /**
  * Employee feedback / change requests on an SOP. This is a suggestion box, not
@@ -28,7 +28,7 @@ export async function submitFeedback(
   sop: SopDoc,
   input: { kind: string; message: string }
 ): Promise<Result> {
-  if (!sopCan({ roles: v.roles, permissionOverrides: v.overrides }, "VIEW")) return { ok: false, error: "You can't submit feedback." };
+  if (!pbCan(v, "sops.feedback")) return { ok: false, error: "You can't submit feedback." };
   const message = cleanText(input.message, 2000).trim();
   if (message.length < 5) return { ok: false, error: "Write a little more detail (at least 5 characters)." };
   const kind = input.kind === "change_request" ? "change_request" : "feedback";

@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import ResourceForm, { type FieldSpec } from "@/components/products/spendiq/ResourceForm";
 import { INFRA_RESOURCE_TYPES, BILLING_CYCLES, RESOURCE_STATUSES, SUPPORTED_CURRENCIES } from "@/lib/products/spendiq/constants";
-import { saveInfrastructureAction } from "@/app/(products)/spendiq/(protected)/(staff)/infrastructure/actions";
+import { saveInfrastructureAction } from "@/app/(products)/spendiq/(protected)/infrastructure/actions";
 import type { InfrastructureResource } from "@/lib/products/spendiq/infrastructure";
 
 export default function InfrastructureForm({

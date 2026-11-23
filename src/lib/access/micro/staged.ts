@@ -20,8 +20,8 @@ export interface StagedProduct {
 export const STAGED: Record<string, StagedProduct> = {
   talentos: {
     panel: "hrms",
-    converted: ["Leave", "Attendance", "Requests", "Holidays"],
-    pending: ["Dashboard", "Employees", "Documents", "Payroll", "Recruitment", "Settings"],
+    converted: ["Leave", "Attendance", "Requests", "Holidays", "Recruitment", "Settings", "Payroll", "Dashboard", "Employees", "Documents"],
+    pending: [],
   },
 };
 

@@ -17,7 +17,7 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import LiveProjectForm, { type StudentMembership } from "@/components/products/cohort-ai/LiveProjectForm";
-import { deleteLiveProjectAction } from "@/app/(products)/cohort-ai/(protected)/(staff)/projects/actions";
+import { deleteLiveProjectAction } from "@/app/(products)/cohort-ai/(protected)/projects/actions";
 import type { SerializedLiveProject } from "@/lib/products/cohort-ai/projects";
 
 export default function LiveProjectActions({

@@ -21,7 +21,7 @@ import {
   cancelPurchaseOrderAction,
   closePurchaseOrderAction,
   deletePurchaseOrderAction,
-} from "@/app/(products)/spendiq/(protected)/(staff)/purchase-orders/actions";
+} from "@/app/(products)/spendiq/(protected)/purchase-orders/actions";
 
 export default function PurchaseOrderWorkflow({
   id,

@@ -1,3 +1,4 @@
+import { titlesOfPeople, nameWithTitle } from "@/lib/platform/organization/title-server";
 import PanelTabs from "@/components/platform/panel/PanelTabs";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { panelNameMap } from "@/lib/platform/panels/store";
@@ -150,6 +151,8 @@ async function WorkspaceEvents({ sp, page, from, to }: { sp: SP; page: number; f
     listEventActors(),
   ]);
   const totalPages = Math.max(1, Math.ceil(list.total / EVENTS_PAGE_SIZE));
+  // The person who did it is written with the title chosen for them, never a product role.
+  const actorTitles = await titlesOfPeople(list.items.map((e) => e.actorId).filter((x): x is string => !!x));
   const pageHref = (p: number) => {
     const params = new URLSearchParams({ source: "workspace" });
     for (const [k, v] of Object.entries({ type, actor: sp.actor, from, to })) if (v) params.set(k, v);
@@ -195,7 +198,7 @@ async function WorkspaceEvents({ sp, page, from, to }: { sp: SP; page: number; f
                   )}
                   {e.source === "import" && <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">import</span>}
                 </span>
-                <span className="shrink-0 text-xs break-all text-muted-foreground">{e.actorEmail ?? (e.actorId ? "Someone" : "Automatic")}</span>
+                <span className="shrink-0 text-xs break-all text-muted-foreground">{e.actorEmail ? nameWithTitle(e.actorEmail, e.actorId ? actorTitles.get(e.actorId) : null) : (e.actorId ? "Someone" : "Automatic")}</span>
               </li>
             ))}
           </ul>

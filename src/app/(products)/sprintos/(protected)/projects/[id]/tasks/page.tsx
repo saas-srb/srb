@@ -8,7 +8,7 @@ import ProjectTabs from "@/components/products/sprintos/ProjectTabs";
 import TaskList from "@/components/products/sprintos/tasks/TaskList";
 import TaskSheet from "@/components/products/sprintos/tasks/TaskSheet";
 import { getCurrentPmsUser } from "@/lib/pms-auth";
-import { canManageProjects } from "@/lib/pms-roles";
+import { pmsCan, pmsSeesAll } from "@/lib/pms-access";
 import { checkProjectAccess } from "@/lib/products/sprintos/access";
 import { getProject } from "@/lib/products/sprintos/projects";
 import { listTasks, listProjectLabels, serializeTask } from "@/lib/products/sprintos/tasks";
@@ -19,7 +19,7 @@ export default async function ProjectTasksPage({ params }: { params: Promise<{ i
   const [user, project] = await Promise.all([getCurrentPmsUser(), getProject(id)]);
   if (!project) notFound();
   if (user && !(await checkProjectAccess(user, id)).allowed) notFound();
-  const canManage = user ? canManageProjects(user) : false;
+  const canManage = user ? pmsCan(user, "projects.manage") : false;
 
   const [topTasks, allTasks, employees, labels] = await Promise.all([
     listTasks(id, {}),

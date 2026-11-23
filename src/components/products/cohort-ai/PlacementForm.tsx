@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { PLACEMENT_TYPES } from "@/lib/products/cohort-ai/constants";
-import { savePlacementAction } from "@/app/(products)/cohort-ai/(protected)/(staff)/placements/actions";
+import { savePlacementAction } from "@/app/(products)/cohort-ai/(protected)/placements/actions";
 import type { SerializedPlacementRecord } from "@/lib/products/cohort-ai/placements";
 
 type FormState = Record<string, string>;

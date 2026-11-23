@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import ResourceForm, { type FieldSpec } from "@/components/products/spendiq/ResourceForm";
 import { ASSET_CATEGORIES, DEPRECIATION_METHODS, SUPPORTED_CURRENCIES } from "@/lib/products/spendiq/constants";
-import { saveAssetAction } from "@/app/(products)/spendiq/(protected)/(staff)/assets/actions";
+import { saveAssetAction } from "@/app/(products)/spendiq/(protected)/assets/actions";
 import type { SerializedAsset } from "@/lib/products/spendiq/assets";
 
 export default function AssetForm({

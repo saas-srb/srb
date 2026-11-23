@@ -1,6 +1,5 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import { playbookCan } from "@/lib/playbook-roles";
 import { getDocument, saveDraft } from "@/lib/products/playbook-ai/documents";
 import { recordPbAudit } from "@/lib/products/playbook-ai/pb-audit";
 import { getPbSettings } from "@/lib/products/playbook-ai/pb-settings";
@@ -18,6 +17,7 @@ import { makeFactBag, restrictBag, type FactInput } from "@/lib/products/playboo
 import { SECTION_ACTIONS, instructionsFor, runSection, SectionAiError, type GuardReport, type ProgressEvent, type SectionAction, type SectionOutcome } from "@/lib/products/playbook-ai/ai/generate";
 import { blocksText, type RawBlock } from "@/lib/products/playbook-ai/ai/schema";
 import { checkAiLimits, finishRun, getRun, resolveRun, startRun } from "@/lib/products/playbook-ai/ai/runs";
+import { pbDoc } from "@/lib/playbook-access";
 
 /**
  * Section proposals. `proposeSection` asks the model for a section and returns a PROPOSAL: the new blocks, the text before and after
@@ -99,7 +99,7 @@ const asDoc = (blocks: RawBlock[]): PBDoc => parseDoc({ schemaVersion: 1, lang: 
 export async function proposeSection(actor: PbActor, input: ProposalInput): Promise<PbResult<{ proposal: Proposal }>> {
   const action = input.action ?? "generate";
   if (!SECTION_ACTIONS.includes(action)) return fail({ code: "invalid", message: "Unknown AI action.", issues: [] });
-  if (!playbookCan(actor, "USE_AI")) return fail({ code: "forbidden", message: "You are not allowed to use AI drafting." });
+  if (!pbDoc(actor, "USE_AI")) return fail({ code: "forbidden", message: "You are not allowed to use AI drafting." });
   const got = await getDocument(actor, input.documentId);
   if (!got.ok) return got;
   if (!got.capabilities.edit) return fail({ code: "forbidden", message: "You can only use AI on a draft you can edit." });

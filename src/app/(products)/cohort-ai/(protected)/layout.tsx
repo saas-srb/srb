@@ -36,6 +36,7 @@ export default async function ProtectedTmsLayout({ children }: { children: React
             email={user.email}
             roles={user.roles}
             permissionOverrides={user.permissionOverrides}
+            subject={user.subject}
             studentId={user.studentId}
             createdAt={user.createdAt.toISOString()}
             lastLoginAt={user.lastLoginAt ? user.lastLoginAt.toISOString() : null}
@@ -47,6 +48,7 @@ export default async function ProtectedTmsLayout({ children }: { children: React
                 roles={user.roles}
                 allRoles={user.allRoles}
                 permissionOverrides={user.permissionOverrides}
+                subject={user.subject}
                 studentId={user.studentId}
                 notifications={notifications.map((n) => ({
                   _id: n._id,

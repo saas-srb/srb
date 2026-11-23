@@ -1,7 +1,7 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentHrmsUser } from "@/lib/hrms-auth";
-import { hasStaffRole } from "@/lib/hrms-roles";
+import { uploadTarget } from "@/lib/products/talentos/doc-access";
 import { uploadDocument } from "@/lib/products/talentos/documents";
 import { validateDocumentFile } from "@/lib/products/talentos/document-categories";
 import { validateDocumentMeta } from "@/lib/products/talentos/validation-payroll";
@@ -20,15 +20,11 @@ async function handlePOST(req: NextRequest) {
     return NextResponse.json({ error: "Request body must be multipart form data." }, { status: 400 });
   }
 
-  const staff = hasStaffRole(user.roles);
-  const targetEmployeeId = staff ? String(formData.get("employeeId") ?? "") : user.employeeId ?? "";
-  if (!targetEmployeeId) return NextResponse.json({ error: "No employee context." }, { status: 400 });
-  // Employees can only upload for themselves.
-  if (!staff && targetEmployeeId !== user.employeeId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const actorRole: "staff" | "employee" = staff ? "staff" : "employee";
+  // Who may upload for whom is decided in one place (doc-access.ts): other people's records only with the document right and reach to that employee.
+  const target = await uploadTarget(user, String(formData.get("employeeId") ?? ""));
+  if ("error" in target) return NextResponse.json({ error: target.error === "none" ? "No employee context." : "Forbidden" }, { status: target.error === "none" ? 400 : 403 });
+  const targetEmployeeId = target.employeeId;
+  const actorRole = target.role;
   const meta = validateDocumentMeta(
     {
       category: formData.get("category"),

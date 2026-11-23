@@ -16,7 +16,7 @@ import {
   PAYMENT_TERMS,
   SUPPORTED_CURRENCIES,
 } from "@/lib/products/spendiq/constants";
-import { saveVendorAction } from "@/app/(products)/spendiq/(protected)/(staff)/vendors/actions";
+import { saveVendorAction } from "@/app/(products)/spendiq/(protected)/vendors/actions";
 import type { SerializedVendor } from "@/lib/products/spendiq/vendors";
 
 type FormState = Record<string, string>;

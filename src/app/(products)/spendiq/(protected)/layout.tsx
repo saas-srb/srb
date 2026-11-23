@@ -39,6 +39,7 @@ export default async function ProtectedPrmsLayout({ children }: { children: Reac
             email={user.email}
             roles={user.roles}
             permissionOverrides={user.permissionOverrides}
+            subject={user.subject}
             createdAt={user.createdAt.toISOString()}
             lastLoginAt={user.lastLoginAt ? user.lastLoginAt.toISOString() : null}
           />
@@ -49,6 +50,7 @@ export default async function ProtectedPrmsLayout({ children }: { children: Reac
                 roles={user.roles}
                 allRoles={user.allRoles}
                 permissionOverrides={user.permissionOverrides}
+                subject={user.subject}
                 notifications={notifications.map((n) => ({
                   _id: n._id,
                   type: n.type,

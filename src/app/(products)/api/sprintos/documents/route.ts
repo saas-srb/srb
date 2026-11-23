@@ -1,7 +1,8 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentPmsUser } from "@/lib/pms-auth";
-import { canManageProjects } from "@/lib/pms-roles";
+import { pmsCan } from "@/lib/pms-access";
+import { checkProjectAccess } from "@/lib/products/sprintos/access";
 import { getProject } from "@/lib/products/sprintos/projects";
 import { addDocument, replaceDocument } from "@/lib/products/sprintos/documents";
 import { saveDocumentFile } from "@/lib/products/sprintos/document-storage";
@@ -11,7 +12,7 @@ import { recordActivity } from "@/lib/products/sprintos/activity";
 async function handlePOST(req: NextRequest) {
   const user = await getCurrentPmsUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canManageProjects(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!pmsCan(user, "documents.manage")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   let formData: FormData;
   try {
@@ -23,6 +24,8 @@ async function handlePOST(req: NextRequest) {
   const projectId = String(formData.get("projectId") ?? "");
   const project = await getProject(projectId);
   if (!project) return NextResponse.json({ error: "Project not found." }, { status: 404 });
+  // Only on a project the person manages or belongs to (everyone's scope: any).
+  if (!(await checkProjectAccess(user, project._id)).allowed) return NextResponse.json({ error: "Project not found." }, { status: 404 });
 
   const file = formData.get("file");
   if (!(file instanceof File)) {

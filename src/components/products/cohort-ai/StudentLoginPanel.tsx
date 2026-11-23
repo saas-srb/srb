@@ -13,7 +13,7 @@ import {
   createStudentLoginAction,
   resetStudentLoginAction,
   revokeStudentLoginAction,
-} from "@/app/(products)/cohort-ai/(protected)/(staff)/students/actions";
+} from "@/app/(products)/cohort-ai/(protected)/students/actions";
 
 export default function StudentLoginPanel({
   studentId,

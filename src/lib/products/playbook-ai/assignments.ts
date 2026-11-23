@@ -1,8 +1,8 @@
+import { holdsLegacy, holdsProduct } from "@/lib/access/holds";
 import "server-only";
 import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/mongodb";
 import { COLLECTIONS, newId, todayIso, addDaysIso, cleanIsoDate } from "@/lib/products/playbook-ai/db";
-import { hasSopAccess } from "@/lib/sop-roles";
 import { canAcknowledgeSop, canAssignSop, toAccessDoc } from "@/lib/products/playbook-ai/access";
 import { checklistItemIds } from "@/lib/products/playbook-ai/content";
 import { recordAudit, recordAuditThrottled } from "@/lib/products/playbook-ai/audit";
@@ -84,7 +84,7 @@ async function filterSopUsers(userIds: string[]): Promise<Set<string>> {
     .collection<{ _id: ObjectId; roles?: string[] }>("admin_users")
     .find({ _id: { $in: valid.map((i) => new ObjectId(i)) } }, { projection: { roles: 1 } })
     .toArray();
-  return new Set(users.filter((u) => hasSopAccess(u.roles)).map((u) => u._id.toString()));
+  return new Set(users.filter((u) => holdsProduct({ roles: u.roles }, "playbook-ai")).map((u) => u._id.toString()));
 }
 
 async function resolveAssignees(

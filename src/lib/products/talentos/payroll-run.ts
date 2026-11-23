@@ -530,7 +530,7 @@ export async function approveRun(runId: string, actorId: string, opts: { acknowl
       type: "payslip_published",
       title: `Your ${run.month} payslip is ready`,
       body: s.held ? "Your salary for this month is on hold. HR will contact you." : `Net pay ${Math.round(s.netPay).toLocaleString("en-IN")}`,
-      link: `/talentos/me/salary/${run.month}`,
+      link: `/talentos/payroll/payslip/${run.month}`,
       entityType: "payslip",
       entityId: s._id,
     });

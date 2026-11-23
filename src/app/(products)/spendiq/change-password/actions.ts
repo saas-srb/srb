@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 import { getCurrentPrmsUser, changeOwnPrmsPassword } from "@/lib/prms-auth";
-import { hasPrmsStaffRole } from "@/lib/prms-roles";
 
 export interface ChangePasswordState {
   error?: string;
@@ -25,5 +24,5 @@ export async function changePrmsPasswordAction(
   const result = await changeOwnPrmsPassword(user.id, current, next);
   if (!result.ok) return { error: result.error };
 
-  redirect(hasPrmsStaffRole(user.roles) ? "/spendiq" : "/spendiq/me");
+  redirect("/spendiq");
 }

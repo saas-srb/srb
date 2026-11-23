@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { getCurrentPmsUser } from "@/lib/pms-auth";
-import { hasPmsStaffRole } from "@/lib/pms-roles";
+import { pmsCan } from "@/lib/pms-access";
 import { hasBearer } from "@/lib/security/bearer";
 import { hasPlanFlag } from "@/lib/platform/billing/enforce";
 
@@ -15,5 +15,5 @@ export async function isAuthorizedPmsRequest(req: NextRequest): Promise<boolean>
 
   // The product session — staff only: project members see their own projects, never the whole client / project book.
   const user = await getCurrentPmsUser();
-  return user !== null && hasPmsStaffRole(user.roles);
+  return user !== null && pmsCan(user, "clients.export");
 }

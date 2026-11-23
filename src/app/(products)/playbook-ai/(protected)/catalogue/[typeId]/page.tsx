@@ -2,11 +2,11 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { getViewer } from "@/lib/products/playbook-ai/viewer";
-import { playbookCan } from "@/lib/playbook-roles";
 import { CATEGORY_LABELS, getCatalogueMeta, getTemplateDef, LEGAL_REVIEW_BANNER, STATUTE_NOTICE } from "@/lib/products/playbook-ai/catalogue";
 import { listTemplates } from "@/lib/products/playbook-ai/tpl/store";
 import { requireActor } from "@/lib/products/playbook-ai/tpl/actor";
 import StarterActions from "@/components/products/playbook-ai/templates/StarterActions";
+import { pbDoc } from "@/lib/playbook-access";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +16,7 @@ export default async function StarterDetailPage({ params }: { params: Promise<{ 
   const viewer = await getViewer();
   if (!viewer) redirect("/playbook-ai/login");
   const actor = await requireActor();
-  if (!playbookCan(actor, "VIEW")) redirect("/playbook-ai");
+  if (!pbDoc(actor, "VIEW")) redirect("/playbook-ai");
   const meta = getCatalogueMeta(typeId);
   if (!meta) notFound();
   const def = getTemplateDef(typeId);
@@ -33,7 +33,7 @@ export default async function StarterDetailPage({ params }: { params: Promise<{ 
       {meta.legal.review && <p role="note" className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">{LEGAL_REVIEW_BANNER} Platform starters are not reviewed: a template becomes &quot;reviewed&quot; only when a reviewer at your company marks the company&apos;s copy.</p>}
       {meta.legal.statute && <p role="note" className="rounded-xl border border-blue-500/40 bg-blue-500/10 p-3 text-sm">{STATUTE_NOTICE}</p>}
       <div className="flex flex-wrap items-center gap-3">
-        <StarterActions typeId={typeId} hasContent={!!def} canCreate={playbookCan(actor, "CREATE")} canManage={playbookCan(actor, "MANAGE_TEMPLATES")} ownId={own?._id ?? null} ownStatus={own?.status ?? null} ownVersion={own?.publishedVersion ?? null} />
+        <StarterActions typeId={typeId} hasContent={!!def} canCreate={pbDoc(actor, "CREATE")} canManage={pbDoc(actor, "MANAGE_TEMPLATES")} ownId={own?._id ?? null} ownStatus={own?.status ?? null} ownVersion={own?.publishedVersion ?? null} />
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="rounded-2xl border border-border/50 bg-card p-5 text-sm">

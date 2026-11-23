@@ -65,7 +65,7 @@ const ROWS: Row[] = [
   ["salary.manage", "Payroll", "button", "Manage salary structure and bank details", "View and edit an employee's salary structure, revisions and bank details.", "write", ["hrms.canManagePayroll"]],
   ["payrollrates.manage", "Payroll", "button", "Manage statutory rates and tax configuration", "Edit statutory payroll rates and the tax configuration.", "write", ["hrms.canManagePayrollConfig"]],
   // Recruitment
-  ["recruitment.view", "Recruitment", "page", "Open recruitment", "Open job openings, candidates and offers.", "read", STAFF],
+  ["recruitment.view", "Recruitment", "page", "Open recruitment", "Open job openings, candidates and offers (they carry personal and salary details).", "read", ["hrms.canManageEmployees"]],
   ["recruitment.manage", "Recruitment", "button", "Manage recruitment", "Create openings, move candidates, send offers and convert a hire to an employee.", "write", ["hrms.canManageEmployees"]],
   // Settings
   ["settings.view", "Settings", "page", "Open settings", "Open the work schedule, leave types and other TalentOS settings.", "read", STAFF],

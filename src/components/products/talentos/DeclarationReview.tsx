@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/utils";
-import { reopenDeclarationAction, verifyDeclarationAction } from "@/app/(products)/talentos/(protected)/(staff)/payroll/items/actions";
+import { reopenDeclarationAction, verifyDeclarationAction } from "@/app/(products)/talentos/(protected)/payroll/items/actions";
 
 type D = Record<string, number | boolean | string>;
 interface Row {

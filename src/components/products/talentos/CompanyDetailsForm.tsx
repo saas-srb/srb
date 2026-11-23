@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import IdentitySummary from "@/components/products/commandos/IdentitySummary";
-import { saveCompanyDetailsAction } from "@/app/(products)/talentos/(protected)/(staff)/settings/actions";
+import { saveCompanyDetailsAction } from "@/app/(products)/talentos/(protected)/settings/actions";
 
 export interface CompanyDetailsValues {
   name: string;

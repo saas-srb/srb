@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { SUPPORTED_CURRENCIES, round2, formatMoney } from "@/lib/products/spendiq/constants";
-import { saveInvoiceAction } from "@/app/(products)/spendiq/(protected)/(staff)/invoices/actions";
+import { saveInvoiceAction } from "@/app/(products)/spendiq/(protected)/invoices/actions";
 import type { SerializedInvoice } from "@/lib/products/spendiq/invoices";
 
 export default function InvoiceForm({

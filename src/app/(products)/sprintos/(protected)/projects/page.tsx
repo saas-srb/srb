@@ -7,7 +7,7 @@ import KpiCard from "@/components/products/dealflow-ai/KpiCard";
 import KpiGrid from "@/components/products/dealflow-ai/KpiGrid";
 import ProjectsDataTable from "@/components/products/sprintos/ProjectsDataTable";
 import { getCurrentPmsUser } from "@/lib/pms-auth";
-import { canManageProjects, canViewAllProjects } from "@/lib/pms-roles";
+import { pmsCan, pmsSeesAll } from "@/lib/pms-access";
 import { searchProjects, serializeProject, listCategories, countProjects } from "@/lib/products/sprintos/projects";
 import { listClientOptions } from "@/lib/products/sprintos/clients";
 import { listEmployeeOptions } from "@/lib/products/talentos/employees";
@@ -20,9 +20,9 @@ export default async function ProjectsPage({
 }) {
   const sp = await searchParams;
   const user = await getCurrentPmsUser();
-  const canManage = user ? canManageProjects(user) : false;
+  const canManage = user ? pmsCan(user, "projects.manage") : false;
   const restrictToEmployeeId =
-    user && !canViewAllProjects(user) ? user.employeeId ?? "__none__" : undefined;
+    user && !pmsSeesAll(user) ? user.employeeId ?? "__none__" : undefined;
 
   const page = Math.max(Number(sp.page) || 1, 1);
   const status = sp.status && isValidProjectStatus(sp.status) ? (sp.status as ProjectStatus) : undefined;

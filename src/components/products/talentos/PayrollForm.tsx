@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCurrency } from "@/lib/utils";
-import { savePayrollProfileAction } from "@/app/(products)/talentos/(protected)/(staff)/employees/[id]/actions";
+import { savePayrollProfileAction } from "@/app/(products)/talentos/(protected)/employees/[id]/actions";
 import { DEFAULT_STATUTORY } from "@/lib/products/talentos/payroll/statutory";
 import { type SerializedPayrollProfile, type StatutoryFlags } from "@/lib/products/talentos/payroll";
 import { BUILTIN_STATUTORY, INDIAN_STATES } from "@/lib/products/talentos/payroll/rates";

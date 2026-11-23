@@ -29,7 +29,7 @@ import {
   deleteInvoiceAction,
   uploadInvoiceFileAction,
   recordPaymentAction,
-} from "@/app/(products)/spendiq/(protected)/(staff)/invoices/actions";
+} from "@/app/(products)/spendiq/(protected)/invoices/actions";
 
 export default function InvoiceWorkflow({ invoice }: { invoice: SerializedInvoice }) {
   const router = useRouter();

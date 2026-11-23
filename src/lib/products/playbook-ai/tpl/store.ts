@@ -2,7 +2,6 @@ import "server-only";
 import { getDb } from "@/lib/mongodb";
 import { PB_COLLECTIONS } from "@/lib/products/playbook-ai/pb-collections";
 import { newId } from "@/lib/products/playbook-ai/db";
-import { playbookCan } from "@/lib/playbook-roles";
 import { canonicalJson } from "@/lib/products/playbook-ai/doc/canonical";
 import { sha256Hex } from "@/lib/products/playbook-ai/doc/hash";
 import { recordPbAudit, type PbAuditAction } from "@/lib/products/playbook-ai/pb-audit";
@@ -17,6 +16,7 @@ import {
   TEMPLATE_NAME_MAX, isCatalogueId, slugTypeId, validateCompanyTemplate, validatePolicy,
   type TemplateOrigin, type TemplateRecord, type TemplateReview, type TemplateVersionRecord,
 } from "@/lib/products/playbook-ai/tpl/types";
+import { pbDoc } from "@/lib/playbook-access";
 
 /**
  * Company templates (`pb_templates`) and their immutable published versions (`pb_template_versions`). Server-only.
@@ -119,8 +119,8 @@ const summarize = (r: TemplateRecord): TemplateSummary => ({
 
 /** The company's templates. A person without MANAGE_TEMPLATES sees only the published ones (they are what "Use template" offers). */
 export async function listTemplates(actor: PbActor, f: { status?: TemplateRecord["status"]; category?: CategoryKey; q?: string } = {}): Promise<TplResult<{ items: TemplateSummary[] }>> {
-  if (!playbookCan(actor, "VIEW")) return forbidden("see templates");
-  const manage = playbookCan(actor, "MANAGE_TEMPLATES");
+  if (!pbDoc(actor, "VIEW")) return forbidden("see templates");
+  const manage = pbDoc(actor, "MANAGE_TEMPLATES");
   const filter: Record<string, unknown> = { deletedAt: null };
   if (f.status) filter.status = f.status;
   if (!manage) filter.status = "published";
@@ -134,10 +134,10 @@ export async function listTemplates(actor: PbActor, f: { status?: TemplateRecord
 }
 
 export async function getTemplate(actor: PbActor, id: string): Promise<TplResult<{ template: TemplateRecord; draftReviewed: boolean; publishedReviewed: boolean; starterUpdate: StarterUpdate | null }>> {
-  if (!playbookCan(actor, "VIEW")) return forbidden("see templates");
+  if (!pbDoc(actor, "VIEW")) return forbidden("see templates");
   const rec = await (await col()).findOne({ _id: id, deletedAt: null });
   if (!rec) return notFound();
-  if (rec.status !== "published" && !playbookCan(actor, "MANAGE_TEMPLATES")) return forbidden("see this template");
+  if (rec.status !== "published" && !pbDoc(actor, "MANAGE_TEMPLATES")) return forbidden("see this template");
   let publishedReviewed = false;
   if (rec.publishedVersion !== null) {
     const v = await (await vcol()).findOne({ templateId: id, number: rec.publishedVersion });
@@ -147,13 +147,13 @@ export async function getTemplate(actor: PbActor, id: string): Promise<TplResult
 }
 
 export async function listTemplateVersions(actor: PbActor, id: string): Promise<TplResult<{ versions: Omit<TemplateVersionRecord, "def">[] }>> {
-  if (!playbookCan(actor, "MANAGE_TEMPLATES")) return forbidden("see template versions");
+  if (!pbDoc(actor, "MANAGE_TEMPLATES")) return forbidden("see template versions");
   const rows = await (await vcol()).find({ templateId: id }).sort({ number: -1 }).toArray();
   return { ok: true, versions: rows.map(({ def: _d, ...r }) => { void _d; return r; }) };
 }
 
 export async function getTemplateVersion(actor: PbActor, id: string, number: number): Promise<TplResult<{ version: TemplateVersionRecord; reviewed: boolean }>> {
-  if (!playbookCan(actor, "VIEW")) return forbidden("see templates");
+  if (!pbDoc(actor, "VIEW")) return forbidden("see templates");
   const v = await (await vcol()).findOne({ templateId: id, number });
   if (!v) return notFound();
   return { ok: true, version: v, reviewed: isReviewed(v.review, v.contentSha256) };
@@ -182,7 +182,7 @@ async function insert(actor: PbActor, typeId: string, name: string, origin: Temp
 
 /** "Make my copy": copies a platform starter into the company's templates. The company then owns the copy. */
 export async function cloneStarter(actor: PbActor, starterId: string, opts: { name?: string } = {}): Promise<TplResult<{ template: TemplateRecord }>> {
-  if (!playbookCan(actor, "MANAGE_TEMPLATES")) return forbidden("copy templates");
+  if (!pbDoc(actor, "MANAGE_TEMPLATES")) return forbidden("copy templates");
   const starter = getTemplateDef(starterId);
   if (!starter) return fail({ code: "not_found", message: "That starter template does not exist yet." });
   const existing = await (await col()).findOne({ typeId: starter.id, status: { $ne: "archived" }, deletedAt: null });
@@ -197,7 +197,7 @@ export async function cloneStarter(actor: PbActor, starterId: string, opts: { na
 
 /** A new template from scratch in one of the catalogue categories. */
 export async function createTemplate(actor: PbActor, input: { name: string; category: CategoryKey }): Promise<TplResult<{ template: TemplateRecord }>> {
-  if (!playbookCan(actor, "MANAGE_TEMPLATES")) return forbidden("create templates");
+  if (!pbDoc(actor, "MANAGE_TEMPLATES")) return forbidden("create templates");
   const name = cleanName(input.name);
   if (!name) return fail({ code: "invalid", message: `Give the template a name of up to ${TEMPLATE_NAME_MAX} characters.`, issues: [{ path: "name", message: "required" }] });
   if (!(CATEGORY_KEYS as readonly string[]).includes(input.category)) return fail({ code: "invalid", message: "Choose a category.", issues: [{ path: "category", message: "unknown" }] });
@@ -228,7 +228,7 @@ export interface SaveTemplateInput {
  * the review stamp (the template is unreviewed again) and an archived template cannot be edited.
  */
 export async function saveTemplateDraft(actor: PbActor, input: SaveTemplateInput): Promise<TplResult<{ template: TemplateRecord; reviewCleared: boolean }>> {
-  if (!playbookCan(actor, "MANAGE_TEMPLATES")) return forbidden("edit templates");
+  if (!pbDoc(actor, "MANAGE_TEMPLATES")) return forbidden("edit templates");
   const c = await col();
   const rec = await c.findOne({ _id: input.id, deletedAt: null });
   if (!rec) return notFound();
@@ -259,7 +259,7 @@ export async function saveTemplateDraft(actor: PbActor, input: SaveTemplateInput
 
 /** Publishes the working copy as the next immutable version. New documents use it from now on. */
 export async function publishTemplate(actor: PbActor, input: { id: string; note?: string }): Promise<TplResult<{ template: TemplateRecord; version: number }>> {
-  if (!playbookCan(actor, "MANAGE_TEMPLATES")) return forbidden("publish templates");
+  if (!pbDoc(actor, "MANAGE_TEMPLATES")) return forbidden("publish templates");
   const c = await col();
   const rec = await c.findOne({ _id: input.id, deletedAt: null });
   if (!rec) return notFound();
@@ -295,7 +295,7 @@ export async function publishTemplate(actor: PbActor, input: { id: string; note?
  * version, that version carries the stamp too.
  */
 export async function setReview(actor: PbActor, input: { id: string; reviewed: boolean }): Promise<TplResult<{ template: TemplateRecord }>> {
-  if (!playbookCan(actor, "REVIEW_TEMPLATES")) return forbidden("review templates");
+  if (!pbDoc(actor, "REVIEW_TEMPLATES")) return forbidden("review templates");
   const c = await col();
   const rec = await c.findOne({ _id: input.id, deletedAt: null });
   if (!rec) return notFound();
@@ -311,7 +311,7 @@ export async function setReview(actor: PbActor, input: { id: string; reviewed: b
 }
 
 export async function archiveTemplate(actor: PbActor, id: string): Promise<TplResult<{ template: TemplateRecord }>> {
-  if (!playbookCan(actor, "MANAGE_TEMPLATES")) return forbidden("archive templates");
+  if (!pbDoc(actor, "MANAGE_TEMPLATES")) return forbidden("archive templates");
   const c = await col();
   const after = await c.findOneAndUpdate({ _id: id, deletedAt: null, status: { $ne: "archived" } } as never, { $set: { status: "archived", updatedAt: new Date(), updatedBy: actor.id }, $inc: { rev: 1 } } as never, { returnDocument: "after" });
   if (!after) return fail({ code: "state", message: "That template does not exist or is already archived." });
@@ -321,7 +321,7 @@ export async function archiveTemplate(actor: PbActor, id: string): Promise<TplRe
 
 /** Restoring brings it back as a draft; publish it again to use it. */
 export async function restoreTemplate(actor: PbActor, id: string): Promise<TplResult<{ template: TemplateRecord }>> {
-  if (!playbookCan(actor, "MANAGE_TEMPLATES")) return forbidden("restore templates");
+  if (!pbDoc(actor, "MANAGE_TEMPLATES")) return forbidden("restore templates");
   const c = await col();
   const rec = await c.findOne({ _id: id, deletedAt: null, status: "archived" });
   if (!rec) return fail({ code: "state", message: "That template does not exist or is not archived." });
@@ -335,7 +335,7 @@ export async function restoreTemplate(actor: PbActor, id: string): Promise<TplRe
 
 /** "I have looked at the starter update": the banner goes away. The company's content is untouched; only the marker it compares against moves. */
 export async function acknowledgeStarterUpdate(actor: PbActor, id: string): Promise<TplResult<{ template: TemplateRecord }>> {
-  if (!playbookCan(actor, "MANAGE_TEMPLATES")) return forbidden("edit templates");
+  if (!pbDoc(actor, "MANAGE_TEMPLATES")) return forbidden("edit templates");
   const c = await col();
   const rec = await c.findOne({ _id: id, deletedAt: null });
   if (!rec) return notFound();
@@ -371,7 +371,7 @@ export interface ResolvedTemplate {
  * `templateId` pins a specific company template (its published version).
  */
 export async function resolveTemplate(actor: PbActor, ref: { typeId?: string; templateId?: string }): Promise<TplResult<{ resolved: ResolvedTemplate }>> {
-  if (!playbookCan(actor, "VIEW")) return forbidden("use templates");
+  if (!pbDoc(actor, "VIEW")) return forbidden("use templates");
   const c = await col();
   let rec: TemplateRecord | null = null;
   if (ref.templateId && !ref.templateId.startsWith("starter:")) {

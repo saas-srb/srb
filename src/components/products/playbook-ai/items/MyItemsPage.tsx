@@ -8,10 +8,10 @@ import KpiCard from "@/components/products/dealflow-ai/KpiCard";
 import KpiGrid from "@/components/products/dealflow-ai/KpiGrid";
 import { Button } from "@/components/ui/button";
 import ItemsTable from "@/components/products/playbook-ai/items/ItemsTable";
-import { playbookCan } from "@/lib/playbook-roles";
 import { getPbActor } from "@/lib/products/playbook-ai/pb-actor";
 import { listItems } from "@/lib/products/playbook-ai/items";
 import { ITEM_KIND_INFO, type ItemKind } from "@/lib/products/playbook-ai/items-types";
+import { pbDoc } from "@/lib/playbook-access";
 
 /** "My SOPs", "My Documents" and "My KPI sheets": the same page for the three kinds. Heading, one Search & Filters card, stat cards, tabs. */
 export default async function MyItemsPage({ kind, searchParams }: { kind: ItemKind; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
@@ -22,8 +22,8 @@ export default async function MyItemsPage({ kind, searchParams }: { kind: ItemKi
   const info = ITEM_KIND_INFO[kind];
   const tab = ["all", "draft", "sent", "signed"].includes(one("tab")) ? one("tab") : "all";
   const res = await listItems(actor, { kind, q: one("q"), tab, department: one("department") || undefined });
-  const ctx = { roles: actor.roles, permissionOverrides: actor.permissionOverrides ?? undefined };
-  const canCreate = playbookCan(ctx, "CREATE");
+  const ctx = actor;
+  const canCreate = pbDoc(ctx, "CREATE");
 
   const base = `/playbook-ai/${info.segment}`;
   const href = (t: string) => { const p = new URLSearchParams(); if (one("q")) p.set("q", one("q")); if (one("department")) p.set("department", one("department")); if (t !== "all") p.set("tab", t); const s = p.toString(); return s ? `${base}?${s}` : base; };
@@ -77,10 +77,10 @@ export default async function MyItemsPage({ kind, searchParams }: { kind: ItemKi
           <ItemsTable
             rows={res.rows}
             kind={kind}
-            canSend={playbookCan(ctx, "SEND_FOR_SIGNATURE")}
-            canEdit={playbookCan(ctx, "EDIT") || canCreate}
-            canExport={playbookCan(ctx, "EXPORT")}
-            canDelete={playbookCan(ctx, "EDIT")}
+            canSend={pbDoc(ctx, "SEND_FOR_SIGNATURE")}
+            canEdit={pbDoc(ctx, "EDIT") || canCreate}
+            canExport={pbDoc(ctx, "EXPORT")}
+            canDelete={pbDoc(ctx, "EDIT")}
             emptyText={one("q") || one("department") || tab !== "all" ? "Nothing matches these filters." : `You have no ${info.plural.toLowerCase()} yet. Use one from the ${info.library}, or create your own.`}
           />
         </>

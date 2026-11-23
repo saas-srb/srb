@@ -24,6 +24,8 @@ import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import KpiLink from "@/components/products/playbook-ai/KpiLink";
 import { BarsChart, ColumnsChart, DonutChart, TrendChart } from "@/components/products/playbook-ai/SopCharts";
 import { getViewer } from "@/lib/products/playbook-ai/viewer";
+import { pbCan } from "@/lib/playbook-access";
+import ProductLocked from "@/components/products/common/ProductLocked";
 import { getDashboard } from "@/lib/products/playbook-ai/analytics";
 import { getTaxonomy } from "@/lib/products/playbook-ai/taxonomy";
 import { creatableDepartmentIds } from "@/lib/products/playbook-ai/access";
@@ -48,6 +50,7 @@ export default async function SopDashboardPage({ searchParams }: { searchParams:
   const tax = await getTaxonomy();
   const viewer = await getViewer();
   if (!viewer) redirect("/playbook-ai/login");
+  if (!pbCan(viewer, "dashboard.view")) return <ProductLocked product="playbook-ai" feature="Dashboard" />;
   const d = await getDashboard(viewer, { q: sp.q, departmentId: sp.departmentId });
   const k = d.kpis;
   const canCreate = creatableDepartmentIds(viewer)?.length !== 0;

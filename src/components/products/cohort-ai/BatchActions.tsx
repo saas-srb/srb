@@ -17,7 +17,7 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import BatchForm from "@/components/products/cohort-ai/BatchForm";
-import { deleteBatchAction } from "@/app/(products)/cohort-ai/(protected)/(staff)/batches/actions";
+import { deleteBatchAction } from "@/app/(products)/cohort-ai/(protected)/batches/actions";
 import type { SerializedBatch } from "@/lib/products/cohort-ai/batches";
 
 export default function BatchActions({

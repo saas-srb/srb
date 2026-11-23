@@ -30,8 +30,7 @@ import { HOLIDAY_TYPES } from "@/lib/products/talentos/holiday-types";
 import { OFFER_STATUSES, isValidOfferStatus } from "@/lib/products/talentos/offers-status";
 import { microAny, holds } from "@/lib/ai/agent/micro-gate";
 import { hrScope } from "@/lib/talentos-access";
-import { canApproveLeave, canManageAttendance, canManageEmployees, canManageHolidays, canManageMasters, canManagePayroll, canManagePayrollConfig, canRunPayroll, canManageSettings, canViewAllEmployees, canViewAuditLog } from "@/lib/hrms-roles";
-import * as Bank from "@/app/(products)/talentos/(protected)/(staff)/employees/[id]/bank-actions";
+import * as Bank from "@/app/(products)/talentos/(protected)/employees/[id]/bank-actions";
 import { check, fail, formInput, invalid, str, viaAction } from "@/lib/ai/agent/entities/helpers";
 import type { ActionDef, AgentUser, EntityDef, Json, ReportDef } from "@/lib/ai/agent/types";
 
@@ -50,13 +49,6 @@ const GENDER = GENDERS.map((s) => s.value) as string[];
 const HOLIDAY = HOLIDAY_TYPES.map((s) => s.value) as string[];
 const OFFER = OFFER_STATUSES.map((s) => s.value) as string[];
 
-/** Employees this person may act on: everyone for HR, otherwise themselves and their reporting line. */
-async function inScope(u: AgentUser, employeeId: string): Promise<boolean> {
-  if (canViewAllEmployees(u)) return true;
-  if (!u.employeeId) return false;
-  if (employeeId === u.employeeId) return true;
-  return (await descendantEmployeeIds(u.employeeId)).includes(employeeId);
-}
 /** Module-aware reach (the same own / reporting line / everyone rule the screens use): the employee ids the person may reach, undefined = everyone, [] = nobody. */
 async function reachIds(u: AgentUser, module: Parameters<typeof hrScope>[1]): Promise<string[] | undefined> {
   const scope = hrScope({ subject: u.subject as never }, module);
@@ -87,13 +79,11 @@ const employeeInput = (e: Employee): Json => ({
   emergencyContacts: e.emergencyContacts,
 });
 
-const scoped = (u: AgentUser) => ({ canViewAll: canViewAllEmployees(u) });
-void scoped;
 
 export const HRMS_ENTITIES: EntityDef[] = [
   {
     key: "hrms.employee", panel: "hrms", label: "Employee", description: "People who work here: code, name, work email, status, department, designation, manager, joining date, personal and contact details.", collection: "hrms_employees", idType: "string", baseFilter: soft,
-    titleField: "firstName", search: ["firstName", "lastName", "workEmail", "employeeCode"], read: "staff", allowRead: canViewAllEmployees, write: "staff", allow: canManageEmployees, canDelete: true, hide: ["photoKey"],
+    titleField: "firstName", search: ["firstName", "lastName", "workEmail", "employeeCode"], read: "staff", allowRead: microAny("talentos.employees.all"), write: "staff", allow: microAny("talentos.employees.manage"), canDelete: true, hide: ["photoKey"],
     self: async (u) => (u.employeeId ? { _id: { $in: [u.employeeId, ...(await descendantEmployeeIds(u.employeeId))] } } : null),
     fields: [
       { key: "firstName", label: "First name", type: "string", required: true },
@@ -156,7 +146,7 @@ export const HRMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "hrms.department", panel: "hrms", label: "Department", description: "Departments and their heads.", collection: DEPARTMENTS_COLLECTION, idType: "string", baseFilter: soft, titleField: "name", search: ["name", "code"],
-    read: "any", write: "staff", allow: canManageMasters, canDelete: true,
+    read: "any", allowRead: microAny("talentos.masters.view"), write: "staff", allow: microAny("talentos.masters.manage"), canDelete: true,
     fields: [
       { key: "name", label: "Name", type: "string", required: true },
       { key: "code", label: "Code (2–12 letters/digits)", type: "string", required: true },
@@ -191,7 +181,7 @@ export const HRMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "hrms.designation", panel: "hrms", label: "Designation", description: "Job titles per department.", collection: DESIGNATIONS_COLLECTION, idType: "string", baseFilter: soft, titleField: "title", search: ["title"],
-    read: "any", write: "staff", allow: canManageMasters, canDelete: true,
+    read: "any", allowRead: microAny("talentos.masters.view"), write: "staff", allow: microAny("talentos.masters.manage"), canDelete: true,
     fields: [
       { key: "title", label: "Title", type: "string", required: true },
       { key: "departmentId", label: "Department (hrms.department id)", type: "ref", ref: "hrms.department", required: true },
@@ -226,7 +216,7 @@ export const HRMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "hrms.team", panel: "hrms", label: "Team", description: "Teams inside departments, with a lead.", collection: TEAMS_COLLECTION, idType: "string", baseFilter: soft, titleField: "name", search: ["name"],
-    read: "any", write: "staff", allow: canManageMasters, canDelete: true,
+    read: "any", allowRead: microAny("talentos.masters.view"), write: "staff", allow: microAny("talentos.masters.manage"), canDelete: true,
     fields: [
       { key: "name", label: "Name", type: "string", required: true },
       { key: "departmentId", label: "Department (hrms.department id)", type: "ref", ref: "hrms.department", required: true },
@@ -295,7 +285,7 @@ export const HRMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "hrms.leave_type", panel: "hrms", label: "Leave type", description: "Kinds of leave: code, label, paid, yearly quota, whether balance may go negative.", collection: "hrms_leave_types", idType: "string", baseFilter: soft, titleField: "label", search: ["label", "code"],
-    read: "any", write: "staff", allow: canManageSettings, canDelete: true,
+    read: "any", allowRead: microAny("talentos.leave.view"), write: "staff", allow: microAny("talentos.settings.manage"), canDelete: true,
     fields: [
       { key: "code", label: "Code (lowercase, digits, underscore)", type: "string", required: true, createOnly: true },
       { key: "label", label: "Label", type: "string", required: true },
@@ -334,7 +324,7 @@ export const HRMS_ENTITIES: EntityDef[] = [
   },
   {
     key: "hrms.leave_request", panel: "hrms", label: "Leave request", description: "Leave applications (pending / approved / rejected / cancelled). Employees see and file their own; managers their reporting line; HR all.", collection: "hrms_leave_requests", idType: "string", baseFilter: soft,
-    search: ["reason", "leaveTypeCode", "status", "startDate"], read: "staff", allowRead: microAny("talentos.leave.all"), write: "any", selfWrite: true,
+    search: ["reason", "leaveTypeCode", "status", "startDate"], read: "staff", allowRead: microAny("talentos.leave.all"), allow: microAny("talentos.leave.apply", "talentos.leave.approve"), write: "any", selfWrite: true,
     self: scopeSelf("leave"),
     fields: [
       { key: "employeeId", label: "Employee (hrms.employee id) — leave out to apply for yourself", type: "ref", ref: "hrms.employee", createOnly: true },
@@ -366,7 +356,7 @@ export const HRMS_ENTITIES: EntityDef[] = [
   { key: "hrms.attendance", panel: "hrms", label: "Attendance", description: "Daily attendance per employee (status, check-in/out, late minutes).", collection: "hrms_attendance", read: "staff", allowRead: microAny("talentos.attendance.all"), self: scopeSelf("attendance") },
   {
     key: "hrms.offer", panel: "hrms", label: "Job offer", description: "Offers made to applicants (draft → extended → accepted → joined, or declined/withdrawn).", collection: "hrms_offers", idType: "string", baseFilter: soft, search: ["candidateName", "positionTitle"], titleField: "candidateName",
-    read: "staff", allowRead: canManageEmployees, write: "staff", allow: canManageEmployees,
+    read: "staff", allowRead: microAny("talentos.recruitment.view"), write: "staff", allow: microAny("talentos.recruitment.manage"),
     fields: [
       { key: "applicationId", label: "Job application id (hrms.application)", type: "ref", ref: "hrms.application", required: true, createOnly: true },
       { key: "offerDate", label: "Offer date", type: "dateString" },
@@ -394,13 +384,13 @@ export const HRMS_ENTITIES: EntityDef[] = [
       },
     },
   },
-  { key: "hrms.application", panel: "hrms", label: "Job application", description: "Applications received through the careers pages (candidate, position, status).", collection: "career_applications", read: "staff", allowRead: canManageEmployees, search: ["name", "email", "positionTitle"], hide: ["resume"] },
-  { key: "hrms.payroll_run", panel: "hrms", label: "Payroll run", description: "Monthly payroll runs (draft → approved) with totals.", collection: "hrms_payroll_runs", idType: "string", read: "staff", allowRead: canRunPayroll },
-  { key: "hrms.payslip", panel: "hrms", label: "Payslip", description: "Payslips: employee, month, gross, deductions, net. Employees see their own.", collection: "hrms_payslips", idType: "string", search: ["employeeName", "month"], read: "staff", allowRead: canRunPayroll, self: (u) => (u.employeeId ? { employeeId: u.employeeId } : null) },
-  { key: "hrms.salary_payout", panel: "hrms", label: "Salary payout", description: "Salary transfers per payslip: pending, initiated, paid, failed.", collection: "hrms_salary_payouts", idType: "string", read: "staff", allowRead: canRunPayroll },
-  { key: "hrms.salary_revision", panel: "hrms", label: "Salary revision", description: "History of salary structure changes.", collection: "hrms_salary_revisions", idType: "string", read: "staff", allowRead: canManagePayroll },
-  { key: "hrms.payroll_profile", panel: "hrms", label: "Payroll profile", description: "An employee's salary structure (basic, HRA, allowances, deductions).", collection: "hrms_payroll_profiles", read: "staff", allowRead: canManagePayroll },
-  { key: "hrms.audit", panel: "hrms", label: "Audit log", description: "Who changed what in TalentOS.", collection: "hrms_audit_logs", idType: "string", search: ["entityLabel", "summary", "actorEmail"], read: "admin", allowRead: canViewAuditLog },
+  { key: "hrms.application", panel: "hrms", label: "Job application", description: "Applications received through the careers pages (candidate, position, status).", collection: "career_applications", read: "staff", allowRead: microAny("talentos.recruitment.view"), search: ["name", "email", "positionTitle"], hide: ["resume"] },
+  { key: "hrms.payroll_run", panel: "hrms", label: "Payroll run", description: "Monthly payroll runs (draft → approved) with totals.", collection: "hrms_payroll_runs", idType: "string", read: "staff", allowRead: microAny("talentos.payroll.view") },
+  { key: "hrms.payslip", panel: "hrms", label: "Payslip", description: "Payslips: employee, month, gross, deductions, net. Employees see their own.", collection: "hrms_payslips", idType: "string", search: ["employeeName", "month"], read: "staff", allowRead: microAny("talentos.payroll.view"), self: (u) => (u.employeeId ? { employeeId: u.employeeId } : null) },
+  { key: "hrms.salary_payout", panel: "hrms", label: "Salary payout", description: "Salary transfers per payslip: pending, initiated, paid, failed.", collection: "hrms_salary_payouts", idType: "string", read: "staff", allowRead: microAny("talentos.payroll.view") },
+  { key: "hrms.salary_revision", panel: "hrms", label: "Salary revision", description: "History of salary structure changes.", collection: "hrms_salary_revisions", idType: "string", read: "staff", allowRead: microAny("talentos.salary.manage") },
+  { key: "hrms.payroll_profile", panel: "hrms", label: "Payroll profile", description: "An employee's salary structure (basic, HRA, allowances, deductions).", collection: "hrms_payroll_profiles", read: "staff", allowRead: microAny("talentos.salary.manage") },
+  { key: "hrms.audit", panel: "hrms", label: "Audit log", description: "Who changed what in TalentOS.", collection: "hrms_audit_logs", idType: "string", search: ["entityLabel", "summary", "actorEmail"], read: "admin", allowRead: microAny("talentos.audit.view") },
 ];
 
 // ── Actions ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -409,7 +399,7 @@ const own = (u: AgentUser) => u.employeeId;
 
 export const HRMS_ACTIONS: ActionDef[] = [
   {
-    key: "hrms.change_employee_status", panel: "hrms", label: "Change an employee's status", description: "Move an employee between probation, active, on leave, notice period, relieved or terminated (relieving date for exits).", level: "staff", allow: canManageEmployees,
+    key: "hrms.change_employee_status", panel: "hrms", label: "Change an employee's status", description: "Move an employee between probation, active, on leave, notice period, relieved or terminated (relieving date for exits).", level: "staff", allow: microAny("talentos.employees.manage"),
     params: [{ key: "employeeId", label: "Employee (hrms.employee id)", type: "ref", ref: "hrms.employee", required: true }, { key: "status", label: "New status", type: "enum", options: STATUS, required: true }, { key: "relievingDate", label: "Relieving date (for exits)", type: "dateString" }],
     run: async (v, u) => {
       const status = String(v.status);
@@ -451,7 +441,7 @@ export const HRMS_ACTIONS: ActionDef[] = [
       }
       const r = await cancelLeaveRequest(req._id, u.id);
       if (!r.ok) return fail(r.reason ?? "Could not cancel that request.");
-      await audit(u, { action: "cancel", entity: "leave_request", entityId: req._id, summary: canApproveLeave(u) ? "Leave request cancelled" : "Withdrawn by employee" });
+      await audit(u, { action: "cancel", entity: "leave_request", entityId: req._id, summary: holds(u.subject, "talentos.leave.approve") ? "Leave request cancelled" : "Withdrawn by employee" });
       return { ok: true, id: req._id, result: "Leave cancelled." };
     },
   },
@@ -507,7 +497,7 @@ export const HRMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "hrms.clock_in", panel: "hrms", label: "Clock in", description: "Record your own check-in for today.", level: "any", params: [],
+    key: "hrms.clock_in", panel: "hrms", label: "Clock in", description: "Record your own check-in for today.", level: "any", allow: microAny("talentos.attendance.punch"), params: [],
     run: async (_v, u) => {
       if (!u.employeeId) return fail("Your login isn't linked to an employee record.");
       const { nowInOrgTz } = await import("@/lib/products/talentos/time");
@@ -519,7 +509,7 @@ export const HRMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "hrms.clock_out", panel: "hrms", label: "Clock out", description: "Record your own check-out for today.", level: "any", params: [],
+    key: "hrms.clock_out", panel: "hrms", label: "Clock out", description: "Record your own check-out for today.", level: "any", allow: microAny("talentos.attendance.punch"), params: [],
     run: async (_v, u) => {
       if (!u.employeeId) return fail("Your login isn't linked to an employee record.");
       const r = await clockOut(u.employeeId);
@@ -529,7 +519,7 @@ export const HRMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "hrms.update_my_contact", panel: "hrms", label: "Update my own contact details", description: "Change your own phone, personal email, address and emergency contacts.", level: "any",
+    key: "hrms.update_my_contact", panel: "hrms", label: "Update my own contact details", description: "Change your own phone, personal email, address and emergency contacts.", level: "any", allow: microAny("talentos.profile.edit"),
     params: [
       { key: "phone", label: "Phone", type: "string" }, { key: "personalEmail", label: "Personal email", type: "email" }, { key: "addressLine", label: "Address", type: "string" },
       { key: "city", label: "City", type: "string" }, { key: "state", label: "State", type: "string" }, { key: "postalCode", label: "Postal code", type: "string" },
@@ -548,7 +538,7 @@ export const HRMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "hrms.set_offer_status", panel: "hrms", label: "Change a job offer's status", description: "Extend, accept, decline, withdraw an offer (notifies the HR team).", level: "staff", allow: canManageEmployees,
+    key: "hrms.set_offer_status", panel: "hrms", label: "Change a job offer's status", description: "Extend, accept, decline, withdraw an offer (notifies the HR team).", level: "staff", allow: microAny("talentos.recruitment.manage"),
     params: [{ key: "offerId", label: "Offer id (hrms.offer)", type: "ref", ref: "hrms.offer", required: true }, { key: "status", label: "New status", type: "enum", options: OFFER, required: true }],
     run: async (v, u) => {
       const status = String(v.status);
@@ -561,7 +551,7 @@ export const HRMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "hrms.convert_applicant", panel: "hrms", label: "Hire an applicant (create the employee from their application)", description: "Create the employee record from a job application and mark their offer as joined.", level: "staff", allow: canManageEmployees,
+    key: "hrms.convert_applicant", panel: "hrms", label: "Hire an applicant (create the employee from their application)", description: "Create the employee record from a job application and mark their offer as joined.", level: "staff", allow: microAny("talentos.recruitment.manage"),
     params: [
       { key: "applicationId", label: "Job application id (hrms.application)", type: "ref", ref: "hrms.application", required: true },
       { key: "firstName", label: "First name", type: "string", required: true }, { key: "lastName", label: "Last name", type: "string", required: true },
@@ -583,7 +573,7 @@ export const HRMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "hrms.save_payroll_profile", panel: "hrms", label: "Set an employee's salary structure", description: "Basic, HRA, allowances, deductions and PF/ESI/UAN/PAN numbers for payroll.", level: "staff", allow: canManagePayroll,
+    key: "hrms.save_payroll_profile", panel: "hrms", label: "Set an employee's salary structure", description: "Basic, HRA, allowances, deductions and PF/ESI/UAN/PAN numbers for payroll.", level: "staff", allow: microAny("talentos.salary.manage"),
     params: [
       { key: "employeeId", label: "Employee (hrms.employee id)", type: "ref", ref: "hrms.employee", required: true },
       { key: "basic", label: "Basic per month", type: "number", required: true }, { key: "hra", label: "HRA per month", type: "number", required: true },
@@ -602,7 +592,7 @@ export const HRMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "hrms.create_salary_revision", panel: "hrms", label: "Record a salary revision", description: "A new salary structure effective from a date, kept in the employee's history.", level: "staff", allow: canRunPayroll,
+    key: "hrms.create_salary_revision", panel: "hrms", label: "Record a salary revision", description: "A new salary structure effective from a date, kept in the employee's history.", level: "staff", allow: microAny("talentos.payroll.run"),
     params: [
       { key: "employeeId", label: "Employee (hrms.employee id)", type: "ref", ref: "hrms.employee", required: true }, { key: "effectiveFrom", label: "Effective from", type: "dateString", required: true },
       { key: "basic", label: "Basic per month", type: "number", required: true }, { key: "hra", label: "HRA per month", type: "number", required: true },
@@ -619,7 +609,7 @@ export const HRMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "hrms.create_payroll_run", panel: "hrms", label: "Generate a month's payroll run", description: "Create the payroll run (all payslips) for a month, YYYY-MM. It stays a draft until approved.", level: "staff", allow: canRunPayroll,
+    key: "hrms.create_payroll_run", panel: "hrms", label: "Generate a month's payroll run", description: "Create the payroll run (all payslips) for a month, YYYY-MM. It stays a draft until approved.", level: "staff", allow: microAny("talentos.payroll.run"),
     params: [{ key: "month", label: "Month (YYYY-MM)", type: "string", required: true }],
     run: async (v, u) => {
       const month = String(v.month);
@@ -631,7 +621,7 @@ export const HRMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "hrms.approve_payroll_run", panel: "hrms", label: "Approve a payroll run (creates the salary payouts)", description: "Finalise a drafted payroll run. This locks the month and creates the salary payouts.", level: "staff", allow: canRunPayroll, destructive: true,
+    key: "hrms.approve_payroll_run", panel: "hrms", label: "Approve a payroll run (creates the salary payouts)", description: "Finalise a drafted payroll run. This locks the month and creates the salary payouts.", level: "staff", allow: microAny("talentos.payroll.run"), destructive: true,
     params: [{ key: "runId", label: "Payroll run id (hrms.payroll_run)", type: "ref", ref: "hrms.payroll_run", required: true }],
     run: async (v, u) => {
       const run = await getRun(String(v.runId));
@@ -642,7 +632,7 @@ export const HRMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "hrms.delete_payroll_run", panel: "hrms", label: "Delete a draft payroll run", description: "Remove a payroll run that has not been approved.", level: "staff", allow: canRunPayroll, destructive: true,
+    key: "hrms.delete_payroll_run", panel: "hrms", label: "Delete a draft payroll run", description: "Remove a payroll run that has not been approved.", level: "staff", allow: microAny("talentos.payroll.run"), destructive: true,
     params: [{ key: "runId", label: "Payroll run id (hrms.payroll_run)", type: "ref", ref: "hrms.payroll_run", required: true }],
     run: async (v, u) => {
       const run = await getRun(String(v.runId));
@@ -653,7 +643,7 @@ export const HRMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "hrms.set_payslip_overrides", panel: "hrms", label: "Adjust a payslip (arrears, other deductions, manual TDS)", description: "Apply arrears, other deductions or a manual TDS to one payslip of a draft run.", level: "staff", allow: canRunPayroll,
+    key: "hrms.set_payslip_overrides", panel: "hrms", label: "Adjust a payslip (arrears, other deductions, manual TDS)", description: "Apply arrears, other deductions or a manual TDS to one payslip of a draft run.", level: "staff", allow: microAny("talentos.payroll.run"),
     params: [{ key: "payslipId", label: "Payslip id (hrms.payslip)", type: "ref", ref: "hrms.payslip", required: true }, { key: "arrears", label: "Arrears", type: "number" }, { key: "otherDeductions", label: "Other deductions", type: "number" }, { key: "manualTds", label: "Manual TDS (leave out for automatic)", type: "number" }],
     run: async (v, u) => {
       const slip = await getPayslip(String(v.payslipId));
@@ -667,7 +657,7 @@ export const HRMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "hrms.recompute_payslip", panel: "hrms", label: "Recompute a payslip", description: "Recalculate a payslip from the current salary structure, attendance and rates.", level: "staff", allow: canRunPayroll,
+    key: "hrms.recompute_payslip", panel: "hrms", label: "Recompute a payslip", description: "Recalculate a payslip from the current salary structure, attendance and rates.", level: "staff", allow: microAny("talentos.payroll.run"),
     params: [{ key: "payslipId", label: "Payslip id (hrms.payslip)", type: "ref", ref: "hrms.payslip", required: true }],
     run: async (v) => {
       const r = await recomputePayslip(String(v.payslipId));
@@ -675,17 +665,17 @@ export const HRMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "hrms.initiate_payouts", panel: "hrms", label: "Pay salaries (send the payouts)", description: "Not available here: salaries are paid from Payroll → the run → Pay with Razorpay, with a confirmation code.", level: "staff", allow: canRunPayroll, destructive: true,
+    key: "hrms.initiate_payouts", panel: "hrms", label: "Pay salaries (send the payouts)", description: "Not available here: salaries are paid from Payroll → the run → Pay with Razorpay, with a confirmation code.", level: "staff", allow: microAny("talentos.payroll.run"), destructive: true,
     params: [{ key: "payoutIds", label: "Payout ids (hrms.salary_payout)", type: "stringList", required: true }],
     run: async () => fail(MONEY_MOVES_IN_THE_APP),
   },
   {
-    key: "hrms.retry_payout", panel: "hrms", label: "Retry a failed payout", description: "Not available here: retry from the payout in the app, with a confirmation code.", level: "staff", allow: canRunPayroll, destructive: true,
+    key: "hrms.retry_payout", panel: "hrms", label: "Retry a failed payout", description: "Not available here: retry from the payout in the app, with a confirmation code.", level: "staff", allow: microAny("talentos.payroll.run"), destructive: true,
     params: [{ key: "payoutId", label: "Payout id (hrms.salary_payout)", type: "ref", ref: "hrms.salary_payout", required: true }],
     run: async () => fail(MONEY_MOVES_IN_THE_APP),
   },
   {
-    key: "hrms.cancel_payout", panel: "hrms", label: "Cancel a salary payout", description: "Cancel a payout that has not been paid.", level: "staff", allow: canRunPayroll, destructive: true,
+    key: "hrms.cancel_payout", panel: "hrms", label: "Cancel a salary payout", description: "Cancel a payout that has not been paid.", level: "staff", allow: microAny("talentos.payroll.run"), destructive: true,
     params: [{ key: "payoutId", label: "Payout id (hrms.salary_payout)", type: "ref", ref: "hrms.salary_payout", required: true }],
     run: async (v, u) => {
       const r = await cancelPayout(String(v.payoutId), { id: u.id, email: u.email });
@@ -693,7 +683,7 @@ export const HRMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "hrms.refresh_payout", panel: "hrms", label: "Check a salary payout's status with RazorpayX", description: "Asks RazorpayX whether a salary payout was paid, failed or returned. Use it when the status looks stuck.", level: "staff", allow: canRunPayroll,
+    key: "hrms.refresh_payout", panel: "hrms", label: "Check a salary payout's status with RazorpayX", description: "Asks RazorpayX whether a salary payout was paid, failed or returned. Use it when the status looks stuck.", level: "staff", allow: microAny("talentos.payroll.run"),
     params: [{ key: "payoutId", label: "Payout id (hrms.salary_payout)", type: "ref", ref: "hrms.salary_payout", required: true }],
     run: async (v) => {
       const r = await refreshSalaryPayout(String(v.payoutId));
@@ -701,7 +691,7 @@ export const HRMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "hrms.save_work_schedule", panel: "hrms", label: "Change the work schedule", description: "Working days (0=Sunday…6=Saturday), shift start/end, grace and early-departure minutes, half/full day hours, timezone.", level: "admin", allow: canManageSettings,
+    key: "hrms.save_work_schedule", panel: "hrms", label: "Change the work schedule", description: "Working days (0=Sunday…6=Saturday), shift start/end, grace and early-departure minutes, half/full day hours, timezone.", level: "admin", allow: microAny("talentos.settings.manage"),
     params: [
       { key: "workingDays", label: "Working days as numbers 0–6", type: "json" }, { key: "shiftStart", label: "Shift start HH:MM", type: "string" }, { key: "shiftEnd", label: "Shift end HH:MM", type: "string" },
       { key: "graceMinutes", label: "Late grace minutes", type: "number" }, { key: "earlyDepartureMinutes", label: "Early departure minutes", type: "number" },
@@ -717,7 +707,7 @@ export const HRMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "hrms.save_company_details", panel: "hrms", label: "Change company details used on payslips", description: "Legal name, address, PAN, GSTIN, PF/ESI codes, signatory and payslip note.", level: "admin", allow: canManageSettings,
+    key: "hrms.save_company_details", panel: "hrms", label: "Change company details used on payslips", description: "Legal name, address, PAN, GSTIN, PF/ESI codes, signatory and payslip note.", level: "admin", allow: microAny("talentos.settings.manage"),
     params: ["name", "legalName", "addressLine1", "addressLine2", "city", "state", "postalCode", "country", "email", "phone", "website", "pan", "gstin", "cin", "pfEstablishmentCode", "esiEstablishmentCode", "lin", "tan", "ptRegistration", "signatoryName", "signatoryDesignation", "payslipNote"].map((k) => ({ key: k, label: k, type: "string" as const })),
     run: async (v, u) => {
       const cur = (await getCompanyDetails()) as unknown as Json;
@@ -733,7 +723,7 @@ export const HRMS_ACTIONS: ActionDef[] = [
     },
   },
   {
-    key: "hrms.save_payroll_config", panel: "hrms", label: "Change payroll policy", description: "How days are counted (calendar/working/fixed), sandwich rule, overtime, late marks, which registrations the company holds (PF, ESI, professional tax, labour welfare fund), default tax regime and deduction limit. The law's own rates (PF, ESI, tax slabs, professional tax) are set by the platform and cannot be changed here.", level: "admin", allow: canManagePayrollConfig,
+    key: "hrms.save_payroll_config", panel: "hrms", label: "Change payroll policy", description: "How days are counted (calendar/working/fixed), sandwich rule, overtime, late marks, which registrations the company holds (PF, ESI, professional tax, labour welfare fund), default tax regime and deduction limit. The law's own rates (PF, ESI, tax slabs, professional tax) are set by the platform and cannot be changed here.", level: "admin", allow: microAny("talentos.payrollrates.manage"),
     params: [
       { key: "paidDaysBasis", label: "Pay days basis", type: "enum", options: ["calendar", "working", "fixed"] }, { key: "fixedDays", label: "Fixed days (26 or 30) when basis is fixed", type: "number" },
       { key: "sandwichRule", label: "Sandwich rule", type: "enum", options: ["none", "unpaid_leave", "all_lop"] }, { key: "unmarkedDay", label: "Working day with no attendance", type: "enum", options: ["lop", "present"] },
@@ -753,7 +743,7 @@ export const HRMS_ACTIONS: ActionDef[] = [
   ...(["save_bank_account", "set_primary_bank_account", "set_bank_verification", "delete_bank_account"] as const).map((k): ActionDef => {
     const emp = { key: "employeeId", label: "Employee (hrms.employee id)", type: "ref", ref: "hrms.employee", required: true } as const;
     const acct = { key: "accountId", label: "Bank account id", type: "string", required: true } as const;
-    const base = { panel: "hrms", level: "staff" as const, allow: canManagePayroll, destructive: true };
+    const base = { panel: "hrms", level: "staff" as const, allow: microAny("talentos.salary.manage"), destructive: true };
     if (k === "save_bank_account") return { ...base, key: "hrms.save_bank_account", label: "Add or edit an employee's bank account", description: "Salary account: holder, bank, branch, type, account number, IFSC, UPI, primary. Leave accountId out to add. Account numbers are stored encrypted and never shown back.", params: [emp, { key: "accountId", label: "Account id to edit (leave out to add)", type: "string" }, { key: "accountHolderName", label: "Account holder name", type: "string", required: true }, { key: "bankName", label: "Bank name", type: "string", required: true }, { key: "branch", label: "Branch", type: "string" }, { key: "accountType", label: "Type (savings / current)", type: "string", required: true }, { key: "accountNumber", label: "Account number", type: "string", required: true }, { key: "ifsc", label: "IFSC", type: "string", required: true }, { key: "upiId", label: "UPI id", type: "string" }, { key: "isPrimary", label: "Primary account", type: "boolean" }], run: (v) => viaAction(() => Bank.saveBankAccountAction(String(v.employeeId), v, str(v.accountId) ?? undefined), "Bank account saved.") };
     if (k === "set_primary_bank_account") return { ...base, key: "hrms.set_primary_bank_account", label: "Make a bank account primary", description: "Salary is paid to the primary account.", params: [emp, acct], run: (v) => viaAction(() => Bank.setPrimaryBankAccountAction(String(v.employeeId), String(v.accountId)), "Primary account set.") };
     if (k === "set_bank_verification") return { ...base, key: "hrms.set_bank_verification", label: "Verify or reject a bank account", description: "Record the verification result for an account (status: verified / rejected / pending).", params: [emp, acct, { key: "status", label: "Status", type: "enum", options: ["verified", "rejected", "pending"], required: true }, { key: "note", label: "Note", type: "string" }], run: (v) => viaAction(() => Bank.setBankVerificationAction(String(v.employeeId), String(v.accountId), String(v.status), String(v.note ?? "")), "Verification saved.") };
@@ -764,11 +754,10 @@ export const HRMS_ACTIONS: ActionDef[] = [
 // ── Reports ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 const isoDay = () => new Date().toISOString().slice(0, 10);
-const staffOnly = (u: AgentUser) => canViewAllEmployees(u) || !!u.employeeId;
 
 export const HRMS_REPORTS: ReportDef[] = [
   {
-    key: "hrms.dashboard", panel: "hrms", label: "HR dashboard numbers", description: "Headcount, joiners, exits, attrition, department and gender split.", level: "staff", allow: canViewAllEmployees,
+    key: "hrms.dashboard", panel: "hrms", label: "HR dashboard numbers", description: "Headcount, joiners, exits, attrition, department and gender split.", level: "staff", allow: microAny("talentos.dashboard.all"),
     params: [{ key: "dateFrom", label: "From", type: "dateString" }, { key: "dateTo", label: "To", type: "dateString" }, { key: "departmentId", label: "Department id", type: "string" }],
     run: async (v) => (await getHrmsDashboardStats({ dateFrom: v.dateFrom ? new Date(String(v.dateFrom)) : undefined, dateTo: v.dateTo ? new Date(`${String(v.dateTo)}T23:59:59`) : undefined, departmentId: str(v.departmentId) ?? undefined })) as unknown as Json,
   },

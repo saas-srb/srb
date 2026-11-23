@@ -7,7 +7,9 @@ export const hrmsEvents = {
   leaveCancelled: async (l: { id: string; employeeId: string; startDate: string; endDate: string; days: number }) => {
     const { getEmployee, employeeFullName } = await import("@/lib/products/talentos/employees");
     const e = await getEmployee(l.employeeId);
-    await notify({ audience: "staff", type: "leave_cancelled", title: `Approved leave cancelled: ${e ? employeeFullName(e) : "an employee"}`, body: `${l.startDate} to ${l.endDate} (${l.days} day${l.days === 1 ? "" : "s"}) is back on the calendar.`, link: "/talentos/leave", dedupeKey: `leave-cancelled:${l.id}` });
+    const { titlesOfEmployees, nameWithTitle } = await import("@/lib/platform/organization/title-server");
+    const who = e ? nameWithTitle(employeeFullName(e), (await titlesOfEmployees([l.employeeId])).get(l.employeeId)) : "an employee";
+    await notify({ audience: "staff", type: "leave_cancelled", title: `Approved leave cancelled: ${who}`, body: `${l.startDate} to ${l.endDate} (${l.days} day${l.days === 1 ? "" : "s"}) is back on the calendar.`, link: "/talentos/leave", dedupeKey: `leave-cancelled:${l.id}` });
   },
   payrollReady: (run: { id: string; month: string; employees?: number }) =>
     notify({ audience: "staff", type: "payroll_ready", title: `Payroll for ${run.month} is ready for approval`, body: run.employees ? `${run.employees} payslips were generated.` : "Review and approve the run.", link: `/talentos/payroll/${run.id}`, dedupeKey: `payroll-ready:${run.id}` }),

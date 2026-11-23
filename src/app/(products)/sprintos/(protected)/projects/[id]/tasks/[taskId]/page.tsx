@@ -12,7 +12,7 @@ import SubtaskList from "@/components/products/sprintos/tasks/SubtaskList";
 import TaskComments from "@/components/products/sprintos/tasks/TaskComments";
 import TaskAttachments from "@/components/products/sprintos/tasks/TaskAttachments";
 import { getCurrentPmsUser } from "@/lib/pms-auth";
-import { canManageProjects, isPmsAdmin } from "@/lib/pms-roles";
+import { pmsCan, pmsSeesAll } from "@/lib/pms-access";
 import { checkProjectAccess } from "@/lib/products/sprintos/access";
 import { getProject } from "@/lib/products/sprintos/projects";
 import { getTask, listSubtasks, listProjectLabels, listTasks, serializeTask } from "@/lib/products/sprintos/tasks";
@@ -31,8 +31,8 @@ export default async function TaskDetailPage({
   if (!project || !task || task.projectId !== id) notFound();
   if (user && !(await checkProjectAccess(user, id)).allowed) notFound();
 
-  const canManage = user ? canManageProjects(user) : false;
-  const admin = user ? isPmsAdmin(user) : false;
+  const canManage = user ? pmsCan(user, "projects.manage") : false;
+  const admin = user ? pmsSeesAll(user) : false;
 
   const [subtasks, comments, employees, labels, parent, attachments, projectTasks] = await Promise.all([
     listSubtasks(taskId),

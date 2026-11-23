@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import ResourceForm, { type FieldSpec } from "@/components/products/spendiq/ResourceForm";
 import { BILLING_CYCLES, RESOURCE_STATUSES, SUPPORTED_CURRENCIES } from "@/lib/products/spendiq/constants";
-import { saveSubscriptionAction } from "@/app/(products)/spendiq/(protected)/(staff)/subscriptions/actions";
+import { saveSubscriptionAction } from "@/app/(products)/spendiq/(protected)/subscriptions/actions";
 import type { SoftwareSubscription } from "@/lib/products/spendiq/software-subscriptions";
 
 export default function SubscriptionForm({

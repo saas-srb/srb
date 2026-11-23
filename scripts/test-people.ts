@@ -1,4 +1,4 @@
-import { microByKey } from "../src/lib/access/micro";
+import { microByKey, microOf } from "../src/lib/access/micro";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { ObjectId } from "mongodb";
@@ -95,13 +95,14 @@ const ui = buildAccessUi();
     assert.equal(checkAccess({}).products, 0);
   });
   await T("the Preview summary lists what a person can do, can only view and cannot do", () => {
-    const f = featuresOf("sprintos").filter((e) => e.kind !== "tier");
+    // every product is on micro features now: the summary is built from them
+    const f = microOf("playbook-ai").filter((e) => e.kind !== "scope");
     const w = f.find((e) => e.level === "write")!, r = f.find((e) => e.level === "read")!;
-    const s = summarizeAccess({ sprintos: { [w.key]: "write", [r.key]: "read" } }, ui.products).find((x) => x.key === "sprintos")!;
+    const s = summarizeAccess({ "playbook-ai": { [w.key]: "write", [r.key]: "read" } }, ui.products).find((x) => x.key === "playbook-ai")!;
     assert.equal(s.level, "write");
     assert.ok(s.canDo.length >= 1 && s.canView.length >= 1 && s.cannot.length >= 1);
-    assert.equal(summarizeAccess({}, ui.products).find((x) => x.key === "sprintos")!.level, "none");
-    assert.equal(summarizeAccess({}, ui.products, true).find((x) => x.key === "sprintos")!.cannot.length, 0);
+    assert.equal(summarizeAccess({}, ui.products).find((x) => x.key === "playbook-ai")!.level, "none");
+    assert.equal(summarizeAccess({}, ui.products, true).find((x) => x.key === "playbook-ai")!.cannot.length, 0);
   });
 
   console.log("the screens (static)");

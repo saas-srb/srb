@@ -4,7 +4,7 @@ import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import ProjectTabs from "@/components/products/sprintos/ProjectTabs";
 import DocumentsManager from "@/components/products/sprintos/DocumentsManager";
 import { getCurrentPmsUser } from "@/lib/pms-auth";
-import { canManageProjects } from "@/lib/pms-roles";
+import { pmsCan, pmsSeesAll } from "@/lib/pms-access";
 import { checkProjectAccess } from "@/lib/products/sprintos/access";
 import { getProject } from "@/lib/products/sprintos/projects";
 import { listCurrentDocuments, documentVersions, serializeDocument } from "@/lib/products/sprintos/documents";
@@ -14,7 +14,7 @@ export default async function ProjectDocumentsPage({ params }: { params: Promise
   const [user, project] = await Promise.all([getCurrentPmsUser(), getProject(id)]);
   if (!project) notFound();
   if (user && !(await checkProjectAccess(user, id)).allowed) notFound();
-  const canManage = user ? canManageProjects(user) : false;
+  const canManage = user ? pmsCan(user, "projects.manage") : false;
 
   const current = await listCurrentDocuments(id);
   const groups = await Promise.all(

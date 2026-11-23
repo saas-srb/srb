@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { CERTIFICATE_TYPES } from "@/lib/products/cohort-ai/constants";
-import { issueCertificateAction } from "@/app/(products)/cohort-ai/(protected)/(staff)/certificates/actions";
+import { issueCertificateAction } from "@/app/(products)/cohort-ai/(protected)/certificates/actions";
 
 export default function CertificateIssueForm({
   students,

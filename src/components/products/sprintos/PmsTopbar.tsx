@@ -9,10 +9,12 @@ import PanelSearch from "@/components/platform/PanelSearch";
 import { useAskAiOpen } from "@/lib/ai/use-ask-ai-open";
 import AskAiDrawer from "@/components/platform/AskAiDrawer";
 import type { PmsRole } from "@/lib/pms-roles";
+import type { AccessSubject } from "@/lib/access/can";
 
 export default function PmsTopbar({
   roles,
   permissionOverrides,
+  subject,
   employeeId,
   notifications,
   unread = 0,
@@ -20,6 +22,7 @@ export default function PmsTopbar({
   roles: PmsRole[];
   allRoles: string[];
   permissionOverrides?: Record<string, boolean>;
+  subject: AccessSubject;
   employeeId: string | null;
   notifications: BellItem[];
   unread: number;
@@ -27,7 +30,7 @@ export default function PmsTopbar({
   const [aiOpen, setAiOpen] = useAskAiOpen();
   return (
     <header className="flex h-14 shrink-0 items-center gap-2 px-3 sm:gap-3 sm:px-4">
-      <PmsMobileSidebar roles={roles} permissionOverrides={permissionOverrides} employeeId={employeeId} />
+      <PmsMobileSidebar roles={roles} permissionOverrides={permissionOverrides} subject={subject} employeeId={employeeId} />
       <PanelHeading panel="pms" fallbackTitle="Project Management" fallbackDescription="Plan projects, tasks & team performance" />
       <div className="flex min-w-0 shrink-0 justify-end md:flex-1 md:shrink md:justify-center">
         <PanelSearch />

@@ -1,10 +1,10 @@
 import "server-only";
-import { playbookCan } from "@/lib/playbook-roles";
 import { currentCompanyId } from "@/lib/platform/tenancy/context";
 import { getBrandMeta } from "@/lib/products/playbook-ai/brand/store";
 import { getTemplateDef } from "@/lib/products/playbook-ai/catalogue/registry";
 import { renderLibraryDocument, type LibraryKind, type LibraryRender } from "@/lib/products/playbook-ai/library-render";
 import type { PbActor, PbResult } from "@/lib/products/playbook-ai/documents-types";
+import { pbDoc } from "@/lib/playbook-access";
 
 /**
  * Library preview and blank-template downloads for people. Permission check, a short-lived cache per (company, kind, id, template version,
@@ -16,7 +16,7 @@ const cache = new Map<string, { at: number; value: Extract<LibraryRender, { ok: 
 let running = 0;
 
 export async function previewLibraryFile(actor: PbActor, kind: LibraryKind, id: string, format: "pdf" | "docx"): Promise<PbResult<{ bytes: Buffer; pages: number | null; filename: string; cached: boolean }>> {
-  if (!playbookCan(actor, "VIEW")) return { ok: false, error: { code: "forbidden", message: "You are not allowed to view documents." } };
+  if (!pbDoc(actor, "VIEW")) return { ok: false, error: { code: "forbidden", message: "You are not allowed to view documents." } };
   if (kind !== "document" && kind !== "sop" && kind !== "kpi") return { ok: false, error: { code: "invalid", message: "Unknown library.", issues: [] } };
   const [companyId, brand] = await Promise.all([currentCompanyId(), getBrandMeta().catch(() => ({ updatedAt: null as Date | null }))]);
   const version = kind === "document" ? getTemplateDef(id)?.version ?? 0 : 1;

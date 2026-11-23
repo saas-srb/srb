@@ -24,7 +24,7 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
-import { saveLeaveTypeAction, deleteLeaveTypeAction } from "@/app/(products)/talentos/(protected)/(staff)/settings/actions";
+import { saveLeaveTypeAction, deleteLeaveTypeAction } from "@/app/(products)/talentos/(protected)/settings/actions";
 
 interface LeaveTypeRow {
   _id: string;

@@ -13,8 +13,9 @@
  * `pb_versions` and the next issue creates a new version.
  */
 
-import { playbookCan, type PlaybookPermission } from "@/lib/playbook-roles";
+import { type PlaybookPermission } from "@/lib/playbook-roles";
 import type { RoleContext } from "@/lib/permission-overrides";
+import { pbDoc } from "@/lib/playbook-access";
 
 export const DOC_STATUSES = ["draft", "in_review", "approved", "issued", "archived"] as const;
 export type DocStatus = (typeof DOC_STATUSES)[number];
@@ -144,16 +145,16 @@ export interface AccessInfo {
 
 /** People with an approval or settings capability see and edit every document; everyone else only their own and those shared with them. */
 export function seesAllDocuments(actor: RoleContext): boolean {
-  return playbookCan(actor, "APPROVE") || playbookCan(actor, "ISSUE") || playbookCan(actor, "SETTINGS");
+  return pbDoc(actor, "APPROVE") || pbDoc(actor, "ISSUE") || pbDoc(actor, "SETTINGS");
 }
 
 export function canViewDoc(actor: RoleContext & { id: string }, d: AccessInfo): boolean {
-  if (!playbookCan(actor, "VIEW")) return false;
+  if (!pbDoc(actor, "VIEW")) return false;
   return seesAllDocuments(actor) || d.createdBy === actor.id || d.acl.some((a) => a.userId === actor.id);
 }
 
 export function canEditDoc(actor: RoleContext & { id: string }, d: AccessInfo): boolean {
-  if (!playbookCan(actor, "EDIT")) return false;
+  if (!pbDoc(actor, "EDIT")) return false;
   return seesAllDocuments(actor) || d.createdBy === actor.id || d.acl.some((a) => a.userId === actor.id && a.level === "edit");
 }
 
@@ -178,7 +179,7 @@ export function documentCapabilities(
   const transitions = view
     ? transitionsFrom(d.status).filter((t) => {
         const perm = transitionPermission(t, d.status);
-        if (!playbookCan(actor, perm)) return false;
+        if (!pbDoc(actor, perm)) return false;
         // Submitting, withdrawing, revising and archiving a draft need write access to this particular document.
         return perm === "APPROVE" || perm === "ISSUE" || own;
       })
@@ -187,9 +188,9 @@ export function documentCapabilities(
     view,
     edit: own && d.status === "draft" && !d.deleted,
     transitions: d.deleted ? [] : transitions,
-    export: view && !d.deleted && playbookCan(actor, "EXPORT"),
+    export: view && !d.deleted && pbDoc(actor, "EXPORT"),
     delete: own && !d.deleted && (d.status === "draft" || d.status === "archived"),
-    purge: playbookCan(actor, "MANAGE_RETENTION"),
-    holdLegal: playbookCan(actor, "MANAGE_RETENTION"),
+    purge: pbDoc(actor, "MANAGE_RETENTION"),
+    holdLegal: pbDoc(actor, "MANAGE_RETENTION"),
   };
 }

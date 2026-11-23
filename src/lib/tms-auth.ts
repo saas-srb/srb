@@ -6,6 +6,8 @@ import { cookies } from "next/headers";
 import { ObjectId } from "mongodb";
 import { WORKSPACE_SESSION_COOKIE, workspaceSessionAccountId } from "@/lib/workspace-session";
 import { getDb } from "@/lib/mongodb";
+import { subjectFromRow } from "@/lib/access/server";
+import type { AccessSubject } from "@/lib/access/can";
 import { verifyPassword, hashPassword } from "@/lib/lms-auth";
 import { TMS_ROLES, normalizeTmsRoles, type TmsRole } from "@/lib/tms-roles";
 
@@ -54,6 +56,8 @@ export interface CurrentTmsUser {
   allRoles: string[];
   /** Per-capability overrides from the Director — see `permission-overrides.ts`. */
   permissionOverrides: Record<string, boolean>;
+  /** The person's access (micro features): what every CohortAI check reads. */
+  subject: AccessSubject;
   /** Linked `hrms_employees` id — set for `mentor` accounts. */
   employeeId: string | null;
   /** Linked `training_students` id — set for `training_student` accounts. */
@@ -174,6 +178,7 @@ export async function getTmsUserForAccount(adminId: ObjectId): Promise<CurrentTm
     roles,
     allRoles: user.roles ?? [],
     permissionOverrides: user.permissionOverrides ?? {},
+    subject: subjectFromRow(user as never),
     employeeId: user.employeeId ?? null,
     studentId: user.studentId ?? null,
     mustChangePassword: user.mustChangePassword === true,

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { saveCostingConfigAction } from "@/app/(products)/sprintos/(protected)/(staff)/costing/actions";
+import { saveCostingConfigAction } from "@/app/(products)/sprintos/(protected)/costing/actions";
 
 export default function CostingConfigForm({
   projectId,

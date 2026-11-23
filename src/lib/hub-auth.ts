@@ -1,3 +1,5 @@
+import { subjectFromRow } from "@/lib/access/server";
+import type { AccessSubject } from "@/lib/access/can";
 import { blockedMessage, canSignIn, statusOf } from "@/lib/security/account-status";
 import { passwordPolicyError } from "@/lib/security/password";
 import { accountWithinSeats } from "@/lib/platform/billing/enforce";
@@ -66,6 +68,8 @@ export interface CurrentHubUser {
   roles: string[];
   /** The Director's per-user capability overrides (`permission-overrides.ts`). */
   permissionOverrides?: Record<string, boolean>;
+  /** What the person may do, from their micro features (People & access): the one answer for the Workspace menus, pages and actions. */
+  subject: AccessSubject;
   mustChangePassword: boolean;
   /** false only for a new sign-up that hasn't verified its email; a missing field counts as verified. */
   emailVerified?: boolean;
@@ -235,6 +239,7 @@ export async function getSessionHubUser(token: string | undefined | null): Promi
     email: user.email,
     roles: user.roles ?? [],
     permissionOverrides: user.permissionOverrides ?? {},
+    subject: subjectFromRow(user as never),
     mustChangePassword: user.mustChangePassword === true,
     emailVerified: user.emailVerified !== false,
     createdAt: user.createdAt,

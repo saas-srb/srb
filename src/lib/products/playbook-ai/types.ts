@@ -176,6 +176,8 @@ export interface FeedbackDoc {
 
 /** Who is asking — everything access decisions need, resolved once per request. */
 export interface SopViewer {
+  /** The person's access (micro features). */
+  subject: import("@/lib/access/can").AccessSubject;
   userId: string;
   email: string;
   name: string;

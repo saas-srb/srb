@@ -287,92 +287,92 @@ export const BUSINESS_WORKFLOWS_FAQS: FaqHubGroup[] = [
       {
         q: "Can employees create their own purchase requisitions?",
         a: "Yes. A requisition can be created for the signed-in requester and records their user and employee identity.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/requisitions/actions.ts:45-90"],
+        evidence: ["src/app/(products)/spendiq/(protected)/requisitions/actions.ts:45-90"],
       },
       {
         q: "Can a requester submit a requisition after saving it?",
         a: "Yes. A separate submit action moves the request into its approval flow and notifies procurement approvers.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/requisitions/actions.ts:92-123"],
+        evidence: ["src/app/(products)/spendiq/(protected)/requisitions/actions.ts:92-123"],
       },
       {
         q: "Can a requisition be approved or rejected with a note?",
         a: "Yes. Authorized approvers can decide a requisition either way and include a decision note; the requester is notified.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/requisitions/actions.ts:125-176"],
+        evidence: ["src/app/(products)/spendiq/(protected)/requisitions/actions.ts:125-176"],
       },
       {
         q: "Can a requisition go through more than one approval step?",
         a: "Yes. The decision logic can report partial progress and full approval, rather than treating every approval as a single yes/no action.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/requisitions/actions.ts:145-176"],
+        evidence: ["src/app/(products)/spendiq/(protected)/requisitions/actions.ts:145-176"],
       },
       {
         q: "Does SpendIQ notify employees about requisition decisions?",
         a: "Yes. Requesters receive a notification indicating rejection, full approval or progress through the approval flow.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/requisitions/actions.ts:151-168"],
+        evidence: ["src/app/(products)/spendiq/(protected)/requisitions/actions.ts:151-168"],
       },
       {
         q: "Can procurement create an RFQ from a requisition?",
         a: "Yes. Procurement can create an RFQ using a requisition ID and selected vendor IDs.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/rfq/actions.ts:82-89"],
+        evidence: ["src/app/(products)/spendiq/(protected)/rfq/actions.ts:82-89"],
       },
       {
         q: "Can an RFQ include multiple product or service lines?",
         a: "Yes. RFQ input parses multiple lines and requires at least one valid description-and-quantity line.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/rfq/actions.ts:35-59"],
+        evidence: ["src/app/(products)/spendiq/(protected)/rfq/actions.ts:35-59"],
       },
       {
         q: "Can I select several vendors for an RFQ?",
         a: "Yes. An RFQ stores a filtered list of selected vendor IDs with its title, lines and optional requisition and department references.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/rfq/actions.ts:51-68"],
+        evidence: ["src/app/(products)/spendiq/(protected)/rfq/actions.ts:51-68"],
       },
       {
         q: "Can I mark an RFQ as sent to vendors?",
         a: "Yes. The send action changes the RFQ status to sent and records that it was marked as sent to vendors.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/rfq/actions.ts:91-98"],
+        evidence: ["src/app/(products)/spendiq/(protected)/rfq/actions.ts:91-98"],
       },
       {
         q: "Can I compare vendor quotations on an RFQ?",
         a: "The RFQ flow records each vendor’s unit prices by line, with optional delivery days, payment terms, technical score and notes.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/rfq/actions.ts:100-120"],
+        evidence: ["src/app/(products)/spendiq/(protected)/rfq/actions.ts:100-120"],
       },
       {
         q: "Can an RFQ award be turned into a purchase order?",
         a: "Yes. Awarding an RFQ invokes the award logic and returns the resulting purchase-order ID.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/rfq/actions.ts:123-131"],
+        evidence: ["src/app/(products)/spendiq/(protected)/rfq/actions.ts:123-131"],
       },
       {
         q: "Can an approved requisition prefill a purchase order?",
         a: "Yes. The purchase-order prefill reads the requisition’s department, project, preferred vendor, currency and requested line details.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/purchase-orders/actions.ts:165-185"],
+        evidence: ["src/app/(products)/spendiq/(protected)/purchase-orders/actions.ts:165-185"],
       },
       {
         q: "Can a purchase order be linked back to its requisition?",
         a: "Yes. Purchase orders retain the requisition reference; creating one from an approved requisition marks that requisition converted.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/purchase-orders/actions.ts:79-109"],
+        evidence: ["src/app/(products)/spendiq/(protected)/purchase-orders/actions.ts:79-109"],
       },
       {
         q: "What details can a purchase order capture?",
         a: "A purchase order can include a vendor, department, project, line items, discount, currency, delivery address and date, payment terms and notes.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/purchase-orders/actions.ts:66-99"],
+        evidence: ["src/app/(products)/spendiq/(protected)/purchase-orders/actions.ts:66-99"],
       },
       {
         q: "Can I issue a purchase order after drafting it?",
         a: "Yes. Issuing a PO changes it through the purchase-order logic, records an audit entry and notifies relevant staff.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/purchase-orders/actions.ts:122-134"],
+        evidence: ["src/app/(products)/spendiq/(protected)/purchase-orders/actions.ts:122-134"],
       },
       {
         q: "Can an issued purchase order be cancelled or closed?",
         a: "Yes. Separate actions set a PO to cancelled or closed and record the status change.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/purchase-orders/actions.ts:136-152"],
+        evidence: ["src/app/(products)/spendiq/(protected)/purchase-orders/actions.ts:136-152"],
       },
       {
         q: "Can I record goods received against a purchase order?",
         a: "Yes. A goods-receipt action requires a selected PO and creates a receipt through the goods-receipt business logic.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/grn/actions.ts:23-55"],
+        evidence: ["src/app/(products)/spendiq/(protected)/grn/actions.ts:23-55"],
       },
       {
         q: "Can I manage vendor records in SpendIQ?",
         a: "Yes. Vendor actions support creating, updating and deleting vendor records, with vendor changes audited.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/vendors/actions.ts:30-86"],
+        evidence: ["src/app/(products)/spendiq/(protected)/vendors/actions.ts:30-86"],
       },
       {
         q: "Does the system prevent deleting a vendor still used by open requests?",
@@ -382,67 +382,67 @@ export const BUSINESS_WORKFLOWS_FAQS: FaqHubGroup[] = [
       {
         q: "Can vendor payment terms be captured?",
         a: "Yes. Vendor records include payment terms, and PO defaults can use the selected vendor’s payment terms when no override is supplied.",
-        evidence: ["src/lib/products/spendiq/vendors.ts:220-250", "src/app/(products)/spendiq/(protected)/(staff)/purchase-orders/actions.ts:89-96"],
+        evidence: ["src/lib/products/spendiq/vendors.ts:220-250", "src/app/(products)/spendiq/(protected)/purchase-orders/actions.ts:89-96"],
       },
       {
         q: "Can finance enter vendor invoices?",
         a: "Yes. SpendIQ provides vendor invoices with a save action requiring a valid vendor and invoice lines.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/invoices/actions.ts:42-84"],
+        evidence: ["src/app/(products)/spendiq/(protected)/invoices/actions.ts:42-84"],
       },
       {
         q: "Can an invoice be approved or rejected?",
         a: "Yes. The vendor-invoice action has a decision operation that validates the requested status and passes it to the invoice workflow.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/invoices/actions.ts:136-154"],
+        evidence: ["src/app/(products)/spendiq/(protected)/invoices/actions.ts:136-154"],
       },
       {
         q: "Can I record and process a payment for a vendor invoice?",
         a: "Yes. SpendIQ has separate actions to record a payment and process a recorded payment.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/invoices/actions.ts:156-195"],
+        evidence: ["src/app/(products)/spendiq/(protected)/invoices/actions.ts:156-195"],
       },
       {
         q: "Can vendor invoice documents be attached?",
         a: "Yes. The vendor-invoice flow includes an upload action for an invoice file.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/invoices/actions.ts:103-134"],
+        evidence: ["src/app/(products)/spendiq/(protected)/invoices/actions.ts:103-134"],
       },
       {
         q: "Can employee expenses include a receipt or invoice file?",
         a: "Yes. Employee expenses have a separate action to upload an invoice attachment to an expense record.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/expenses/actions.ts:128-162"],
+        evidence: ["src/app/(products)/spendiq/(protected)/expenses/actions.ts:128-162"],
       },
       {
         q: "Can managers approve or reject an employee expense?",
         a: "Yes. The expense action records a decision and an optional note for approval or rejection.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/expenses/actions.ts:164-184"],
+        evidence: ["src/app/(products)/spendiq/(protected)/expenses/actions.ts:164-184"],
       },
       {
         q: "Can an approved expense be reimbursed?",
         a: "Yes. SpendIQ exposes a reimbursement action for an expense; its exact payment execution behavior is separate from this recorded workflow.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/expenses/actions.ts:185-195"],
+        evidence: ["src/app/(products)/spendiq/(protected)/expenses/actions.ts:185-195"],
       },
       {
         q: "Can an expense repeat on a recurring schedule?",
         a: "The expense workflow lets staff toggle whether an expense is recurring.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/expenses/actions.ts:196-204"],
+        evidence: ["src/app/(products)/spendiq/(protected)/expenses/actions.ts:196-204"],
       },
       {
         q: "Can I maintain departmental or project budgets?",
         a: "Yes. SpendIQ includes budget create/update and delete operations, plus an action to refresh budget figures.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/budgets/actions.ts:10-85"],
+        evidence: ["src/app/(products)/spendiq/(protected)/budgets/actions.ts:10-85"],
       },
       {
         q: "Does SpendIQ provide an analytics screen?",
         a: "Yes. A staff analytics route is available alongside the procurement dashboard.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/analytics/page.tsx:1-80"],
+        evidence: ["src/app/(products)/spendiq/(protected)/analytics/page.tsx:1-80"],
       },
       {
         q: "Can I manage inventory items?",
         a: "Yes. Inventory actions create, update and delete inventory items and record inventory transactions.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/inventory/actions.ts:17-98"],
+        evidence: ["src/app/(products)/spendiq/(protected)/inventory/actions.ts:17-98"],
       },
       {
         q: "Can an inventory transaction be recorded against a specific item?",
         a: "Yes. The inventory transaction action takes an item ID and the transaction details separately from item maintenance.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/inventory/actions.ts:70-90"],
+        evidence: ["src/app/(products)/spendiq/(protected)/inventory/actions.ts:70-90"],
       },
       {
         q: "Can I see the value of stock on hand?",
@@ -452,22 +452,22 @@ export const BUSINESS_WORKFLOWS_FAQS: FaqHubGroup[] = [
       {
         q: "Can I assign an asset to an employee?",
         a: "Yes. Asset assignment records the employee ID and name together with an optional note.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/assets/actions.ts:101-108"],
+        evidence: ["src/app/(products)/spendiq/(protected)/assets/actions.ts:101-108"],
       },
       {
         q: "Can an assigned asset be returned?",
         a: "Yes. A separate return action records the return and any note.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/assets/actions.ts:110-117"],
+        evidence: ["src/app/(products)/spendiq/(protected)/assets/actions.ts:110-117"],
       },
       {
         q: "Can I update an asset’s lifecycle status?",
         a: "Yes. Asset status changes are validated against the supported statuses before being saved.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/assets/actions.ts:119-127"],
+        evidence: ["src/app/(products)/spendiq/(protected)/assets/actions.ts:119-127"],
       },
       {
         q: "Can asset records include purchase and depreciation details?",
         a: "Yes. The asset model includes purchase-date and depreciation-related fields, and asset detail pages expose individual assets.",
-        evidence: ["src/lib/products/spendiq/assets.ts:13-35", "src/app/(products)/spendiq/(protected)/(staff)/assets/[id]/page.tsx:1-80"],
+        evidence: ["src/lib/products/spendiq/assets.ts:13-35", "src/app/(products)/spendiq/(protected)/assets/[id]/page.tsx:1-80"],
       },
       {
         q: "Can I manage infrastructure resources that have renewal dates?",
@@ -477,7 +477,7 @@ export const BUSINESS_WORKFLOWS_FAQS: FaqHubGroup[] = [
       {
         q: "Can I track software subscriptions by vendor and billing cycle?",
         a: "Yes. Subscription records include a vendor, billing cycle and status, and invalid cycle or status values are rejected.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/subscriptions/actions.ts:30-60", "src/lib/products/spendiq/software-subscriptions.ts:21-75"],
+        evidence: ["src/app/(products)/spendiq/(protected)/subscriptions/actions.ts:30-60", "src/lib/products/spendiq/software-subscriptions.ts:21-75"],
       },
       {
         q: "Can recurring subscriptions be viewed as a monthly commitment?",
@@ -487,12 +487,12 @@ export const BUSINESS_WORKFLOWS_FAQS: FaqHubGroup[] = [
       {
         q: "Can I track third-party services separately from subscriptions?",
         a: "Yes. SpendIQ has a third-party-services resource with its own create, update and delete actions, including vendor, cycle and status fields.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/third-party/actions.ts:30-78"],
+        evidence: ["src/app/(products)/spendiq/(protected)/third-party/actions.ts:30-78"],
       },
       {
         q: "Can I store contracts with vendor records?",
         a: "Yes. SpendIQ offers contract records and an action to attach a contract document.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/contracts/actions.ts:32-88", "src/lib/products/spendiq/contracts.ts:11-65"],
+        evidence: ["src/app/(products)/spendiq/(protected)/contracts/actions.ts:32-88", "src/lib/products/spendiq/contracts.ts:11-65"],
       },
       {
         q: "Can requisitions, expenses and purchase orders point to projects?",
@@ -507,12 +507,12 @@ export const BUSINESS_WORKFLOWS_FAQS: FaqHubGroup[] = [
       {
         q: "Can I see requisitions and expenses as an employee?",
         a: "Yes. The employee area has separate requisition and expense pages, including details for an individual request or expense.",
-        evidence: ["src/app/(products)/spendiq/(protected)/me/requisitions/page.tsx:1-70", "src/app/(products)/spendiq/(protected)/me/expenses/page.tsx:1-70"],
+        evidence: ["src/app/(products)/spendiq/(protected)/requisitions/page.tsx:1-70", "src/app/(products)/spendiq/(protected)/expenses/page.tsx:1-70"],
       },
       {
         q: "Can I manage procurement settings?",
         a: "Yes. The staff settings page saves SpendIQ procurement settings through a dedicated action.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/settings/actions.ts:9-34", "src/app/(products)/spendiq/(protected)/(staff)/settings/page.tsx:1-26"],
+        evidence: ["src/app/(products)/spendiq/(protected)/settings/actions.ts:9-34", "src/app/(products)/spendiq/(protected)/settings/page.tsx:1-26"],
       },
       {
         q: "Can authorized teams export SpendIQ records?",
@@ -522,27 +522,27 @@ export const BUSINESS_WORKFLOWS_FAQS: FaqHubGroup[] = [
       {
         q: "Does SpendIQ keep a record of procurement decisions?",
         a: "Yes. Requisition, RFQ, PO and vendor mutations record audit events, including approval, status and conversion actions.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/requisitions/actions.ts:103-149", "src/app/(products)/spendiq/(protected)/(staff)/rfq/actions.ts:82-130", "src/app/(products)/spendiq/(protected)/(staff)/purchase-orders/actions.ts:122-152"],
+        evidence: ["src/app/(products)/spendiq/(protected)/requisitions/actions.ts:103-149", "src/app/(products)/spendiq/(protected)/rfq/actions.ts:82-130", "src/app/(products)/spendiq/(protected)/purchase-orders/actions.ts:122-152"],
       },
       {
         q: "Can a requester edit a requisition created by someone else?",
         a: "Only procurement staff can update another requester’s requisition; the action checks the requester identity before allowing a non-staff user to update it.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/requisitions/actions.ts:51-60"],
+        evidence: ["src/app/(products)/spendiq/(protected)/requisitions/actions.ts:51-60"],
       },
       {
         q: "Are high-value approved requisitions treated differently?",
         a: "When an approved requisition meets the configured finance-notification threshold, SpendIQ sends an additional notification to finance and administrative roles.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/requisitions/actions.ts:168-184"],
+        evidence: ["src/app/(products)/spendiq/(protected)/requisitions/actions.ts:168-184"],
       },
       {
         q: "Can I attach supporting files to requisitions?",
         a: "Yes. Requisition actions include uploading and removing an attachment by storage key.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/requisitions/actions.ts:209-246"],
+        evidence: ["src/app/(products)/spendiq/(protected)/requisitions/actions.ts:209-246"],
       },
       {
         q: "Does a goods receipt require a purchase order?",
         a: "Yes. The goods-receipt action requires a PO selection and returns a field error if one is missing.",
-        evidence: ["src/app/(products)/spendiq/(protected)/(staff)/grn/actions.ts:23-29"],
+        evidence: ["src/app/(products)/spendiq/(protected)/grn/actions.ts:23-29"],
       },
     ],
   },
@@ -589,17 +589,17 @@ export const BUSINESS_WORKFLOWS_FAQS: FaqHubGroup[] = [
       {
         q: "Can a project be assigned to an existing client?",
         a: "Yes. SprintOS has client records and project forms load client choices, allowing project work to be associated with the client record.",
-        evidence: ["src/app/(products)/sprintos/(protected)/(staff)/clients/actions.ts:30-70", "src/app/(products)/sprintos/(protected)/projects/page.tsx:25-36"],
+        evidence: ["src/app/(products)/sprintos/(protected)/clients/actions.ts:30-70", "src/app/(products)/sprintos/(protected)/projects/page.tsx:25-36"],
       },
       {
         q: "Can I create a client record in SprintOS?",
         a: "Yes. Client actions validate input and create or update a SprintOS client; deletion is also a distinct action.",
-        evidence: ["src/app/(products)/sprintos/(protected)/(staff)/clients/actions.ts:30-86"],
+        evidence: ["src/app/(products)/sprintos/(protected)/clients/actions.ts:30-86"],
       },
       {
         q: "Can clients be downloaded as an export?",
         a: "Yes. SprintOS exposes a client export route in addition to the client list and detail pages.",
-        evidence: ["src/app/(products)/api/sprintos/clients/export/route.ts:1-50", "src/app/(products)/sprintos/(protected)/(staff)/clients/page.tsx:1-80"],
+        evidence: ["src/app/(products)/api/sprintos/clients/export/route.ts:1-50", "src/app/(products)/sprintos/(protected)/clients/page.tsx:1-80"],
       },
       {
         q: "Can one project have multiple members?",
@@ -659,7 +659,7 @@ export const BUSINESS_WORKFLOWS_FAQS: FaqHubGroup[] = [
       {
         q: "Is there a company-wide project calendar?",
         a: "Yes. Staff users have a calendar page that scopes project visibility according to their access.",
-        evidence: ["src/app/(products)/sprintos/(protected)/(staff)/calendar/page.tsx:1-50"],
+        evidence: ["src/app/(products)/sprintos/(protected)/calendar/page.tsx:1-50"],
       },
       {
         q: "Can project documents be managed from a project page?",
@@ -679,67 +679,67 @@ export const BUSINESS_WORKFLOWS_FAQS: FaqHubGroup[] = [
       {
         q: "Can employees use a self-service SprintOS area?",
         a: "Yes. The /me area has an employee dashboard and separate views for assigned projects, tasks and timesheets.",
-        evidence: ["src/app/(products)/sprintos/(protected)/me/page.tsx:26-61", "src/app/(products)/sprintos/(protected)/me/projects/page.tsx:1-40", "src/app/(products)/sprintos/(protected)/me/tasks/page.tsx:1-30"],
+        evidence: ["src/app/(products)/sprintos/(protected)/page.tsx:26-61", "src/app/(products)/sprintos/(protected)/projects/page.tsx:1-40", "src/app/(products)/sprintos/(protected)/tasks/page.tsx:1-30"],
       },
       {
         q: "Can employees log time to a project?",
         a: "Yes. A timesheet entry requires project access and can optionally reference a task belonging to that same project.",
-        evidence: ["src/app/(products)/sprintos/(protected)/me/timesheet/actions.ts:36-58"],
+        evidence: ["src/app/(products)/sprintos/(protected)/timesheets/actions.ts:36-58"],
       },
       {
         q: "Can time be recorded against a project without selecting a task?",
         a: "Yes. Task validation only runs when a task ID is supplied, so a project-level time entry without a task is supported.",
-        evidence: ["src/app/(products)/sprintos/(protected)/me/timesheet/actions.ts:47-56"],
+        evidence: ["src/app/(products)/sprintos/(protected)/timesheets/actions.ts:47-56"],
       },
       {
         q: "Does SprintOS prevent overlapping time entries?",
         a: "Yes. The timesheet save action rejects entries that overlap another entry for the employee on the same day.",
-        evidence: ["src/app/(products)/sprintos/(protected)/me/timesheet/actions.ts:58-64"],
+        evidence: ["src/app/(products)/sprintos/(protected)/timesheets/actions.ts:58-64"],
       },
       {
         q: "Can an employee log duplicate time for the same project and task?",
         a: "No. SprintOS checks for a duplicate project/task entry at the same time and date before saving.",
-        evidence: ["src/app/(products)/sprintos/(protected)/me/timesheet/actions.ts:53-60"],
+        evidence: ["src/app/(products)/sprintos/(protected)/timesheets/actions.ts:53-60"],
       },
       {
         q: "Does the timesheet stop a day from exceeding 24 hours?",
         a: "Yes. The save action compares the day’s existing hours plus the new entry against a 24-hour maximum.",
-        evidence: ["src/app/(products)/sprintos/(protected)/me/timesheet/actions.ts:61-67"],
+        evidence: ["src/app/(products)/sprintos/(protected)/timesheets/actions.ts:61-67"],
       },
       {
         q: "Can employees edit a timesheet after submitting it?",
         a: "No. Submitted and approved entries are not editable through the employee action.",
-        evidence: ["src/app/(products)/sprintos/(protected)/me/timesheet/actions.ts:71-80"],
+        evidence: ["src/app/(products)/sprintos/(protected)/timesheets/actions.ts:71-80"],
       },
       {
         q: "Can employees submit several timesheet entries together?",
         a: "Yes. The submission action accepts a list of entry IDs and submits the current employee’s eligible entries.",
-        evidence: ["src/app/(products)/sprintos/(protected)/me/timesheet/actions.ts:98-122"],
+        evidence: ["src/app/(products)/sprintos/(protected)/timesheets/actions.ts:98-122"],
       },
       {
         q: "Are project managers notified when time is submitted?",
         a: "Yes. After submission, the action identifies the project managers for the submitted projects and notifies them that review is pending.",
-        evidence: ["src/app/(products)/sprintos/(protected)/me/timesheet/actions.ts:103-122"],
+        evidence: ["src/app/(products)/sprintos/(protected)/timesheets/actions.ts:103-122"],
       },
       {
         q: "Can reviewers approve or reject a timesheet entry?",
         a: "Yes. Reviewers can approve or reject an entry and include an optional note; the employee receives a notification.",
-        evidence: ["src/app/(products)/sprintos/(protected)/(staff)/timesheets/review-actions.ts:21-48"],
+        evidence: ["src/app/(products)/sprintos/(protected)/timesheets/review-actions.ts:21-48"],
       },
       {
         q: "Can timesheets be reviewed in bulk?",
         a: "Yes. The bulk review action accepts multiple IDs and applies the chosen approved or rejected decision to each entry.",
-        evidence: ["src/app/(products)/sprintos/(protected)/(staff)/timesheets/review-actions.ts:50-62"],
+        evidence: ["src/app/(products)/sprintos/(protected)/timesheets/review-actions.ts:50-62"],
       },
       {
         q: "Can employees distinguish billable from non-billable time?",
         a: "Yes. The employee timesheet summary separates billable and non-billable hours for the selected range.",
-        evidence: ["src/app/(products)/sprintos/(protected)/me/timesheet/page.tsx:53-80"],
+        evidence: ["src/app/(products)/sprintos/(protected)/timesheets/page.tsx:53-80"],
       },
       {
         q: "Can I see my hours by project and task?",
         a: "Yes. Employee timesheet reporting includes hours by project and hours by task, alongside a time trend.",
-        evidence: ["src/app/(products)/sprintos/(protected)/me/timesheet/page.tsx:53-60"],
+        evidence: ["src/app/(products)/sprintos/(protected)/timesheets/page.tsx:53-60"],
       },
       {
         q: "Can SprintOS compare estimated and actual project cost?",
@@ -754,17 +754,17 @@ export const BUSINESS_WORKFLOWS_FAQS: FaqHubGroup[] = [
       {
         q: "Can costing be configured separately per project?",
         a: "Yes. The costing configuration action is scoped to a project and validates the submitted configuration before saving.",
-        evidence: ["src/app/(products)/sprintos/(protected)/(staff)/costing/actions.ts:17-44"],
+        evidence: ["src/app/(products)/sprintos/(protected)/costing/actions.ts:17-44"],
       },
       {
         q: "Can I review costing for a particular project?",
         a: "Yes. SprintOS provides a costing list and a project-specific costing detail route.",
-        evidence: ["src/app/(products)/sprintos/(protected)/(staff)/costing/page.tsx:1-80", "src/app/(products)/sprintos/(protected)/(staff)/costing/[id]/page.tsx:1-80"],
+        evidence: ["src/app/(products)/sprintos/(protected)/costing/page.tsx:1-80", "src/app/(products)/sprintos/(protected)/costing/[id]/page.tsx:1-80"],
       },
       {
         q: "Does SprintOS provide project analytics?",
         a: "Yes. Staff analytics aggregates projects, clients, timesheets, milestones and active project-member data.",
-        evidence: ["src/app/(products)/sprintos/(protected)/(staff)/analytics/page.tsx:12-52"],
+        evidence: ["src/app/(products)/sprintos/(protected)/analytics/page.tsx:12-52"],
       },
       {
         q: "Can I configure project categories and technology suggestions?",

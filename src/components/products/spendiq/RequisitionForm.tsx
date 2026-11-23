@@ -19,7 +19,7 @@ import {
   SUPPORTED_CURRENCIES,
   subcategoriesFor,
 } from "@/lib/products/spendiq/constants";
-import { saveRequisitionAction } from "@/app/(products)/spendiq/(protected)/(staff)/requisitions/actions";
+import { saveRequisitionAction } from "@/app/(products)/spendiq/(protected)/requisitions/actions";
 import type { SerializedRequisition } from "@/lib/products/spendiq/requisitions";
 
 type FormState = Record<string, string>;

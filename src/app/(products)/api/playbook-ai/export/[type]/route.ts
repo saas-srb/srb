@@ -1,12 +1,12 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextRequest, NextResponse } from "next/server";
 import { getViewer } from "@/lib/products/playbook-ai/viewer";
-import { sopCan } from "@/lib/sop-roles";
 import { canViewCompliance } from "@/lib/products/playbook-ai/access";
 import { EXPORT_TYPES, buildExport, type ExportType } from "@/lib/products/playbook-ai/exports";
 import { buildWorkbook } from "@/lib/products/playbook-ai/xlsx";
 import { recordAudit } from "@/lib/products/playbook-ai/audit";
 import { toCsv } from "@/lib/csv";
+import { pbSop } from "@/lib/playbook-access";
 
 type Context = { params: Promise<{ type: string }> };
 
@@ -22,11 +22,11 @@ async function handleGET(req: NextRequest, { params }: Context) {
   const { type } = await params;
   if (!(EXPORT_TYPES as readonly string[]).includes(type)) return NextResponse.json({ error: "Unknown export." }, { status: 404 });
   const kind = type as ExportType;
-  const ctx = { roles: viewer.roles, permissionOverrides: viewer.overrides };
+  const ctx = viewer;
 
   // Capability first; the datasets themselves are then built from the viewer's own permission-filtered data.
   const allowed =
-    kind === "audit" ? sopCan(ctx, "VIEW_AUDIT") : kind === "compliance" || kind === "acknowledgements" ? sopCan(ctx, "EXPORT") && canViewCompliance(viewer) : sopCan(ctx, "EXPORT");
+    kind === "audit" ? pbSop(ctx, "VIEW_AUDIT") : kind === "compliance" || kind === "acknowledgements" ? pbSop(ctx, "EXPORT") && canViewCompliance(viewer) : pbSop(ctx, "EXPORT");
   if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const format = (req.nextUrl.searchParams.get("format") ?? "csv").toLowerCase();

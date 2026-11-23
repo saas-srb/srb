@@ -1,11 +1,11 @@
-import { sopCan } from "@/lib/sop-roles";
 import { deriveStatus, isLive } from "@/lib/products/playbook-ai/lifecycle";
 import type { SopStatus } from "@/lib/products/playbook-ai/constants";
 import type { SopDoc, SopSummary, SopViewer } from "@/lib/products/playbook-ai/types";
+import { pbSop } from "@/lib/playbook-access";
 
 /**
  * The single source of truth for "who can do what to which SOP". Two layers:
- *   1. capability   — `sopCan(viewer, PERM)` (role + Director override)
+ *   1. capability   — `pbSop(viewer, PERM)` (role + Director override)
  *   2. object scope — WHICH SOPs: all (admin) / own department(s) (manager) /
  *      own (author, or an employee granted a write permission by override)
  * plus confidentiality for reads. Every list, page, file route and server
@@ -34,7 +34,7 @@ export function toAccessDoc(d: SopDoc, today: string): AccessDoc & { version: st
   };
 }
 
-const ctx = (v: SopViewer) => ({ roles: v.roles, permissionOverrides: v.overrides });
+const ctx = (v: SopViewer) => (v);
 
 function isOwnerOrAuthor(v: SopViewer, s: AccessDoc): boolean {
   return s.ownerId === v.userId || s.authorId === v.userId || s.createdBy === v.userId;
@@ -53,13 +53,13 @@ export function inWriteScope(v: SopViewer, s: AccessDoc): boolean {
  * scope over it).
  */
 export function canReadSop(v: SopViewer, s: AccessDoc, assigned: boolean): boolean {
-  if (!sopCan(ctx(v), "VIEW")) return false;
+  if (!pbSop(ctx(v), "VIEW")) return false;
   if (v.isAdmin) return true;
   if (isOwnerOrAuthor(v, s)) return true;
 
   const managesDept = v.manageDepartmentIds.includes(s.departmentId);
   const c = ctx(v);
-  const canWriteSomething = sopCan(c, "EDIT") || sopCan(c, "PUBLISH") || sopCan(c, "CREATE") || sopCan(c, "ARCHIVE");
+  const canWriteSomething = pbSop(c, "EDIT") || pbSop(c, "PUBLISH") || pbSop(c, "CREATE") || pbSop(c, "ARCHIVE");
   // Drafts and archived SOPs are only for the people who maintain them.
   if (s.status === "draft" || s.status === "archived") return managesDept && canWriteSomething;
   if (!isLive(s.status)) return false;
@@ -86,53 +86,53 @@ export function canReadSop(v: SopViewer, s: AccessDoc, assigned: boolean): boole
 }
 
 export function canEditSop(v: SopViewer, s: AccessDoc): boolean {
-  return sopCan(ctx(v), "EDIT") && inWriteScope(v, s) && s.status !== "archived";
+  return pbSop(ctx(v), "EDIT") && inWriteScope(v, s) && s.status !== "archived";
 }
 
 export function canPublishSop(v: SopViewer, s: AccessDoc): boolean {
-  return sopCan(ctx(v), "PUBLISH") && inWriteScope(v, s) && s.status !== "archived";
+  return pbSop(ctx(v), "PUBLISH") && inWriteScope(v, s) && s.status !== "archived";
 }
 
 /** Only live (published/active) SOPs can be assigned — there is nothing to acknowledge on a draft. */
 export function canAssignSop(v: SopViewer, s: AccessDoc): boolean {
-  return sopCan(ctx(v), "ASSIGN") && inWriteScope(v, s) && (s.status === "published" || s.status === "active");
+  return pbSop(ctx(v), "ASSIGN") && inWriteScope(v, s) && (s.status === "published" || s.status === "active");
 }
 
 export function canArchiveSop(v: SopViewer, s: AccessDoc): boolean {
-  return sopCan(ctx(v), "ARCHIVE") && inWriteScope(v, s) && s.status !== "archived";
+  return pbSop(ctx(v), "ARCHIVE") && inWriteScope(v, s) && s.status !== "archived";
 }
 
 export function canRestoreSop(v: SopViewer, s: AccessDoc): boolean {
-  return sopCan(ctx(v), "ARCHIVE") && inWriteScope(v, s) && s.status === "archived";
+  return pbSop(ctx(v), "ARCHIVE") && inWriteScope(v, s) && s.status === "archived";
 }
 
 /** A never-published draft can be discarded by whoever can edit it. */
 export function canDeleteDraftSop(v: SopViewer, s: AccessDoc & { version: string | null }): boolean {
-  return s.status === "draft" && !s.version && sopCan(ctx(v), "EDIT") && inWriteScope(v, s);
+  return s.status === "draft" && !s.version && pbSop(ctx(v), "EDIT") && inWriteScope(v, s);
 }
 
 export function canDownloadSop(v: SopViewer, s: AccessDoc, assigned: boolean): boolean {
-  return sopCan(ctx(v), "DOWNLOAD") && s.allowDownload && canReadSop(v, s, assigned);
+  return pbSop(ctx(v), "DOWNLOAD") && s.allowDownload && canReadSop(v, s, assigned);
 }
 
 export function canAcknowledgeSop(v: SopViewer, s: AccessDoc, assigned: boolean): boolean {
-  return sopCan(ctx(v), "ACKNOWLEDGE") && (s.status === "published" || s.status === "active") && canReadSop(v, s, assigned);
+  return pbSop(ctx(v), "ACKNOWLEDGE") && (s.status === "published" || s.status === "active") && canReadSop(v, s, assigned);
 }
 
 /** Editing the explicit access list needs edit scope AND (MANAGE_PERMISSIONS or being the owner). */
 export function canGrantAccess(v: SopViewer, s: AccessDoc): boolean {
-  return canEditSop(v, s) && (sopCan(ctx(v), "MANAGE_PERMISSIONS") || s.ownerId === v.userId);
+  return canEditSop(v, s) && (pbSop(ctx(v), "MANAGE_PERMISSIONS") || s.ownerId === v.userId);
 }
 
 export function canCreateInDepartment(v: SopViewer, departmentId: string): boolean {
-  if (!sopCan(ctx(v), "CREATE")) return false;
+  if (!pbSop(ctx(v), "CREATE")) return false;
   if (v.isAdmin) return true;
   return v.memberDepartmentIds.includes(departmentId) || v.headedDepartmentIds.includes(departmentId) || v.manageDepartmentIds.includes(departmentId);
 }
 
 /** Departments the viewer may create SOPs in (`null` = all). */
 export function creatableDepartmentIds(v: SopViewer): string[] | null {
-  if (!sopCan(ctx(v), "CREATE")) return [];
+  if (!pbSop(ctx(v), "CREATE")) return [];
   if (v.isAdmin) return null;
   return Array.from(new Set([...v.memberDepartmentIds, ...v.headedDepartmentIds, ...v.manageDepartmentIds]));
 }
@@ -144,5 +144,5 @@ export function monitorableDepartmentIds(v: SopViewer): string[] | null {
 }
 
 export function canViewCompliance(v: SopViewer): boolean {
-  return v.isAdmin || (v.manageDepartmentIds.length > 0 && (sopCan(ctx(v), "ASSIGN") || sopCan(ctx(v), "PUBLISH")));
+  return v.isAdmin || (v.manageDepartmentIds.length > 0 && (pbSop(ctx(v), "ASSIGN") || pbSop(ctx(v), "PUBLISH")));
 }

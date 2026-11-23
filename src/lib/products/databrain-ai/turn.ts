@@ -1,7 +1,7 @@
 import "server-only";
 import { isOpenAIConfigured } from "@/lib/openai";
 import { sanitizeUserMessage } from "@/lib/prompt-safety";
-import { intelligenceCan } from "@/lib/intelligence-roles";
+import { dbCanAsk } from "@/lib/databrain-access";
 import type { CurrentIntelligenceUser } from "@/lib/intelligence-auth";
 import { aiBlockReason } from "@/lib/platform/billing/enforce";
 import { emitEvent } from "@/lib/platform/events";
@@ -22,7 +22,7 @@ export type PreparedTurn =
   | { ok: true; conversation: ConversationDoc; isNew: boolean; question: string; history: { role: "user" | "assistant"; text: string }[] };
 
 export async function prepareTurn(user: CurrentIntelligenceUser, body: { message?: unknown; conversationId?: unknown }): Promise<PreparedTurn> {
-  if (!intelligenceCan(user, "USE")) return { ok: false, status: 403, error: "You don't have permission to use DataBrain." };
+  if (!dbCanAsk(user)) return { ok: false, status: 403, error: "You don't have permission to use DataBrain." };
   if (!(await isOpenAIConfigured())) return { ok: false, status: 503, error: "The AI assistant isn't set up for this workspace yet. Ask your platform administrator to add an OpenAI key." };
 
   const q = sanitizeUserMessage(body.message, MAX_QUESTION_CHARS);

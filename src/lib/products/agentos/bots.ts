@@ -1,10 +1,10 @@
+import { holdsLegacy, holdsProduct } from "@/lib/access/holds";
 import { setAiFeature } from "@/lib/platform/billing/ai-usage-log";
 import { aibotsEvents } from "@/lib/notify/triggers/aibots";
 import "server-only";
 import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/mongodb";
 import { getOpenAI, isOpenAIConfigured } from "@/lib/openai";
-import { hasAibotsAccess } from "@/lib/aibots-roles";
 import { COLLECTIONS, aibotsCollection, createStamp, escapeRegex, newId, notDeleted, str, updateStamp, type Stamps } from "@/lib/products/agentos/db";
 import { BOT_COLORS, BOT_ICONS, GENERAL_BOT_ID, GENERAL_BOT_NAME, LIMITS, type BotColor, type BotIcon, type BotStatus } from "@/lib/products/agentos/constants";
 import { AibotsInputError, NotFoundError, can, type AibotsViewer } from "@/lib/products/agentos/viewer";
@@ -392,5 +392,5 @@ export async function listAibotsStaff(): Promise<{ value: string; label: string 
     .sort({ email: 1 })
     .limit(2000)
     .toArray();
-  return rows.filter((u) => hasAibotsAccess(u.roles)).map((u) => ({ value: String(u._id), label: u.email }));
+  return rows.filter((u) => holdsProduct({ roles: u.roles }, "agentos")).map((u) => ({ value: String(u._id), label: u.email }));
 }

@@ -16,6 +16,8 @@ export interface PbActor {
   name: string | null;
   roles: readonly string[];
   permissionOverrides?: Record<string, boolean> | null;
+  /** The person's access (micro features); when absent it is derived from the roles and overrides. */
+  subject?: import("@/lib/access/can").AccessSubject | null;
 }
 
 export interface PbPerson { id: string; name: string | null; email: string | null }

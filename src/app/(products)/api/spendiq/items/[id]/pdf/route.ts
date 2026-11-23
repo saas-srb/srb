@@ -1,7 +1,7 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentPrmsUser } from "@/lib/prms-auth";
-import { hasPrmsStaffRole } from "@/lib/prms-roles";
+import { prmsCan } from "@/lib/prms-access";
 import { getDb } from "@/lib/mongodb";
 import { getPrmsSettings } from "@/lib/products/spendiq/settings";
 import { getPurchaseOrder, getPurchaseOrderByNumber } from "@/lib/products/spendiq/purchase-orders";
@@ -16,7 +16,7 @@ async function handleGET(req: NextRequest, { params }: Context) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   // Purchase orders, vendor invoices and the like are procurement documents — staff only (employees have their own requisition pages).
-  if (!hasPrmsStaffRole(user.roles)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!["purchaseorders.view", "invoices.view", "payments.view", "expenses.all"].some((k) => prmsCan(user, k))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
   const searchParams = req.nextUrl.searchParams;

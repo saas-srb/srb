@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { CLASS_STATUSES } from "@/lib/products/cohort-ai/constants";
-import { saveClassAction } from "@/app/(products)/cohort-ai/(protected)/(staff)/classes/actions";
+import { saveClassAction } from "@/app/(products)/cohort-ai/(protected)/classes/actions";
 import type { SerializedClassSchedule } from "@/lib/products/cohort-ai/classes";
 
 type FormState = Record<string, string>;

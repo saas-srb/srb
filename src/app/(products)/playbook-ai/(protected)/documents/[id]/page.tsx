@@ -3,7 +3,6 @@ import { notFound, redirect } from "next/navigation";
 import PlaybookDocEditor from "@/components/products/playbook-ai/editor/PlaybookDocEditor";
 import { sendInfoFor } from "@/lib/products/playbook-ai/items";
 import { type ItemKind } from "@/lib/products/playbook-ai/items-types";
-import { playbookCan } from "@/lib/playbook-roles";
 import { getViewer } from "@/lib/products/playbook-ai/viewer";
 import { acquireLock, getDocument } from "@/lib/products/playbook-ai/documents";
 import type { PbActor } from "@/lib/products/playbook-ai/documents-types";
@@ -12,6 +11,7 @@ import { listCustomVariables } from "@/lib/products/playbook-ai/variables-custom
 import { loadVariableValues } from "@/lib/products/playbook-ai/variables-adapters";
 import { loadBrand, applyBrandToDoc, identityFor } from "@/lib/products/playbook-ai/brand/apply";
 import type { VariableDef } from "@/components/doc-editor/core/variables";
+import { pbDoc } from "@/lib/playbook-access";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,7 @@ export default async function DocumentEditorPage({ params, searchParams }: { par
   const wizard = (await searchParams).wizard === "1";
   const viewer = await getViewer();
   if (!viewer) redirect("/playbook-ai/login");
-  const actor: PbActor = { id: viewer.userId, email: viewer.email, name: viewer.name, roles: viewer.roles, permissionOverrides: viewer.overrides };
+  const actor: PbActor = { id: viewer.userId, email: viewer.email, name: viewer.name, roles: viewer.roles, permissionOverrides: viewer.overrides, subject: viewer.subject };
 
   const rec = await getDocument(actor, id);
   if (!rec.ok) {
@@ -57,7 +57,7 @@ export default async function DocumentEditorPage({ params, searchParams }: { par
   const branded = applyBrandToDoc(d.pbdoc, brand.settings, loaded.values, { docNumber: d.docNumber, layout });
 
   const sendInfo = (await sendInfoFor([d._id])).get(d._id) ?? null;
-  const pctx = { roles: actor.roles, permissionOverrides: actor.permissionOverrides ?? undefined };
+  const pctx = actor;
   const kind: ItemKind = (d.kind as ItemKind | undefined) ?? "document";
 
   return (
@@ -76,7 +76,7 @@ export default async function DocumentEditorPage({ params, searchParams }: { par
         brandHref="/playbook-ai/brand"
         readOnly={readOnly}
         readOnlyReason={reason}
-        host={{ title: d.title, kind, canSend: playbookCan(pctx, "SEND_FOR_SIGNATURE"), canExport: playbookCan(pctx, "EXPORT"), canUseAi: playbookCan(pctx, "USE_AI"), canTrash: playbookCan(pctx, "EDIT"), send: sendInfo, wizard, version: d.latestVersion ?? d.versionSeq, status: d.status, userLabel: viewer.name || viewer.email }}
+        host={{ title: d.title, kind, canSend: pbDoc(pctx, "SEND_FOR_SIGNATURE"), canExport: pbDoc(pctx, "EXPORT"), canUseAi: pbDoc(pctx, "USE_AI"), canTrash: pbDoc(pctx, "EDIT"), send: sendInfo, wizard, version: d.latestVersion ?? d.versionSeq, status: d.status, userLabel: viewer.name || viewer.email }}
       />
     </div>
   );

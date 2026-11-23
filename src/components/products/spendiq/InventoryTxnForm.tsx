@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
-import { recordInventoryTransactionAction } from "@/app/(products)/spendiq/(protected)/(staff)/inventory/actions";
+import { recordInventoryTransactionAction } from "@/app/(products)/spendiq/(protected)/inventory/actions";
 
 export default function InventoryTxnForm({ itemId, uom }: { itemId: string; uom: string }) {
   const router = useRouter();

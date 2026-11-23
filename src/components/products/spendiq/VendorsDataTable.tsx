@@ -40,7 +40,7 @@ import VendorForm from "@/components/products/spendiq/VendorForm";
 import { VENDOR_CATEGORIES, VENDOR_STATUSES } from "@/lib/products/spendiq/constants";
 import { formatDate } from "@/lib/utils";
 import type { SerializedVendor } from "@/lib/products/spendiq/vendors";
-import { deleteVendorAction } from "@/app/(products)/spendiq/(protected)/(staff)/vendors/actions";
+import { deleteVendorAction } from "@/app/(products)/spendiq/(protected)/vendors/actions";
 
 interface Props {
   items: SerializedVendor[];

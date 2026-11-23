@@ -13,7 +13,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { formatMoney } from "@/lib/products/spendiq/constants";
 import type { SerializedRfq } from "@/lib/products/spendiq/rfqs";
-import { sendRfqAction, addQuotationAction, awardRfqAction } from "@/app/(products)/spendiq/(protected)/(staff)/rfq/actions";
+import { sendRfqAction, addQuotationAction, awardRfqAction } from "@/app/(products)/spendiq/(protected)/rfq/actions";
 
 export default function RfqComparison({
   rfq,

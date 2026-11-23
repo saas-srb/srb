@@ -1,12 +1,12 @@
 import "server-only";
 import { getDb } from "@/lib/mongodb";
 import { PB_COLLECTIONS } from "@/lib/products/playbook-ai/pb-collections";
-import { playbookCan } from "@/lib/playbook-roles";
 import { recordPbAudit } from "@/lib/products/playbook-ai/pb-audit";
 import { ALL_META } from "@/lib/products/playbook-ai/catalogue/meta";
 import { DEFAULT_NUMBER_PATTERN, DEFAULT_NUMBER_PREFIX, PREFIX_RE, SERIES_RE, validatePattern } from "@/lib/products/playbook-ai/numbering-pattern";
 import type { PbActor } from "@/lib/products/playbook-ai/documents-types";
 import type { PolicyContext, StatusPolicy } from "@/lib/products/playbook-ai/status";
+import { pbDoc } from "@/lib/playbook-access";
 
 /**
  * Document settings (`pb_settings`, one document per company with `_id: "main"`, a KEYED collection): numbering, approval rules, legal types,
@@ -199,11 +199,11 @@ export type SettingsResult = { ok: true; settings: PbSettings } | { ok: false; e
 
 /** Saves the settings. Needs SETTINGS; retention periods and category access also need MANAGE_RETENTION and SETTINGS respectively (SETTINGS covers both). */
 export async function savePbSettings(actor: PbActor, input: unknown): Promise<SettingsResult> {
-  if (!playbookCan(actor, "SETTINGS")) return { ok: false, error: "You are not allowed to change document settings." };
+  if (!pbDoc(actor, "SETTINGS")) return { ok: false, error: "You are not allowed to change document settings." };
   const v = validateSettings(input);
   if (!v.ok) return { ok: false, error: v.errors[0], errors: v.errors };
   const before = await getPbSettings();
-  if (JSON.stringify(before.retentionMonths) !== JSON.stringify(v.value.retentionMonths) && !playbookCan(actor, "MANAGE_RETENTION")) {
+  if (JSON.stringify(before.retentionMonths) !== JSON.stringify(v.value.retentionMonths) && !pbDoc(actor, "MANAGE_RETENTION")) {
     return { ok: false, error: "Only someone allowed to manage retention can change retention periods." };
   }
   await (await col()).updateOne({ _id: "main" }, { $set: { ...v.value, updatedAt: new Date(), updatedBy: actor.id } }, { upsert: true });

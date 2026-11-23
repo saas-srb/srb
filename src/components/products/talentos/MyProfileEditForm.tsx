@@ -9,7 +9,7 @@ import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { updateMyContactAction } from "@/app/(products)/talentos/(protected)/me/profile/actions";
+import { updateMyContactAction } from "@/app/(products)/talentos/(protected)/profile/actions";
 
 interface Contact {
   name: string;
@@ -19,7 +19,10 @@ interface Contact {
 
 export default function MyProfileEditForm({
   initial,
+  canEdit = true,
 }: {
+  /** Only people who hold profile.edit change their own contact details; others see them read only. */
+  canEdit?: boolean;
   initial: {
     phone: string;
     personalEmail: string;
@@ -60,6 +63,7 @@ export default function MyProfileEditForm({
 
   return (
     <form onSubmit={submit} className="space-y-4">
+      <fieldset disabled={!canEdit} className="contents">
       <GlassCard interactive={false}>
         <CardHeader><CardTitle>Contact Details</CardTitle></CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
@@ -115,6 +119,7 @@ export default function MyProfileEditForm({
       <Button type="submit" disabled={pending}>
         {pending ? <Loader2 className="size-4 animate-spin" /> : "Save Changes"}
       </Button>
+      </fieldset>
     </form>
   );
 }

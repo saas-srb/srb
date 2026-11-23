@@ -116,17 +116,17 @@ const general: FaqHubGroup = {
     {
       q: "Can employees submit purchase requests in SpendIQ?",
       a: "Yes. Employees can create requisitions for themselves and submit them into an approval flow that notifies procurement approvers.",
-      evidence: ["src/app/(products)/spendiq/(protected)/(staff)/requisitions/actions.ts:45-123"],
+      evidence: ["src/app/(products)/spendiq/(protected)/requisitions/actions.ts:45-123"],
     },
     {
       q: "Can SpendIQ approvers explain a requisition decision?",
       a: "Authorized approvers can approve or reject a requisition with a decision note, and the requester is notified.",
-      evidence: ["src/app/(products)/spendiq/(protected)/(staff)/requisitions/actions.ts:125-176"],
+      evidence: ["src/app/(products)/spendiq/(protected)/requisitions/actions.ts:125-176"],
     },
     {
       q: "What happens after a SpendIQ requisition is submitted?",
       a: "Submission moves the requisition into its approval flow and notifies procurement approvers.",
-      evidence: ["src/app/(products)/spendiq/(protected)/(staff)/requisitions/actions.ts:92-123"],
+      evidence: ["src/app/(products)/spendiq/(protected)/requisitions/actions.ts:92-123"],
     },
     {
       q: "What work can teams manage in SprintOS?",
@@ -201,12 +201,12 @@ const general: FaqHubGroup = {
     {
       q: "Can employees use TalentOS to review workforce information?",
       a: "Yes. The employee self-service area includes a directory of the active workforce.",
-      evidence: ["src/app/(products)/talentos/(protected)/me/directory/page.tsx:8-26"],
+      evidence: ["src/app/(products)/talentos/(protected)/directory/page.tsx:8-26"],
     },
     {
       q: "Can HR filter employees in TalentOS?",
       a: "Yes. The staff directory supports search and filters such as department and designation.",
-      evidence: ["src/app/(products)/talentos/(protected)/(staff)/employees/page.tsx:18-53", "src/app/(products)/talentos/(protected)/(staff)/employees/page.tsx:83-88"],
+      evidence: ["src/app/(products)/talentos/(protected)/employees/page.tsx:18-53", "src/app/(products)/talentos/(protected)/employees/page.tsx:83-88"],
     },
     {
       q: "What training activities can Cohort AI manage?",

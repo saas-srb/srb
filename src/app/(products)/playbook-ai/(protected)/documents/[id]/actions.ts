@@ -29,7 +29,7 @@ export type EditorPreview = { ok: true; pdfBase64: string; pages: number; warnin
 
 async function actor(): Promise<PbActor> {
   const v = await requireViewer();
-  return { id: v.userId, email: v.email, name: v.name, roles: v.roles, permissionOverrides: v.overrides };
+  return { id: v.userId, email: v.email, name: v.name, roles: v.roles, permissionOverrides: v.overrides, subject: v.subject };
 }
 
 export async function loadEditorDocument(id: string): Promise<EditorLoad> {

@@ -7,7 +7,7 @@ import { CardContent } from "@/components/ui/card";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import { getCurrentHubUser } from "@/lib/hub-auth";
 import { getCurrentHrmsUser } from "@/lib/hrms-auth";
-import { canManagePayrollConfig, canRunPayroll } from "@/lib/hrms-roles";
+import { hrCan } from "@/lib/talentos-access";
 import { getPaymentAccountView } from "@/lib/platform/integrations/payments";
 import PaymentAccountManager from "@/components/platform/PaymentAccountManager";
 import CompanyBankAccounts from "@/components/products/talentos/CompanyBankAccounts";
@@ -26,7 +26,7 @@ export default async function PaymentsSettingsPage() {
   const isOwner = isDirector(user);
   const payrollUser = await getCurrentHrmsUser();
   const canManageBanking =
-    !!payrollUser && (canRunPayroll(payrollUser) || canManagePayrollConfig(payrollUser));
+    !!payrollUser && (hrCan(payrollUser, "payroll.run") || hrCan(payrollUser, "payrollrates.manage"));
   if (!isOwner && !canManageBanking) redirect(lockedHref("company.payments")); // locked page inside the shell, not a silent redirect home
 
   const [paymentAccount, allAccounts, provider, bankAccounts, config] = await Promise.all([

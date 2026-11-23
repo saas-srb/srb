@@ -2,11 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { getViewer } from "@/lib/products/playbook-ai/viewer";
-import { playbookCan } from "@/lib/playbook-roles";
 import { CATEGORY_LABELS } from "@/lib/products/playbook-ai/catalogue";
 import { listTemplates } from "@/lib/products/playbook-ai/tpl/store";
 import { requireActor } from "@/lib/products/playbook-ai/tpl/actor";
 import NewTemplateForm from "@/components/products/playbook-ai/templates/NewTemplateForm";
+import { pbDoc } from "@/lib/playbook-access";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,7 @@ export default async function MyTemplatesPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/playbook-ai/login");
   const actor = await requireActor();
-  if (!playbookCan(actor, "MANAGE_TEMPLATES")) redirect("/playbook-ai/catalogue");
+  if (!pbDoc(actor, "MANAGE_TEMPLATES")) redirect("/playbook-ai/catalogue");
   const r = await listTemplates(actor);
   const items = r.ok ? r.items : [];
 

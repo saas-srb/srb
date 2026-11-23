@@ -13,7 +13,7 @@ import { toOptions } from "@/lib/platform/organization/rules";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { BUDGET_LEVELS, BUDGET_PERIODS, EXPENSE_CATEGORIES, SUPPORTED_CURRENCIES } from "@/lib/products/spendiq/constants";
-import { saveBudgetAction } from "@/app/(products)/spendiq/(protected)/(staff)/budgets/actions";
+import { saveBudgetAction } from "@/app/(products)/spendiq/(protected)/budgets/actions";
 import type { SerializedBudget } from "@/lib/products/spendiq/budgets";
 
 export default function BudgetForm({

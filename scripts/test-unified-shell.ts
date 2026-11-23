@@ -129,7 +129,12 @@ const keys = (n: ReturnType<typeof resolveNav>) => flat(n).map((i) => i.key);
     assert.deepEqual(bad, []);
   });
   await T("the staff-only product layouts render the locked page instead of bouncing the person", () => {
-    for (const f of ["talentos/(protected)/(staff)", "sprintos/(protected)/(staff)", "spendiq/(protected)/(staff)", "spendiq/(protected)/procurement", "cohort-ai/(protected)/(staff)"]) {
+    // TalentOS has no staff-only layout any more: every section guards itself with hrPage, which renders the locked page
+    assert.match(read("src/lib/products/talentos/page-guard.tsx"), /<ProductLocked /);
+    assert.match(read("src/lib/products/sprintos/page-guard.tsx"), /<ProductLocked /);
+    assert.match(read("src/lib/products/spendiq/page-guard.tsx"), /<ProductLocked /);
+    assert.match(read("src/lib/products/cohort-ai/page-guard.tsx"), /<ProductLocked /);
+    for (const f of [] as string[]) {
       const s = read(`src/app/(products)/${f}/layout.tsx`);
       assert.match(s, /<ProductLocked /, f);
       assert.doesNotMatch(s, /redirect\("\/(talentos|sprintos|spendiq|cohort-ai)\/me"\)/, f);

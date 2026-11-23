@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import ResourceForm, { type FieldSpec } from "@/components/products/spendiq/ResourceForm";
 import { UNITS_OF_MEASURE } from "@/lib/products/spendiq/constants";
-import { saveInventoryItemAction } from "@/app/(products)/spendiq/(protected)/(staff)/inventory/actions";
+import { saveInventoryItemAction } from "@/app/(products)/spendiq/(protected)/inventory/actions";
 import type { SerializedInventoryItem } from "@/lib/products/spendiq/inventory";
 
 export default function InventoryItemForm({

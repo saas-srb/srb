@@ -17,7 +17,7 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import ClassForm from "@/components/products/cohort-ai/ClassForm";
-import { deleteClassAction } from "@/app/(products)/cohort-ai/(protected)/(staff)/classes/actions";
+import { deleteClassAction } from "@/app/(products)/cohort-ai/(protected)/classes/actions";
 import type { SerializedClassSchedule } from "@/lib/products/cohort-ai/classes";
 
 export default function ClassActions({

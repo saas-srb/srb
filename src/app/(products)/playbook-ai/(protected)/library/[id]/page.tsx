@@ -32,16 +32,17 @@ import {
   inWriteScope,
   toAccessDoc,
 } from "@/lib/products/playbook-ai/access";
-import { sopCan } from "@/lib/sop-roles";
 import { todayIso, addDaysIso } from "@/lib/products/playbook-ai/db";
 import { formatIsoDate, SOP_MODULES } from "@/lib/products/playbook-ai/constants";
 import { listSopFiles } from "@/lib/products/playbook-ai/files";
 import { getTaxonomy } from "@/lib/products/playbook-ai/taxonomy";
 import { getSettings } from "@/lib/products/playbook-ai/settings";
+import { titlesOfPeople, nameWithTitle } from "@/lib/platform/organization/title-server";
 import { listHrmsDesignations, listHrmsTeams, listAssignablePeople, userNames } from "@/lib/products/playbook-ai/people";
 import { assignmentState, checklistProgress, countAssignments, getAssignment, listAssignmentsForSop } from "@/lib/products/playbook-ai/assignments";
 import { listFeedback, listOwnFeedback } from "@/lib/products/playbook-ai/feedback";
 import { cn, formatDateTime } from "@/lib/utils";
+import { pbSop } from "@/lib/playbook-access";
 
 const TABS = ["document", "details", "versions", "assignments", "feedback"] as const;
 type Tab = (typeof TABS)[number];
@@ -73,12 +74,12 @@ export default async function SopDetailPage({
   const { doc, assigned, status } = found;
   const today = todayIso();
   const acc = toAccessDoc(doc, today);
-  const ctx = { roles: viewer.roles, permissionOverrides: viewer.overrides };
+  const ctx = viewer;
 
   const canEdit = canEditSop(viewer, acc);
   const canPublish = canPublishSop(viewer, acc);
   const canAssign = canAssignSop(viewer, acc);
-  const canMonitor = sopCan(ctx, "ASSIGN") && inWriteScope(viewer, acc) && !!doc.version;
+  const canMonitor = pbSop(ctx, "ASSIGN") && inWriteScope(viewer, acc) && !!doc.version;
   const canDownload = canDownloadSop(viewer, acc, assigned);
   const canAck = canAcknowledgeSop(viewer, acc, assigned);
   const canArchive = canArchiveSop(viewer, acc);
@@ -99,21 +100,26 @@ export default async function SopDetailPage({
   const sub = tax.processes.find((p) => p._id === doc.subProcessId);
   const cat = tax.categories.find((c) => c._id === doc.categoryId);
   const names = await userNames([doc.ownerId, doc.authorId]);
+  // Every person is written with the title chosen for them (lists, comments, approvals), never a product role.
+  const titles = await titlesOfPeople([doc.ownerId, doc.authorId]);
+  const nameOf = (id: string) => (names.get(id) ? nameWithTitle(names.get(id) as string, titles.get(id)) : null);
   const outline = documentOutline(content);
 
   const checklistState = myAssign?.checklist ?? {};
   const progress = checklistProgress(showDraft ? doc.draft : doc.live, checklistState);
   const assignedCount = canPublish && doc.live ? await countAssignments(id) : 0;
   const versionRows = tab === "versions" || tab === "details" ? await listVersions(id) : [];
+  const versionTitles = await titlesOfPeople(versionRows.map((v) => v.authorId));
 
   // --- tab-specific data ---------------------------------------------------
   let assignmentRows: AssignmentRow[] = [];
   let assignOptions: AssignOptions | null = null;
   if (canMonitor && (tab === "assignments" || canAssign)) {
     const rows = await listAssignmentsForSop(id);
+    const rowTitles = await titlesOfPeople(rows.map((a) => a.userId));
     assignmentRows = rows.map((a) => ({
       userId: a.userId,
-      userName: a.userName,
+      userName: nameWithTitle(a.userName, rowTitles.get(a.userId)),
       departmentName: a.departmentId ? tax.departments.find((d) => d._id === a.departmentId)?.name ?? "—" : "—",
       source: a.source.label,
       dueDate: a.dueDate,
@@ -141,11 +147,12 @@ export default async function SopDetailPage({
   let feedbackRows: FeedbackRow[] = [];
   if (tab === "feedback") {
     const rows = canEdit ? await listFeedback(id) : await listOwnFeedback(id, viewer.userId);
+    const rowTitles = await titlesOfPeople(rows.map((r) => r.userId));
     feedbackRows = rows.map((r) => ({
       id: r._id,
       kind: r.kind,
       message: r.message,
-      userName: r.userName,
+      userName: nameWithTitle(r.userName, rowTitles.get(r.userId)),
       version: r.version,
       status: r.status,
       resolutionNote: r.resolutionNote,
@@ -183,7 +190,7 @@ export default async function SopDetailPage({
             {fn ? ` › ${fn.name}` : ""}
             {proc ? ` › ${proc.name}` : ""}
             {sub ? ` › ${sub.name}` : ""}
-            {" · "}Owner {names.get(doc.ownerId) ?? "—"}</>}
+            {" · "}Owner {nameOf(doc.ownerId) ?? "—"}</>}
         eyebrow={<><div className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-xs text-muted-foreground">{doc.code}</span>
             <SopStatusBadge status={status} />
@@ -240,7 +247,7 @@ export default async function SopDetailPage({
 
       <div className="sop-print-hide flex flex-wrap items-center justify-between gap-3">
         <PanelTabs label="SOP sections" active={tab} tabs={visibleTabs.map((t) => ({ key: t, label: tabLabels[t], href: tabLink(t) }))} />
-        {sopCan(ctx, "VIEW_AUDIT") && (
+        {pbSop(ctx, "VIEW_AUDIT") && (
           <Link href={`/commandos/settings/audit-log?source=products&module=sop&search=${id}`} className="flex shrink-0 items-center gap-1 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground">
             <ScrollText className="size-3.5" />
             Audit trail
@@ -313,8 +320,8 @@ export default async function SopDetailPage({
               <Field label="Function">{fn?.name}</Field>
               <Field label="Process">{[proc?.name, sub?.name].filter(Boolean).join(" › ")}</Field>
               <Field label="Category">{cat?.name}</Field>
-              <Field label="Owner">{names.get(doc.ownerId)}</Field>
-              <Field label="Author">{names.get(doc.authorId)}</Field>
+              <Field label="Owner">{nameOf(doc.ownerId)}</Field>
+              <Field label="Author">{nameOf(doc.authorId)}</Field>
               <Field label="Applicable roles">{roleTitles.length ? roleTitles.join(", ") : "All roles"}</Field>
               <Field label="Effective date">{formatIsoDate(doc.effectiveDate)}</Field>
               <Field label="Review date">{formatIsoDate(doc.reviewDate)}</Field>
@@ -391,7 +398,7 @@ export default async function SopDetailPage({
                 previousVersion: v.previousVersion,
                 changeType: v.changeType,
                 changeSummary: v.changeSummary,
-                authorName: v.authorName,
+                authorName: nameWithTitle(v.authorName, versionTitles.get(v.authorId)),
                 publishedAt: v.publishedAt.toISOString(),
                 isCurrent: v.version === doc.version,
               }))}

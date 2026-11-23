@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { getTimesheetStatusMeta } from "@/lib/products/sprintos/constants";
 import { cn, formatDate } from "@/lib/utils";
-import { reviewTimesheetAction, bulkReviewTimesheetsAction } from "@/app/(products)/sprintos/(protected)/(staff)/timesheets/review-actions";
+import { reviewTimesheetAction, bulkReviewTimesheetsAction } from "@/app/(products)/sprintos/(protected)/timesheets/review-actions";
 import type { SerializedTimesheetEntry } from "@/lib/products/sprintos/timesheets";
 
 interface Row extends SerializedTimesheetEntry {

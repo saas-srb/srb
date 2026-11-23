@@ -1,5 +1,4 @@
 import "server-only";
-import { playbookCan } from "@/lib/playbook-roles";
 import { loadCompanyValues } from "@/lib/products/playbook-ai/brand/company-values";
 import { DEFAULT_PAGE } from "@/lib/products/playbook-ai/doc/page";
 import { sequentialIds } from "@/lib/products/playbook-ai/doc/ids";
@@ -14,6 +13,7 @@ import { DESCRIPTION_PLAN, ITEM_NEVER, ITEM_SECTIONS, KIND_DOC_TYPE_NAME, type G
 import type { ItemKind } from "@/lib/products/playbook-ai/items-types";
 import { recordPbAudit } from "@/lib/products/playbook-ai/pb-audit";
 import { getPbSettings } from "@/lib/products/playbook-ai/pb-settings";
+import { pbDoc } from "@/lib/playbook-access";
 
 /**
  * AI generation for the create wizard (P3). One section per call, so the screen can show progress and regenerate a single section.
@@ -25,7 +25,7 @@ const fail = <T>(error: PbError): PbResult<T> => ({ ok: false, error });
 const clip = (s: string, n: number) => s.replace(/\s+/g, " ").trim().slice(0, n);
 
 export async function generateItemSection(actor: PbActor, input: { kind: ItemKind; sectionKey: string; details: ItemDetails; instruction?: string }): Promise<PbResult<{ section: GeneratedSection }>> {
-  if (!playbookCan(actor, "USE_AI")) return fail({ code: "forbidden", message: "You are not allowed to use AI drafting." });
+  if (!pbDoc(actor, "USE_AI")) return fail({ code: "forbidden", message: "You are not allowed to use AI drafting." });
   const plan = input.sectionKey === DESCRIPTION_PLAN.key ? DESCRIPTION_PLAN : ITEM_SECTIONS[input.kind]?.find((s) => s.key === input.sectionKey);
   if (!plan) return fail({ code: "not_found", message: "That section does not exist." });
   const d = input.details;

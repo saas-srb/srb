@@ -25,7 +25,6 @@ import {
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import type { HrmsRole } from "@/lib/hrms-roles";
-import { canApproveLeave, canRunPayroll, hasStaffRole } from "@/lib/hrms-roles";
 import type { AccessSubject } from "@/lib/access/can";
 import { hrCan } from "@/lib/talentos-access";
 
@@ -130,22 +129,21 @@ export default function HrmsSidebar({
   onNavigate?: () => void;
   collapsed?: boolean;
 }) {
-  const roleCtx = { roles, permissionOverrides };
-  const isStaff = hasStaffRole(roles);
   const nav = (props: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean ; locked?: boolean }) => (
     (props.locked ? null : <NavLink {...props} collapsed={collapsed} onNavigate={onNavigate} />)
   );
 
   // One menu for everyone: the Director's. What a person cannot use is locked (greyed, same place); the "Me" section is self-service and always open.
-  const staff = isStaff;
   return (
     <nav className="flex h-full flex-col gap-1 p-3">
-      {nav({ href: "/talentos", label: "Dashboard", icon: LayoutDashboard, exact: true, locked: !staff })}
+      {nav({ href: "/talentos", label: "Dashboard", icon: LayoutDashboard, exact: true, locked: !hrCan({ subject }, "dashboard.view") })}
 
       <NavGroup collapsed={collapsed} label="People">
-        {nav({ href: "/talentos/employees", label: "Employees", icon: Users, locked: !staff })}
-        {nav({ href: "/talentos/departments", label: "Departments", icon: Building2, locked: !staff })}
-        {nav({ href: "/talentos/recruitment", label: "Recruitment", icon: UserPlus, locked: !staff })}
+        {nav({ href: "/talentos/profile", label: "My Profile", icon: UserRound, locked: !hrCan({ subject }, "profile.view") })}
+        {nav({ href: "/talentos/directory", label: "Directory", icon: Network, locked: !hrCan({ subject }, "directory.view") })}
+        {nav({ href: "/talentos/employees", label: "Employees", icon: Users, locked: !hrCan({ subject }, "employees.team") && !hrCan({ subject }, "employees.all") })}
+        {nav({ href: "/talentos/departments", label: "Departments", icon: Building2, locked: !hrCan({ subject }, "masters.view") })}
+        {nav({ href: "/talentos/recruitment", label: "Recruitment", icon: UserPlus, locked: !hrCan({ subject }, "recruitment.view") })}
 
       </NavGroup>
       <NavGroup collapsed={collapsed} label="Operations">
@@ -156,25 +154,17 @@ export default function HrmsSidebar({
 
       </NavGroup>
       <NavGroup collapsed={collapsed} label="Payroll">
-        {nav({ href: "/talentos/payroll", label: "Payroll runs", icon: Wallet, exact: true, locked: !(staff && canRunPayroll(roleCtx)) })}
-        {nav({ href: "/talentos/payroll/items", label: "Payroll items", icon: ListChecks, locked: !(staff && canRunPayroll(roleCtx)) })}
-        {nav({ href: "/talentos/payroll/payouts", label: "Salary payouts", icon: Banknote, locked: !(staff && canRunPayroll(roleCtx)) })}
-        {nav({ href: "/talentos/payroll/compliance", label: "Government payments", icon: Landmark, locked: !(staff && canRunPayroll(roleCtx)) })}
-        {nav({ href: "/talentos/payroll/declarations", label: "Tax declarations", icon: FileText, locked: !(staff && canRunPayroll(roleCtx)) })}
+        {nav({ href: "/talentos/payroll", label: hrCan({ subject }, "payroll.view") ? "Payroll runs" : "My pay", icon: Wallet, exact: true, locked: !hrCan({ subject }, "payroll.view") && !hrCan({ subject }, "salary.view") })}
+        {nav({ href: "/talentos/payroll/tax", label: "My tax", icon: FileText, locked: !hrCan({ subject }, "tax.view") })}
+        {nav({ href: "/talentos/payroll/items", label: "Payroll items", icon: ListChecks, locked: !hrCan({ subject }, "payroll.view") })}
+        {nav({ href: "/talentos/payroll/payouts", label: "Salary payouts", icon: Banknote, locked: !hrCan({ subject }, "payroll.view") })}
+        {nav({ href: "/talentos/payroll/compliance", label: "Government payments", icon: Landmark, locked: !hrCan({ subject }, "payroll.view") })}
+        {nav({ href: "/talentos/payroll/declarations", label: "Tax declarations", icon: FileText, locked: !hrCan({ subject }, "payroll.view") })}
 
       </NavGroup>
       <NavGroup collapsed={collapsed} label="Governance">
-        {nav({ href: "/talentos/analytics", label: "Analytics", icon: BarChart3, locked: !staff })}
+        {nav({ href: "/talentos/analytics", label: "Analytics", icon: BarChart3, locked: !hrCan({ subject }, "analytics.view") })}
 
-      </NavGroup>
-      <NavGroup collapsed={collapsed} label="Me">
-        {nav({ href: "/talentos/me", label: "My Dashboard", icon: LayoutDashboard, exact: true })}
-        {nav({ href: "/talentos/me/salary", label: "My Salary", icon: Wallet })}
-        {nav({ href: "/talentos/me/tax", label: "My Tax", icon: FileText })}
-        {nav({ href: "/talentos/me/documents", label: "My Documents", icon: FileText })}
-        {nav({ href: "/talentos/me/profile", label: "My Profile", icon: UserRound })}
-        {nav({ href: "/talentos/me/directory", label: "Directory", icon: Network })}
-    
       </NavGroup>
     </nav>
   );

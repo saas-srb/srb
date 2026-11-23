@@ -23,7 +23,7 @@ import {
   deleteSettlementAction,
   saveSettlementAction,
   type ItemResult,
-} from "@/app/(products)/talentos/(protected)/(staff)/payroll/items/actions";
+} from "@/app/(products)/talentos/(protected)/payroll/items/actions";
 
 interface Emp {
   _id: string;

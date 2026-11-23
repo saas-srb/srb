@@ -1,17 +1,17 @@
 import { redirect } from "next/navigation";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { getViewer } from "@/lib/products/playbook-ai/viewer";
-import { playbookCan } from "@/lib/playbook-roles";
 import { getBrand, getBrandMeta } from "@/lib/products/playbook-ai/brand/store";
 import { getBrandAsset } from "@/lib/products/playbook-ai/brand/assets";
 import { loadCompanyValues } from "@/lib/products/playbook-ai/brand/company-values";
 import BrandForm from "@/components/products/playbook-ai/brand/BrandForm";
+import { pbDoc } from "@/lib/playbook-access";
 
 /** Brand and letterhead: one page per company, with a live preview drawn by the real PDF renderer. Needs MANAGE_BRAND. */
 export default async function BrandPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/playbook-ai/login");
-  if (!playbookCan({ roles: viewer.roles, permissionOverrides: viewer.overrides }, "MANAGE_BRAND")) redirect("/playbook-ai");
+  if (!pbDoc(viewer, "MANAGE_BRAND")) redirect("/playbook-ai");
 
   const [brand, meta, company] = await Promise.all([getBrand(), getBrandMeta(), loadCompanyValues()]);
   const ids = [brand.logo.assetId, ...brand.signatories.map((s) => s.assetId)].filter((x): x is string => !!x);

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentPmsUser } from "@/lib/pms-auth";
-import { canManageProjects, isPmsAdmin } from "@/lib/pms-roles";
+import { pmsCan, pmsSeesAll } from "@/lib/pms-access";
 import { getProject } from "@/lib/products/sprintos/projects";
 import { checkProjectAccess } from "@/lib/products/sprintos/access";
 import {
@@ -27,10 +27,12 @@ export interface TaskActionResult {
   id?: string;
 }
 
-async function requireManage() {
+async function requireManage(projectId?: string) {
   const user = await getCurrentPmsUser();
   if (!user) throw new Error("Unauthorized");
-  if (!canManageProjects(user)) throw new Error("Forbidden");
+  if (!pmsCan(user, "projects.manage")) throw new Error("Forbidden");
+  // A manager manages only the projects they manage or belong to (everyone's scope: any); the action cannot be pointed at a stranger's project by id.
+  if (projectId && !(await checkProjectAccess(user, projectId)).allowed) throw new Error("Forbidden");
   return user;
 }
 
@@ -48,7 +50,7 @@ export async function saveTaskAction(
   input: Record<string, unknown>,
   taskId?: string
 ): Promise<TaskActionResult> {
-  const user = await requireManage();
+  const user = await requireManage(projectId);
   const readOnly = await writeBlockReason();
   if (readOnly) return { ok: false, error: readOnly };
   const project = await getProject(projectId);
@@ -132,7 +134,7 @@ export async function moveTaskAction(
   beforeKey: number | null,
   afterKey: number | null
 ): Promise<TaskActionResult> {
-  const user = await requireManage();
+  const user = await requireManage(projectId);
   if (!isValidTaskStatus(status)) return { ok: false, error: "Unknown status." };
   const before = await getTask(taskId);
   if (!before || before.projectId !== projectId) return { ok: false, error: "Task not found." };
@@ -201,7 +203,7 @@ export async function setTaskStatusAction(
 }
 
 export async function deleteTaskAction(projectId: string, taskId: string): Promise<TaskActionResult> {
-  const user = await requireManage();
+  const user = await requireManage(projectId);
   const before = await getTask(taskId);
   if (!before || before.projectId !== projectId) return { ok: false, error: "Task not found." };
   await deleteTask(taskId, user.id);
@@ -268,7 +270,7 @@ export async function deleteTaskCommentAction(
 ): Promise<TaskActionResult> {
   const user = await getCurrentPmsUser();
   if (!user) throw new Error("Unauthorized");
-  const result = await deleteComment(commentId, user.id, isPmsAdmin(user));
+  const result = await deleteComment(commentId, user.id, pmsSeesAll(user));
   if (!result.ok) return { ok: false, error: "Could not delete comment." };
   revalidateTask(projectId, taskId);
   return { ok: true };

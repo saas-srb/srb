@@ -15,7 +15,7 @@ import {
   assignAssetAction,
   returnAssetAction,
   changeAssetStatusAction,
-} from "@/app/(products)/spendiq/(protected)/(staff)/assets/actions";
+} from "@/app/(products)/spendiq/(protected)/assets/actions";
 
 export default function AssetWorkflow({
   asset,

@@ -1,7 +1,6 @@
 import "server-only";
 import { getDb } from "@/lib/mongodb";
 import { PB_COLLECTIONS } from "@/lib/products/playbook-ai/pb-collections";
-import { playbookCan } from "@/lib/playbook-roles";
 import { seesAllDocuments } from "@/lib/products/playbook-ai/status";
 import type { PbActor } from "@/lib/products/playbook-ai/documents-types";
 import { CATEGORY_LABELS } from "@/lib/products/playbook-ai/catalogue/types";
@@ -11,6 +10,7 @@ import { ITEM_KIND_INFO, type ItemKind } from "@/lib/products/playbook-ai/items-
 import { EMPTY_PB_FILTERS, pbFiltersKey, type PbFilters } from "@/lib/products/playbook-ai/dashboard/filters";
 import { buildDashboard } from "@/lib/products/playbook-ai/dashboard/compute";
 import type { ActivityRow, AiRunRow, DashDocStatus, DashSendStatus, DashboardData, DashboardInput, DateRange, DocRow, ExportRow, SendRow } from "@/lib/products/playbook-ai/dashboard/types";
+import { pbDoc } from "@/lib/playbook-access";
 
 /**
  * The server side of the Playbook dashboard: reads only what the aggregation needs (projections, never document bodies), scoped to the person
@@ -44,7 +44,7 @@ export function dashboardScope(actor: PbActor): { all: boolean; userId: string }
 }
 
 export async function loadDashboard(actor: PbActor, range: DateRange, filters: PbFilters = EMPTY_PB_FILTERS, now = Date.now()): Promise<DashboardData | null> {
-  if (!playbookCan(actor, "VIEW")) return null;
+  if (!pbDoc(actor, "VIEW")) return null;
   const scope = dashboardScope(actor);
   const key = `${actor.id}|${scope.all}|${range.key}|${range.from}|${range.to}|${pbFiltersKey(filters)}`;
   const hit = cache.get(key);

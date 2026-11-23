@@ -1,8 +1,8 @@
+import { holdsLegacy, holdsProduct } from "@/lib/access/holds";
 import "server-only";
 import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/mongodb";
 import { APPLICATIONS_COLLECTION } from "@/lib/career-applications";
-import { canManageEmployees } from "@/lib/hrms-roles";
 import type { AibotsViewer } from "@/lib/products/agentos/viewer";
 import type { CallTarget } from "@/lib/products/agentos/calls/types";
 import type { BriefingItem, BriefingSection } from "@/lib/products/agentos/calls/briefing-core";
@@ -19,7 +19,7 @@ const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 const when = (d: unknown) => (d instanceof Date && !Number.isNaN(d.getTime()) ? d.toISOString() : null);
 
 export async function talentosBriefing(viewer: AibotsViewer, target: CallTarget): Promise<BriefingSection[]> {
-  if (target.product !== TALENTOS_PRODUCT || target.entityType !== "applicant" || !canManageEmployees(viewer.ctx)) return [];
+  if (target.product !== TALENTOS_PRODUCT || target.entityType !== "applicant" || !holdsLegacy(viewer.ctx, "talentos", "hrms.canManageEmployees")) return [];
   if (!/^[a-f\d]{24}$/i.test(target.entityId)) return [];
   const app = await (await getDb()).collection(APPLICATIONS_COLLECTION).findOne({ _id: new ObjectId(target.entityId) } as never);
   if (!app) return [];

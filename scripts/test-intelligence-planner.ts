@@ -454,7 +454,7 @@ async function main() {
     }
   });
   await check("the query module has no write path at all (no write call exists in its source)", () => {
-    const dir = path.join(process.cwd(), "src/lib/databrain-ai");
+    const dir = path.join(process.cwd(), "src/lib/products/databrain-ai");
     const files: string[] = [];
     const walk = (p: string) => {
       for (const f of fs.readdirSync(p, { withFileTypes: true })) {

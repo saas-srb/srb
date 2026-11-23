@@ -6,7 +6,6 @@ import { renderPdf } from "@/lib/products/playbook-ai/doc/render/pdf";
 import { layoutInputFor } from "@/lib/products/playbook-ai/items-layout";
 import { previewLibraryFile } from "@/lib/products/playbook-ai/library-preview";
 import { getDb } from "@/lib/mongodb";
-import { playbookCan } from "@/lib/playbook-roles";
 import { cfClones, cfSigners } from "@/lib/products/contractflow-ai/cf-db";
 import { createDocument, getDocument, listDocuments } from "@/lib/products/playbook-ai/documents";
 import type { PbActor, PbDocumentSummary, PbResult } from "@/lib/products/playbook-ai/documents-types";
@@ -14,6 +13,7 @@ import { listHandoffsForDocuments } from "@/lib/products/playbook-ai/handoff";
 import { buildLibraryDoc } from "@/lib/products/playbook-ai/item-library";
 import { ITEM_KIND_INFO, type ItemKind, type ItemRow, type ItemSendInfo, type SendState } from "@/lib/products/playbook-ai/items-types";
 import { PB_COLLECTIONS } from "@/lib/products/playbook-ai/pb-collections";
+import { pbDoc } from "@/lib/playbook-access";
 
 /** Server side of the three item screens (SOPs, Documents, KPI sheets): lists with ContractFlow status, "Use" from the library. */
 
@@ -72,7 +72,7 @@ export async function listItems(actor: PbActor, input: ListItemsInput): Promise<
 
 /** "Use": copies a library SOP or KPI sheet into the company's own items as a new draft. */
 export async function useLibraryItem(actor: PbActor, libraryId: string): Promise<PbResult<{ documentId: string }>> {
-  if (!playbookCan(actor, "CREATE")) return { ok: false, error: { code: "forbidden", message: "You are not allowed to create documents." } };
+  if (!pbDoc(actor, "CREATE")) return { ok: false, error: { code: "forbidden", message: "You are not allowed to create documents." } };
   const built = buildLibraryDoc(String(libraryId));
   if (!built) return { ok: false, error: { code: "not_found", message: "That library entry does not exist." } };
   const r = await createDocument(actor, { title: built.info.title, kind: built.info.kind, meta: built.meta, pbdoc: built.doc });
@@ -80,7 +80,7 @@ export async function useLibraryItem(actor: PbActor, libraryId: string): Promise
 }
 
 export async function setItemMeta(actor: PbActor, id: string, patch: { title?: string; department?: string; designation?: string; description?: string; reviewPeriod?: string }): Promise<PbResult<object>> {
-  if (!playbookCan(actor, "EDIT")) return { ok: false, error: { code: "forbidden", message: "You are not allowed to edit documents." } };
+  if (!pbDoc(actor, "EDIT")) return { ok: false, error: { code: "forbidden", message: "You are not allowed to edit documents." } };
   const g = await getDocument(actor, String(id));
   if (!g.ok) return g;
   if (!g.capabilities.edit) return { ok: false, error: { code: "forbidden", message: "You are not allowed to edit this item." } };

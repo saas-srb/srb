@@ -2,12 +2,14 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { COLLECTIONS } from "@/lib/products/playbook-ai/db";
 import * as A from "@/app/(products)/playbook-ai/(protected)/actions";
-import { sopCan, type SopPermission } from "@/lib/sop-roles";
+import { type SopPermission } from "@/lib/sop-roles";
 import { requireViewer } from "@/lib/products/playbook-ai/viewer";
 import { getReadableSop } from "@/lib/products/playbook-ai/sops";
 import { CONFIDENTIALITY_LEVELS, SOP_PRIORITIES, SOP_STATUSES, type SopBlock, type SopSection } from "@/lib/products/playbook-ai/constants";
 import { viaAction, f, fail, str, values } from "@/lib/ai/agent/entities/helpers";
 import type { ActionDef, AgentUser, EntityDef, FieldDef, Json, ReportDef } from "@/lib/ai/agent/types";
+import { sopFeatureKey } from "@/lib/playbook-access";
+import { microAny } from "@/lib/ai/agent/micro-gate";
 
 /**
  * SOPs for the agent: create, write and publish procedures, assign them, collect acknowledgements and feedback, and manage the
@@ -15,25 +17,25 @@ import type { ActionDef, AgentUser, EntityDef, FieldDef, Json, ReportDef } from 
  * and the audit trail are the product's.
  */
 
-const ctx = (u: AgentUser) => ({ roles: u.roles, permissionOverrides: u.permissionOverrides });
-const can = (p: SopPermission) => (u: AgentUser) => sopCan(ctx(u), p);
+const ctx = (u: AgentUser) => u;
+const can = (p: SopPermission) => microAny(`playbook-ai.${sopFeatureKey(p)}`);
 const PRIORITY = values(SOP_PRIORITIES); const CONF = values(CONFIDENTIALITY_LEVELS); const STATUS = values(SOP_STATUSES);
 const soft = { deletedAt: null };
 
-const act = (key: string, label: string, description: string, params: FieldDef[], perm: SopPermission, run: (v: Json, u: AgentUser) => Promise<unknown>, success: string, destructive = false): ActionDef => ({
-  key, panel: "sop", label, description, params, level: "any", allow: can(perm), destructive, run: (v, u) => viaAction(() => run(v, u), success),
+const act = (key: string, label: string, description: string, params: FieldDef[], perm: SopPermission | "FEEDBACK", run: (v: Json, u: AgentUser) => Promise<unknown>, success: string, destructive = false): ActionDef => ({
+  key, panel: "sop", label, description, params, level: "any", allow: perm === "FEEDBACK" ? microAny("playbook-ai.sops.feedback") : can(perm), destructive, run: (v, u) => viaAction(() => run(v, u), success),
 });
 
 export const SOP_ENTITIES: EntityDef[] = [
   { key: "sop.document", panel: "sop", label: "SOP", description: "Standard operating procedures: code, title, department, owner, status (draft / published / active / expired / archived), version, review and expiry dates. Use sop.read for the text.", collection: "sops", idType: "string", baseFilter: soft, titleField: "title", search: ["title", "code", "tags"], read: "any", allowRead: can("VIEW"), hide: ["draft", "live", "accessUserIds"] },
   { key: "sop.version", panel: "sop", label: "SOP version", description: "Published versions of each SOP (version number, change type, summary, author, date).", collection: "sop_versions", idType: "string", search: ["code", "changeSummary"], read: "any", allowRead: can("VIEW"), hide: ["content"] },
-  { key: "sop.department", panel: "sop", label: "SOP department", description: "Departments SOPs belong to.", collection: COLLECTIONS.departments, idType: "string", baseFilter: soft, titleField: "name", read: "any" },
-  { key: "sop.function", panel: "sop", label: "Function", description: "Business functions inside departments.", collection: "sop_functions", idType: "string", baseFilter: soft, titleField: "name", read: "any" },
-  { key: "sop.process", panel: "sop", label: "Process", description: "Processes (and sub-processes) inside functions.", collection: "sop_processes", idType: "string", baseFilter: soft, titleField: "name", read: "any" },
-  { key: "sop.category", panel: "sop", label: "SOP category", description: "Categories for organising SOPs.", collection: "sop_categories", idType: "string", baseFilter: soft, titleField: "name", read: "any" },
-  { key: "sop.template", panel: "sop", label: "SOP template", description: "Templates new SOPs can start from.", collection: "sop_templates", idType: "string", baseFilter: soft, titleField: "name", read: "any" },
-  { key: "sop.assignment", panel: "sop", label: "SOP assignment", description: "Who must read and acknowledge which SOP, due dates and acknowledgement status.", collection: "sop_assignments", idType: "string", read: "staff", self: (u) => ({ userId: u.id }) },
-  { key: "sop.feedback", panel: "sop", label: "SOP feedback", description: "Feedback and change requests on SOPs.", collection: "sop_feedback", idType: "string", read: "staff" },
+  { key: "sop.department", panel: "sop", label: "SOP department", description: "Departments SOPs belong to.", collection: COLLECTIONS.departments, idType: "string", baseFilter: soft, titleField: "name", allowRead: microAny("playbook-ai.sops.view"), read: "any" },
+  { key: "sop.function", panel: "sop", label: "Function", description: "Business functions inside departments.", collection: "sop_functions", idType: "string", baseFilter: soft, titleField: "name", allowRead: microAny("playbook-ai.sops.view"), read: "any" },
+  { key: "sop.process", panel: "sop", label: "Process", description: "Processes (and sub-processes) inside functions.", collection: "sop_processes", idType: "string", baseFilter: soft, titleField: "name", allowRead: microAny("playbook-ai.sops.view"), read: "any" },
+  { key: "sop.category", panel: "sop", label: "SOP category", description: "Categories for organising SOPs.", collection: "sop_categories", idType: "string", baseFilter: soft, titleField: "name", allowRead: microAny("playbook-ai.sops.view"), read: "any" },
+  { key: "sop.template", panel: "sop", label: "SOP template", description: "Templates new SOPs can start from.", collection: "sop_templates", idType: "string", baseFilter: soft, titleField: "name", allowRead: microAny("playbook-ai.sops.view"), read: "any" },
+  { key: "sop.assignment", panel: "sop", label: "SOP assignment", description: "Who must read and acknowledge which SOP, due dates and acknowledgement status.", collection: "sop_assignments", idType: "string", allowRead: microAny("playbook-ai.sops.view"), read: "staff", self: (u) => ({ userId: u.id }) },
+  { key: "sop.feedback", panel: "sop", label: "SOP feedback", description: "Feedback and change requests on SOPs.", collection: "sop_feedback", idType: "string", allowRead: microAny("playbook-ai.sops.edit"), read: "staff" },
   { key: "sop.activity", panel: "sop", label: "Audit log", description: "Who changed what in SOP.", collection: "sop_activity_logs", idType: "string", search: ["entityLabel", "summary", "actorEmail"], read: "admin", allowRead: can("VIEW_AUDIT") },
 ];
 
@@ -79,8 +81,8 @@ export const SOP_ACTIONS: ActionDef[] = [
   act("sop.unassign", "Remove someone's assignment", "Take an SOP off a person.", [f.ref("sopId", "SOP id", "sop.document", true), f.str("userId", "User id", true)], "ASSIGN", (v) => A.unassignSopAction(String(v.sopId), String(v.userId)), "Unassigned."),
   act("sop.remind_pending", "Remind people who haven't acknowledged", "Send a reminder to everyone still pending on an SOP.", [f.ref("sopId", "SOP id", "sop.document", true)], "ASSIGN", (v) => A.remindPendingAction(String(v.sopId)), "Reminders sent."),
   act("sop.acknowledge", "Acknowledge an SOP (I have read and understood)", "Record your own acknowledgement of a published version.", [f.ref("sopId", "SOP id", "sop.document", true), f.str("version", "Version you read, e.g. 1.2", true)], "ACKNOWLEDGE", (v) => A.acknowledgeSopAction(String(v.sopId), String(v.version)), "Acknowledged."),
-  act("sop.tick_checklist", "Tick or untick an SOP checklist item", "Mark a checklist item in an SOP as done.", [f.ref("sopId", "SOP id", "sop.document", true), f.str("itemKey", "Checklist item key", true), f.bool("done", "Done")], "VIEW", (v) => A.setChecklistItemAction(String(v.sopId), String(v.itemKey), v.done !== false), "Updated."),
-  act("sop.submit_feedback", "Send feedback or a change request on an SOP", "Tell the owners something is wrong or unclear.", [f.ref("sopId", "SOP id", "sop.document", true), f.enum("kind", "Kind", ["feedback", "change_request"], true), f.text("message", "Message", true)], "VIEW", (v) => A.submitFeedbackAction(String(v.sopId), { kind: String(v.kind), message: String(v.message ?? "") }), "Feedback sent."),
+  act("sop.tick_checklist", "Tick or untick an SOP checklist item", "Mark a checklist item in an SOP as done.", [f.ref("sopId", "SOP id", "sop.document", true), f.str("itemKey", "Checklist item key", true), f.bool("done", "Done")], "ACKNOWLEDGE", (v) => A.setChecklistItemAction(String(v.sopId), String(v.itemKey), v.done !== false), "Updated."),
+  act("sop.submit_feedback", "Send feedback or a change request on an SOP", "Tell the owners something is wrong or unclear.", [f.ref("sopId", "SOP id", "sop.document", true), f.enum("kind", "Kind", ["feedback", "change_request"], true), f.text("message", "Message", true)], "FEEDBACK", (v) => A.submitFeedbackAction(String(v.sopId), { kind: String(v.kind), message: String(v.message ?? "") }), "Feedback sent."),
   act("sop.resolve_feedback", "Resolve SOP feedback", "Close a feedback item with a note.", [f.ref("sopId", "SOP id", "sop.document", true), f.ref("feedbackId", "Feedback id (sop.feedback)", "sop.feedback", true), f.text("note", "Resolution note")], "EDIT", (v) => A.resolveFeedbackAction(String(v.sopId), String(v.feedbackId), String(v.note ?? "")), "Resolved."),
   act("sop.save_department", "Create or edit an SOP department", "Create (give name and code) or edit (give id) a department.", [f.str("id", "Department id to edit (leave out to create)"), f.str("name", "Name", true), f.str("code", "Short code (new only)"), f.text("description", "Description"), f.str("hrmsDepartmentId", "Linked HR department id"), f.bool("active", "Active")], "MANAGE_TEMPLATES", (v) => A.saveDepartmentAction({ id: str(v.id) ?? undefined, name: String(v.name ?? ""), code: str(v.code) ?? undefined, description: str(v.description) ?? undefined, hrmsDepartmentId: str(v.hrmsDepartmentId), active: v.active as boolean | undefined }), "Department saved."),
   act("sop.delete_department", "Delete an SOP department", "Delete a department that has no SOPs.", [f.ref("id", "Department id", "sop.department", true)], "MANAGE_TEMPLATES", (v) => A.deleteDepartmentAction(String(v.id)), "Department deleted.", true),

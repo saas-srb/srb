@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import ResourceForm, { type FieldSpec } from "@/components/products/spendiq/ResourceForm";
 import { CONTRACT_TYPES, RESOURCE_STATUSES, SUPPORTED_CURRENCIES } from "@/lib/products/spendiq/constants";
-import { saveContractAction } from "@/app/(products)/spendiq/(protected)/(staff)/contracts/actions";
+import { saveContractAction } from "@/app/(products)/spendiq/(protected)/contracts/actions";
 import type { Contract } from "@/lib/products/spendiq/contracts";
 
 export default function ContractForm({

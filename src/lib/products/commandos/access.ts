@@ -2,6 +2,8 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
+import type { AccessSubject } from "@/lib/access/can";
+import { subjectFromRow } from "@/lib/access/server";
 import { getCurrentHubUser, type CurrentHubUser } from "@/lib/hub-auth";
 import { currentCompanyId, isPlatformOwnerContext } from "@/lib/platform/tenancy/context";
 import { listPanels, unavailablePanelKeys } from "@/lib/platform/panels/store";
@@ -43,7 +45,7 @@ export async function loadNavContext(user: WorkspaceUser): Promise<NavContext> {
   return {
     unavailablePanels: unavailable,
     panels: Object.fromEntries(registry.map((p) => [p.key, { name: whiteLabelProductName(p.name), description: p.description }])),
-    user: { roles: user.roles, permissionOverrides: user.permissionOverrides ?? null },
+    user: { roles: user.roles, permissionOverrides: user.permissionOverrides ?? null, subject: (user as { subject?: AccessSubject }).subject ?? subjectFromRow(user as never) },
     platformAccess,
   };
 }

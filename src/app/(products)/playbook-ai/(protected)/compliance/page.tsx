@@ -16,7 +16,7 @@ import { getViewer } from "@/lib/products/playbook-ai/viewer";
 import { canViewCompliance } from "@/lib/products/playbook-ai/access";
 import { getCompliance } from "@/lib/products/playbook-ai/analytics";
 import { formatIsoDate } from "@/lib/products/playbook-ai/constants";
-import { sopCan } from "@/lib/sop-roles";
+import { pbSop } from "@/lib/playbook-access";
 
 function Panel({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
@@ -35,7 +35,7 @@ export default async function CompliancePage() {
   if (!viewer) redirect("/playbook-ai/login");
   if (!canViewCompliance(viewer)) redirect("/playbook-ai");
   const c = await getCompliance(viewer);
-  const canExport = sopCan({ roles: viewer.roles, permissionOverrides: viewer.overrides }, "EXPORT");
+  const canExport = pbSop(viewer, "EXPORT");
   const empty = (cols: number, label: string) => (
     <TableRow><TableCell colSpan={cols} className="text-center text-muted-foreground">{label}</TableCell></TableRow>
   );

@@ -22,7 +22,7 @@ import {
 import DocumentUploadSheet from "@/components/products/talentos/DocumentUploadSheet";
 import { DOCUMENT_CATEGORIES, documentCategoryLabel, isInlinePreviewable } from "@/lib/products/talentos/document-categories";
 import { formatDate } from "@/lib/utils";
-import { deleteDocumentAction } from "@/app/(products)/talentos/(protected)/(staff)/employees/[id]/document-actions";
+import { deleteDocumentAction } from "@/app/(products)/talentos/(protected)/employees/[id]/document-actions";
 
 interface Doc {
   _id: string;

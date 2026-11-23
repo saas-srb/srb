@@ -1,7 +1,7 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentHrmsUser } from "@/lib/hrms-auth";
-import { canRunPayroll } from "@/lib/hrms-roles";
+import { hrCan } from "@/lib/talentos-access";
 import { searchPayouts } from "@/lib/products/talentos/salary-payouts";
 import { isValidPayoutStatus } from "@/lib/products/talentos/payout-status";
 import { payoutStatusMeta } from "@/lib/products/talentos/payout-status";
@@ -9,7 +9,7 @@ import { toCsv } from "@/lib/csv";
 
 async function handleGET(req: NextRequest) {
   const user = await getCurrentHrmsUser();
-  if (!user || !canRunPayroll(user)) {
+  if (!user || !hrCan(user, "payroll.view")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

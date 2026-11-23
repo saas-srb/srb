@@ -136,10 +136,12 @@ export async function inviteTeammate(input: InviteInput, inviter: { id: string; 
   const company = await getCompany(await currentCompanyId());
   const companyName = company?.name ?? "your company";
   const presetLabel = input.person ? input.person.designationTitle || "team member" : ROLE_PRESETS.find((p) => p.value === (presetToDesignationKey(input.preset) ?? input.preset))?.label ?? "team member";
+  const { titleOfPerson, nameWithTitle } = await import("@/lib/platform/organization/title-server");
+  const inviterLabel = nameWithTitle(inviter.email, await titleOfPerson(inviter.id));
   const { html, text } = renderEmail({
     brand: companyName,
     heading: `Join ${companyName}`,
-    paragraphs: [`Hi${name ? ` ${name}` : ""},`, `${inviter.email} invited you to ${companyName}'s workspace as ${presetLabel}. Set your password to get started.`],
+    paragraphs: [`Hi${name ? ` ${name}` : ""},`, `${inviterLabel} invited you to ${companyName}'s workspace as ${presetLabel}. Set your password to get started.`],
     action: { label: "Accept invitation", url: `${baseUrl}/commandos/invite?token=${token}` },
     footnote: "This invitation expires in 7 days.",
   });

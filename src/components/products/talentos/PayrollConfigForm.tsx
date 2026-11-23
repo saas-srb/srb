@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { PayrollConfigInput } from "@/lib/products/talentos/payroll-config";
-import { savePayrollConfigAction } from "@/app/(products)/talentos/(protected)/(staff)/settings/actions";
+import { savePayrollConfigAction } from "@/app/(products)/talentos/(protected)/settings/actions";
 
 const selectClass = "h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
 

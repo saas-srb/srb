@@ -2,7 +2,6 @@ import { legacyToAccess } from "@/lib/access/adapter";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { getDb } from "@/lib/mongodb";
-import { playbookCan } from "@/lib/playbook-roles";
 import { getCatalogueMeta } from "@/lib/products/playbook-ai/catalogue/registry";
 import { getDocument, getDocumentVersion, saveVersion } from "@/lib/products/playbook-ai/documents";
 import type { PbActor, PbVersionRecord } from "@/lib/products/playbook-ai/documents-types";
@@ -18,6 +17,7 @@ import { createManualParty, linkParty } from "@/lib/products/contractflow-ai/par
 import type { LpmsViewer } from "@/lib/products/contractflow-ai/types";
 import { isLinkedType, isPartyType } from "@/lib/products/contractflow-ai/party-types";
 import type { HandoffRecord, SendContext, SendIssue } from "@/lib/products/playbook-ai/handoff-types";
+import { pbDoc } from "@/lib/playbook-access";
 
 /**
  * "Send for signature" from Playbook (H1). Playbook decides WHETHER a version may be sent (permission, status, template flags, filled
@@ -26,7 +26,7 @@ import type { HandoffRecord, SendContext, SendIssue } from "@/lib/products/playb
  */
 
 const col = async () => (await getDb()).collection<HandoffRecord>(PB_COLLECTIONS.handoffs);
-const ctxOf = (a: PbActor) => ({ roles: a.roles, permissionOverrides: a.permissionOverrides ?? undefined });
+const ctxOf = (a: PbActor) => (a);
 
 /** The ContractFlow-side viewer for a Playbook user who holds SEND_FOR_SIGNATURE (lets them pick or add the other party). */
 export function senderViewer(actor: PbActor): LpmsViewer {
@@ -40,7 +40,7 @@ export async function getSendContext(actor: PbActor, documentId: string, version
   const d = rec.document;
   const issues: SendIssue[] = [];
   const meta = d.docTypeId ? getCatalogueMeta(d.docTypeId) : null;
-  if (!playbookCan(ctxOf(actor), "SEND_FOR_SIGNATURE")) issues.push({ code: "permission", message: "You do not have the right to send documents for signature." });
+  if (!pbDoc(ctxOf(actor), "SEND_FOR_SIGNATURE")) issues.push({ code: "permission", message: "You do not have the right to send documents for signature." });
   if (d.status !== "approved" && d.status !== "issued") issues.push({ code: "status", message: `Only an approved or issued document can be sent. This one is ${d.status.replace("_", " ")}.` });
 
   const number = versionNumber ?? d.issuedVersion ?? d.latestVersion ?? null;
@@ -185,7 +185,7 @@ export interface SendItemInput {
  * client, vendor...) or created as a manual party. Playbook's item is not changed apart from the new version and the handoff row.
  */
 export async function sendItemToContractFlow(actor: PbActor, input: SendItemInput): Promise<SendResult> {
-  if (!playbookCan(ctxOf(actor), "SEND_FOR_SIGNATURE")) return { ok: false, message: "You do not have the right to send documents to ContractFlow." };
+  if (!pbDoc(ctxOf(actor), "SEND_FOR_SIGNATURE")) return { ok: false, message: "You do not have the right to send documents to ContractFlow." };
   const rec = await getDocument(actor, String(input.documentId));
   if (!rec.ok) return { ok: false, message: rec.error.message };
   const d = rec.document;

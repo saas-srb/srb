@@ -7,14 +7,14 @@ import TemplateEditor from "@/components/products/playbook-ai/TemplateEditor";
 import { getViewer } from "@/lib/products/playbook-ai/viewer";
 import { getTemplate } from "@/lib/products/playbook-ai/templates";
 import { getTaxonomy } from "@/lib/products/playbook-ai/taxonomy";
-import { sopCan } from "@/lib/sop-roles";
+import { pbSop } from "@/lib/playbook-access";
 
 export default async function TemplatePage({ params }: { params: Promise<{ id: string }> }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/playbook-ai/login");
-  const ctx = { roles: viewer.roles, permissionOverrides: viewer.overrides };
-  const canManage = sopCan(ctx, "MANAGE_TEMPLATES");
-  if (!canManage && !sopCan(ctx, "CREATE")) redirect("/playbook-ai");
+  const ctx = viewer;
+  const canManage = pbSop(ctx, "MANAGE_TEMPLATES");
+  if (!canManage && !pbSop(ctx, "CREATE")) redirect("/playbook-ai");
   const { id } = await params;
   const [template, tax] = await Promise.all([getTemplate(id), getTaxonomy()]);
   if (!template || (!template.active && !canManage)) notFound();

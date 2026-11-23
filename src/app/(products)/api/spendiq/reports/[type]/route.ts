@@ -1,7 +1,7 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentPrmsUser } from "@/lib/prms-auth";
-import { canViewReports } from "@/lib/prms-roles";
+import { prmsCan } from "@/lib/prms-access";
 import { buildReport, isValidReportType } from "@/lib/products/spendiq/reports";
 import { buildWorkbook } from "@/lib/products/spendiq/xlsx";
 import { renderReportPdf } from "@/components/products/spendiq/ReportPdf";
@@ -24,7 +24,7 @@ function fileResponse(body: Buffer | string, type: string, filename: string) {
 async function handleGET(req: NextRequest, { params }: Context) {
   const user = await getCurrentPrmsUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canViewReports(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!prmsCan(user, "reports.export")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { type } = await params;
   if (!isValidReportType(type)) return NextResponse.json({ error: "Unknown report" }, { status: 404 });

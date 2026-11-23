@@ -5,7 +5,7 @@ import { registerDoNotContactProvider, type DoNotContactQuery } from "@/lib/prod
 import type { CallDoc, CallTarget } from "@/lib/products/agentos/calls/types";
 import { buildAiCallEntry, loosePhoneRegex, phonesMatch, type AiCallEntry } from "@/lib/products/call-writeback";
 import { registerTargetAuthorizer } from "@/lib/products/agentos/calls/integrations";
-import { canManageProjects, hasPmsAccess } from "@/lib/pms-roles";
+import { pmsCan } from "@/lib/pms-access";
 import type { AibotsViewer } from "@/lib/products/agentos/viewer";
 import { ACTIVITY_LOGS_COLLECTION, type ActivityLog } from "@/lib/products/sprintos/activity";
 import { CLIENTS_COLLECTION, type Client } from "@/lib/products/sprintos/clients";
@@ -107,7 +107,7 @@ export async function isSprintosDoNotContact(q: DoNotContactQuery): Promise<bool
  */
 export async function authorizeSprintosTarget(viewer: AibotsViewer, target: CallTarget): Promise<boolean> {
   if (target.product !== SPRINTOS_PRODUCT || (target.entityType !== "project" && target.entityType !== "client")) return false;
-  if (!hasPmsAccess(viewer.roles) || !canManageProjects(viewer.ctx)) return false;
+  if (!pmsCan(viewer, "projects.manage")) return false;
   const db = await getDb();
   if (target.entityType === "project") return Boolean(await db.collection<Project>(PROJECTS_COLLECTION).findOne({ _id: target.entityId, ...notDeleted }, { projection: { _id: 1 } }));
   return Boolean(await db.collection<Client>(CLIENTS_COLLECTION).findOne({ _id: target.entityId, ...notDeleted } as never, { projection: { _id: 1 } }));

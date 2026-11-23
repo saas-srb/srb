@@ -2,10 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { getViewer } from "@/lib/products/playbook-ai/viewer";
-import { playbookCan } from "@/lib/playbook-roles";
 import { CATEGORY_KEYS, CATEGORY_LABELS, PARTY_TYPES, searchCatalogue, type CategoryKey, type PartyType } from "@/lib/products/playbook-ai/catalogue";
 import { listTemplates } from "@/lib/products/playbook-ai/tpl/store";
 import { requireActor } from "@/lib/products/playbook-ai/tpl/actor";
+import { pbDoc } from "@/lib/playbook-access";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +17,7 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
   const viewer = await getViewer();
   if (!viewer) redirect("/playbook-ai/login");
   const actor = await requireActor();
-  if (!playbookCan(actor, "VIEW")) redirect("/playbook-ai");
+  if (!pbDoc(actor, "VIEW")) redirect("/playbook-ai");
 
   const category = (CATEGORY_KEYS as readonly string[]).includes(sp.category ?? "") ? (sp.category as CategoryKey) : undefined;
   const party = (PARTY_TYPES as readonly string[]).includes(sp.party ?? "") ? (sp.party as PartyType) : undefined;

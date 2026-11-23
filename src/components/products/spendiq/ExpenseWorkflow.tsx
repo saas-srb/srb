@@ -26,7 +26,7 @@ import {
   toggleRecurringExpenseAction,
   deleteExpenseAction,
   uploadExpenseInvoiceAction,
-} from "@/app/(products)/spendiq/(protected)/(staff)/expenses/actions";
+} from "@/app/(products)/spendiq/(protected)/expenses/actions";
 
 export default function ExpenseWorkflow({
   expense,

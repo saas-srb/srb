@@ -1,7 +1,7 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentPrmsUser } from "@/lib/prms-auth";
-import { canManageProcurement, canManageFinance } from "@/lib/prms-roles";
+import { prmsCan } from "@/lib/prms-access";
 import { getPurchaseOrderByNumber } from "@/lib/products/spendiq/purchase-orders";
 import { getPrmsSettings } from "@/lib/products/spendiq/settings";
 import { renderPurchaseOrderPdf } from "@/components/products/spendiq/PurchaseOrderPdf";
@@ -12,7 +12,7 @@ type Context = { params: Promise<{ poNumber: string }> };
 async function handleGET(_req: NextRequest, { params }: Context) {
   const user = await getCurrentPrmsUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canManageProcurement(user) && !canManageFinance(user)) {
+  if (!prmsCan(user, "purchaseorders.view") && !prmsCan(user, "invoices.view")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

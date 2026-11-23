@@ -311,7 +311,10 @@ async function main() {
       assert.equal(search.results.length, 6);
       const kpis = JSON.parse(outputs[1].output ?? "{}") as { kpis: { label: string; value: number }[] };
       assert.equal(kpis.kpis.find((k) => k.label === "Open leads")?.value, 8);
-      assert.equal(await runAsCompany(A, async () => (await getDb()).collection("billing_usage").countDocuments({})), 1, "usage was metered");
+      // Metering: one row per metric (emails sent earlier in this run have their own row), and the AI row holds exactly what the model reported, once per model call (no double billing).
+      const rows = await runAsCompany(A, async () => (await getDb()).collection<{ _id: string; total: number }>("billing_usage").find({ metric: "ai_tokens" } as never).toArray());
+      assert.equal(rows.length, 1, "one AI meter row");
+      assert.equal(rows[0].total, 50 * mock.requests.length, `every model call (${mock.requests.length}) is metered once at 50 tokens`);
     });
     await check("tools run with the asking user's permissions", async () => {
       mock.requests.length = 0;

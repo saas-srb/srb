@@ -20,7 +20,7 @@ import {
 import {
   reissueCertificateAction,
   setCertificateRevokedAction,
-} from "@/app/(products)/cohort-ai/(protected)/(staff)/certificates/actions";
+} from "@/app/(products)/cohort-ai/(protected)/certificates/actions";
 
 export default function CertificateActions({
   certificateId,

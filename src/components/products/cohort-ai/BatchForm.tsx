@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { BATCH_STATUSES, TRAINING_MODES } from "@/lib/products/cohort-ai/constants";
-import { saveBatchAction } from "@/app/(products)/cohort-ai/(protected)/(staff)/batches/actions";
+import { saveBatchAction } from "@/app/(products)/cohort-ai/(protected)/batches/actions";
 import type { SerializedBatch } from "@/lib/products/cohort-ai/batches";
 
 type FormState = Record<string, string>;

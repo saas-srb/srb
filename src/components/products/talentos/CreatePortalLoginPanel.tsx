@@ -25,7 +25,7 @@ import {
   createEmployeeLoginAction,
   resetEmployeeLoginAction,
   revokeEmployeeLoginAction,
-} from "@/app/(products)/talentos/(protected)/(staff)/employees/[id]/actions";
+} from "@/app/(products)/talentos/(protected)/employees/[id]/actions";
 
 interface Status {
   hasLogin: boolean;

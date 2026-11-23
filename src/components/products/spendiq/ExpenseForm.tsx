@@ -23,7 +23,7 @@ import {
   computeTax,
   formatMoney,
 } from "@/lib/products/spendiq/constants";
-import { saveExpenseAction } from "@/app/(products)/spendiq/(protected)/(staff)/expenses/actions";
+import { saveExpenseAction } from "@/app/(products)/spendiq/(protected)/expenses/actions";
 import type { SerializedExpense } from "@/lib/products/spendiq/expenses";
 
 interface Option {

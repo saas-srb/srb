@@ -1,9 +1,7 @@
+import { holdsLegacy, holdsProduct } from "@/lib/access/holds";
 import "server-only";
 import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/mongodb";
-import { canManageClients } from "@/lib/pms-roles";
-import { canManageFinance, canManageProcurement } from "@/lib/prms-roles";
-import { canViewAllEmployees } from "@/lib/hrms-roles";
 import { can } from "@/lib/products/contractflow-ai/viewer";
 import type { LpmsViewer } from "./types";
 import type { LinkedPartyType, PartyRecordRef } from "./party-types";
@@ -41,7 +39,7 @@ interface ClientRow { _id: string; companyName: string; clientCode?: string; pri
 const clientAdapter: PartyAdapter = {
   type: "client",
   ref: { product: "sprintos", collection: "pms_clients" },
-  canAccess: (v) => canManageClients(ctx(v)) || seesAll(v),
+  canAccess: (v) => holdsLegacy(ctx(v), "sprintos", "pms.canManageClients") || seesAll(v),
   async search(q, limit) {
     const re = new RegExp(escapeRegex(q), "i");
     const rows = await (await getDb()).collection<ClientRow>("pms_clients").find({ deletedAt: null, ...(q ? { $or: [{ companyName: re }, { clientCode: re }, { "primaryContact.name": re }, { "primaryContact.email": re }] } : {}) } as never).sort({ companyName: 1 }).limit(cap(limit)).toArray();
@@ -58,7 +56,7 @@ interface VendorRow { _id: string; companyName: string; vendorCode?: string; ema
 const vendorAdapter: PartyAdapter = {
   type: "vendor",
   ref: { product: "spendiq", collection: "prms_vendors" },
-  canAccess: (v) => canManageProcurement(ctx(v)) || canManageFinance(ctx(v)) || seesAll(v),
+  canAccess: (v) => holdsLegacy(ctx(v), "spendiq", "prms.canManageProcurement", "prms.canManageFinance") || seesAll(v),
   async search(q, limit) {
     const re = new RegExp(escapeRegex(q), "i");
     const rows = await (await getDb()).collection<VendorRow>("prms_vendors").find({ deletedAt: null, ...(q ? { $or: [{ companyName: re }, { vendorCode: re }, { email: re }] } : {}) } as never).sort({ companyName: 1 }).limit(cap(limit)).toArray();
@@ -78,7 +76,7 @@ const employeeAdapter: PartyAdapter = {
   type: "employee",
   ref: { product: "talentos", collection: "hrms_employees" },
   // Employee records are HR data: only people who may see every employee (HR), plus ContractFlow admins.
-  canAccess: (v) => canViewAllEmployees(ctx(v)) || seesAll(v),
+  canAccess: (v) => holdsLegacy(ctx(v), "talentos", "hrms.canViewAllEmployees") || seesAll(v),
   async search(q, limit) {
     const re = new RegExp(escapeRegex(q), "i");
     const rows = await (await getDb()).collection<EmployeeRow>("hrms_employees").find({ deletedAt: null, ...(q ? { $or: [{ firstName: re }, { lastName: re }, { workEmail: re }, { employeeCode: re }] } : {}) } as never).sort({ firstName: 1 }).limit(cap(limit)).toArray();
@@ -95,7 +93,7 @@ const toCandidate = (r: ApplicationRow): SourceRecord => ({ id: r._id.toHexStrin
 const candidateAdapter: PartyAdapter = {
   type: "candidate",
   ref: { product: "talentos", collection: "career_applications" },
-  canAccess: (v) => canViewAllEmployees(ctx(v)) || seesAll(v),
+  canAccess: (v) => holdsLegacy(ctx(v), "talentos", "hrms.canViewAllEmployees") || seesAll(v),
   async search(q, limit) {
     const re = new RegExp(escapeRegex(q), "i");
     const rows = await (await getDb()).collection<ApplicationRow>("career_applications").find((q ? { $or: [{ name: re }, { email: re }, { positionTitle: re }] } : {}) as never, { projection: { resume: 0 } }).sort({ _id: -1 }).limit(cap(limit)).toArray();

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { assignBatchAction } from "@/app/(products)/cohort-ai/(protected)/(staff)/students/actions";
+import { assignBatchAction } from "@/app/(products)/cohort-ai/(protected)/students/actions";
 
 export interface AssignProgram {
   _id: string;

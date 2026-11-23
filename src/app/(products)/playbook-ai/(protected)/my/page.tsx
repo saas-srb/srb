@@ -6,7 +6,7 @@ import SopLibraryTable from "@/components/products/playbook-ai/SopLibraryTable";
 import { getViewer } from "@/lib/products/playbook-ai/viewer";
 import { parseLibraryQuery, queryLibrary } from "@/lib/products/playbook-ai/library";
 import { creatableDepartmentIds } from "@/lib/products/playbook-ai/access";
-import { sopCan } from "@/lib/sop-roles";
+import { pbSop } from "@/lib/playbook-access";
 
 export default async function MySopsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const viewer = await getViewer();
@@ -26,7 +26,7 @@ export default async function MySopsPage({ searchParams }: { searchParams: Promi
         result={result}
         query={query}
         canCreate={creatableDepartmentIds(viewer)?.length !== 0}
-        canExport={sopCan({ roles: viewer.roles, permissionOverrides: viewer.overrides }, "EXPORT")}
+        canExport={pbSop(viewer, "EXPORT")}
         exportBase="/api/playbook-ai/export/my"
         emptyLabel="You haven't created or been made owner of any SOPs yet."
       />

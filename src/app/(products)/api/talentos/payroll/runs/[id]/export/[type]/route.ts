@@ -1,7 +1,7 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentHrmsUser } from "@/lib/hrms-auth";
-import { canRunPayroll } from "@/lib/hrms-roles";
+import { hrCan } from "@/lib/talentos-access";
 import { getPayslipsForRun, getRun } from "@/lib/products/talentos/payroll-run";
 import { exportSlipsForRun } from "@/lib/products/talentos/payroll-export-data";
 import { ecrFile, esiFile, journalCsv, payrollJournal, payrollRegister, professionalTaxReport, tdsRegister } from "@/lib/products/talentos/payroll/exports";
@@ -15,7 +15,7 @@ const TYPES = new Set(["register", "pf-ecr", "esi", "pt", "tds", "journal"]);
 
 async function handleGET(_req: NextRequest, { params }: Context) {
   const user = await getCurrentHrmsUser();
-  if (!user || !canRunPayroll(user)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user || !hrCan(user, "payroll.view")) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id, type } = await params;
   if (!TYPES.has(type)) return NextResponse.json({ error: "Unknown export." }, { status: 404 });

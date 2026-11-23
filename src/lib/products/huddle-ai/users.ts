@@ -63,6 +63,18 @@ async function getCollection() {
   return collection;
 }
 
+/**
+ * Messages, member lists, the people picker and search show the person's title from the organization service (their designation), the same one every
+ * product uses, never the copy cached here and never a product role. No designation: "Team member". One organization read for the whole list.
+ */
+async function withCentralTitles<T extends DirectoryUser>(users: T[]): Promise<T[]> {
+  if (users.length === 0) return users;
+  const { titlesOfPeople } = await import("@/lib/platform/organization/title-server");
+  const titles = await titlesOfPeople(users.map((u) => u._id));
+  for (const u of users) u.title = titles.get(u._id)?.title ?? u.title;
+  return users;
+}
+
 function toDirectory(u: ChatUser): DirectoryUser {
   return {
     _id: u._id,
@@ -148,13 +160,14 @@ export async function getChatUsers(userIds: string[]): Promise<Record<string, Di
   const collection = await getCollection();
   const rows = await collection.find({ _id: { $in: ids } }).toArray();
   for (const r of rows) out[r._id] = toDirectory(r);
+  await withCentralTitles(Object.values(out));
   return out;
 }
 
 export async function listDirectoryUsers(excludeUserId?: string): Promise<DirectoryUser[]> {
   const collection = await getCollection();
   const rows = await collection.find({ ...notDeleted }).sort({ displayName: 1 }).toArray();
-  return rows.filter((r) => r._id !== excludeUserId).map(toDirectory);
+  return withCentralTitles(rows.filter((r) => r._id !== excludeUserId).map(toDirectory));
 }
 
 export async function searchUsers(q: string, limit = 12): Promise<DirectoryUser[]> {
@@ -167,7 +180,7 @@ export async function searchUsers(q: string, limit = 12): Promise<DirectoryUser[
     .sort({ displayName: 1 })
     .limit(limit)
     .toArray();
-  return rows.map(toDirectory);
+  return withCentralTitles(rows.map(toDirectory));
 }
 
 export async function countActiveUsers(): Promise<number> {

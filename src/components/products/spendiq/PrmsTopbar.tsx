@@ -9,23 +9,26 @@ import PanelSearch from "@/components/platform/PanelSearch";
 import { useAskAiOpen } from "@/lib/ai/use-ask-ai-open";
 import AskAiDrawer from "@/components/platform/AskAiDrawer";
 import type { PrmsRole } from "@/lib/prms-roles";
+import type { AccessSubject } from "@/lib/access/can";
 
 export default function PrmsTopbar({
   roles,
   permissionOverrides,
+  subject,
   notifications,
   unread,
 }: {
   roles: PrmsRole[];
   allRoles: string[];
   permissionOverrides?: Record<string, boolean>;
+  subject: AccessSubject;
   notifications: BellItem[];
   unread: number;
 }) {
   const [aiOpen, setAiOpen] = useAskAiOpen();
   return (
     <header className="flex h-14 shrink-0 items-center gap-2 px-3 sm:gap-3 sm:px-4">
-      <PrmsMobileSidebar roles={roles} permissionOverrides={permissionOverrides} />
+      <PrmsMobileSidebar roles={roles} permissionOverrides={permissionOverrides} subject={subject} />
       <PanelHeading panel="prms" fallbackTitle="Procurement & Expense" fallbackDescription="Purchase orders, vendors & expense reports" />
       <div className="flex min-w-0 shrink-0 justify-end md:flex-1 md:shrink md:justify-center">
         <PanelSearch />

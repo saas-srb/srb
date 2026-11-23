@@ -4,7 +4,7 @@ import { isDirector } from "@/lib/access/director";
 import { revalidatePath } from "next/cache";
 import { getCurrentHubUser } from "@/lib/hub-auth";
 import { getCurrentHrmsUser } from "@/lib/hrms-auth";
-import { canManagePayrollConfig, canRunPayroll } from "@/lib/hrms-roles";
+import { hrCan } from "@/lib/talentos-access";
 import { recordAudit } from "@/lib/products/talentos/audit";
 import { setSalaryAccount } from "@/lib/products/talentos/payroll-config";
 import { addCompanyAccount, payingAccounts, recordTopUp, validateAccount } from "@/lib/products/talentos/payroll-bank";
@@ -18,7 +18,7 @@ export interface BankResult {
 
 async function requireBankingManager(): Promise<{ id: string; email: string }> {
   const [payrollUser, hubUser] = await Promise.all([getCurrentHrmsUser(), getCurrentHubUser()]);
-  if (payrollUser && (canRunPayroll(payrollUser) || canManagePayrollConfig(payrollUser))) {
+  if (payrollUser && (hrCan(payrollUser, "payroll.run") || hrCan(payrollUser, "payrollrates.manage"))) {
     return { id: payrollUser.id, email: payrollUser.email };
   }
   if (hubUser && isDirector(hubUser) && (!payrollUser || payrollUser.id === hubUser.id)) {

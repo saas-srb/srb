@@ -6,13 +6,13 @@ import CategoriesManager from "@/components/products/playbook-ai/CategoriesManag
 import { getViewer } from "@/lib/products/playbook-ai/viewer";
 import { getTaxonomy } from "@/lib/products/playbook-ai/taxonomy";
 import { listVisibleSummaries } from "@/lib/products/playbook-ai/sops";
-import { sopCan } from "@/lib/sop-roles";
+import { pbSop } from "@/lib/playbook-access";
 
 export default async function CategoriesPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/playbook-ai/login");
   const [tax, summaries] = await Promise.all([getTaxonomy(), listVisibleSummaries(viewer)]);
-  const canManage = sopCan({ roles: viewer.roles, permissionOverrides: viewer.overrides }, "MANAGE_TEMPLATES");
+  const canManage = pbSop(viewer, "MANAGE_TEMPLATES");
   const rows = tax.categories.map((c) => ({
     id: c._id,
     name: c.name,

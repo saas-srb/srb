@@ -2,7 +2,6 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { putObject, getObject, deleteObject } from "@/lib/storage/blob";
 import { currentCompanyId } from "@/lib/platform/tenancy/context";
-import { playbookCan } from "@/lib/playbook-roles";
 import { sha256Hex } from "@/lib/products/playbook-ai/doc/hash";
 import type { PBDoc } from "@/lib/products/playbook-ai/doc/types";
 import type { VarLists, VarValues } from "@/lib/products/playbook-ai/doc/variables";
@@ -19,6 +18,7 @@ import { indiaDateParts } from "@/lib/products/playbook-ai/variables-registry";
 import { layoutInputFor } from "@/lib/products/playbook-ai/items-layout";
 import { recordPbAudit } from "@/lib/products/playbook-ai/pb-audit";
 import type { PbActor, PbDocumentRecord, PbError, PbResult, PbVersionRecord, TemplateRef } from "@/lib/products/playbook-ai/documents-types";
+import { pbDoc } from "@/lib/playbook-access";
 
 /**
  * PDF and Word export of a document version.
@@ -208,7 +208,7 @@ export interface ExportInput {
 
 export async function exportDocument(actor: PbActor, input: ExportInput): Promise<PbResult<{ file: ExportOk }>> {
   if (!EXPORT_FORMATS.includes(input.format)) return { ok: false, error: { code: "invalid", message: "Choose PDF or Word.", issues: [] } };
-  if (!playbookCan(actor, "EXPORT")) return { ok: false, error: { code: "forbidden", message: "You are not allowed to download documents." } };
+  if (!pbDoc(actor, "EXPORT")) return { ok: false, error: { code: "forbidden", message: "You are not allowed to download documents." } };
   const got = await getDocument(actor, input.id);
   if (!got.ok) return got;
   if (!got.capabilities.export) return { ok: false, error: { code: "forbidden", message: "You are not allowed to download this document." } };

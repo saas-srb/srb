@@ -18,7 +18,7 @@ import { getCompliance, getDashboard } from "@/lib/products/playbook-ai/analytic
 import { listVisibleSummaries } from "@/lib/products/playbook-ai/sops";
 import { getTaxonomy } from "@/lib/products/playbook-ai/taxonomy";
 import { SOP_STATUSES } from "@/lib/products/playbook-ai/constants";
-import { sopCan } from "@/lib/sop-roles";
+import { pbSop } from "@/lib/playbook-access";
 
 const REPORTS = [
   { type: "library", title: "SOP inventory", description: "Every SOP you can access with owner, version, status, dates and acknowledgement counts.", needsCompliance: false },
@@ -30,9 +30,9 @@ const REPORTS = [
 export default async function ReportsPage() {
   const viewer = await getViewer();
   if (!viewer) redirect("/playbook-ai/login");
-  const ctx = { roles: viewer.roles, permissionOverrides: viewer.overrides };
+  const ctx = viewer;
   const monitor = canViewCompliance(viewer);
-  const canExport = sopCan(ctx, "EXPORT");
+  const canExport = pbSop(ctx, "EXPORT");
   if (!monitor && !canExport) redirect("/playbook-ai");
 
   const [d, summaries, tax] = await Promise.all([getDashboard(viewer), listVisibleSummaries(viewer), getTaxonomy()]);

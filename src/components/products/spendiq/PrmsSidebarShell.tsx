@@ -8,6 +8,7 @@ import PrmsProfileMenu from "@/components/products/spendiq/PrmsProfileMenu";
 import { useSidebarCollapse, SidebarProfileSlot } from "@/components/products/dealflow-ai/SidebarCollapseContext";
 import { cn } from "@/lib/utils";
 import type { PrmsRole } from "@/lib/prms-roles";
+import type { AccessSubject } from "@/lib/access/can";
 
 const EXPANDED_WIDTH = 244;
 const COLLAPSED_WIDTH = 68;
@@ -16,12 +17,14 @@ export default function PrmsSidebarShell({
   email,
   roles,
   permissionOverrides,
+  subject,
   createdAt,
   lastLoginAt,
 }: {
   email: string;
   roles: PrmsRole[];
   permissionOverrides?: Record<string, boolean>;
+  subject: AccessSubject;
   createdAt: string;
   lastLoginAt: string | null;
 }) {
@@ -54,7 +57,7 @@ export default function PrmsSidebarShell({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <PrmsSidebar roles={roles} permissionOverrides={permissionOverrides} collapsed={collapsed} />
+        <PrmsSidebar roles={roles} permissionOverrides={permissionOverrides} subject={subject} collapsed={collapsed} />
       </div>
 
       <SidebarProfileSlot>

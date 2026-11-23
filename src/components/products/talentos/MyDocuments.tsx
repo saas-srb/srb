@@ -22,7 +22,7 @@ import {
 import DocumentUploadSheet from "@/components/products/talentos/DocumentUploadSheet";
 import { EMPLOYEE_UPLOADABLE_CATEGORIES, documentCategoryLabel, isInlinePreviewable } from "@/lib/products/talentos/document-categories";
 import { formatDate } from "@/lib/utils";
-import { deleteMyDocumentAction } from "@/app/(products)/talentos/(protected)/me/documents/actions";
+import { deleteMyDocumentAction } from "@/app/(products)/talentos/(protected)/profile/actions";
 
 interface Doc {
   _id: string;
@@ -37,7 +37,7 @@ interface Doc {
   createdAt: string;
 }
 
-export default function MyDocuments({ documents }: { documents: Doc[] }) {
+export default function MyDocuments({ documents, canUpload = true }: { documents: Doc[]; /** Only people who hold documents.upload add or delete their own documents. */ canUpload?: boolean }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -57,7 +57,7 @@ export default function MyDocuments({ documents }: { documents: Doc[] }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-foreground">{documents.length} document{documents.length === 1 ? "" : "s"}</h2>
-        <DocumentUploadSheet allowedCategories={EMPLOYEE_UPLOADABLE_CATEGORIES} />
+        {canUpload && <DocumentUploadSheet allowedCategories={EMPLOYEE_UPLOADABLE_CATEGORIES} />}
       </div>
 
       <GlassCard interactive={false}>
@@ -85,7 +85,7 @@ export default function MyDocuments({ documents }: { documents: Doc[] }) {
                 <a href={`/api/talentos/documents/${d._id}`} className="rounded-md p-1.5 text-muted-foreground hover:text-foreground" aria-label="Download">
                   <Download className="size-4" />
                 </a>
-                {d.uploadedByRole === "employee" && (
+                {canUpload && d.uploadedByRole === "employee" && (
                   <AlertDialog>
                     <AlertDialogTrigger
                       render={

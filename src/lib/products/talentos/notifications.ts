@@ -1,9 +1,9 @@
+import { holdsLegacy, holdsProduct } from "@/lib/access/holds";
 import "server-only";
 import { BLOCKED_STATUSES } from "@/lib/security/account-status";
 import { getDb } from "@/lib/mongodb";
 import { newId } from "@/lib/products/talentos/db";
 import type { CurrentHrmsUser } from "@/lib/hrms-auth";
-import { hasStaffRole } from "@/lib/hrms-roles";
 import { todayDateString } from "@/lib/products/talentos/time";
 import { signalNew } from "@/lib/notify/signals";
 import { logBell, planNotification } from "@/lib/notify/center/store";
@@ -135,7 +135,7 @@ export async function notifyEmployee(
 }
 
 function audienceFilter(user: Pick<CurrentHrmsUser, "id" | "roles">): Record<string, unknown> {
-  if (hasStaffRole(user.roles)) {
+  if (holdsLegacy(user, "talentos", "hrms.hasStaffRole")) {
     return { $or: [{ audience: "staff" }, { recipientUserId: user.id }] };
   }
   return { recipientUserId: user.id };

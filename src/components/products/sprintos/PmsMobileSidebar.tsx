@@ -9,14 +9,17 @@ import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/
 import PmsSidebar from "@/components/products/sprintos/PmsSidebar";
 import SidebarBrand from "@/components/SidebarBrand";
 import type { PmsRole } from "@/lib/pms-roles";
+import type { AccessSubject } from "@/lib/access/can";
 
 export default function PmsMobileSidebar({
   roles,
   permissionOverrides,
+  subject,
   employeeId,
 }: {
   roles: PmsRole[];
   permissionOverrides?: Record<string, boolean>;
+  subject: AccessSubject;
   employeeId: string | null;
 }) {
   const [open, setOpen] = useState(false);
@@ -34,7 +37,7 @@ export default function PmsMobileSidebar({
             <SidebarBrand />
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <PmsSidebar roles={roles} permissionOverrides={permissionOverrides} employeeId={employeeId} onNavigate={() => setOpen(false)} />
+            <PmsSidebar roles={roles} permissionOverrides={permissionOverrides} subject={subject} employeeId={employeeId} onNavigate={() => setOpen(false)} />
           </div>
           <MobileSidebarProfile />
         </SheetContent>

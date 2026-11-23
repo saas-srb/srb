@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { WEEKDAY_LABELS } from "@/lib/products/talentos/time";
 import { INDIAN_STATES } from "@/lib/products/talentos/payroll/rates";
-import { saveOrgSettingsAction } from "@/app/(products)/talentos/(protected)/(staff)/settings/actions";
+import { saveOrgSettingsAction } from "@/app/(products)/talentos/(protected)/settings/actions";
 
 interface Settings {
   workingDays: number[];

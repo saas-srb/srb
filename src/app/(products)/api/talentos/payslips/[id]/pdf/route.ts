@@ -1,7 +1,7 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentHrmsUser } from "@/lib/hrms-auth";
-import { canRunPayroll, canManagePayroll } from "@/lib/hrms-roles";
+import { hrCan } from "@/lib/talentos-access";
 import { getPayslipPdfData } from "@/lib/products/talentos/payslip-pdf";
 import { renderPayslipPdf } from "@/components/products/talentos/PayslipPdfDocument";
 import { recordAudit } from "@/lib/products/talentos/audit";
@@ -18,9 +18,9 @@ async function handleGET(_req: NextRequest, { params }: Context) {
   const data = await getPayslipPdfData(id);
   if (!data) return NextResponse.json({ error: "Payslip not found." }, { status: 404 });
 
-  const isStaff = canRunPayroll(user) || canManagePayroll(user);
+  const isStaff = hrCan(user, "payroll.view") || hrCan(user, "salary.manage");
   const isOwner =
-    user.employeeId === data.employeeId && ["approved", "paid"].includes(data.runStatus);
+    user.employeeId === data.employeeId && hrCan(user, "salary.view") && ["approved", "paid"].includes(data.runStatus);
   if (!isStaff && !isOwner) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

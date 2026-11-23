@@ -22,6 +22,12 @@ export const FINISHED_PANELS: Record<string, { product: string; source: string }
   lms: { product: "dealflow-ai", source: "lms" },
   fms: { product: "cashflow-ai", source: "fms" },
   messenger: { product: "huddle-ai", source: "messenger" },
+  hrms: { product: "talentos", source: "hrms" },
+  pms: { product: "sprintos", source: "pms" },
+  prms: { product: "spendiq", source: "prms" },
+  tms: { product: "cohort-ai", source: "tms" },
+  sop: { product: "playbook-ai", source: "sop" },
+  intelligence: { product: "databrain-ai", source: "intelligence" },
 };
 
 type Gate = ((u: AgentUser) => boolean) & { micro: true };

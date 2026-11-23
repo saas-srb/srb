@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PlacementForm from "@/components/products/cohort-ai/PlacementForm";
-import { deletePlacementAction } from "@/app/(products)/cohort-ai/(protected)/(staff)/placements/actions";
+import { deletePlacementAction } from "@/app/(products)/cohort-ai/(protected)/placements/actions";
 import type { SerializedPlacementRecord } from "@/lib/products/cohort-ai/placements";
 
 export default function PlacementRowActions({

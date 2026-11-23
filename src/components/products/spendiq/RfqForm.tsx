@@ -14,7 +14,7 @@ import { toOptions } from "@/lib/platform/organization/rules";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { UNITS_OF_MEASURE } from "@/lib/products/spendiq/constants";
-import { saveRfqAction } from "@/app/(products)/spendiq/(protected)/(staff)/rfq/actions";
+import { saveRfqAction } from "@/app/(products)/spendiq/(protected)/rfq/actions";
 import type { SerializedRfq } from "@/lib/products/spendiq/rfqs";
 
 interface Line {

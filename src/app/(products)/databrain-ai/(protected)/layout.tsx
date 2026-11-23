@@ -2,7 +2,7 @@ import { twoStepGate } from "@/lib/security/two-step-gate";
 import { panelUnread } from "@/lib/notify";
 import { redirect } from "next/navigation";
 import { getCurrentIntelligenceUser } from "@/lib/intelligence-auth";
-import { intelligenceCan } from "@/lib/intelligence-roles";
+import { dbCanAsk } from "@/lib/databrain-access";
 import { listConversations } from "@/lib/products/databrain-ai/conversations";
 import { buildCatalogView } from "@/lib/products/databrain-ai/catalog/view";
 import { exampleQuestions } from "@/lib/products/databrain-ai/prompt";
@@ -24,7 +24,7 @@ export default async function ProtectedIntelligenceLayout({ children }: { childr
   const user = await getCurrentIntelligenceUser();
   if (!user) redirect("/databrain-ai/login");
   if (user.mustChangePassword) redirect("/commandos/change-password");
-  if (!intelligenceCan(user, "USE")) redirect("/databrain-ai/login");
+  if (!dbCanAsk(user)) redirect("/databrain-ai/login");
 
   // The sidebar's examples come from what THIS user may actually query — nothing is hardcoded to a company.
   const [conversations, examples] = await Promise.all([

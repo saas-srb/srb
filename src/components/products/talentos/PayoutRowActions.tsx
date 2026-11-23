@@ -21,7 +21,7 @@ import {
   refreshPayoutAction,
   retryPayoutAction,
   cancelPayoutAction,
-} from "@/app/(products)/talentos/(protected)/(staff)/payroll/actions";
+} from "@/app/(products)/talentos/(protected)/payroll/actions";
 
 interface Row {
   _id: string;

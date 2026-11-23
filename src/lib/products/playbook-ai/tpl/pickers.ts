@@ -1,9 +1,7 @@
+import { holdsLegacy, holdsProduct } from "@/lib/access/holds";
 import "server-only";
 import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/mongodb";
-import { canManageEmployees } from "@/lib/hrms-roles";
-import { canManageClients, canManageProjects } from "@/lib/pms-roles";
-import { canManageProcurement } from "@/lib/prms-roles";
 import { EMPLOYEES_COLLECTION } from "@/lib/products/talentos/employees";
 import { APPLICATIONS_COLLECTION } from "@/lib/career-applications";
 import type { PbActor } from "@/lib/products/playbook-ai/documents-types";
@@ -24,7 +22,7 @@ const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export async function searchRecords(actor: PbActor, kind: PickerKind, q: string, limit = 12): Promise<{ ok: true; items: PickerItem[] } | { ok: false; error: string }> {
   if (!PICKER_KINDS.includes(kind)) return { ok: false, error: "Unknown record type." };
-  const allowed = kind === "employee" || kind === "candidate" ? canManageEmployees(actor) : kind === "client" ? canManageClients(actor) : kind === "vendor" ? canManageProcurement(actor) : canManageProjects(actor);
+  const allowed = kind === "employee" || kind === "candidate" ? holdsLegacy(actor, "talentos", "hrms.canManageEmployees") : kind === "client" ? holdsLegacy(actor, "sprintos", "pms.canManageClients") : kind === "vendor" ? holdsLegacy(actor, "spendiq", "prms.canManageProcurement") : holdsLegacy(actor, "sprintos", "pms.canManageProjects");
   if (!allowed) return { ok: false, error: `You are not allowed to use ${kind} records in documents.` };
   const term = q.trim().slice(0, 60);
   const re = term ? { $regex: esc(term), $options: "i" } : null;

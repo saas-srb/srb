@@ -1,9 +1,9 @@
+import { holdsLegacy, holdsProduct } from "@/lib/access/holds";
 import "server-only";
 import { getDb } from "@/lib/mongodb";
 import { newId } from "@/lib/products/huddle-ai/db";
 import { emit } from "@/lib/products/huddle-ai/events";
 import { getChatUser, getChatUsers, type DirectoryUser } from "@/lib/products/huddle-ai/users";
-import { hasMessengerAccess } from "@/lib/messenger-roles";
 
 /**
  * `direct_conversations` — one-to-one private threads. `participantIds` is a
@@ -62,7 +62,7 @@ export async function getOrCreateDirect(
   if (userA.id === otherUserId) return { ok: false, error: "You can't DM yourself." };
   const other = await getChatUser(otherUserId);
   if (!other || other.deletedAt) return { ok: false, error: "That person isn't on Messenger." };
-  if (!hasMessengerAccess(other.roles)) return { ok: false, error: "That person no longer has Messenger access." };
+  if (!holdsProduct({ roles: other.roles, permissionOverrides: (other as { permissionOverrides?: Record<string, boolean> }).permissionOverrides }, "huddle-ai")) return { ok: false, error: "That person no longer has Messenger access." };
 
   const c = await getCollection();
   const [p0, p1] = pairKey(userA.id, otherUserId);

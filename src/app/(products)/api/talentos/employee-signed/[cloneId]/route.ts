@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withTransport } from "@/lib/security/transport";
 import { getCurrentHrmsUser } from "@/lib/hrms-auth";
-import { canManageEmployees } from "@/lib/hrms-roles";
+import { maySeeSignedDocument } from "@/lib/products/talentos/doc-access";
 import { cfClones, cfParties, cfSealed } from "@/lib/products/contractflow-ai/cf-db";
 import { readSealedPdf } from "@/lib/products/contractflow-ai/seal";
 
@@ -16,7 +16,7 @@ async function handleGET(_req: NextRequest, { params }: { params: Promise<{ clon
   const clone = typeof cloneId === "string" && cloneId.length <= 64 ? await (await cfClones()).findOne({ _id: cloneId, deletedAt: null } as never) : null;
   const party = clone?.party.partyId ? await (await cfParties()).findOne({ _id: clone.party.partyId }) : null;
   const employeeId = party?.type === "employee" && party.source?.collection === "hrms_employees" ? party.source.id : null;
-  const allowed = !!employeeId && (canManageEmployees(user) || user.employeeId === employeeId);
+  const allowed = !!employeeId && (await maySeeSignedDocument(user, employeeId));
   if (!clone || !allowed || clone.status !== "signed") return NextResponse.json({ error: "Not found" }, { status: 404 });
   const sealed = await (await cfSealed()).findOne({ cloneId: clone._id });
   if (!sealed) return NextResponse.json({ error: "The signed copy is not ready yet." }, { status: 404 });

@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { CLIENT_STATUSES, SUPPORTED_CURRENCIES } from "@/lib/products/sprintos/constants";
-import { saveClientAction } from "@/app/(products)/sprintos/(protected)/(staff)/clients/actions";
+import { saveClientAction } from "@/app/(products)/sprintos/(protected)/clients/actions";
 import type { SerializedClient } from "@/lib/products/sprintos/clients";
 
 type FormState = Record<string, string>;

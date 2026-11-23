@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { saveAssignmentAction } from "@/app/(products)/cohort-ai/(protected)/(staff)/assignments/actions";
+import { saveAssignmentAction } from "@/app/(products)/cohort-ai/(protected)/assignments/actions";
 import type { SerializedAssignment } from "@/lib/products/cohort-ai/assignments";
 
 type FormState = Record<string, string>;

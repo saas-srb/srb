@@ -1,5 +1,7 @@
 import "server-only";
 import { notifyRoles, notifyUsers } from "@/lib/notify";
+import { titleOfPerson, nameWithTitle } from "@/lib/platform/organization/title-server";
+import { userNames } from "@/lib/products/playbook-ai/people";
 
 /**
  * Document workflow notifications, through the existing notification centre (panel "sop"), so a company can switch channels and reword each
@@ -14,9 +16,15 @@ export interface NotifyDoc { id: string; title: string; docNumber: string | null
 const label = (d: NotifyDoc) => `${d.docNumber ? `${d.docNumber} · ` : ""}${short(d.title)}`;
 const others = (ids: (string | null)[], actor: string) => [...new Set(ids.filter((x): x is string => !!x && x !== actor))];
 
+/** "Asha Rao · Senior Developer": who did it, with the title chosen for them, so a reviewer knows who is asking. */
+async function whoIs(id: string): Promise<string> {
+  const [names, title] = await Promise.all([userNames([id]).catch(() => new Map<string, string>()), titleOfPerson(id)]);
+  return nameWithTitle(names.get(id) ?? "A colleague", title);
+}
+
 export const pbEvents = {
-  reviewRequested: (d: NotifyDoc, actor: string) =>
-    notifyRoles("sop", REVIEWERS, { type: "sop_doc_review_requested", title: `Approval needed: ${short(d.title, 60)}`, body: label(d), link: link(d.id), priority: "high" }, actor),
+  reviewRequested: async (d: NotifyDoc, actor: string) =>
+    notifyRoles("sop", REVIEWERS, { type: "sop_doc_review_requested", title: `Approval needed: ${short(d.title, 60)}`, body: `${label(d)}\nRequested by ${await whoIs(actor)}`, link: link(d.id), priority: "high" }, actor),
   approved: (d: NotifyDoc, actor: string, auto: boolean) =>
     auto ? Promise.resolve(0) : notifyUsers("sop", others([d.createdBy, d.submittedBy], actor), { type: "sop_doc_approved", title: `Approved: ${short(d.title, 60)}`, body: label(d), link: link(d.id) }),
   rejected: (d: NotifyDoc, actor: string, reason: string) =>

@@ -2,10 +2,7 @@ import "server-only";
 import { getEntitlements } from "@/lib/platform/billing/entitlements";
 import { enabledModules } from "@/lib/platform/onboarding/state";
 import type { EventArea } from "@/lib/platform/events/catalog";
-import { hasLmsAccess, lmsCan } from "@/lib/lms-roles";
-import { hasPmsStaffRole, normalizePmsRoles } from "@/lib/pms-roles";
-import { canViewAllEmployees } from "@/lib/hrms-roles";
-import { canViewCommercialFinance, hasFmsAccess } from "@/lib/fms-roles";
+import { holdsLegacy, type SubjectHolder } from "@/lib/access/holds";
 
 /**
  * Which cross-product areas a person may see company-wide data for — the one
@@ -29,26 +26,25 @@ export type Area = Exclude<EventArea, "intelligence">;
 
 const AREA_MODULE: Record<Area, string> = { leads: "lms", clients: "pms", projects: "pms", tasks: "pms", invoices: "fms", employees: "hrms", leave: "hrms" };
 
-function roleAllows(area: Area, user: Pick<AccessUser, "roles" | "permissionOverrides">): boolean {
-  const roles = user.roles;
-  if (roles.includes("super_admin")) return true;
+function roleAllows(area: Area, user: SubjectHolder): boolean {
+  if (user.roles?.includes("super_admin")) return true;
   switch (area) {
     case "leads":
-      return hasLmsAccess(roles) && lmsCan({ roles, permissionOverrides: user.permissionOverrides }, "VIEW_LEADS");
+      return holdsLegacy(user, "dealflow-ai", "lms.VIEW_LEADS");
     case "clients":
     case "projects":
     case "tasks":
-      return hasPmsStaffRole(normalizePmsRoles([...roles]));
+      return holdsLegacy(user, "sprintos", "pms.hasPmsStaffRole");
     case "invoices":
       // Customer invoices are the CashFlow "commercial finance" tier: a payroll-only accountant, or someone the Director removed it from, gets none.
-      return hasFmsAccess(roles) && canViewCommercialFinance({ roles, permissionOverrides: user.permissionOverrides });
+      return holdsLegacy(user, "cashflow-ai", "fms.canViewCommercialFinance");
     case "employees":
     case "leave":
-      return canViewAllEmployees({ roles, permissionOverrides: user.permissionOverrides });
+      return holdsLegacy(user, "talentos", "hrms.canViewAllEmployees");
   }
 }
 
-export async function accessibleAreas(user: Pick<AccessUser, "roles" | "permissionOverrides">): Promise<Set<Area>> {
+export async function accessibleAreas(user: Pick<AccessUser, "roles" | "permissionOverrides"> & SubjectHolder): Promise<Set<Area>> {
   const [entitlements, enabled] = await Promise.all([getEntitlements(), enabledModules()]);
   const out = new Set<Area>();
   for (const area of Object.keys(AREA_MODULE) as Area[]) {

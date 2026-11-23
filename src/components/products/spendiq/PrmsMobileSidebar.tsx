@@ -9,13 +9,16 @@ import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/
 import PrmsSidebar from "@/components/products/spendiq/PrmsSidebar";
 import SidebarBrand from "@/components/SidebarBrand";
 import type { PrmsRole } from "@/lib/prms-roles";
+import type { AccessSubject } from "@/lib/access/can";
 
 export default function PrmsMobileSidebar({
   roles,
   permissionOverrides,
+  subject,
 }: {
   roles: PrmsRole[];
   permissionOverrides?: Record<string, boolean>;
+  subject: AccessSubject;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -32,7 +35,7 @@ export default function PrmsMobileSidebar({
             <SidebarBrand />
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <PrmsSidebar roles={roles} permissionOverrides={permissionOverrides} onNavigate={() => setOpen(false)} />
+            <PrmsSidebar roles={roles} permissionOverrides={permissionOverrides} subject={subject} onNavigate={() => setOpen(false)} />
           </div>
           <MobileSidebarProfile />
         </SheetContent>

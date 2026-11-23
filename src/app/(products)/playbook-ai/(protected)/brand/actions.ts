@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { requireViewer } from "@/lib/products/playbook-ai/viewer";
-import { playbookCan } from "@/lib/playbook-roles";
 import type { PbActor } from "@/lib/products/playbook-ai/documents-types";
 import { getBrandAsset } from "@/lib/products/playbook-ai/brand/assets";
 import { saveBrand, uploadBrandImage } from "@/lib/products/playbook-ai/brand/store";
 import { renderBrandPreview } from "@/lib/products/playbook-ai/brand/preview";
 import { validateBrandInput, type BrandAssetKind } from "@/lib/products/playbook-ai/brand/types";
+import { pbDoc } from "@/lib/playbook-access";
 
 /**
  * Server actions for the Brand page. Every one re-checks the MANAGE_BRAND permission on the server (hiding the page is never the security
@@ -16,8 +16,8 @@ import { validateBrandInput, type BrandAssetKind } from "@/lib/products/playbook
 
 async function actor(): Promise<PbActor | null> {
   const v = await requireViewer();
-  const a: PbActor = { id: v.userId, email: v.email, name: v.name, roles: v.roles, permissionOverrides: v.overrides };
-  return playbookCan(a, "MANAGE_BRAND") ? a : null;
+  const a: PbActor = { id: v.userId, email: v.email, name: v.name, roles: v.roles, permissionOverrides: v.overrides, subject: v.subject };
+  return pbDoc(a, "MANAGE_BRAND") ? a : null;
 }
 
 const DENIED = { ok: false as const, error: "You don't have permission to change the brand." };

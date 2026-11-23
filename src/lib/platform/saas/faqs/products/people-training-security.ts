@@ -45,7 +45,7 @@ export const PEOPLE_TRAINING_SECURITY_FAQS: FaqHubGroup[] = [
       {
         q: "What is a batch used for?",
         a: "A batch is a scheduled group under a programme. Cohort AI provides batch records, rosters and a calendar view for the training schedule.",
-        evidence: ["src/lib/products/cohort-ai/batches.ts:89-158", "src/lib/products/cohort-ai/batches.ts:285-319", "src/app/(products)/cohort-ai/(protected)/(staff)/batches/calendar/page.tsx:1-48"],
+        evidence: ["src/lib/products/cohort-ai/batches.ts:89-158", "src/lib/products/cohort-ai/batches.ts:285-319", "src/app/(products)/cohort-ai/(protected)/batches/calendar/page.tsx:1-48"],
       },
       {
         q: "What lifecycle statuses can a batch have?",
@@ -65,7 +65,7 @@ export const PEOPLE_TRAINING_SECURITY_FAQS: FaqHubGroup[] = [
       {
         q: "Can staff check which batches are available for assignment?",
         a: "Cohort AI has a separate open-batch picker for assignment workflows, in addition to its normal batch listings.",
-        evidence: ["src/lib/products/cohort-ai/batches.ts:302-319", "src/app/(products)/cohort-ai/(protected)/(staff)/batches/page.tsx:1-120"],
+        evidence: ["src/lib/products/cohort-ai/batches.ts:302-319", "src/app/(products)/cohort-ai/(protected)/batches/page.tsx:1-120"],
       },
       {
         q: "Can I export batch data?",
@@ -95,7 +95,7 @@ export const PEOPLE_TRAINING_SECURITY_FAQS: FaqHubGroup[] = [
       {
         q: "Can a student review their programme and batch information?",
         a: "The learner area has separate My Program and My Batch screens, populated from the signed-in student's Cohort AI records.",
-        evidence: ["src/lib/products/cohort-ai/student-dashboard.ts:34-106", "src/app/(products)/cohort-ai/(protected)/me/program/page.tsx:1-91", "src/app/(products)/cohort-ai/(protected)/me/batch/page.tsx:1-70"],
+        evidence: ["src/lib/products/cohort-ai/student-dashboard.ts:34-106", "src/app/(products)/cohort-ai/(protected)/programs/staff-view.tsx:1-91", "src/app/(products)/cohort-ai/(protected)/batches/staff-view.tsx:1-70"],
       },
       {
         q: "Can staff schedule classes for a batch?",
@@ -110,12 +110,12 @@ export const PEOPLE_TRAINING_SECURITY_FAQS: FaqHubGroup[] = [
       {
         q: "Can learners see upcoming classes?",
         a: "Yes. Cohort AI selects upcoming classes for the learner's enrolled batches and provides a learner-facing class schedule.",
-        evidence: ["src/lib/products/cohort-ai/classes.ts:204-215", "src/app/(products)/cohort-ai/(protected)/me/schedule/page.tsx:1-73"],
+        evidence: ["src/lib/products/cohort-ai/classes.ts:204-215", "src/app/(products)/cohort-ai/(protected)/classes/staff-view.tsx:1-73"],
       },
       {
         q: "Can staff record attendance against a class?",
         a: "Yes. Attendance is recorded for a class and the product provides both student-level and batch-level attendance summaries.",
-        evidence: ["src/lib/products/cohort-ai/classes.ts:240-341", "src/app/(products)/cohort-ai/(protected)/(staff)/classes/[id]/page.tsx:1-116"],
+        evidence: ["src/lib/products/cohort-ai/classes.ts:240-341", "src/app/(products)/cohort-ai/(protected)/classes/[id]/page.tsx:1-116"],
       },
       {
         q: "Which attendance outcomes can be recorded?",
@@ -130,7 +130,7 @@ export const PEOPLE_TRAINING_SECURITY_FAQS: FaqHubGroup[] = [
       {
         q: "Can staff create assignments for enrolled learners?",
         a: "Yes. Assignments can be listed for students, and the learner assignment view is based on the student's own records and enrolled batches.",
-        evidence: ["src/lib/products/cohort-ai/assignments.ts:160-265", "src/app/(products)/cohort-ai/(protected)/me/assignments/page.tsx:1-56"],
+        evidence: ["src/lib/products/cohort-ai/assignments.ts:160-265", "src/app/(products)/cohort-ai/(protected)/assignments/staff-view.tsx:1-56"],
       },
       {
         q: "Can learners submit their assignment work through Cohort AI?",
@@ -140,27 +140,27 @@ export const PEOPLE_TRAINING_SECURITY_FAQS: FaqHubGroup[] = [
       {
         q: "Can staff review a learner's submission?",
         a: "Yes. Submission review is an explicit operation separate from the learner's submission action.",
-        evidence: ["src/lib/products/cohort-ai/assignments.ts:285-340", "src/app/(products)/cohort-ai/(protected)/(staff)/assignments/[id]/page.tsx:1-77"],
+        evidence: ["src/lib/products/cohort-ai/assignments.ts:285-340", "src/app/(products)/cohort-ai/(protected)/assignments/[id]/page.tsx:1-77"],
       },
       {
         q: "Can a learner see only their own assignments?",
         a: "The learner assignment query is keyed by student ID and includes assignments associated with that learner's enrolled batches.",
-        evidence: ["src/lib/products/cohort-ai/assignments.ts:231-265", "src/app/(products)/cohort-ai/(protected)/me/assignments/actions.ts:1-49"],
+        evidence: ["src/lib/products/cohort-ai/assignments.ts:231-265", "src/app/(products)/cohort-ai/(protected)/assignments/actions.ts:1-49"],
       },
       {
         q: "Can staff select mentors from existing people records?",
         a: "Yes. Cohort AI provides mentor options and resolves mentor IDs to display names rather than maintaining a separate mentor directory.",
-        evidence: ["src/lib/products/cohort-ai/mentors.ts:1-65", "src/app/(products)/cohort-ai/(protected)/(staff)/batches/[id]/page.tsx:1-140"],
+        evidence: ["src/lib/products/cohort-ai/mentors.ts:1-65", "src/app/(products)/cohort-ai/(protected)/batches/[id]/page.tsx:1-140"],
       },
       {
         q: "Can staff record a learner's placement?",
         a: "Yes. Cohort AI provides placement records with create, update, list and delete operations.",
-        evidence: ["src/lib/products/cohort-ai/placements.ts:39-141", "src/app/(products)/cohort-ai/(protected)/(staff)/placements/page.tsx:1-118"],
+        evidence: ["src/lib/products/cohort-ai/placements.ts:39-141", "src/app/(products)/cohort-ai/(protected)/placements/page.tsx:1-118"],
       },
       {
         q: "Can placement information contribute to programme reporting?",
         a: "Placement records are included in the training operations area, and Cohort AI's dashboard derives placement counts and placement success reporting from its records.",
-        evidence: ["src/lib/products/cohort-ai/placements.ts:94-141", "src/lib/products/cohort-ai/dashboard.ts:1-170", "src/app/(products)/cohort-ai/(protected)/(staff)/page.tsx:1-130"],
+        evidence: ["src/lib/products/cohort-ai/placements.ts:94-141", "src/lib/products/cohort-ai/dashboard.ts:1-170", "src/app/(products)/cohort-ai/(protected)/page.tsx:1-130"],
       },
       {
         q: "Can I set up a fee plan for a student?",
@@ -175,7 +175,7 @@ export const PEOPLE_TRAINING_SECURITY_FAQS: FaqHubGroup[] = [
       {
         q: "Can a learner review their payment information?",
         a: "Yes. There is a learner payments screen and a student-specific payment-plan query.",
-        evidence: ["src/lib/products/cohort-ai/payments.ts:174-199", "src/app/(products)/cohort-ai/(protected)/me/payments/page.tsx:1-90"],
+        evidence: ["src/lib/products/cohort-ai/payments.ts:174-199", "src/app/(products)/cohort-ai/(protected)/payments/staff-view.tsx:1-90"],
       },
       {
         q: "Can staff export fee-plan records?",
@@ -190,12 +190,12 @@ export const PEOPLE_TRAINING_SECURITY_FAQS: FaqHubGroup[] = [
       {
         q: "Can a learner download an issued certificate?",
         a: "The learner certificates area and certificate PDF endpoint allow access to an issued certificate; availability depends on one having been issued.",
-        evidence: ["src/lib/products/cohort-ai/certificates.ts:157-188", "src/app/(products)/cohort-ai/(protected)/me/certificates/page.tsx:1-77", "src/app/(products)/api/cohort-ai/certificates/[id]/pdf/route.ts:1-52"],
+        evidence: ["src/lib/products/cohort-ai/certificates.ts:157-188", "src/app/(products)/cohort-ai/(protected)/certificates/staff-view.tsx:1-77", "src/app/(products)/api/cohort-ai/certificates/[id]/pdf/route.ts:1-52"],
       },
       {
         q: "Can a certificate be revoked or reissued?",
         a: "Yes. Staff operations support changing a certificate's revoked state and reissuing a certificate.",
-        evidence: ["src/lib/products/cohort-ai/certificates.ts:252-286", "src/app/(products)/cohort-ai/(protected)/(staff)/certificates/actions.ts:1-124"],
+        evidence: ["src/lib/products/cohort-ai/certificates.ts:252-286", "src/app/(products)/cohort-ai/(protected)/certificates/actions.ts:1-124"],
       },
       {
         q: "Can certificates be exported for record keeping?",
@@ -205,12 +205,12 @@ export const PEOPLE_TRAINING_SECURITY_FAQS: FaqHubGroup[] = [
       {
         q: "Can students work on live projects in Cohort AI?",
         a: "Yes. Cohort AI has live projects with progress and milestones, and students have a separate view of projects associated with them.",
-        evidence: ["src/lib/products/cohort-ai/projects.ts:63-96", "src/lib/products/cohort-ai/projects.ts:162-242", "src/app/(products)/cohort-ai/(protected)/me/projects/page.tsx:1-92"],
+        evidence: ["src/lib/products/cohort-ai/projects.ts:63-96", "src/lib/products/cohort-ai/projects.ts:162-242", "src/app/(products)/cohort-ai/(protected)/projects/staff-view.tsx:1-92"],
       },
       {
         q: "Can staff track project milestones?",
         a: "Yes. The live-project data layer has a milestone toggle operation, separate from editing the project itself.",
-        evidence: ["src/lib/products/cohort-ai/projects.ts:193-242", "src/app/(products)/cohort-ai/(protected)/(staff)/projects/[id]/page.tsx:1-125"],
+        evidence: ["src/lib/products/cohort-ai/projects.ts:193-242", "src/app/(products)/cohort-ai/(protected)/projects/[id]/page.tsx:1-125"],
       },
       {
         q: "Can staff track a student's lifecycle status?",
@@ -230,12 +230,12 @@ export const PEOPLE_TRAINING_SECURITY_FAQS: FaqHubGroup[] = [
       {
         q: "What training reports are available?",
         a: "Cohort AI defines reports for training operations, including programme and attendance reporting; report contents are built from the product's records.",
-        evidence: ["src/lib/products/cohort-ai/reports.ts:1-70", "src/app/(products)/cohort-ai/(protected)/(staff)/reports/page.tsx:1-58"],
+        evidence: ["src/lib/products/cohort-ai/reports.ts:1-70", "src/app/(products)/cohort-ai/(protected)/reports/page.tsx:1-58"],
       },
       {
         q: "Can learners update their own profile?",
         a: "The learner portal includes a profile page with its own profile actions; staff continue to manage the wider student record.",
-        evidence: ["src/app/(products)/cohort-ai/(protected)/me/profile/page.tsx:1-24", "src/app/(products)/cohort-ai/(protected)/me/profile/actions.ts:1-55", "src/lib/products/cohort-ai/students.ts:210-246"],
+        evidence: ["src/app/(products)/cohort-ai/(protected)/students/staff-view.tsx:1-24", "src/app/(products)/cohort-ai/(protected)/students/actions.ts:1-55", "src/lib/products/cohort-ai/students.ts:210-246"],
       },
       {
         q: "Where can learners find training-related notices?",

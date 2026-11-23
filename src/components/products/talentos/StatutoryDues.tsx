@@ -15,7 +15,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { monthLabelLong } from "@/lib/products/talentos/payroll-status";
 import type { Due, DueStatus } from "@/lib/products/talentos/payroll/dues";
-import { deletePaymentAction, recordPaymentAction } from "@/app/(products)/talentos/(protected)/(staff)/payroll/compliance/actions";
+import { deletePaymentAction, recordPaymentAction } from "@/app/(products)/talentos/(protected)/payroll/compliance/actions";
 
 const statusUi: Record<DueStatus, [string, string]> = {
   paid: ["Paid", "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"],

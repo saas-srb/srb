@@ -14,7 +14,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import LineItemsEditor, { blankLine, type EditableLine } from "@/components/products/spendiq/LineItemsEditor";
 import { PAYMENT_TERMS, SUPPORTED_CURRENCIES } from "@/lib/products/spendiq/constants";
-import { savePurchaseOrderAction } from "@/app/(products)/spendiq/(protected)/(staff)/purchase-orders/actions";
+import { savePurchaseOrderAction } from "@/app/(products)/spendiq/(protected)/purchase-orders/actions";
 import type { SerializedPurchaseOrder } from "@/lib/products/spendiq/purchase-orders";
 
 interface Option {

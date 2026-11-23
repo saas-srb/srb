@@ -8,6 +8,7 @@ import TmsProfileMenu from "@/components/products/cohort-ai/TmsProfileMenu";
 import { useSidebarCollapse, SidebarProfileSlot } from "@/components/products/dealflow-ai/SidebarCollapseContext";
 import { cn } from "@/lib/utils";
 import type { TmsRole } from "@/lib/tms-roles";
+import type { AccessSubject } from "@/lib/access/can";
 
 const EXPANDED_WIDTH = 240;
 const COLLAPSED_WIDTH = 68;
@@ -16,6 +17,7 @@ export default function TmsSidebarShell({
   email,
   roles,
   permissionOverrides,
+  subject,
   studentId,
   createdAt,
   lastLoginAt,
@@ -23,6 +25,7 @@ export default function TmsSidebarShell({
   email: string;
   roles: TmsRole[];
   permissionOverrides?: Record<string, boolean>;
+  subject: AccessSubject;
   studentId: string | null;
   createdAt: string;
   lastLoginAt: string | null;
@@ -56,7 +59,7 @@ export default function TmsSidebarShell({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <TmsSidebar roles={roles} permissionOverrides={permissionOverrides} studentId={studentId} collapsed={collapsed} />
+        <TmsSidebar roles={roles} permissionOverrides={permissionOverrides} subject={subject} studentId={studentId} collapsed={collapsed} />
       </div>
 
       <SidebarProfileSlot>
