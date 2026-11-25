@@ -230,7 +230,7 @@ async function main() {
     origLog(`\nDropped ${dbName}.`);
   }
   origLog(`${passed} passed, ${failures.length} failed`);
-  if (failures.length) process.exit(1);
+  process.exit(failures.length ? 1 : 0); // background website writing would keep the process open
 }
 
 main().catch((err) => {

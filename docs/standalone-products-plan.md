@@ -1,6 +1,6 @@
 # Plan: har product alag se chale, website optional
 
-Status: faisle manjoor (26 Nov 2026). **P1 se P6 tak poore.** P7 (signup) aur P8 baaki.
+Status: faisle manjoor (26 Nov 2026). **P1 se P7 tak poore.** P8 (aakhri jaanch) baaki.
 
 ## 1. Lakshya
 
@@ -104,7 +104,7 @@ Signup dropdown **aakhri** hissa hai, taaki adhoora product koi khareed na sake.
 | P4. Akele chalna ✅ | Section 5, ek product ek baar me: CashFlow, TalentOS, SprintOS, ContractFlow+Playbook, SpendIQ, DataBrain, phir baaki | Har product khaali nayi company me shuru se ant tak chale |
 | P5. Website optional ✅ | Signup choice, provisioning me website skip, site domain ka behaviour, kaam ke public pages, embed, Settings se baad me on/off | Bina website wali company me website ke steps na dikhein, public links chalein |
 | P6. Billing ✅ | Single/All daam, Billing se product jodna/hatana, invoice, Console me company ke products badalna | Upgrade, downgrade, renewal ke tests |
-| P7. Signup | Dropdown, website sawaal, approval queue, pricing aur product pages se preselect (`/signup?product=talentos`), welcome email, pehla landing us product par | Har dropdown option se signup chalta ho |
+| P7. Signup ✅ | Dropdown, website sawaal, approval queue, pricing aur product pages se preselect (`/signup?product=talentos`), welcome email, pehla landing us product par | Har dropdown option se signup chalta ho |
 | P8. Aakhri jaanch | Har option ka matrix test, mobile, white-label, docs, deploy guide | Checklist poori |
 
 ## 7. Suraksha
@@ -248,9 +248,22 @@ Marketing website, website chat aur offers ka taala P5 me, kyunki careers, lead 
 
 **Aapko Console me karna hai (live data par maine kuch nahi badla):** har paid plan ka "one product" daam bharna, aur Free plan me "most products = 1". Jab tak nahi bharoge, ek product wala bhi All ka daam dega aur Free me limit nahi lagegi.
 
-Baaki: public pricing page aur plan cards abhi All ka daam dikhate hain; browser me checkout jaanch
+Baaki: browser me checkout jaanch (public plan cards me one product ka daam P7 me aaya)
+
+### P7. Signup (poora)
+
+**D14 (26 Nov):** signup me "All products" bina paid plan chune ho to sabse saste paid plan ka free trial (card nahi); ek product ho to Free plan.
+
+- `/signup`: **What do you want to use?** dropdown (All products + har bikne wala product; CommandOS aur ClientOS nahi). Website sawaal sirf All par: hamari website / apni (address) / nahi
+- SiteCraft chunne par website banti hai; kisi aur akele product par website step aata hi nahi
+- Signup ke baad pehli screen chuna hua product; welcome email aur approval queue me products dikhte hain; band product se signup nahi
+- `/signup?product=<slug>` preselect; product pages ke signup button yahi link dete hain
+- Plan cards aur pricing page par one product ka daam (jab Console me bhara ho) aur Free = "One product"
+- Public website, FAQ, docs, llms.txt, SEO data aur Terms ke purane "har plan me har product" wale daave sahi kiye
+- Fix (purana bug): AI na chalne par bani starter website ke service pages publish nahi hote the
+- Tests: `npm run test:signup-products`, `test:signup-plan`, `test:email-verification`
+- Baaki: browser me signup form ki jaanch; Terms ki badli line ek baar khud padh lein
 
 ## 10. Aage ke liye note
 
 - `enabledModules()` abhi bhi `lpms` apne aap jodta hai; entitlements ise rok dete hain, isliye asar nahi
-- Billing se product jodna P6 me banega; band product ka message wahi jagah batata hai, isliye signup dropdown (P7) usse pehle nahi
