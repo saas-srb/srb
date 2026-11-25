@@ -31,7 +31,7 @@ export async function GET(req: Request) {
           <div style={{ display: "flex", fontSize: 30, color: "#cbd2ea", maxWidth: 980, lineHeight: 1.3 }}>{sub}</div>
         </div>
         <div style={{ display: "flex", gap: 14, fontSize: 26, color: "#a7f3d0" }}>
-          <span>{SAAS_BRAND.name}</span><span>·</span><span>Free to start</span><span>·</span><span>Every product in every plan</span>
+          <span>{SAAS_BRAND.name}</span><span>·</span><span>Free to start</span><span>·</span><span>One product or all of them</span>
         </div>
       </div>
     ),

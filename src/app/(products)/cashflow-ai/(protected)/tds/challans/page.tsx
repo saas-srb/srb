@@ -1,3 +1,4 @@
+import ProductLink from "@/components/platform/ProductLink";
 import Link from "next/link";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
@@ -154,7 +155,7 @@ export default async function TdsChallansPage({ searchParams }: { searchParams: 
               </table>
             </div>
           )}
-          <p className="px-4 pb-4 text-xs"><Link href="/talentos/payroll/compliance" className="text-primary underline">Record or review salary TDS payments in payroll</Link></p>
+          <p className="px-4 pb-4 text-xs"><ProductLink href="/talentos/payroll/compliance" className="text-primary underline">Record or review salary TDS payments in payroll</ProductLink></p>
         </CardContent>
       </GlassCard>
     </div>

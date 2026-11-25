@@ -64,7 +64,7 @@ export default function ProductCatalog({ products, groups, afterWall }: { produc
           <section key={g.id} id={g.id} className="mb-16 last:mb-0" style={{ scrollMarginTop: 150 }}>
             <header className="mb-7 flex flex-wrap items-end justify-between gap-3">
               <div className="max-w-2xl"><h2 className="text-2xl font-black tracking-tight sm:text-3xl">{g.title}</h2><p className="mt-1.5 text-muted-foreground">{g.lead}</p></div>
-              <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-black uppercase tracking-wider text-primary">Included in every plan</span>
+              <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-black uppercase tracking-wider text-primary">Free to start</span>
             </header>
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
               {shown.filter((p) => p.group === g.id).map((p) => (

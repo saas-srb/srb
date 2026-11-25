@@ -1,5 +1,6 @@
 "use client";
 
+import { useUnavailableProducts } from "@/components/platform/PanelsProvider";
 import { useMemo, useState, useTransition, type ReactElement, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -48,6 +49,8 @@ export default function ExpenseForm({
   trigger: ReactNode;
   onSaved?: (id: string) => void;
 }) {
+  // Projects come from SprintOS; a record that already names one keeps showing it.
+  const projectsOn = !useUnavailableProducts().has("pms");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -165,18 +168,20 @@ export default function ExpenseForm({
               <Label>Department</Label>
               <OrgPicker kind="department" options={toOptions("department", departments)} value={sv("departmentId")} onChange={(v) => set("departmentId", v)} allowNone={true} />
             </div>
-            <div className="space-y-1.5">
-              <Label>Project</Label>
-              <Select value={sv("projectId") || "none"} onValueChange={(v) => set("projectId", !v || v === "none" ? "" : v)}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {projects.map((p) => (
-                    <SelectItem key={p._id} value={p._id}>{p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {(projectsOn || sv("projectId")) && (
+              <div className="space-y-1.5">
+                <Label>Project</Label>
+                <Select value={sv("projectId") || "none"} onValueChange={(v) => set("projectId", !v || v === "none" ? "" : v)}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {projects.map((p) => (
+                      <SelectItem key={p._id} value={p._id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-3 gap-3">

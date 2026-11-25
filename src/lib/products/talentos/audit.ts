@@ -27,6 +27,7 @@ export type AuditEntity =
   | "employee_document"
   | "employee_login"
   | "offer"
+  | "candidate"
   | "bank_account"
   | "salary_payout"
   | "company"

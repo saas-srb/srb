@@ -1,3 +1,5 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
+import { hrefAvailable } from "@/lib/platform/products/routes";
 import ProductLocked from "@/components/products/common/ProductLocked";
 import { fmsCan } from "@/lib/fms-access";
 import { panelNameMap } from "@/lib/platform/panels/store";
@@ -178,6 +180,8 @@ export default async function FmsDashboardPage({
       ? Math.round((stats.totalRevenue / (stats.totalRevenue + stats.accountsReceivable)) * 100)
       : 0;
 
+  const hidden = await hiddenProducts();
+  const sourceNames = [["prms", "SpendIQ"], ["pms", "SprintOS"], ["hrms", "TalentOS"], ["tms", "Cohort AI"]].filter(([k]) => !hidden.has(k)).map(([k, n]) => panelName(k, n)).join(", ");
   const PANEL_CARDS = [
     {
       href: "/cashflow-ai/products/prms",
@@ -223,14 +227,14 @@ export default async function FmsDashboardPage({
       secondaryValue: `${panel.tms.pendingFeesCount} Due`,
       badgeClass: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
     },
-  ];
+  ].filter((c) => hrefAvailable(c.href, hidden));
 
   return (
     <div className="relative space-y-4">
       <PanelDashboardHeader
         breadcrumbs={[{ label: "CashFlow", href: "/cashflow-ai" }, { label: "Dashboard" }]}
         title="Financial Overview"
-        description={<>Welcome back{user?.email ? `, ${user.email.split("@")[0]}` : ""}. Track treasury, cash flow, receivables and payables across every product in real time.</>}
+        description={<>Welcome back{user?.email ? `, ${user.email.split("@")[0]}` : ""}. Track treasury, cash flow, receivables and payables in real time.</>}
         actions={
           <GranularityToggle value={granularity} />
         }
@@ -305,7 +309,7 @@ export default async function FmsDashboardPage({
               { href: "/cashflow-ai/beneficiaries", icon: <Building2 className="size-3.5 text-primary" />, label: "Beneficiaries", sub: "Bank Directory" },
               { href: "/cashflow-ai/payouts", icon: <ArrowUpRight className="size-3.5 text-rose-500" />, label: "Direct Payout", sub: "Pay Vendors / Staff" },
               { href: "/cashflow-ai/receivables", icon: <Receipt className="size-3.5 text-emerald-600 dark:text-emerald-400" />, label: "Collect Money", sub: "Central Invoicing" },
-            ].map((item) => (
+            ].filter((item) => hrefAvailable(item.href, hidden)).map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -325,47 +329,49 @@ export default async function FmsDashboardPage({
       </DashboardSection>
 
       {/* ── §3: Module Financial Breakdown Cards ── */}
-      <DashboardSection>
-        <SectionHeader
-          icon={<Target className="size-3.5" />}
-          title="Product Financial Overview"
-          subtitle="Click any card to open detailed product management"
-        />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {PANEL_CARDS.map((card) => (
-            <Link key={card.href} href={card.href} className="group flex">
-              <GlassCard className="w-full p-3.5 transition-all hover:border-primary/40 hover:shadow-xs">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:scale-105 transition-transform">
-                      {card.icon}
+      {PANEL_CARDS.length > 0 && (
+        <DashboardSection>
+          <SectionHeader
+            icon={<Target className="size-3.5" />}
+            title="Product Financial Overview"
+            subtitle="Click any card to open detailed product management"
+          />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {PANEL_CARDS.map((card) => (
+              <Link key={card.href} href={card.href} className="group flex">
+                <GlassCard className="w-full p-3.5 transition-all hover:border-primary/40 hover:shadow-xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:scale-105 transition-transform">
+                        {card.icon}
+                      </div>
+                      <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors truncate">{card.label}</span>
                     </div>
-                    <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors truncate">{card.label}</span>
+                    <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                   </div>
-                  <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
-                </div>
-
-                <div className="my-1.5">
-                  <p className="text-[11px] font-medium text-muted-foreground">{card.primaryLabel}</p>
-                  <p className="text-lg font-extrabold text-foreground tabular-nums tracking-tight mt-0.5">
-                    {formatCurrency(card.primaryValue)}
-                  </p>
-                </div>
-
-                <div className="space-y-1.5 border-t border-border/30 pt-2 mt-2">
-                  <ProgressBar value={card.primaryValue} max={Math.max(stats.totalRevenue, stats.totalExpenses, card.primaryValue, 1)} />
-                  <div className="flex items-center justify-between gap-1 text-[11px]">
-                    <span className="text-muted-foreground font-medium truncate">{card.secondaryLabel}</span>
-                    <Badge variant="outline" className={`text-[10px] font-semibold px-2 py-0 shrink-0 ${card.badgeClass}`}>
-                      {card.secondaryValue}
-                    </Badge>
+  
+                  <div className="my-1.5">
+                    <p className="text-[11px] font-medium text-muted-foreground">{card.primaryLabel}</p>
+                    <p className="text-lg font-extrabold text-foreground tabular-nums tracking-tight mt-0.5">
+                      {formatCurrency(card.primaryValue)}
+                    </p>
                   </div>
-                </div>
-              </GlassCard>
-            </Link>
-          ))}
-        </div>
-      </DashboardSection>
+  
+                  <div className="space-y-1.5 border-t border-border/30 pt-2 mt-2">
+                    <ProgressBar value={card.primaryValue} max={Math.max(stats.totalRevenue, stats.totalExpenses, card.primaryValue, 1)} />
+                    <div className="flex items-center justify-between gap-1 text-[11px]">
+                      <span className="text-muted-foreground font-medium truncate">{card.secondaryLabel}</span>
+                      <Badge variant="outline" className={`text-[10px] font-semibold px-2 py-0 shrink-0 ${card.badgeClass}`}>
+                        {card.secondaryValue}
+                      </Badge>
+                    </div>
+                  </div>
+                </GlassCard>
+              </Link>
+            ))}
+          </div>
+        </DashboardSection>
+      )}
 
       {/* ── §4: Money Coming In (Inflow) ── */}
       <DashboardSection>
@@ -387,11 +393,11 @@ export default async function FmsDashboardPage({
         <SectionHeader
           icon={<ArrowUpRight className="size-3.5 text-rose-500" />}
           title="Money Going Out (Outflow)"
-          subtitle="Vendor payables, payroll commitments & upcoming payout disbursements"
+          subtitle={hidden.has("hrms") ? "Vendor payables & upcoming payout disbursements" : "Vendor payables, payroll commitments & upcoming payout disbursements"}
         />
         <KpiGrid>
           <KpiCard label="Total Accounts Payable" value={stats.accountsPayable} format="currency" icon={<Building2 className="size-3.5" />} />
-          <KpiCard label="Payroll Payable" value={stats.payrollPayable} format="currency" icon={<Wallet className="size-3.5" />} />
+          {!hidden.has("hrms") && <KpiCard label="Payroll Payable" value={stats.payrollPayable} format="currency" icon={<Wallet className="size-3.5" />} />}
           <KpiCard label="Pending Approvals" value={stats.pendingApprovals} icon={<CheckSquare className="size-3.5" />} />
           <KpiCard label="Upcoming Payouts" value={stats.upcomingPayments} icon={<Clock className="size-3.5" />} />
         </KpiGrid>
@@ -456,7 +462,7 @@ export default async function FmsDashboardPage({
             <CardHeader className="flex-row items-center justify-between pb-1 pt-3 px-4">
               <div>
                 <CardTitle className="text-xs font-bold">Revenue by Source Product</CardTitle>
-                <p className="text-[11px] text-muted-foreground">Distribution across SpendIQ, SprintOS, TalentOS & Cohort AI</p>
+                <p className="text-[11px] text-muted-foreground">{sourceNames ? `Distribution across ${sourceNames}` : "Distribution by source"}</p>
               </div>
               <Badge variant="outline" className="text-[9px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 py-0 px-1.5">
                 Income
@@ -696,7 +702,7 @@ export default async function FmsDashboardPage({
         <SectionHeader
           icon={<Receipt className="size-3.5 text-primary" />}
           title="Recent Financial Transactions"
-          subtitle="Real-time audit log of income, disbursements, and product payouts"
+          subtitle="Real-time audit log of income, disbursements and payouts"
           action={
             <Link href="/cashflow-ai/payouts">
               <Button size="sm" variant="ghost" className="h-7 text-xs text-primary gap-1">

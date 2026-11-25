@@ -1,5 +1,10 @@
+import { cashflowKeeps } from "@/components/products/cashflow-ai/records";
+import InvoiceForm from "@/components/products/spendiq/InvoiceForm";
+import { billFormSections, vendorsWithPan } from "@/lib/products/cashflow-ai/tds/bill-sections";
+import { saveBillFromCashflowAction } from "@/app/(products)/cashflow-ai/(protected)/records-actions";
+import { Button } from "@/components/ui/button";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
-import { Building2, Clock } from "lucide-react";
+import { Building2, Clock, Plus } from "lucide-react";
 import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import KpiCard from "@/components/products/dealflow-ai/KpiCard";
 import KpiGrid from "@/components/products/dealflow-ai/KpiGrid";
@@ -21,19 +26,24 @@ export default async function BillsPage({
   const page = Math.max(Number(sp.page) || 1, 1);
   const status = sp.status && isValidInvoiceStatus(sp.status) ? sp.status : undefined;
 
+  const keeps = await cashflowKeeps("prms");
+  const sections = keeps.manage ? await billFormSections() : [];
   const [result, vendors, payable, overdue] = await Promise.all([
     listBills({ search: sp.search, status, vendorId: sp.vendorId, page, pageSize: 20 }),
     listVendorOptions({ activeOnly: true }),
     totalOutstandingPayable(),
     overdueBills(),
   ]);
+  const withPan = keeps.manage ? await vendorsWithPan(vendors.map((v) => v._id)) : new Set<string>();
+  const formVendors = vendors.map((v) => ({ _id: v._id, companyName: v.companyName, hasPan: withPan.has(v._id) }));
 
   return (
     <div className="space-y-4">
       <PanelPageHeader
         breadcrumbs={[{ label: "CashFlow", href: "/cashflow-ai" }, { label: "Bills" }]}
         title={<>Bills</>}
-        description={<>Financial view over SpendIQ&apos;s vendor bills — {result.total} bill{result.total === 1 ? "" : "s"}.</>}
+        description={<>{keeps.here ? "What your vendors have billed you" : "Financial view over SpendIQ's vendor bills"} — {result.total} bill{result.total === 1 ? "" : "s"}.</>}
+        actions={keeps.manage ? <InvoiceForm vendors={formVendors} tdsSections={sections} save={saveBillFromCashflowAction} trigger={<Button type="button" size="sm"><Plus className="size-3.5" data-icon="inline-start" />New bill</Button>} /> : undefined}
       />
 
       <KpiGrid>

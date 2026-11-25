@@ -124,10 +124,10 @@ async function main() {
   await check("plan products open, others locked, core always open", async () => {
     assert.equal(await runAsCompany(starter, () => moduleBlockReason("hrms")), null);
     assert.equal(await runAsCompany(starter, () => moduleBlockReason("messenger")), null, "core product");
-    assert.match((await runAsCompany(starter, () => moduleBlockReason("fms"))) ?? "", /Starter plan/);
+    assert.match((await runAsCompany(starter, () => moduleBlockReason("fms"))) ?? "", /isn't part of your workspace/);
   });
-  await check("requireModule leaves plan gating to the proxy", async () => {
-    await runAsCompany(starter, () => requireModule("fms"));
+  await check("requireModule redirects a locked product to /commandos/upgrade", async () => {
+    await rejectsWith(runAsCompany(starter, () => requireModule("fms")), (e) => String((e as { digest?: string }).digest ?? "").includes("/commandos/upgrade?module=fms"), "redirect to upgrade");
     await runAsCompany(starter, () => requireModule("pms"));
   });
   await check("internal owner: every product open", async () => {
@@ -171,7 +171,15 @@ async function main() {
   });
 
   console.log("seats");
-  const { createAdminUser, reactivateAdminUser, updateAdminUserRoles } = await import("@/lib/products/commandos/admin-users");
+  const { createAdminUser, updateAdminUserRoles } = await import("@/lib/products/commandos/admin-users");
+  const { changeAccountStatus } = await import("@/lib/products/commandos/account-status");
+  const { newAccountBlockReason } = await import("@/lib/platform/billing/enforce");
+  const { ensureDesignations, listCustomRoles } = await import("@/lib/products/commandos/custom-roles");
+  const addUser = async (email: string) => {
+    await ensureDesignations();
+    const intern = (await listCustomRoles()).find((r) => r.name === "Intern")!;
+    return createAdminUser({ email, name: "Test Person", designationId: intern.id }, "someone-else");
+  };
   await check("training students don't take a seat", () => {
     assert.equal(rolesUseSeat(["training_student"]), false);
     assert.equal(rolesUseSeat(["training_student", "employee"]), true);
@@ -186,16 +194,17 @@ async function main() {
         { _id: new ObjectId(), email: "gone@tiny.test", roles: [], savedRoles: ["employee"], createdAt: now },
       ]);
       assert.equal(await countSeatsUsed(), 1);
-      assert.ok((await createAdminUser("two@tiny.test", ["employee"])).ok, "2nd seat fits");
-      const third = await createAdminUser("three@tiny.test", ["employee"]);
+      const two = await addUser("two@tiny.test");
+      assert.ok(two.ok, `2nd seat fits: ${JSON.stringify(two)}`);
+      const third = await addUser("three@tiny.test");
       assert.ok(!third.ok && /includes 2 users/.test(third.error ?? ""), "3rd seat blocked");
-      assert.ok((await createAdminUser("learner@tiny.test", ["training_student"])).ok, "seatless role still allowed");
+      assert.equal(await newAccountBlockReason(["training_student"]), null, "seatless role still allowed");
     });
   });
   await check("reactivating / re-granting roles also counts", async () => {
     await runAsCompany(tiny, async () => {
       const gone = await (await getDb()).collection("admin_users").findOne({ email: "gone@tiny.test" });
-      const r = await reactivateAdminUser(String(gone!._id));
+      const r = await changeAccountStatus(String(gone!._id), "active", { id: "someone-else", roles: ["super_admin"] }, { reason: "Back at work" });
       assert.ok(!r.ok && /includes 2 users/.test(r.error ?? ""));
       const u = await updateAdminUserRoles(String(gone!._id), ["employee"], "someone-else");
       assert.ok(!u.ok);
@@ -297,7 +306,7 @@ async function main() {
     const rows = await listCompanyUsage();
     const t = rows.find((r) => r.id === tiny)!;
     assert.equal(t.planName, "Tiny");
-    assert.deepEqual([t.seats.used, t.seats.limit], [2, 12], "owner + three (two was freed, student is seatless)");
+    assert.deepEqual([t.seats.used, t.seats.limit], [1, 2], "only the owner (the second seat was freed)");
     assert.deepEqual([t.aiTokens.used, t.aiTokens.limit, t.aiTokens.level], [1004, 1000, "over"]);
     assert.equal(t.storageMb.limit, 1);
     assert.equal(t.storageMb.level, "near");

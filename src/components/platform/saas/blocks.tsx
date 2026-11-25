@@ -197,7 +197,7 @@ export function EmptyState({ title, body, children }: { title: string; body: str
 }
 
 /** Closing call to action over a faded photo, in the style of the default theme's final CTA section. */
-export function CtaBand({ title = "Your business, running itself — starting today.", lead = "Every feature, your own brand. Start free in minutes, or let us show you the platform with your own business scenarios.", photo = "success" }: { title?: string; lead?: string; photo?: string }) {
+export function CtaBand({ title = "Your business, running itself — starting today.", lead = "Your products, your own brand. Start free in minutes, or let us show you the platform with your own business scenarios.", photo = "success" }: { title?: string; lead?: string; photo?: string }) {
   return (
     <section className="relative overflow-hidden border-t border-border/50 py-24 sm:py-32">
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -212,7 +212,7 @@ export function CtaBand({ title = "Your business, running itself — starting to
             <Link href="/demo" className="inline-flex items-center gap-2 rounded-full border border-white/30 px-8 py-4 text-sm font-bold text-white transition-all hover:bg-white/10">Request a demo</Link>
           </div>
           <div className="flex flex-wrap justify-center gap-6 pt-2 text-sm text-white/80">
-            {["Full access, free forever", "AI built in", "No card needed"].map((t) => (
+            {["Free forever for one product", "AI built in", "No card needed"].map((t) => (
               <span key={t} className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-white" />{t}</span>
             ))}
           </div>

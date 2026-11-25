@@ -1,5 +1,6 @@
 "use client";
 
+import { useUnavailableProducts } from "@/components/platform/PanelsProvider";
 import PanelTabs from "@/components/platform/panel/PanelTabs";
 import { usePanelLabel } from "@/components/platform/PanelsProvider";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -80,7 +81,14 @@ function Field({ label, htmlFor, hint, children, className }: { label: string; h
   );
 }
 
+/** A new product link starts on a product the company has. */
+function newModuleLink(unavailable: ReadonlySet<string>) {
+  const first = SOP_MODULES.find((x) => !unavailable.has(x.value)) ?? SOP_MODULES[SOP_MODULES.length - 1];
+  return { module: first.value, label: "", url: first.href as string };
+}
+
 export default function SopEditor(props: SopEditorProps) {
+  const unavailable = useUnavailableProducts();
   const panelLabel = usePanelLabel();
   const { sopId, taxonomy } = props;
   const [meta, setMeta] = useState<SopMetaInput>(props.initialMeta);
@@ -441,13 +449,13 @@ export default function SopEditor(props: SopEditorProps) {
                 <p className="text-[11px] text-muted-foreground">Tag the product(s) this SOP serves (e.g. a procurement SOP → SpendIQ) with a deep link, so it can be filtered by product and found from there.</p>
                 {content.moduleLinks.map((m, i) => (
                   <div key={i} className="grid gap-2 sm:grid-cols-[11rem_1fr_1fr_auto]">
-                    <OptionSelect value={m.module} onChange={(v) => editContent((c) => ({ ...c, moduleLinks: c.moduleLinks.map((x, j) => (j === i ? { ...x, module: v as typeof m.module } : x)) }))} options={SOP_MODULES.map((x) => ({ value: x.value, label: panelLabel(x.value, x.label) }))} aria-label="Product" />
+                    <OptionSelect value={m.module} onChange={(v) => editContent((c) => ({ ...c, moduleLinks: c.moduleLinks.map((x, j) => (j === i ? { ...x, module: v as typeof m.module } : x)) }))} options={SOP_MODULES.filter((x) => !unavailable.has(x.value) || x.value === m.module).map((x) => ({ value: x.value, label: panelLabel(x.value, x.label) }))} aria-label="Product" />
                     <Input value={m.label} placeholder="Label" aria-label="Link label" onChange={(e) => editContent((c) => ({ ...c, moduleLinks: c.moduleLinks.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)) }))} />
-                    <Input value={m.url} placeholder="/spendiq/vendors or https://…" aria-label="Link URL" onChange={(e) => editContent((c) => ({ ...c, moduleLinks: c.moduleLinks.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)) }))} />
+                    <Input value={m.url} placeholder="A page in your workspace, or https://…" aria-label="Link URL" onChange={(e) => editContent((c) => ({ ...c, moduleLinks: c.moduleLinks.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)) }))} />
                     <Button type="button" variant="ghost" size="icon-sm" aria-label="Remove product link" onClick={() => editContent((c) => ({ ...c, moduleLinks: c.moduleLinks.filter((_, j) => j !== i) }))}><X /></Button>
                   </div>
                 ))}
-                <Button type="button" variant="outline" size="xs" onClick={() => editContent((c) => ({ ...c, moduleLinks: [...c.moduleLinks, { module: "hrms", label: "", url: "/talentos" }] }))}><Plus data-icon="inline-start" />Add product link</Button>
+                <Button type="button" variant="outline" size="xs" onClick={() => editContent((c) => ({ ...c, moduleLinks: [...c.moduleLinks, newModuleLink(unavailable)] }))}><Plus data-icon="inline-start" />Add product link</Button>
               </div>
             </CardContent>
           </GlassCard>

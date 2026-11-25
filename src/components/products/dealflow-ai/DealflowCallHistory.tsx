@@ -1,3 +1,4 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import Link from "next/link";
 import { Activity, PhoneCall } from "lucide-react";
 import { CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -23,6 +24,7 @@ const OUTCOME = { success: "Successful", failure: "Unsuccessful", unknown: "Uncl
  * (what this person is allowed to see there); the answers are the copies DealFlow stored when the call ended.
  */
 export default async function DealflowCallHistory({ entityType, entityId }: { entityType: "lead" | "applicant" | "submission"; entityId: string }) {
+  if ((await hiddenProducts()).has("aibots")) return null;
   const viewer = await getViewer().catch(() => null);
   const [calls, stored] = await Promise.all([
     viewer ? listCalls(viewer, { scope: "all", target: { product: DEALFLOW_PRODUCT, entityType, entityId } }).then((r) => r.items).catch(() => [] as CallView[]) : Promise.resolve([] as CallView[]),

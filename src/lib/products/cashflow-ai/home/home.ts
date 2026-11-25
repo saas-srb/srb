@@ -1,4 +1,6 @@
 import "server-only";
+import { hiddenProducts } from "@/lib/platform/products/visible";
+import { localHref } from "@/lib/platform/products/routes";
 import { getCompanyDetails } from "@/lib/products/talentos/company";
 import { listAccounts } from "@/lib/products/cashflow-ai/accounts";
 import { listBankAccounts } from "@/lib/products/cashflow-ai/bank-accounts";
@@ -29,6 +31,7 @@ async function safe<T>(fn: () => Promise<T>): Promise<T | null> {
 }
 
 export async function loadSetupSteps(): Promise<SetupStep[]> {
+  const hidden = await hiddenProducts();
   const [company, accounts, banks, accrual, profile, filings] = await Promise.all([
     safe(() => getCompanyDetails()),
     safe(() => listAccounts()),
@@ -38,7 +41,7 @@ export async function loadSetupSteps(): Promise<SetupStep[]> {
     safe(() => listFilings()),
   ]);
   const steps: SetupStep[] = [
-    { key: "company", title: "Add your company's GSTIN and state", why: "GST needs them to tell CGST + SGST from IGST. Skip if you are not registered.", href: "/talentos/settings", done: !!company && (!!company.gstin || !!company.state) },
+    { key: "company", title: "Add your company's GSTIN and state", why: "GST needs them to tell CGST + SGST from IGST. Skip if you are not registered.", href: localHref("/talentos/settings", hidden) ?? "/commandos/settings/profile", done: !!company && (!!company.gstin || !!company.state) },
     { key: "accounts", title: "Set up the chart of accounts", why: "The list of heads your money is recorded under. One click adds the standard list.", href: "/cashflow-ai/settings/accounts", done: !accounts || accounts.length > 0 },
     { key: "bank", title: "Add your bank account", why: "So receipts, payments and bank statements have a place to land.", href: "/cashflow-ai/bank-accounts", done: !banks || banks.some((b) => b.accountName !== RAZORPAY_COLLECTIONS_ACCOUNT_NAME && b.accountName !== "RazorpayX balance") },
     { key: "accrual", title: "Record sales and bills when they are raised", why: "A company's books must show what customers owe and what you owe, not only money received and paid.", href: "/cashflow-ai/settings/accrual", done: accrual ? accrual.on : true },

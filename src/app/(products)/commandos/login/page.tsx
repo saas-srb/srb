@@ -1,3 +1,4 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import { listPanels } from "@/lib/platform/panels/store";
 import { PanelName } from "@/components/platform/PanelsProvider";
 import { redirect } from "next/navigation";
@@ -11,7 +12,8 @@ import { whiteLabelProductName } from "@/lib/platform/panels/types";
 
 export default async function HubLoginPage({ searchParams }: { searchParams: Promise<{ next?: string | string[]; demo?: string; reset?: string; ended?: string }> }) {
   // The headline products come from the Product Registry (the first few active, non-core business products).
-  const panelList = (await listPanels().catch(() => [])).filter((p) => p.active && !p.core && !(["website", "support", "portal"] as string[]).includes(p.key)).slice(0, 5).map((p) => whiteLabelProductName(p.name)).join(", ");
+  const hidden = await hiddenProducts();
+  const panelList = (await listPanels().catch(() => [])).filter((p) => p.active && !p.core && !hidden.has(p.key) && !(["website", "support", "portal"] as string[]).includes(p.key)).slice(0, 5).map((p) => whiteLabelProductName(p.name)).join(", ");
   // Where to go after sign-in: only a same-origin path survives `safeNextPath` (no open redirect).
   const sp = await searchParams;
   const next = safeNextPath(sp.next);

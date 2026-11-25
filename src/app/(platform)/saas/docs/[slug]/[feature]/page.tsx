@@ -256,7 +256,7 @@ export default async function FeatureGuidePage({ params }: { params: Promise<{ s
       extra={[
         { q: `I cannot see ${f.name} in the menu.`, a: `Your role may not include it. Ask your workspace owner to open Workspace → Users and give your role access to ${m.name}.` },
         { q: "Can I do this on my phone?", a: "Yes. SRB AI works in the browser on any device and can be installed as an app on Android, iOS and desktop, with the same screens and the same data." },
-        { q: "Does this cost extra?", a: `No. ${f.name} comes with the ${m.name} product, and every product is included in every plan.` },
+        { q: "Does this cost extra?", a: `No. ${f.name} comes with the ${m.name} product, at no extra charge.` },
       ]}
     />
     </>

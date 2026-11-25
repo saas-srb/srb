@@ -1,3 +1,9 @@
+import { cashflowKeeps } from "@/components/products/cashflow-ai/records";
+import VendorForm from "@/components/products/spendiq/VendorForm";
+import { serializeVendor } from "@/lib/products/spendiq/vendors";
+import { saveVendorFromCashflowAction } from "@/app/(products)/cashflow-ai/(protected)/records-actions";
+import { Button } from "@/components/ui/button";
+import { Pencil } from "lucide-react";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -18,6 +24,7 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
   const [detail, bills] = await Promise.all([getVendorDetail(id), listBills({ vendorId: id, pageSize: 100 })]);
   if (!detail) notFound();
   const { vendor, financials, transactions } = detail;
+  const keeps = await cashflowKeeps("prms");
 
   return (
     <div className="space-y-4">
@@ -26,6 +33,7 @@ export default async function VendorDetailPage({ params }: { params: Promise<{ i
         title={<>{vendor.companyName}</>}
         description={<>{vendor.vendorCode}</>}
         actions={<><div className="flex items-center gap-2">
+          {keeps.manage && <VendorForm vendor={serializeVendor(vendor)} save={saveVendorFromCashflowAction} trigger={<Button type="button" size="sm" variant="outline"><Pencil className="size-3.5" data-icon="inline-start" />Edit</Button>} />}
           <VendorCategoryBadge category={vendor.category} />
           <Badge className={getVendorStatusMeta(vendor.status).badgeClass}>{getVendorStatusMeta(vendor.status).label}</Badge>
         </div></>}

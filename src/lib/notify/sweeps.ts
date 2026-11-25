@@ -20,6 +20,7 @@ import { runDeadlineSweep as runPmsSweep } from "@/lib/products/sprintos/notific
 import { runPrmsSweep } from "@/lib/products/spendiq/notifications";
 import { runTmsSweep } from "@/lib/products/cohort-ai/notifications";
 import { forEachCompany } from "@/lib/platform/tenancy/context";
+import { lockedModuleKeys } from "@/lib/platform/products/availability";
 
 /**
  * Time-based notifications ("this is overdue", "that is about to expire"). A product runs its sweep when someone opens it; the sweep is
@@ -90,7 +91,8 @@ export const runCmsSweep = () =>
 
 /** Everything time-based, for every company — the daily cron. Each sweep dedupes per day, so a repeat run is harmless. */
 export async function runAllSweeps() {
-  return forEachCompany(async () => {
+  return forEachCompany(async (companyId) => {
+    const locked = await lockedModuleKeys(companyId);
     const out: Record<string, string> = {};
     const jobs: [string, () => Promise<unknown>][] = [
       ["hrms", runHrmsSweep], ["pms", runPmsSweep], ["prms", runPrmsSweep], ["tms", runTmsSweep],
@@ -100,9 +102,12 @@ export async function runAllSweeps() {
       ["announcements", async () => { await (await import("@/lib/notify/center/announcements")).dispatchDue(); }],
     ];
     for (const [name, fn] of jobs) {
+      if (locked.has(name)) continue;
       try { await fn(); out[name] = "ok"; } catch (err) { out[name] = err instanceof Error ? err.message.slice(0, 120) : "failed"; }
     }
-    try { await runCmsSweepNow(); out.cms = "ok"; } catch (err) { out.cms = err instanceof Error ? err.message.slice(0, 120) : "failed"; }
+    if (!locked.has("cms")) {
+      try { await runCmsSweepNow(); out.cms = "ok"; } catch (err) { out.cms = err instanceof Error ? err.message.slice(0, 120) : "failed"; }
+    }
     return out;
   });
 }

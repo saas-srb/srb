@@ -1,3 +1,4 @@
+import { billableCount, type ProductSelection } from "@/lib/platform/products/selection";
 import { BILLING_INTERVAL_IDS, type BillingInterval, type Plan, type PlanPriceVersion } from "@/lib/platform/billing/types";
 
 /**
@@ -45,4 +46,18 @@ export function planPriceAtVersion(plan: PriceSource & Pick<Plan, "priceVersion"
 /** Trial length for a plan: its own value, or the platform default when blank. */
 export function resolveTrialDays(plan: Pick<Plan, "trialDays"> | null | undefined, platformDefault: number): number {
   return typeof plan?.trialDays === "number" ? plan.trialDays : platformDefault;
+}
+
+/**
+ * What a company pays per cycle for its products: the All price, or the single-product price times the number of
+ * products, never more than the All price. `version` = the price version an existing subscriber bought.
+ */
+export function productPrice(plan: PriceSource & Pick<Plan, "priceVersion" | "priceHistory" | "singlePrices">, interval: BillingInterval, selection: ProductSelection | null | undefined, version?: number | null): number | null {
+  const all = planPriceAtVersion(plan, interval, version);
+  const count = billableCount(selection);
+  if (all === null || count === null) return all;
+  const old = version && version !== currentPriceVersion(plan) ? plan.priceHistory?.find((v) => v.version === version) : undefined;
+  // A version sold before single-product prices existed takes today's, still never above the All price that was bought.
+  const single = old?.singlePrices?.[interval] ?? plan.singlePrices?.[interval];
+  return typeof single === "number" ? Math.min(single * count, all) : all;
 }

@@ -1,3 +1,4 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import { notFound, redirect } from "next/navigation";
 import { getPbActor } from "@/lib/products/playbook-ai/pb-actor";
 import { parsePbFilters } from "@/lib/products/playbook-ai/dashboard/filters";
@@ -27,5 +28,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     { label: "Phone and website", ok: has("company.phone") && has("company.website"), hint: "Add them to the company profile." },
   ];
   const qs = new URLSearchParams(Object.entries(sp).filter((e): e is [string, string] => typeof e[1] === "string" && e[1] !== ""));
-  return <DashboardView data={data} brand={items} canCreate={pbDoc(actor, "CREATE")} csvHref={`/api/playbook-ai/dashboard/export?${qs.toString()}`} custom={range.key === "custom" ? { from: sp.from ?? "", to: sp.to ?? "" } : undefined} />;
+  // Signing figures come from ContractFlow.
+  const signing = !(await hiddenProducts()).has("lpms");
+  const shown = signing ? data : { ...data, tiles: data.tiles.filter((t) => !["sent", "signed", "turnaround", "completion"].includes(t.key)) };
+  return <DashboardView signing={signing} data={shown} brand={items} canCreate={pbDoc(actor, "CREATE")} csvHref={`/api/playbook-ai/dashboard/export?${qs.toString()}`} custom={range.key === "custom" ? { from: sp.from ?? "", to: sp.to ?? "" } : undefined} />;
 }

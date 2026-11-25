@@ -61,7 +61,7 @@ const EXPLORING = [
 ];
 
 const CONSTANT = [
-  { icon: "layers" as const, title: "Every plan has everything", text: "Every feature is included in every plan, starting free. Nothing is held back for a higher plan." },
+  { icon: "layers" as const, title: "No locked features", text: "Every feature of the products you take is included, starting free. Nothing is held back for a higher plan." },
   { icon: "building" as const, title: "Start small, add what you need", text: "Each product works on its own, so you use what you need and nothing forces you to take the rest." },
   { icon: "lock" as const, title: "Your data stays yours", text: "One business's data is never visible to another's, and roles and permissions decide who sees what inside yours." },
   { icon: "target" as const, title: "Your brand on everything", text: "Your logo, colours, web address and apps stay yours, with SRB out of sight." },
@@ -95,7 +95,7 @@ const COMMITMENTS = [
   "No guessed release dates.",
   "Something we are exploring is never presented as a promise.",
   "If a page says something is available, it is available.",
-  "Every plan includes every feature, starting free.",
+  "Every feature of your products is included, starting free.",
   "We describe the product as it is today, not as we hope it will be.",
   "If we cannot do something yet, we tell you plainly.",
 ];
@@ -176,7 +176,7 @@ export default async function RoadmapPage() {
       {/* 03 now */}
       <section id="now" className="sr-section" style={{ scrollMarginTop: 140 }}>
         <div className="sr-container">
-          <Head id="now" title="Everything available today." lead="These products are live now, and every one of them is included in every plan." />
+          <Head id="now" title="Everything available today." lead="These products are live now. Take one or all of them." />
           <Reveal><div className="mb-10 rounded-3xl border border-border/60 bg-card px-4 shadow-sm"><CountStats items={[{ v: "All", l: "products available" }, { v: "AI", l: "built into the software" }, { v: "Every", l: "area of your business" }, { v: "Free", l: "to start, every feature included" }]} /></div></Reveal>
           <div className="space-y-8">
             {groups.map((g, gi) => (
@@ -339,7 +339,7 @@ export default async function RoadmapPage() {
         </div>
       </section>
 
-      <CtaBand title="Use what is available today, free." lead="Every feature is included in every plan. Start free, no card needed." />
+      <CtaBand title="Use what is available today, free." lead="Every feature of your products is included. Start free, no card needed." />
       <FaqSection
         topics={["General", "Data & security"]}
         limit={4}

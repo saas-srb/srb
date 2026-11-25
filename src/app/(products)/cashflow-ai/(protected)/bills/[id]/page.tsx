@@ -1,6 +1,13 @@
+import { cashflowKeeps } from "@/components/products/cashflow-ai/records";
+import InvoiceForm from "@/components/products/spendiq/InvoiceForm";
+import InvoiceWorkflow from "@/components/products/spendiq/InvoiceWorkflow";
+import { serializeInvoice } from "@/lib/products/spendiq/invoices";
+import { listVendorOptions } from "@/lib/products/spendiq/vendors";
+import { billFormSections, vendorsWithPan } from "@/lib/products/cashflow-ai/tds/bill-sections";
+import { saveBillFromCashflowAction, decideBillFromCashflowAction, deleteBillFromCashflowAction, attachBillFileFromCashflowAction } from "@/app/(products)/cashflow-ai/(protected)/records-actions";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { notFound } from "next/navigation";
-import { Plus, Download } from "lucide-react";
+import { Plus, Download, Pencil } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
@@ -25,6 +32,10 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
   const canManage = user ? canManageTransactions(user) : false;
   const debitTotal = debitNotes.filter((d) => d.status === "issued").reduce((s, d) => s + d.amount, 0);
   const totalOutstanding = outstanding + debitTotal;
+  const keeps = await cashflowKeeps("prms");
+  const record = keeps.manage ? serializeInvoice(bill) : null;
+  const editor = record ? await Promise.all([listVendorOptions({ activeOnly: true }), billFormSections()]) : null;
+  const withPan = editor ? await vendorsWithPan(editor[0].map((v) => v._id)) : new Set<string>();
 
   return (
     <div className="space-y-4">
@@ -33,6 +44,9 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
         title={<>{bill.invoiceNumber}</>}
         description={<>{bill.vendorName} · {formatMoney(bill.totalAmount, bill.currency)}</>}
         actions={<><div className="flex items-center gap-2">
+          {record && editor && !["paid", "partially_paid"].includes(record.status) && (
+            <InvoiceForm invoice={record} vendors={editor[0].map((v) => ({ _id: v._id, companyName: v.companyName, hasPan: withPan.has(v._id) }))} tdsSections={editor[1]} save={saveBillFromCashflowAction} trigger={<Button type="button" size="sm" variant="outline"><Pencil className="size-3.5" data-icon="inline-start" />Edit</Button>} />
+          )}
           <InvoiceStatusBadge status={bill.status} />
           {bill.poNumber && (
             <a href={`/api/spendiq/purchase-orders/${bill.poNumber}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
@@ -42,6 +56,16 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
           )}
         </div></>}
       />
+
+      {!record && bill.storageKey && (
+        <a href={`/api/cashflow-ai/attachments/${bill.storageKey}`} target="_blank" rel="noopener noreferrer" className="block text-sm text-primary hover:underline">
+          {bill.filename ?? "View bill file"}
+        </a>
+      )}
+
+      {record && (
+        <InvoiceWorkflow invoice={record} payments={false} listHref="/cashflow-ai/bills" fileBase="/api/cashflow-ai/attachments" actions={{ decide: decideBillFromCashflowAction, remove: deleteBillFromCashflowAction, upload: attachBillFileFromCashflowAction }} />
+      )}
 
       {canManage && totalOutstanding > 0.01 && (
         <GlassCard>

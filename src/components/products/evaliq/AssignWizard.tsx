@@ -1,4 +1,5 @@
 "use client";
+import { useUnavailableProducts } from "@/components/platform/PanelsProvider";
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -13,7 +14,7 @@ import MultiPicker from "@/components/products/playbook-ai/MultiPicker";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { assignTestAction, previewAssignmentAction } from "@/app/(products)/evaliq/(protected)/actions";
-import { ASSIGNMENT_STATUSES, CANDIDATE_KINDS, PRIORITIES, RESULT_DETAILS, RESULT_RELEASES, TARGET_TYPES, labelOf, type TargetType } from "@/lib/products/evaliq/constants";
+import { ASSIGNMENT_STATUSES, CANDIDATE_KINDS, PRIORITIES, RESULT_DETAILS, RESULT_RELEASES, TARGET_TYPES, labelOf, targetTypesFor, type TargetType } from "@/lib/products/evaliq/constants";
 import type { Directory } from "@/lib/products/evaliq/people";
 import type { PreviewRow } from "@/lib/products/evaliq/assignments";
 import { cn } from "@/lib/utils";
@@ -96,7 +97,8 @@ export default function AssignWizard({ tests, directory, initialTestId, initialT
     const s = q.trim().toLowerCase();
     return s ? preview.rows.filter((r) => r.label.toLowerCase().includes(s)) : preview.rows;
   }, [preview, q]);
-  const groups = Array.from(new Set(TARGET_TYPES.map((t) => t.group)));
+  const targetTypes = targetTypesFor(useUnavailableProducts());
+  const groups = Array.from(new Set(targetTypes.map((t) => t.group)));
 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -125,7 +127,7 @@ export default function AssignWizard({ tests, directory, initialTestId, initialT
             <CardTitle className="text-sm font-bold">2 · Who</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-[11px] text-muted-foreground">People are read live from TalentOS (employees, departments, roles, teams), Careers (applicants) and Cohort AI (students, batches, courses). Combine as many targets as you like — each person is assigned once.</p>
+            <p className="text-[11px] text-muted-foreground">People are read live from your workspace. Combine as many targets as you like — each person is assigned once.</p>
             {targets.map((t, i) => (
               <div key={i} className="space-y-2 rounded-xl border border-border/50 p-3">
                 <div className="flex items-center gap-2">
@@ -135,7 +137,7 @@ export default function AssignWizard({ tests, directory, initialTestId, initialT
                       setTargets((xs) => xs.map((x, j) => (j === i ? { type: v as TargetType, ids: [] } : x)));
                       setPreview(null);
                     }}
-                    options={groups.flatMap((g) => TARGET_TYPES.filter((x) => x.group === g).map((x) => ({ value: x.value, label: `${g} · ${x.label}` })))}
+                    options={groups.flatMap((g) => targetTypes.filter((x) => x.group === g).map((x) => ({ value: x.value, label: `${g} · ${x.label}` })))}
                     aria-label="Target type"
                   />
                   <Button type="button" size="icon-sm" variant="ghost" aria-label="Remove target" disabled={targets.length === 1} onClick={() => setTargets((xs) => xs.filter((_, j) => j !== i))}>

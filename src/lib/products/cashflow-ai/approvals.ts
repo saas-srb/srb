@@ -1,4 +1,6 @@
 import "server-only";
+import { hiddenProducts } from "@/lib/platform/products/visible";
+import { localHref } from "@/lib/platform/products/routes";
 import { searchTransactions } from "@/lib/products/cashflow-ai/transactions";
 import { searchRefunds } from "@/lib/products/cashflow-ai/refunds";
 import { searchExpenses } from "@/lib/products/spendiq/expenses";
@@ -33,6 +35,7 @@ export async function listPendingApprovals(): Promise<PendingApprovalItem[]> {
     searchExpenses({ approvalStatus: "pending", personalClaimOnly: true, pageSize: 50, sortBy: "expenseDate", sortDir: "desc" }),
   ]);
 
+  const hidden = await hiddenProducts();
   const items: PendingApprovalItem[] = [
     ...transactions.items.map((t) => ({
       kind: "transaction" as const,
@@ -61,7 +64,7 @@ export async function listPendingApprovals(): Promise<PendingApprovalItem[]> {
       label: e.description ?? `${e.category} expense`,
       amount: formatMoney(e.totalAmount, e.currency),
       raisedBy: e.raisedByName,
-      href: `/spendiq/expenses/${e._id}`,
+      href: localHref(`/spendiq/expenses/${e._id}`, hidden) ?? "/cashflow-ai/approvals",
       createdAt: e.createdAt,
     })),
   ];

@@ -1,4 +1,6 @@
 import "server-only";
+import { hiddenProducts } from "@/lib/platform/products/visible";
+import { localHref } from "@/lib/platform/products/routes";
 import { notify } from "@/lib/products/spendiq/notifications";
 import { getDb } from "@/lib/mongodb";
 import { escapeRegExp } from "@/lib/text-search";
@@ -282,7 +284,8 @@ export async function setInvoiceStatus(id: string, status: InvoiceStatus, actorI
       audience: "staff",
       type: /reject|dispute|cancel|void/i.test(status) ? `invoice_${status}_alert` : `invoice_${status}`,
       title: `Invoice ${before.invoiceNumber} from ${before.vendorName}: ${status.replace(/_/g, " ")}`,
-      link: `/spendiq/invoices/${id}`,
+      // CashFlow shows the same bill to a company without SpendIQ.
+      link: localHref(`/spendiq/invoices/${id}`, await hiddenProducts()) ?? `/spendiq/invoices/${id}`,
     });
   }
   return { ok: res.modifiedCount === 1 };

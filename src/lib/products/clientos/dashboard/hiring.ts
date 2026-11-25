@@ -1,4 +1,5 @@
 import "server-only";
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import type { ApplicantOverview } from "@/lib/products/clientos/applicant";
 import { getOpenJobPositions } from "@/lib/career-applications";
 import { listLeadsForUser } from "@/lib/lead-management/records";
@@ -16,7 +17,7 @@ const label = (s: string) => s.replace(/_/g, " ").replace(/^\w/, (c) => c.toUppe
  * recruiting tools live in the HRMS product, not here.)
  */
 export async function buildHiringDashboard(user: CurrentPortalUser, data: ApplicantOverview | null, leadView: PortalLeadView | null): Promise<DashboardModel> {
-  const { can } = accessFor(user.role);
+  const { can } = accessFor(user.role, await hiddenProducts());
   const [walletPart, notif, leads, openRoles] = await Promise.all([
     buildWalletPart(user),
     buildNotifications(user),

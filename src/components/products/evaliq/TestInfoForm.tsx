@@ -98,11 +98,11 @@ export default function TestInfoForm({
           <Input id="t-tags" value={v.tags} onChange={(e) => set("tags", e.target.value)} placeholder="frontend, hiring" />
         </div>
         <div className="space-y-1.5">
-          <Label>Intended departments (TalentOS)</Label>
+          <Label>Intended departments</Label>
           <MultiPicker options={departments.map((d) => ({ id: d.value, label: d.label, sub: d.sub }))} value={v.departmentIds} onChange={(x) => set("departmentIds", x)} placeholder="Search departments…" emptyLabel="No departments in TalentOS." maxHeight="max-h-32" />
         </div>
         <div className="space-y-1.5">
-          <Label>Intended roles / designations (TalentOS)</Label>
+          <Label>Intended roles / designations</Label>
           <MultiPicker options={designations.map((d) => ({ id: d.value, label: d.label, sub: d.sub }))} value={v.designationIds} onChange={(x) => set("designationIds", x)} placeholder="Search roles…" emptyLabel="No designations in TalentOS." maxHeight="max-h-32" />
         </div>
         <p className="text-[11px] text-muted-foreground md:col-span-2">Departments and roles here describe who the test is for (and power report filters). Who actually receives it is decided when you assign it.</p>

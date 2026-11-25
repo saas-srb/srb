@@ -18,6 +18,7 @@ import {
   type CheckoutResponse,
   type StartCheckoutResult,
 } from "@/lib/platform/billing/subscriptions";
+import { changeCompanyProducts, previewProducts, type ChangeProductsResult } from "@/lib/platform/billing/products";
 import type { BillingDetails, BillingDetailsErrors, PriceSummary } from "@/lib/platform/billing/billing-details";
 import type { BillingInterval } from "@/lib/platform/billing/types";
 
@@ -91,4 +92,17 @@ export async function cancelSubscriptionAction(): Promise<BillingActionResult> {
 export async function resumeSubscriptionAction(): Promise<StartCheckoutResult> {
   const { companyId, userId } = await requireOwner();
   return resumeSubscription(companyId, userId);
+}
+
+/** The price of a product choice on the current plan, before anything changes. */
+export async function previewProductsAction(products: string[]) {
+  const { companyId } = await requireOwner();
+  return previewProducts(companyId, (Array.isArray(products) ? products : []).slice(0, 40).map(String));
+}
+
+export async function changeProductsAction(products: string[]): Promise<ChangeProductsResult> {
+  const { companyId, userId } = await requireOwner();
+  const res = await changeCompanyProducts(companyId, (Array.isArray(products) ? products : []).slice(0, 40).map(String), userId);
+  if (res.ok) revalidatePath("/commandos", "layout");
+  return res;
 }

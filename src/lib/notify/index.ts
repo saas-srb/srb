@@ -1,4 +1,6 @@
 import "server-only";
+import { currentCompanyIdOrNull } from "@/lib/platform/tenancy/context";
+import { lockedModuleKeys } from "@/lib/platform/products/availability";
 import { randomUUID } from "node:crypto";
 import { getDb } from "@/lib/mongodb";
 import { queuePush } from "@/lib/push/send";
@@ -74,6 +76,9 @@ const clip = (s: string | null | undefined, n: number) => (s ?? "").replace(/\s+
  */
 export async function notifyUsers(panel: NotifyPanel, userIds: string[], n: NotifyInput): Promise<number> {
   try {
+    // Nothing is delivered for a product the company doesn't have: its link would lead nowhere.
+    const company = await currentCompanyIdOrNull();
+    if (company && (await lockedModuleKeys(company)).has(panel)) return 0;
     const allowed = await canOpen(panel, [...new Set(userIds.filter(Boolean))]);
     if (allowed.length === 0) return 0;
     const c = await col();

@@ -22,6 +22,7 @@ const ICONS: Record<string, LucideIcon> = {
   "company.invoices": ReceiptText,
   "company.usage": Gauge,
   "company.branding": Palette,
+  "company.website": Globe,
   "company.domains": Globe,
   "company.email": Mail,
   "company.addresses": Globe2,

@@ -128,7 +128,8 @@ const nextConfig: NextConfig = {
       // Pages: no <base> hijack, no plugins, framed only by this site (same intent as X-Frame-Options, which old browsers use).
       {
         // /agentos-public/agents is the embeddable agent directory: its proxy sets frame-ancestors from the company's allowed websites instead.
-        source: "/((?!api/|agentos-public/agents).*)",
+        // /forms is the embeddable careers / enquiry form: the proxy lets the company's own website frame it.
+        source: "/((?!api/|agentos-public/agents|forms).*)",
         // No plugins or embedded objects, no <base> hijack, framed only by this site, forms post only to https, and (in production) any
         // stray http:// sub-resource is upgraded to https. A script-src is deliberately not set here: companies add their own tracking scripts
         // and chat widgets in CMS → Settings, which a fixed script policy would break (see docs/compliance/gap-assessment.md).
@@ -136,7 +137,7 @@ const nextConfig: NextConfig = {
       },
       // Only this site may frame itself (the theme customizer previews the site in a same-origin frame). The embeddable agent directory is the exception.
       {
-        source: "/((?!agentos-public/agents).*)",
+        source: "/((?!agentos-public/agents|forms).*)",
         headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }],
       },
       {

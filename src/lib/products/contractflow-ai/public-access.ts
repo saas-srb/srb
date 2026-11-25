@@ -8,6 +8,7 @@ import { OTP_VERIFIED_MINUTES } from "./otp";
 import { expireIfDue } from "./requests";
 import { hashToken, isWellFormedToken } from "./tokens";
 import type { RequestDoc, SignerDoc } from "./sign-types";
+import { lockedModuleKeys } from "@/lib/platform/products/availability";
 
 /**
  * How a signer's link is turned into a request, for the PUBLIC pages (`/sign/<token>`). The signer is not signed in and the host of the
@@ -58,6 +59,9 @@ export async function resolveSignerToken(token: unknown, headers: Headers, opts:
 
   const ip = clientIp(probe);
   const userAgent = headers.get("user-agent");
+  // A company that no longer has ContractFlow can't collect signatures through its old links.
+  if ((await lockedModuleKeys(companyId)).has("lpms")) return { ok: false, reason: "unavailable" };
+
   return runAsCompany(companyId, async () => {
     const request = await (await cfRequests()).findOne({ _id: row.requestId });
     if (!request) return { ok: false, reason: "not_found" } as const;

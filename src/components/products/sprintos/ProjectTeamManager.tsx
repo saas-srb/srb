@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -127,6 +128,9 @@ export default function ProjectTeamManager({
             {totalAllocation}% allocated
           </span>
         </CardTitle>
+        {canManage && selectableEmployees.length === 0 && (
+          <Link href="/commandos/users/new" className="text-xs font-medium text-primary hover:underline">Everyone is on this project. Add a person</Link>
+        )}
         {canManage && (
           <Button type="button" size="sm" onClick={openCreate} disabled={selectableEmployees.length === 0 && !editing}>
             <Plus className="size-3.5" data-icon="inline-start" />
@@ -211,19 +215,19 @@ export default function ProjectTeamManager({
         <SheetContent>
           <SheetHeader className="border-b border-border/60">
             <SheetTitle>{editing ? "Edit Team Member" : "Add Team Member"}</SheetTitle>
-            <SheetDescription>Assign an TalentOS employee to this project.</SheetDescription>
+            <SheetDescription>Assign someone from your team to this project. People are added in People &amp; access.</SheetDescription>
           </SheetHeader>
           <div className="flex-1 space-y-4 overflow-y-auto p-4">
             <div className="space-y-1.5">
-              <Label>Employee *</Label>
+              <Label>Team member *</Label>
               <Select
                 value={form.employeeId || NONE}
                 onValueChange={(v) => setForm((f) => ({ ...f, employeeId: v === NONE ? "" : (v ?? "") }))}
                 disabled={Boolean(editing)}
               >
-                <SelectTrigger className="w-full"><SelectValue placeholder="Select an employee" /></SelectTrigger>
+                <SelectTrigger className="w-full"><SelectValue placeholder="Select a person" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NONE}>Select an employee</SelectItem>
+                  <SelectItem value={NONE}>Select a person</SelectItem>
                   {selectableEmployees.map((e) => (
                     <SelectItem key={e._id} value={e._id}>{e.name} · {e.employeeCode}</SelectItem>
                   ))}

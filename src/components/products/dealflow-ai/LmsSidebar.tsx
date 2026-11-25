@@ -1,4 +1,5 @@
 "use client";
+import { useUnavailableProducts } from "@/components/platform/PanelsProvider";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -109,6 +110,7 @@ function useActiveVoiceCalls(enabled: boolean): number {
 }
 
 export default function LmsSidebar({ onNavigate, collapsed = false }: { onNavigate?: () => void; collapsed?: boolean }) {
+  const unavailable = useUnavailableProducts();
   const canCareers = useLmsCan("careers.view");
   const canLeads = useLmsCan("leads.view");
   const liveCalls = useActiveVoiceCalls(canLeads);
@@ -131,7 +133,7 @@ export default function LmsSidebar({ onNavigate, collapsed = false }: { onNaviga
       <NavLink href="/dealflow-ai/messages" label="Live Chat" icon={MessageSquare} collapsed={collapsed} onNavigate={onNavigate} />
       <NavLink href="/dealflow-ai/emails" label="Dedicated Email" icon={Mail} collapsed={collapsed} onNavigate={onNavigate} />
       <NavLink href="/dealflow-ai/whatsapp" label="WhatsApp Hub" icon={Radio} collapsed={collapsed} onNavigate={onNavigate} />
-      <NavLink href="/dealflow-ai/voice-calls" label="AI Voice Calls" icon={PhoneCall} collapsed={collapsed} onNavigate={onNavigate} badge={liveCalls > 0 ? `${liveCalls} live` : undefined} />
+      {!unavailable.has("aibots") && <NavLink href="/dealflow-ai/voice-calls" label="AI Voice Calls" icon={PhoneCall} collapsed={collapsed} onNavigate={onNavigate} badge={liveCalls > 0 ? `${liveCalls} live` : undefined} />}
 
       <SectionLabel collapsed={collapsed}>Pre-Sale Meetings</SectionLabel>
       <NavLink href="/dealflow-ai/meetings" label="Meetings" icon={Video} collapsed={collapsed} onNavigate={onNavigate} />

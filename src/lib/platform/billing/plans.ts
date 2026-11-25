@@ -60,6 +60,7 @@ export const DEFAULT_PLANS: PlanSeed[] = [
     intervals: ["monthly", "yearly"],
     prices: { monthly: 0, yearly: 0 },
     lifetimeFree: true,
+    maxProducts: 1,
     highlights: ["Free for life, no card needed"],
     flags: ALL_FLAGS,
     modules: "all",
@@ -272,6 +273,9 @@ export interface PlanInput {
   currency: string;
   intervals: BillingInterval[];
   prices: Partial<Record<BillingInterval, number>>;
+  /** One product's price per cycle (blank = the All price) and the most products the plan allows. Omitted = unchanged. */
+  singlePrices?: Partial<Record<BillingInterval, number>>;
+  maxProducts?: number | null;
   modules: ModuleKey[] | "all";
   highlights: string[];
   flags: string[];
@@ -327,6 +331,14 @@ export function validatePlanInput(input: PlanInput, mode: "create" | "update"): 
     if (!isWholeNumber(price) || price < 0 || price > MAX_PRICE) errors[`price.${i}`] = "Enter a price of 0 or more.";
   }
 
+  for (const i of intervals) {
+    const single = input.singlePrices?.[i];
+    if (single === undefined) continue;
+    if (!isWholeNumber(single) || single < 0 || single > MAX_PRICE) errors[`singlePrice.${i}`] = "Enter a price of 0 or more, or leave blank.";
+    else if (single > (input.prices?.[i] ?? 0)) errors[`singlePrice.${i}`] = "One product can't cost more than All products.";
+  }
+  if (input.maxProducts !== null && input.maxProducts !== undefined && (!isWholeNumber(input.maxProducts) || input.maxProducts < 1 || input.maxProducts > 50)) errors.maxProducts = "Enter 1 or more, or leave blank for no limit.";
+
   if (input.modules !== "all") {
     if (!Array.isArray(input.modules) || input.modules.length === 0) errors.modules = "Pick at least one product, or include every product.";
     else if (input.modules.some((m) => !SELECTABLE_MODULES.has(m))) errors.modules = "Unknown product selected.";
@@ -366,6 +378,8 @@ function normalise(input: PlanInput): PlanInput {
   const unknownIntervals = Array.isArray(input.intervals) ? input.intervals.filter((i) => !BILLING_INTERVAL_IDS.includes(i)) : [];
   const prices: Partial<Record<BillingInterval, number>> = {};
   for (const i of intervals) prices[i] = input.prices?.[i] as number;
+  const singlePrices: Partial<Record<BillingInterval, number>> = {};
+  for (const i of intervals) if (typeof input.singlePrices?.[i] === "number") singlePrices[i] = input.singlePrices[i] as number;
   const limits: PlanLimits = { seats: null, aiTokensPerMonth: null, storageMb: null };
   const listPrices: Partial<Record<BillingInterval, number>> = {};
   for (const i of intervals) if (typeof input.listPrices?.[i] === "number") listPrices[i] = input.listPrices[i] as number;
@@ -377,6 +391,8 @@ function normalise(input: PlanInput): PlanInput {
     currency: String(input.currency ?? "").trim().toUpperCase(),
     intervals: [...intervals, ...unknownIntervals],
     prices,
+    singlePrices,
+    maxProducts: input.maxProducts ?? null,
     modules: input.modules === "all" ? "all" : Array.isArray(input.modules) ? ([...new Set(input.modules.map(String))].sort((a, b) => a.localeCompare(b)) as ModuleKey[]) : [],
     highlights: Array.isArray(input.highlights) ? input.highlights.map((h) => String(h ?? "").trim()).filter(Boolean) : [],
     flags: Array.isArray(input.flags) ? [...new Set(input.flags.map(String))].sort((a, b) => a.localeCompare(b)) : [],
@@ -392,18 +408,20 @@ function normalise(input: PlanInput): PlanInput {
 }
 
 /** The pricing part of a plan (what a price version captures), normalised for comparison. */
-function pricingOf(plan: Pick<Plan, "currency" | "priceMonthly" | "priceYearly" | "intervals" | "prices">) {
+function pricingOf(plan: Pick<Plan, "currency" | "priceMonthly" | "priceYearly" | "intervals" | "prices" | "singlePrices">) {
   const intervals = planIntervals(plan);
   const prices: Partial<Record<BillingInterval, number>> = {};
   for (const i of intervals) prices[i] = planPrice(plan, i) ?? 0;
-  return { currency: plan.currency, intervals, prices };
+  const singlePrices: Partial<Record<BillingInterval, number>> = {};
+  for (const i of intervals) if (typeof plan.singlePrices?.[i] === "number") singlePrices[i] = plan.singlePrices[i];
+  return { currency: plan.currency, intervals, prices, ...(Object.keys(singlePrices).length ? { singlePrices } : {}) };
 }
 
 const samePricing = (a: ReturnType<typeof pricingOf>, b: ReturnType<typeof pricingOf>) => JSON.stringify(a) === JSON.stringify(b);
 
 /** Which top-level fields differ (for the audit log; values are small and secret-free). */
 function changedFields(before: Plan, after: Record<string, unknown>): string[] {
-  const keys = ["name", "description", "currency", "intervals", "prices", "modules", "highlights", "flags", "limits", "trialDays", "active", "isDefault", "listPrices", "offerLabel", "lifetimeFree", "contactSales"];
+  const keys = ["name", "description", "currency", "intervals", "prices", "singlePrices", "maxProducts", "modules", "highlights", "flags", "limits", "trialDays", "active", "isDefault", "listPrices", "offerLabel", "lifetimeFree", "contactSales"];
   return keys.filter((k) => JSON.stringify((before as unknown as Record<string, unknown>)[k] ?? null) !== JSON.stringify(after[k] ?? null));
 }
 
@@ -423,15 +441,20 @@ export async function savePlan(raw: PlanInput, mode: "create" | "update", actorI
     else if (!clean.isDefault) fieldErrors.isDefault = "This is the default plan. Make another plan the default instead.";
   }
   if (Object.keys(fieldErrors).length > 0) return { ok: false, error: "Fix the highlighted fields.", fieldErrors };
+  // Callers that don't say (the offer ending, bulk loads) leave these two as they are.
+  if (raw.singlePrices === undefined && existing) clean.singlePrices = Object.fromEntries(clean.intervals.flatMap((i) => (typeof existing.singlePrices?.[i] === "number" ? [[i, existing.singlePrices[i]]] : [])));
+  if (raw.maxProducts === undefined) clean.maxProducts = existing?.maxProducts ?? null;
 
   const now = new Date();
-  const pricing = { currency: clean.currency, intervals: clean.intervals, prices: clean.prices };
+  const pricing = { currency: clean.currency, intervals: clean.intervals, prices: clean.prices, ...(Object.keys(clean.singlePrices ?? {}).length ? { singlePrices: clean.singlePrices } : {}) };
   const fields = {
     name: clean.name,
     description: clean.description,
     currency: clean.currency,
     intervals: clean.intervals,
     prices: clean.prices,
+    singlePrices: clean.singlePrices ?? {},
+    maxProducts: clean.maxProducts ?? null,
     // Mirrors for code that predates configurable cycles (0 when the cycle isn't offered).
     priceMonthly: clean.prices.monthly ?? 0,
     priceYearly: clean.prices.yearly ?? 0,

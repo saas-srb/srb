@@ -57,12 +57,13 @@ async function handlePOST(req: NextRequest) {
     user = await currentAgentUser();
   }
   if (!user) return NextResponse.json({ error: say("signIn", lang) }, { status: 401 });
+  if (panel === "portal" && (await agentPlanState()).blockedPanels.includes(panel)) return NextResponse.json({ error: "This service isn't available." }, { status: 403 });
 
   if (panel !== "platform" && panel !== "portal") {
     const plan = await agentPlanState();
     user.blockedPanels = plan.blockedPanels;
     user.readOnly = plan.readOnly;
-    if (plan.blockedPanels.includes(panel)) return NextResponse.json({ error: "This product isn't included in your plan. Upgrade in Settings → Billing to use it." }, { status: 403 });
+    if (plan.blockedPanels.includes(panel)) return NextResponse.json({ error: "This product isn't part of your workspace. Add it in Settings → Billing." }, { status: 403 });
   }
 
   if (panel === "platform") {

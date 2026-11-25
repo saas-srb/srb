@@ -54,7 +54,10 @@ export default function VendorForm({
   vendor,
   trigger,
   onSaved,
+  save = saveVendorAction,
 }: {
+  /** Another product's screen saves with its own action (and permission check). */
+  save?: typeof saveVendorAction;
   vendor?: SerializedVendor;
   trigger: ReactNode;
   onSaved?: (id: string) => void;
@@ -80,7 +83,7 @@ export default function VendorForm({
   function submit() {
     setErrors({});
     startTransition(async () => {
-      const result = await saveVendorAction(form as Record<string, unknown>, vendor?._id);
+      const result = await save(form as Record<string, unknown>, vendor?._id);
       if (!result.ok) {
         if (result.fieldErrors) setErrors(result.fieldErrors);
         toast.error(result.error ?? "Please fix the highlighted fields.");

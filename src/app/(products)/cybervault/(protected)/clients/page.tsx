@@ -1,3 +1,7 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
+import ClientForm from "@/components/products/sprintos/ClientForm";
+import { saveClientFromVaultAction } from "@/app/(products)/cybervault/(protected)/actions";
+import { Button } from "@/components/ui/button";
 import { lockedUnless } from "@/lib/products/cybervault/gate";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -56,6 +60,9 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
   const locked = lockedUnless(viewer, "clients.view", "Clients Vault");
   if (locked) return locked;
   const sp = await searchParams;
+  // Without SprintOS the client list is kept here.
+  const keepsClients = (await hiddenProducts()).has("pms");
+  const addClient = keepsClients && viewer.seesAll && can(viewer, "clients.manage");
   // The client list is the PMS client master, narrowed to what this viewer may see. DLMS creates no clients of its own.
   const { items } = await searchClients({ search: sp.q?.trim() || undefined, pageSize: 100, sortBy: "companyName", sortDir: "asc" });
   const visible = viewer.seesAll ? items : items.filter((c) => viewer.clientIds.includes(c._id));
@@ -63,13 +70,14 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Clients Vault" crumbs={[{ label: "Clients" }]} description="Each client has one vault profile: credentials, URLs, documents, notes and expiry. Clients themselves are managed in the client master (SprintOS)." />
+      <PageHeader title="Clients Vault" crumbs={[{ label: "Clients" }]} description={`Each client has one vault profile: credentials, URLs, documents, notes and expiry.${keepsClients ? "" : " Clients themselves are managed in the client master (SprintOS)."}`} />
+      {addClient && <div className="flex justify-end"><ClientForm save={saveClientFromVaultAction} trigger={<Button type="button" size="sm">Add client</Button>} /></div>}
       <DlmsFilterBar fields={[{ key: "q", label: "Search", type: "search", placeholder: "Client name or code…" }]} values={{ q: sp.q ?? "" }} />
       {!viewer.seesAll && <Notice tone="info">Showing the clients you have been assigned to.</Notice>}
       <SectionCard title={`${visible.length} client${visible.length === 1 ? "" : "s"}`}>
         {visible.length === 0 ? (
           <EmptyState icon={<Users className="size-5" />} title="No clients to show">
-            {viewer.seesAll ? "Add clients in the SprintOS client master and they appear here." : "A CyberVault manager can assign clients to you under Settings."}
+            {viewer.seesAll ? (keepsClients ? "Add your first client to start its vault." : "Add clients in the SprintOS client master and they appear here.") : "A CyberVault manager can assign clients to you under Settings."}
           </EmptyState>
         ) : (
           <div className="overflow-x-auto">

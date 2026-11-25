@@ -98,7 +98,7 @@ export default async function AboutPage() {
       {/* What we do */}
       <section id="what-we-do" className="sr-section" style={{ scrollMarginTop: 140 }}>
         <div className="sr-container">
-          <Head id="what-we-do" title="Every area of your business," accent="one software." lead="We build and run the software your business works in. Each area below is a group of products, and all of them are included in every plan." />
+          <Head id="what-we-do" title="Every area of your business," accent="one software." lead="We build and run the software your business works in. Each area below is a group of products. Take the one you need, or all of them." />
           <div className="mb-20">
             <ul className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
               {groups.map((g, i) => (

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import ProductLink from "@/components/platform/ProductLink";
 import { AlertTriangle } from "lucide-react";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
@@ -86,8 +86,8 @@ export default async function GstPurchasesPage({ searchParams }: { searchParams:
                 <div key={r.billId} className="border-b border-border/40 pb-3 last:border-0 last:pb-0">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <span className="font-medium">{r.vendorName} · {r.billNumber}</span>
-                    <Link href={`/spendiq/invoices/${r.billId}`} className="text-xs text-primary hover:underline">Open bill</Link>
-                    {vendorId && <Link href={`/spendiq/vendors/${vendorId}`} className="text-xs text-primary hover:underline">Open vendor</Link>}
+                    <ProductLink href={`/spendiq/invoices/${r.billId}`} className="text-xs text-primary hover:underline">Open bill</ProductLink>
+                    {vendorId && <ProductLink href={`/spendiq/vendors/${vendorId}`} className="text-xs text-primary hover:underline">Open vendor</ProductLink>}
                   </div>
                   <ul className="mt-1 space-y-1">
                     {r.flags.map((f) => (
@@ -127,7 +127,7 @@ export default async function GstPurchasesPage({ searchParams }: { searchParams:
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.billId} className="border-b border-border/30 align-top last:border-0">
-                    <td className="px-3 py-2 whitespace-nowrap"><Link href={`/spendiq/invoices/${r.billId}`} className="text-primary hover:underline">{r.billNumber}</Link></td>
+                    <td className="px-3 py-2 whitespace-nowrap"><ProductLink href={`/spendiq/invoices/${r.billId}`} className="text-primary hover:underline">{r.billNumber}</ProductLink></td>
                     <td className="px-3 py-2">{r.vendorName}</td>
                     <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{r.vendorGstin ?? "—"}</td>
                     <td className="px-3 py-2">{r.vendorInvoiceNumber ?? "—"}</td>

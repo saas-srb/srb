@@ -19,7 +19,10 @@ export default function InvoiceForm({
   vendors,
   tdsSections = [],
   trigger,
+  save = saveInvoiceAction,
 }: {
+  /** Another product's screen saves with its own action (and permission check). */
+  save?: typeof saveInvoiceAction;
   invoice?: SerializedInvoice;
   vendors: { _id: string; companyName: string; hasPan?: boolean }[];
   /** The TDS sections offered this year: the platform's rulebook less what the company switched off. */
@@ -88,7 +91,7 @@ export default function InvoiceForm({
   function submit() {
     setErrors({});
     startTransition(async () => {
-      const res = await saveInvoiceAction(form, invoice?._id);
+      const res = await save(form, invoice?._id);
       if (!res.ok) {
         if (res.fieldErrors) setErrors(res.fieldErrors);
         toast.error(res.error ?? "Please fix the highlighted fields.");

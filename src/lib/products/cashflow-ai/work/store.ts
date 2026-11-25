@@ -1,4 +1,6 @@
 import "server-only";
+import { hiddenProducts } from "@/lib/platform/products/visible";
+import { localHref } from "@/lib/platform/products/routes";
 import { getDb } from "@/lib/mongodb";
 import { newId, createStamp, updateStamp, notDeleted, type AuditFields } from "@/lib/products/cashflow-ai/db";
 import { recordAudit } from "@/lib/products/cashflow-ai/audit";
@@ -96,11 +98,25 @@ function yearsBetween(startDate: string, today: string): string[] {
 }
 
 /** All the pieces of work for the company today. `null` plan = not started. */
+/**
+ * The work list as the company can do it: links lead to screens it has; a piece of work whose every screen belongs to a
+ * product it doesn't have (running payroll without TalentOS) is left out. Step positions never change (ticks are saved by position).
+ */
+export function forCompany(instances: WorkInstance[], hidden: ReadonlySet<string>): WorkInstance[] {
+  if (hidden.size === 0) return instances;
+  return instances.flatMap((i) => {
+    const linked = i.task.steps.filter((s) => s.href);
+    if (linked.length > 0 && linked.every((s) => localHref(s.href!, hidden) === null)) return [];
+    return [{ ...i, task: { ...i.task, steps: i.task.steps.map((s) => (s.href ? { ...s, href: localHref(s.href, hidden) ?? undefined } : s)) } }];
+  });
+}
+
 export async function loadWork(today: string): Promise<{ plan: WorkPlanDoc | null; instances: WorkInstance[]; facts: CompanyFacts }> {
   const [plan, facts, logs] = await Promise.all([getPlan(), loadCompanyFacts(), loadLogs()]);
   if (!plan) return { plan: null, instances: [], facts };
   const books = await loadRulebooks(yearsBetween(plan.startDate, today));
-  return { plan, instances: buildInstances({ today, startDate: plan.startDate, facts, logs, books }), facts };
+  const hidden = await hiddenProducts();
+  return { plan, instances: forCompany(buildInstances({ today, startDate: plan.startDate, facts, logs, books }), hidden), facts };
 }
 
 // ───────────────────────────── ticking ─────────────────────────────

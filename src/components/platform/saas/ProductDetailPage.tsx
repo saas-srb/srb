@@ -8,6 +8,7 @@ import { PANEL_DETAIL } from "@/lib/platform/saas/panel-detail";
 import { EXTRA_SCREENS } from "@/lib/platform/saas/site";
 import { screenFor } from "@/lib/platform/saas/screens";
 import { CtaBand, HeroCtas, PageHero, SectionHead } from "@/components/platform/saas/blocks";
+import { signupProductHref } from "@/lib/platform/billing/signup-plan-rule";
 import ProductLogo from "@/components/products/ProductLogo";
 import Reveal from "@/components/platform/saas/Reveal";
 import { productDocsPath, productKeyFromSlug, productPath, productSlugFor } from "@/lib/platform/saas/product-routes";
@@ -134,12 +135,12 @@ export default async function ProductDetailPage({ productSlug }: { productSlug: 
       </span>
     </>
   );
-  const heroNotes = ["Every feature included", ...(detail?.workflow.length ? [`${detail.workflow.length}-step workflow`] : []), "Included in every plan"];
+  const heroNotes = ["Every feature included", ...(detail?.workflow.length ? [`${detail.workflow.length}-step workflow`] : []), "Free to start"];
   const glance = [
     { icon: <Layers className="h-5 w-5" />, q: "What it does", a: m.headline },
     detail && { icon: <Users className="h-5 w-5" />, q: "Who uses it", a: detail.audience.map((a) => a.who).join(", ") },
     value && { icon: <Wallet className="h-5 w-5" />, q: "What it takes the place of", a: value.replaces },
-    { icon: <ShieldCheck className="h-5 w-5" />, q: "What it costs", a: "Included in every plan. Free to start, no card needed." },
+    { icon: <ShieldCheck className="h-5 w-5" />, q: "What it costs", a: "Take it on its own or with the others. Free to start, no card needed." },
   ].filter(Boolean) as { icon: React.ReactNode; q: string; a: string }[];
 
   return (
@@ -169,7 +170,7 @@ export default async function ProductDetailPage({ productSlug }: { productSlug: 
                 {m.capabilities.slice(0, 6).map((c) => <li key={c} className="flex gap-2.5 text-[15px] leading-snug"><span className="sr-circle mt-0.5 h-5 w-5 flex-none"><Check className="h-3 w-3" strokeWidth={3} /></span><span>{c}</span></li>)}
               </ul>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/signup" className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/25 transition-transform hover:-translate-y-0.5">Start free <ArrowRight className="h-4 w-4" /></Link>
+                <Link href={signupProductHref(m.key)} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/25 transition-transform hover:-translate-y-0.5">Start free <ArrowRight className="h-4 w-4" /></Link>
                 <a href="#walkthroughs" className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-6 py-3 text-sm font-bold transition-colors hover:border-primary/40 hover:text-primary">See a walkthrough</a>
               </div>
             </div>
@@ -183,7 +184,7 @@ export default async function ProductDetailPage({ productSlug }: { productSlug: 
                       <img src={screenFor(m.key)!} alt={`${m.name}: a real screen`} width={1280} height={800} loading="eager" decoding="async" className="block h-auto w-full" />
                     </div>
                   </div>
-                  <span className="absolute -bottom-3 left-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-background px-3.5 py-1.5 text-xs font-black text-emerald-600 shadow-lg"><Check className="h-3.5 w-3.5" strokeWidth={3} />Included in every plan</span>
+                  <span className="absolute -bottom-3 left-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-background px-3.5 py-1.5 text-xs font-black text-emerald-600 shadow-lg"><Check className="h-3.5 w-3.5" strokeWidth={3} />Free to start</span>
                   <span className="absolute -top-3 right-6 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-background px-3.5 py-1.5 text-xs font-black text-primary shadow-lg"><Sparkles className="h-3.5 w-3.5" />AI built in</span>
                   <figcaption className="mt-5 text-center text-xs text-muted-foreground">A real screen of {m.name}, captured in a demo workspace with sample data.</figcaption>
                 </figure>
@@ -234,7 +235,7 @@ export default async function ProductDetailPage({ productSlug }: { productSlug: 
         </Band>
       )}
 
-      <Band id="features" n={num("features")} tint={tintOf("features")} title="Everything you can do" lead="Search, or pick a group. Open any feature to read its full guide. Every feature is included in every plan.">
+      <Band id="features" n={num("features")} tint={tintOf("features")} title="Everything you can do" lead="Search, or pick a group. Open any feature to read its full guide. Every feature comes with the product.">
         <div className="rounded-3xl border border-border/60 bg-card p-5 shadow-sm sm:p-8">
               <FeatureExplorer productName={m.name} items={explorerItems} groups={groups.map((g) => ({ title: g.title, count: g.items.length }))} />
             
@@ -372,7 +373,7 @@ export default async function ProductDetailPage({ productSlug }: { productSlug: 
                       </li>
                     ))}
                   </ol>
-                  <p className="mt-4 text-sm"><Link href="/signup" className="font-bold text-primary hover:underline">Start the tour in the product, free <ArrowRight className="ml-1 inline h-4 w-4" /></Link></p>
+                  <p className="mt-4 text-sm"><Link href={signupProductHref(m.key)} className="font-bold text-primary hover:underline">Start the tour in the product, free <ArrowRight className="ml-1 inline h-4 w-4" /></Link></p>
                 </>
               )}
               <p className="mt-8 text-sm"><Link href="/docs#walkthroughs" className="font-bold text-primary hover:underline">All walkthroughs for every product <ArrowRight className="ml-1 inline h-4 w-4" /></Link></p>
@@ -422,7 +423,7 @@ export default async function ProductDetailPage({ productSlug }: { productSlug: 
         </div>
       </section>
 
-      <CtaBand title={`Run ${m.name}, and every other product, free.`} lead="Every feature is included in every plan. Start free, no card needed." />
+      <CtaBand title={`Start with ${m.name}, free.`} lead="Every feature comes with the product. No card needed." />
 
       {/* questions: the last thing on the page, just above the footer */}
       <section id="faq" className="scroll-mt-36 border-t border-border/50 bg-muted/30 py-14 lg:py-20">

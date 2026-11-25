@@ -1,3 +1,4 @@
+import ProductLink from "@/components/platform/ProductLink";
 import Link from "next/link";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
@@ -33,7 +34,7 @@ export default async function CleanupPage() {
                   </div>
                   <ul className="pl-4 text-xs text-muted-foreground">
                     {g.bills.map((b) => (
-                      <li key={b.id}><Link href={`/spendiq/invoices/${b.id}`} className="text-primary hover:underline">{b.vendorInvoiceNumber ?? "no number"}</Link> · {d(b.invoiceDate)} · {formatMoney(b.totalAmount)} · {b.status.replace(/_/g, " ")}</li>
+                      <li key={b.id}><ProductLink href={`/spendiq/invoices/${b.id}`} className="text-primary hover:underline">{b.vendorInvoiceNumber ?? "no number"}</ProductLink> · {d(b.invoiceDate)} · {formatMoney(b.totalAmount)} · {b.status.replace(/_/g, " ")}</li>
                     ))}
                   </ul>
                 </li>
@@ -52,7 +53,7 @@ export default async function CleanupPage() {
             <ul className="divide-y divide-border/40 text-sm">
               {r.billsWithoutDocument.slice(0, 100).map((b) => (
                 <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <span><Link href={`/spendiq/invoices/${b.id}`} className="text-primary hover:underline">{b.invoiceNumber}</Link> · {b.vendorName}</span>
+                  <span><ProductLink href={`/spendiq/invoices/${b.id}`} className="text-primary hover:underline">{b.invoiceNumber}</ProductLink> · {b.vendorName}</span>
                   <span className="text-xs text-muted-foreground">{d(b.invoiceDate)} · {formatMoney(b.totalAmount)}</span>
                 </li>
               ))}
@@ -90,7 +91,7 @@ export default async function CleanupPage() {
             <ul className="divide-y divide-border/40 text-sm">
               {r.expensesWithoutBill.slice(0, 100).map((x) => (
                 <li key={x.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <span><Link href={`/spendiq/expenses/${x.id}`} className="text-primary hover:underline">{x.expenseCode}</Link> · {x.category}</span>
+                  <span><ProductLink href={`/spendiq/expenses/${x.id}`} className="text-primary hover:underline">{x.expenseCode}</ProductLink> · {x.category}</span>
                   <span className="text-xs text-muted-foreground">{d(x.date)} · {formatMoney(x.totalAmount)}</span>
                 </li>
               ))}

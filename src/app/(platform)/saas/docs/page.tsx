@@ -45,7 +45,7 @@ export default async function DocsPage() {
           <div className="grid gap-5 md:grid-cols-2">
             {[
               { icon: "rocket" as const, t: "Set up your workspace", x: "From a new account to a working business workspace, step by step.", href: "/docs/getting-started", c: "Open the setup guide" },
-              { icon: "layers" as const, t: "Browse products", x: "See every product included in your workspace and what it does.", href: "/products", c: "View all products" },
+              { icon: "layers" as const, t: "Browse products", x: "See every product you can have and what it does.", href: "/products", c: "View all products" },
             ].map((c, i) => (
               <Reveal key={c.t} delay={i * 70}><Link href={c.href} className="group flex h-full flex-col rounded-3xl border border-border/60 bg-card p-7 shadow-sm transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10"><span className="sr-icon mb-5 h-14 w-14 transition-transform group-hover:scale-110"><Icon name={c.icon} className="h-6 w-6" /></span><h3 className="text-xl font-black">{c.t}</h3><p className="mt-2 flex-1 leading-relaxed text-muted-foreground">{c.x}</p><span className="mt-5 inline-flex items-center gap-2 font-bold text-primary">{c.c}<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></span></Link></Reveal>
             ))}

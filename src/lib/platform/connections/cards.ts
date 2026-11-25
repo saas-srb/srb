@@ -79,6 +79,20 @@ export function usedByProducts(providerKey: string, registry: RegistryProduct[],
   return registry.filter((p) => p.connections.includes(id) && !unavailable.has(p.key)).map((p) => p.name);
 }
 
+/** Services whose consumers are not in the registry. */
+const CONSUMERS: Record<string, string[]> = { "dealflow-sync": ["lms", "hrms"] };
+
+/**
+ * Whether a company has any use for a connection: a service every one of whose products it can't use is left out.
+ * Messaging services stay (workspace notifications send through them), as do services no product declares.
+ */
+export function connectionRelevant(providerKey: string, registry: RegistryProduct[], unavailable: ReadonlySet<string>): boolean {
+  if (providerByKey.get(providerKey)?.group === "messaging") return true;
+  const id = connectionIdOf(providerKey);
+  const consumers = CONSUMERS[providerKey] ?? registry.filter((p) => p.connections.includes(id)).map((p) => p.key);
+  return consumers.length === 0 || consumers.some((k) => !unavailable.has(k));
+}
+
 export interface StatusInput {
   /** SelfRun can run this service on its own account (see `canUseSrb`). */
   canSrb: boolean;

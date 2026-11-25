@@ -139,7 +139,7 @@ export default async function TestDetailPage({ params }: { params: Promise<{ id:
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <SectionCard title="Assignments" description="Each rule is resolved live against TalentOS / Careers / Cohort AI. Re-sync assigns the test to people who joined a department, role or batch since.">
+        <SectionCard title="Assignments" description="Each rule is resolved live against your people. Re-sync assigns the test to people who joined a department, role or batch since.">
           {dispatches.length === 0 ? (
             <p className="text-xs text-muted-foreground">Not assigned yet.</p>
           ) : (

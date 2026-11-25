@@ -1,3 +1,4 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -54,7 +55,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const totalTasks = Object.values(taskCounts).reduce((s, n) => s + n, 0);
   const messengerSlug = await getProjectChannelSlug(id).catch(() => null);
   const closed = project.status === "completed";
-  const [aiCalls, projectCalls, clientBlocked] = canManage
+  // AI calls come from AgentOS.
+  const callsOn = !(await hiddenProducts()).has("aibots");
+  const [aiCalls, projectCalls, clientBlocked] = canManage && callsOn
     ? await Promise.all([getProjectAiCalls(id), listCallsForTarget(SPRINTOS_PRODUCT, "project", id), isClientDoNotContact(project.clientId)])
     : [[], [], false];
 
@@ -100,7 +103,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
       <ProjectTabs projectId={id} />
 
-      {canManage && closed && (
+      {canManage && closed && callsOn && (
         <ProjectClosePrompt
           projectId={id}
           projectName={project.name}

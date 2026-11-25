@@ -1,3 +1,5 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
+import { CandidateStatusSelect } from "@/components/products/talentos/CandidateControls";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { notFound } from "next/navigation";
 import { Mail, Phone, Briefcase, CalendarDays } from "lucide-react";
@@ -20,7 +22,11 @@ export default async function CandidatePage({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const [user, app] = await Promise.all([getCurrentHrmsUser(), /^[a-f\d]{24}$/i.test(id) ? getApplication(id) : Promise.resolve(null)]);
   if (!app) notFound();
-  const canCall = !!user && hrCan(user, "recruitment.manage");
+  const hidden = await hiddenProducts();
+  const canManage = !!user && hrCan(user, "recruitment.manage");
+  // AI calls come from AgentOS.
+  const calls_ = !hidden.has("aibots");
+  const canCall = calls_ && canManage;
   const [{ aiCalls, doNotContact }, calls] = await Promise.all([getApplicantCalls(id), listCallsForTarget(TALENTOS_PRODUCT, APPLICANT_ENTITY, id)]);
   const status = getCareerApplicationStatusMeta(app.status);
   const target = { product: TALENTOS_PRODUCT, entityType: APPLICANT_ENTITY, entityId: id, label: app.name };
@@ -33,12 +39,15 @@ export default async function CandidatePage({ params }: { params: Promise<{ id: 
         title={<>{app.name}</>}
         description={<>{app.positionTitle} · <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${status.badgeClass}`}>{status.label}</span></>}
         actions={
-          canCall && !doNotContact ? (
+          <div className="flex flex-wrap items-center gap-2">
+          {canManage && hidden.has("lms") && <CandidateStatusSelect id={id} status={app.status} />}
+          {canCall && !doNotContact ? (
             <div className="flex flex-wrap items-center gap-2">
               <CallWithAI target={target} phone={app.phone} context={context} defaultPurpose="screening" variant="default" size="sm" label="Screening call with AI" />
               <CallWithAI target={target} phone={app.phone} context={context} defaultPurpose="pre_hr" variant="outline" size="sm" label="HR pre-qualification call" />
             </div>
-          ) : undefined
+          ) : null}
+          </div>
         }
       />
 
@@ -55,10 +64,10 @@ export default async function CandidatePage({ params }: { params: Promise<{ id: 
       {canCall && (
         <DoNotContactSwitch initial={doNotContact} who={app.name} action={setApplicantDoNotContactAction.bind(null, id)} />
       )}
-      {doNotContact && <p className="text-xs text-muted-foreground">Calling is switched off for this candidate.</p>}
+      {calls_ && doNotContact && <p className="text-xs text-muted-foreground">Calling is switched off for this candidate.</p>}
 
-      <AiCallSummaries entries={aiCalls} />
-      <CallsList rows={calls} />
+      {calls_ && <AiCallSummaries entries={aiCalls} />}
+      {calls_ && <CallsList rows={calls} />}
     </div>
   );
 }

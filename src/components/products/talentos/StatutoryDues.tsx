@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useUnavailableProducts } from "@/components/platform/PanelsProvider";
 import { toast } from "sonner";
 import { Download, Loader2 } from "lucide-react";
 import { CardContent } from "@/components/ui/card";
@@ -43,6 +44,8 @@ export default function StatutoryDues({
   accounts: { _id: string; label: string; balance: number }[];
   defaultAccountId: string | null;
 }) {
+  // CashFlow keeps the books; without it the payment is simply recorded against the account.
+  const books = !useUnavailableProducts().has("fms");
   const router = useRouter();
   const [pending, start] = useTransition();
   const [target, setTarget] = useState<Due | null>(null);
@@ -148,7 +151,7 @@ export default function StatutoryDues({
           <ul className="space-y-1 text-sm">
             {deadlines.map((d) => <li key={d.date + d.title}><span className="font-medium">{formatDate(d.date)}</span> · {d.title}<span className="block text-xs text-muted-foreground">{d.detail}</span></li>)}
           </ul>
-          <p className="text-xs text-muted-foreground">Payments are recorded against your company account and posted to its books in CashFlow. The TDS return must be filed in the government&apos;s format (checked by the File Validation Utility) on the TIN-NSDL portal; use the TDS register and the challans recorded here to prepare it. A late return costs ₹200 a day.</p>
+          <p className="text-xs text-muted-foreground">Payments are recorded against your company account{books ? " and posted to its books in CashFlow" : ""}. The TDS return must be filed in the government&apos;s format (checked by the File Validation Utility) on the TIN-NSDL portal; use the TDS register and the challans recorded here to prepare it. A late return costs ₹200 a day.</p>
         </CardContent>
       </GlassCard>
 

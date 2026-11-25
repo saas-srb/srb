@@ -1,3 +1,5 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
+import { onlyAvailable } from "@/lib/platform/products/routes";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import type { Metadata } from "next";
 import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
@@ -13,6 +15,7 @@ export const dynamic = "force-dynamic";
 export default async function SchedulesPage() {
   await requireWorkspaceAccess("company.schedules");
   const [jobs, panels, announcements] = await Promise.all([listCompanyJobs(), listPanels().catch(() => []), listAnnouncements().catch(() => [])]);
+  const hidden = await hiddenProducts();
   const scheduled = announcements.filter((a) => a.status === "scheduled");
   return (
     <div className="min-h-screen bg-muted/70 px-4 py-10 dark:bg-background">
@@ -22,7 +25,7 @@ export default async function SchedulesPage() {
           title={<>Scheduled jobs</>}
           description={<>Things your workspace does by itself, and when. Backups, reminders, notifications, billing checks and more. Times are shown in your own time zone as well as UTC, which is what the schedules use.</>}
         />
-        <ScheduledJobsList jobs={jobs} products={Object.fromEntries(panels.map((p) => [p.key, p.shortName || p.name]))} scheduledAnnouncements={scheduled.map((a) => ({ id: a.id, title: a.title, at: a.scheduledAt }))} />
+        <ScheduledJobsList jobs={onlyAvailable(jobs, (j) => j.product, hidden)} products={Object.fromEntries(onlyAvailable(panels, (p) => p.key, hidden).map((p) => [p.key, p.shortName || p.name]))} scheduledAnnouncements={scheduled.map((a) => ({ id: a.id, title: a.title, at: a.scheduledAt }))} />
       </div>
     </div>
   );

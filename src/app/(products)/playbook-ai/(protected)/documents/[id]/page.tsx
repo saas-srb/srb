@@ -1,3 +1,4 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import { layoutInputFor } from "@/lib/products/playbook-ai/items-layout";
 import { notFound, redirect } from "next/navigation";
 import PlaybookDocEditor from "@/components/products/playbook-ai/editor/PlaybookDocEditor";
@@ -76,7 +77,7 @@ export default async function DocumentEditorPage({ params, searchParams }: { par
         brandHref="/playbook-ai/brand"
         readOnly={readOnly}
         readOnlyReason={reason}
-        host={{ title: d.title, kind, canSend: pbDoc(pctx, "SEND_FOR_SIGNATURE"), canExport: pbDoc(pctx, "EXPORT"), canUseAi: pbDoc(pctx, "USE_AI"), canTrash: pbDoc(pctx, "EDIT"), send: sendInfo, wizard, version: d.latestVersion ?? d.versionSeq, status: d.status, userLabel: viewer.name || viewer.email }}
+        host={{ title: d.title, kind, canSend: pbDoc(pctx, "SEND_FOR_SIGNATURE") && !(await hiddenProducts()).has("lpms"), canExport: pbDoc(pctx, "EXPORT"), canUseAi: pbDoc(pctx, "USE_AI"), canTrash: pbDoc(pctx, "EDIT"), send: sendInfo, wizard, version: d.latestVersion ?? d.versionSeq, status: d.status, userLabel: viewer.name || viewer.email }}
       />
     </div>
   );

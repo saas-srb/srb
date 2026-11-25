@@ -25,7 +25,7 @@ function platformSections(): Section[] {
   return out;
 }
 
-function sections(panel: string): Section[] {
+function sections(panel: string, hidden: readonly string[] = []): Section[] {
   if (panel === "platform") return platformSections();
   const out: Section[] = [];
   const mod = MODULE_COPY[panel];
@@ -39,7 +39,8 @@ function sections(panel: string): Section[] {
     out.push({ title: "How it works", text: d.intro });
     out.push({ title: "Who uses it", text: d.audience.map((a) => `- ${a.who}: ${a.does}`).join("\n") });
     out.push({ title: "How work moves through it", text: d.workflow.map((w, i) => `${i + 1}. ${w.title} — ${w.text}`).join("\n") });
-    if (d.connects.length) out.push({ title: "Connects to other products", text: d.connects.map((c) => `- ${c.panel}: ${c.text}`).join("\n") });
+    const connects = d.connects.filter((c) => !hidden.includes(c.panel));
+    if (connects.length) out.push({ title: "Connects to other products", text: connects.map((c) => `- ${c.panel}: ${c.text}`).join("\n") });
   }
   const features = FEATURE_LISTS[panel];
   if (features?.length) out.push({ title: "Features by area", text: features.map((g) => `${g.title}: ${g.items.map((i) => `${i.name} (${i.text})`).join("; ")}`).join("\n") });
@@ -54,8 +55,8 @@ function sections(panel: string): Section[] {
 const words = (s: string) => s.toLowerCase().match(/[a-z0-9]{3,}/g) ?? [];
 
 /** The part of a product's documentation that best answers `topic` (or an overview when there is none). */
-export function panelGuide(panel: string, topic?: string): { panel: string; found: boolean; text: string } {
-  const all = sections(panel);
+export function panelGuide(panel: string, topic?: string, hidden: readonly string[] = []): { panel: string; found: boolean; text: string } {
+  const all = sections(panel, hidden);
   if (!all.length) return { panel, found: false, text: `There is no written guide for "${panel}". Use the screens list and the records you can read.` };
   const wanted = words(topic ?? "");
   let picked = all;

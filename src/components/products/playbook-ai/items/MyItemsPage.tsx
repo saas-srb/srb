@@ -1,3 +1,4 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CheckCircle2, FilePlus2, Files, Library, Send } from "lucide-react";
@@ -32,6 +33,7 @@ export default async function MyItemsPage({ kind, searchParams }: { kind: ItemKi
   const all = res.ok ? await listItems(actor, { kind }) : null;
   const departments = all?.ok ? [...new Set(all.rows.map((r) => (kind === "kpi" ? r.designation || r.department : r.department)).filter(Boolean))].sort() : [];
 
+  const signing = !(await hiddenProducts()).has("lpms");
   return (
     <div className="space-y-4">
       <PanelPageHeader
@@ -61,23 +63,22 @@ export default async function MyItemsPage({ kind, searchParams }: { kind: ItemKi
           <KpiGrid>
             <KpiCard label={`All ${info.plural.toLowerCase()}`} value={res.counts.all} icon={<Files className="size-4" />} />
             <KpiCard label="Drafts" value={res.counts.draft} icon={<FilePlus2 className="size-4" />} />
-            <KpiCard label="In ContractFlow" value={res.counts.sent} icon={<Send className="size-4" />} />
-            <KpiCard label="Signed" value={res.counts.signed} icon={<CheckCircle2 className="size-4" />} />
+            {signing && <KpiCard label="In ContractFlow" value={res.counts.sent} icon={<Send className="size-4" />} />}
+            {signing && <KpiCard label="Signed" value={res.counts.signed} icon={<CheckCircle2 className="size-4" />} />}
           </KpiGrid>
           <PanelTabs
             active={tab}
             tabs={[
               { key: "all", label: "All", href: href("all"), count: res.counts.all },
               { key: "draft", label: "Drafts", href: href("draft"), count: res.counts.draft },
-              { key: "sent", label: "In ContractFlow", href: href("sent"), count: res.counts.sent },
-              { key: "signed", label: "Signed", href: href("signed"), count: res.counts.signed },
+              ...(signing ? [{ key: "sent", label: "In ContractFlow", href: href("sent"), count: res.counts.sent }, { key: "signed", label: "Signed", href: href("signed"), count: res.counts.signed }] : []),
             ]}
           />
           {kind === "sop" && <p className="text-xs text-muted-foreground">SOPs created before this version are still available in the <Link className="text-primary underline-offset-2 hover:underline" href="/playbook-ai/library">earlier SOP library</Link>.</p>}
           <ItemsTable
             rows={res.rows}
             kind={kind}
-            canSend={pbDoc(ctx, "SEND_FOR_SIGNATURE")}
+            canSend={signing && pbDoc(ctx, "SEND_FOR_SIGNATURE")}
             canEdit={pbDoc(ctx, "EDIT") || canCreate}
             canExport={pbDoc(ctx, "EXPORT")}
             canDelete={pbDoc(ctx, "EDIT")}

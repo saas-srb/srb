@@ -5,7 +5,8 @@ import { PRODUCTS } from "@/lib/access/catalogue";
 import { WORKSPACE_PRODUCT } from "@/lib/access/complete";
 import { listDepartments, listDesignations, listTeams } from "@/lib/platform/organization";
 import { searchAdminUsers, DIRECTOR_DESIGNATION_ID, type AdminUserRow, type StatusFilter } from "@/lib/products/commandos/admin-users";
-import { splitPicked } from "@/lib/products/commandos/people";
+import { isHiddenAccessProduct, splitPicked } from "@/lib/products/commandos/people";
+import { hiddenProducts } from "@/lib/platform/products/visible";
 
 /** One line of the People list: the account plus where the person sits in the organization and how many products they can open. */
 export interface PersonRow extends AdminUserRow {
@@ -57,7 +58,9 @@ export async function listPeople(f: PeopleFilter = {}) {
   const emps = empIds.length ? await db.collection<{ _id: string; professional?: { departmentId?: string | null; teamId?: string | null; designationId?: string | null } }>("hrms_employees").find({ _id: { $in: empIds } }).toArray() : [];
   const empById = new Map(emps.map((e) => [e._id, e.professional ?? {}]));
   const name = (list: { _id: string; name?: string; title?: string }[], ids: string[]) => ids.map((id) => list.find((x) => x._id === id)).map((x) => x?.name ?? x?.title).filter((x): x is string => Boolean(x));
-  const totalProducts = PRODUCTS.filter((p) => p !== WORKSPACE_PRODUCT).length;
+  const hidden = await hiddenProducts();
+  const counted = (p: string) => p !== WORKSPACE_PRODUCT && !isHiddenAccessProduct(p, hidden);
+  const totalProducts = PRODUCTS.filter(counted).length;
 
   const items: PersonRow[] = res.items.map((row, i) => {
     const doc = res.docs[i];
@@ -69,7 +72,7 @@ export async function listPeople(f: PeopleFilter = {}) {
     const gIds = doc.designationIds ?? one(doc.designationId && doc.designationId !== DIRECTOR_DESIGNATION_ID ? doc.designationId : hr?.designationId);
     const desig = isDirector ? ["Director"] : name(designations, gIds);
     const access = doc.access ?? legacyToAccess({ roles: row.roles, permissionOverrides: row.permissionOverrides }).access;
-    const productsCount = isDirector ? totalProducts : Object.keys(splitPicked(access)).filter((p) => p !== WORKSPACE_PRODUCT).length;
+    const productsCount = isDirector ? totalProducts : Object.keys(splitPicked(access)).filter(counted).length;
     return { ...row, departments: name(departments, dIds), teams: name(teams, tIds), designations: desig.length ? desig : [row.designation !== "—" ? row.designation : "—"], productsCount, productsTotal: totalProducts, isDirector };
   });
   return { ...res, items };

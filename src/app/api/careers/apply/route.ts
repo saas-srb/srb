@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { limitOr429 } from "@/lib/security/rate-limit";
 import { createApplication, getOpenJobPositionBySlug, uploadResume } from "@/lib/career-applications";
 import { validateApplicationInput, validateResumeFile } from "@/lib/career-application-validation";
-import { provisionLeadAndAccount } from "@/lib/lead-management/provision";
+import { portalOpen, provisionLeadAndAccount } from "@/lib/lead-management/provision";
 import { createPortalSession, setPortalSessionCookie } from "@/lib/portal-auth";
 
 async function handlePOST(req: NextRequest) {
@@ -75,11 +75,13 @@ async function handlePOST(req: NextRequest) {
       });
       // Only a brand-new account is signed in automatically. An email that already has an account is NOT proof of identity —
       // logging the submitter in would let anyone take over (and spend the wallet of) any user whose email they know.
-      if (result.isNewAccount) {
-        const { token } = await createPortalSession(result.externalUserId, false);
-        await setPortalSessionCookie(token, false);
+      if (await portalOpen()) {
+        if (result.isNewAccount) {
+          const { token } = await createPortalSession(result.externalUserId, false);
+          await setPortalSessionCookie(token, false);
+        }
+        portal = { redirect: result.isNewAccount ? "/clientos" : "/login", isNewAccount: result.isNewAccount, tempPassword: result.tempPassword };
       }
-      portal = { redirect: result.isNewAccount ? "/clientos" : "/login", isNewAccount: result.isNewAccount, tempPassword: result.tempPassword };
     } catch (provErr) {
       console.error("Lead provisioning failed (application still saved)", provErr);
     }

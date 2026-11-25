@@ -1,7 +1,8 @@
 import { withTransport } from "@/lib/security/transport";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentPrmsUser } from "@/lib/prms-auth";
-import { prmsMayOpen } from "@/lib/prms-access";
+import { prmsCan, prmsMayOpen } from "@/lib/prms-access";
+import { INVOICES_COLLECTION } from "@/lib/products/spendiq/invoices";
 import { readAttachmentStream } from "@/lib/products/spendiq/attachment-storage";
 import { getDb } from "@/lib/mongodb";
 
@@ -25,13 +26,15 @@ async function handleGET(_req: NextRequest, { params }: Context) {
     )
     .findOne({ "attachments.storageKey": key, deletedAt: null });
 
-  if (!req) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  // the file of a vendor bill
+  const bill = req ? null : await db.collection<{ filename?: string }>(INVOICES_COLLECTION).findOne({ storageKey: key, deletedAt: null });
+  if (!req && !bill) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  if (!prmsMayOpen(user, "requisitions", req.requestedBy?.userId, user.id)) {
+  if (req ? !prmsMayOpen(user, "requisitions", req.requestedBy?.userId, user.id) : !prmsCan(user, "invoices.view")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const meta = req.attachments?.find((a) => a.storageKey === key);
+  const meta: { filename?: string; contentType?: string } | undefined = req ? req.attachments?.find((a) => a.storageKey === key) : { filename: bill!.filename };
   const object = await readAttachmentStream(key);
   if (!object) return NextResponse.json({ error: "Not found" }, { status: 404 });
 

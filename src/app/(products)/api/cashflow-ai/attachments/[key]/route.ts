@@ -1,3 +1,5 @@
+import { INVOICES_COLLECTION } from "@/lib/products/spendiq/invoices";
+import { readAttachmentStream as readBillFile } from "@/lib/products/spendiq/attachment-storage";
 import { withTransport } from "@/lib/security/transport";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentFmsUser } from "@/lib/fms-auth";
@@ -25,10 +27,13 @@ async function handleGET(_req: NextRequest, { params }: Context) {
   // proof documents added to a customer receipt
   const receipt = txn ? null : await db.collection<{ documents?: Stored[] }>("fms_receipts").findOne({ "documents.storageKey": key, deletedAt: null });
 
-  if (!txn && !receipt) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  // the file of a vendor bill
+  const bill = txn || receipt || !canViewCommercialFinance(user) ? null : await db.collection<{ filename?: string }>(INVOICES_COLLECTION).findOne({ storageKey: key, deletedAt: null });
 
-  const meta = (txn?.attachments ?? receipt?.documents)?.find((a) => a.storageKey === key);
-  const object = await readAttachmentStream(key);
+  if (!txn && !receipt && !bill) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const meta: { filename?: string; contentType?: string } | undefined = bill ? { filename: bill.filename } : (txn?.attachments ?? receipt?.documents)?.find((a) => a.storageKey === key);
+  const object = bill ? await readBillFile(key) : await readAttachmentStream(key);
   if (!object) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return new NextResponse(object.stream, {

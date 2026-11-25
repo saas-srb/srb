@@ -273,7 +273,7 @@ export default function BillingManager({ view, plans, actions, plansSlot, usageS
   const statusLabel = isInternal ? "Complimentary" : isFree ? "Free for life" : ({ trialing: "Free trial", active: view.cancelAtPeriodEnd ? "Ending" : "Active", past_due: "Payment failed", grace: "Payment overdue", suspended: "Suspended", canceled: "Ended" } as Record<string, string>)[view.status] ?? view.status;
   const nextCharge = isInternal || isFree ? "Nothing to pay" : view.cancelAtPeriodEnd ? "None: it ends on " + fmtDate(view.currentPeriodEnd) : view.status === "trialing" ? (view.autopay ? `${perCycle ?? "—"} on ${chargeDay}` : "Nothing scheduled") : view.status === "active" ? `${perCycle ?? "—"} on ${chargeDay}` : "—";
   const story: { title: string; text: string } = isInternal
-    ? { title: "Your workspace is complimentary", text: "There is nothing to pay, and every product is included." }
+    ? { title: "Your workspace is complimentary", text: "There is nothing to pay." }
     : isFree
       ? { title: `You are on the ${view.planName} plan, free for life`, text: "Nothing is ever charged. Upgrade any time for more people and bigger allowances; you can try a paid plan free for a month." }
       : view.status === "trialing"

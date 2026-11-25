@@ -1,11 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { saveClientRecord } from "@/lib/products/sprintos/client-write";
 import { getCurrentPmsUser } from "@/lib/pms-auth";
 import { pmsCan, pmsSeesAll } from "@/lib/pms-access";
-import { createClient, updateClient, deleteClient, getClient } from "@/lib/products/sprintos/clients";
-import { validateClient } from "@/lib/products/sprintos/validation";
-import { recordActivity, diffSummary } from "@/lib/products/sprintos/activity";
+import { deleteClient, getClient } from "@/lib/products/sprintos/clients";
+import { recordActivity } from "@/lib/products/sprintos/activity";
 
 export interface ClientActionResult {
   ok: boolean;
@@ -32,41 +32,9 @@ export async function saveClientAction(
   id?: string
 ): Promise<ClientActionResult> {
   const user = await requireManage();
-  const v = validateClient(input);
-  if (!v.valid) return { ok: false, fieldErrors: v.errors };
-
-  if (id) {
-    const before = await getClient(id);
-    if (!before) return { ok: false, error: "Client not found." };
-    const updated = await updateClient(id, v.data, user.id);
-    await recordActivity({
-      actorId: user.id,
-      actorEmail: user.email,
-      action: "update",
-      entity: "client",
-      entityId: id,
-      entityLabel: v.data.companyName,
-      summary: diffSummary(
-        { name: before.companyName, status: before.status, industry: before.industry },
-        { name: v.data.companyName, status: v.data.status, industry: v.data.industry },
-        ["name", "status", "industry"]
-      ),
-    });
-    revalidate(id);
-    return { ok: true, id: updated?._id };
-  }
-
-  const created = await createClient(v.data, user.id);
-  await recordActivity({
-    actorId: user.id,
-    actorEmail: user.email,
-    action: "create",
-    entity: "client",
-    entityId: created._id,
-    entityLabel: v.data.companyName,
-  });
-  revalidate(created._id);
-  return { ok: true, id: created._id };
+  const result = await saveClientRecord(user, input, id);
+  if (result.ok) revalidate(result.id);
+  return result;
 }
 
 export async function deleteClientAction(id: string): Promise<ClientActionResult> {

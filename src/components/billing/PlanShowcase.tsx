@@ -73,7 +73,7 @@ function PriceBlock({ p, interval }: { p: ShowcasePlan; interval: BillingInterva
   const perMonth = p.kind === "paid" && offer !== null ? (interval === "yearly" ? Math.round(offer / 12) : offer) : 0;
   const shown = useCountTo(perMonth);
   if (p.kind === "contact") return <p className="pc-price-text">Contact support</p>;
-  if (p.kind === "free") return <p><span className="pc-price">{money(0, p.currency)}</span> <span className="pc-per">forever</span></p>;
+  if (p.kind === "free") return <div><p><span className="pc-price">{money(0, p.currency)}</span> <span className="pc-per">forever</span></p>{p.maxProducts === 1 && <p className="text-xs text-muted-foreground">One product of your choice</p>}</div>;
   if (offer === null) return <p className="text-sm text-muted-foreground">Not offered {interval === "yearly" ? "yearly" : "monthly"}</p>;
   const list = p.list[interval];
   const listPerMonth = list !== null ? (interval === "yearly" ? Math.round(list / 12) : list) : null;
@@ -87,6 +87,7 @@ function PriceBlock({ p, interval }: { p: ShowcasePlan; interval: BillingInterva
         <span className="pc-per">/ month</span>
       </p>
       {interval === "yearly" && <p className="text-xs text-muted-foreground">Billed {money(offer, p.currency)} a year</p>}
+      {typeof p.single?.[interval] === "number" && <p className="text-xs text-muted-foreground">All products. One product: {money(p.single[interval]!, p.currency)} {interval === "yearly" ? "a year" : "a month"}</p>}
       {saved > 0 && (
         <p className="flex flex-wrap items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300">
           <span className="pc-off">{off}% OFF</span>
@@ -225,7 +226,7 @@ export default function PlanShowcase({ plans, currentPlanId, defaultInterval = "
           </table>
         </div>
       </details>
-      <p className="mx-auto max-w-3xl text-center text-sm text-muted-foreground">Every plan includes every product and feature. Plans differ only in how many people and how much storage, AI, email, voice and domains. Need more of anything? Move to the next plan. Prices exclude GST.</p>
+      <p className="mx-auto max-w-3xl text-center text-sm text-muted-foreground">Every feature of your products is included. Plans differ in how many people, products, storage, AI, email, voice and domains. Need more of anything? Move to the next plan. Prices exclude GST.</p>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useUnavailableProducts } from "@/components/platform/PanelsProvider";
 import { useState, useTransition, type ReactElement, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -27,6 +28,7 @@ export default function BudgetForm({
   projects: { _id: string; name: string }[];
   trigger: ReactNode;
 }) {
+  const projectsOn = !useUnavailableProducts().has("pms");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -104,7 +106,7 @@ export default function BudgetForm({
               <Select value={form.level} onValueChange={(v) => { set("level", v ?? "company"); set("scopeId", ""); }}>
                 <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {BUDGET_LEVELS.map((l) => (
+                  {BUDGET_LEVELS.filter((l) => l.value !== "project" || projectsOn || budget?.level === "project").map((l) => (
                     <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>
                   ))}
                 </SelectContent>

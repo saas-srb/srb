@@ -69,7 +69,7 @@ export default async function Footer({}: { host?: string }) {
           <div className="relative flex flex-col items-start gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="text-2xl font-black leading-tight tracking-tight sm:text-3xl">Put your business on <span className="text-white/70">autopilot.</span></h2>
-              <p className="mt-1.5 max-w-xl text-[15px] text-white/80">Free forever, with every feature — or talk to the team first.</p>
+              <p className="mt-1.5 max-w-xl text-[15px] text-white/80">Free forever for one product — or talk to the team first.</p>
             </div>
             <div className="flex w-full flex-none flex-row flex-wrap gap-3 lg:w-auto lg:flex-nowrap">
               <Link href="/signup" className="group inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-white px-3 py-3 text-sm lg:flex-none lg:gap-2 lg:px-7 lg:text-[15px] font-bold text-black shadow-xl transition-transform hover:scale-105">Get started free <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" /></Link>
@@ -83,7 +83,7 @@ export default async function Footer({}: { host?: string }) {
           <div className="col-span-2 space-y-4 md:col-span-3 lg:col-span-1">
             <Logo />
             <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">{SAAS_BRAND.tagline}. One AI-powered platform for sales, people, finance, projects and your website — under your own brand, on web, Android, iOS and desktop.</p>
-            <p className="text-xs text-muted-foreground">Free forever. Every feature included.</p>
+            <p className="text-xs text-muted-foreground">Free forever for one product.</p>
           </div>
           <div>
             <p className="mb-3 text-sm font-bold">Explore</p>

@@ -22,7 +22,7 @@ export default async function CompanyVaultPage({ searchParams }: { searchParams:
     subtitle: `${c.legalName || c.name} — company-level credentials, documents, URLs and notes.`,
     badge: "Company",
     crumbs: [{ label: "Company Vault" }],
-    notice: "Company details come from the TalentOS company record.",
+    notice: "Company details come from your company setup.",
     lines: [
       ...(c.website ? [{ icon: "web" as const, text: c.website, href: /^https?:\/\//i.test(c.website) ? c.website : `https://${c.website}` }] : []),
       ...(c.email ? [{ icon: "mail" as const, text: c.email }] : []),

@@ -23,6 +23,16 @@ export const MANUAL_PARTY_TYPES = ["partner", "freelancer", "trainee", "other"] 
 export type ManualPartyType = (typeof MANUAL_PARTY_TYPES)[number];
 
 export const isLinkedType = (t: PartyType): t is LinkedPartyType => (LINKED_PARTY_TYPES as readonly string[]).includes(t);
+/** The products that keep each kind of record (people added in People & access are always employees). */
+const KEEPERS: Record<LinkedPartyType, string[]> = { client: ["pms", "fms", "lms"], vendor: ["prms", "fms"], employee: [], candidate: ["hrms", "lms"] };
+
+/**
+ * Whether a party of this type is picked from another product's records. A company with none of the products that keep
+ * them enters the name itself instead (`unavailable` = the products the company can't use).
+ */
+export function isLinkedFor(t: PartyType, unavailable: ReadonlySet<string>): t is LinkedPartyType {
+  return isLinkedType(t) && (KEEPERS[t].length === 0 || KEEPERS[t].some((k) => !unavailable.has(k)));
+}
 export const isPartyType = (v: unknown): v is PartyType => typeof v === "string" && (PARTY_TYPES as readonly string[]).includes(v);
 
 export interface PartyRecordRef {

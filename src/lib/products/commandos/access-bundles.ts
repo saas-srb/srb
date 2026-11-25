@@ -4,7 +4,8 @@ import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/mongodb";
 import { normalizeAccess } from "@/lib/access/can";
 import type { AccessMap, Level } from "@/lib/access/types";
-import { loadPersonForEdit, updatePerson, type SaveResult } from "@/lib/products/commandos/people";
+import { isHiddenAccessProduct, loadPersonForEdit, updatePerson, type SaveResult } from "@/lib/products/commandos/people";
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import { recordAccessAudit } from "@/lib/products/commandos/custom-roles";
 import { BLOCKED_STATUSES } from "@/lib/security/account-status";
 
@@ -106,7 +107,10 @@ export async function bulkSetAccess(ids: string[], source: BulkSource, mode: "re
       if (!person || !row) { result.failed++; result.rows.push({ id, ok: false, error: "Unknown account." }); continue; }
       if (person.isDirector) { result.skipped++; result.rows.push({ id, ok: true, skipped: true, error: "A Director's access cannot be changed." }); continue; }
       if (BLOCKED_STATUSES.includes((row.status ?? "active") as never)) { result.skipped++; result.rows.push({ id, ok: true, skipped: true, error: "This account cannot sign in; change its status first." }); continue; }
-      const next = mergeAccess(person.picked, src.access, mode);
+      // Products the company doesn't have are left exactly as the person had them: a bulk change neither removes nor grants them.
+      const hidden = await hiddenProducts();
+      const part = (map: typeof src.access, isHidden: boolean) => Object.fromEntries(Object.entries(map).filter(([p]) => isHiddenAccessProduct(p, hidden) === isHidden)) as typeof src.access;
+      const next = { ...mergeAccess(part(person.picked, false), part(src.access, false), mode), ...part(person.picked, true) };
       const saved: SaveResult = await updatePerson(id, { ...person.details, access: next }, actor);
       if (saved.ok) { result.changed++; result.rows.push({ id, ok: true }); } else { result.failed++; result.rows.push({ id, ok: false, error: saved.error ?? "Could not save." }); }
     } catch (err) {

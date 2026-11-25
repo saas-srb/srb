@@ -16,7 +16,7 @@ export default function PricingPlans({ plans, compact = false, endsAt = null }: 
   const hasYearly = plans.some((p) => p.kind === "paid" && p.offer.yearly);
   const price = (p: ShowcasePlan) => {
     if (p.kind === "contact") return { main: "Let's talk", unit: "", sub: "Custom for larger teams", list: null as string | null, pct: 0, save: null as string | null, equiv: null as string | null, yearSave: null as string | null };
-    if (p.kind === "free") return { main: formatMoney(0, p.currency), unit: "forever", sub: "Free, with one person · no card needed", list: null, pct: 0, save: null, equiv: null, yearSave: null };
+    if (p.kind === "free") return { main: formatMoney(0, p.currency), unit: "forever", sub: p.maxProducts === 1 ? "One product, one person · no card needed" : "Free, with one person · no card needed", list: null, pct: 0, save: null, equiv: null, yearSave: null };
     const v = p.offer[interval] ?? p.offer.monthly;
     const l = p.list[interval];
     const has = !!(l && v && l > v);
@@ -25,7 +25,7 @@ export default function PricingPlans({ plans, compact = false, endsAt = null }: 
     return {
       main: v == null ? "—" : formatMoney(v, p.currency),
       unit: interval === "yearly" ? "/ year" : "/ month",
-      sub: "excl. taxes",
+      sub: typeof p.single?.[interval] === "number" ? `All products, excl. taxes · one product ${formatMoney(p.single[interval]!, p.currency)}` : "excl. taxes",
       list: has ? formatMoney(l as number, p.currency) : null,
       pct: has ? Math.round((1 - (v as number) / (l as number)) * 100) : 0,
       save: has ? formatMoney((l as number) - (v as number), p.currency) : null,

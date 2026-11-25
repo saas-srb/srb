@@ -25,7 +25,7 @@ export default function CapabilityExplorer({ items }: { items: { title: string; 
         <Icon name={t.icon} className="pointer-events-none absolute -bottom-12 -left-10 h-72 w-72 text-primary/[0.06]" />
         <div className={`relative grid items-center gap-10 ${t.media ? "xl:grid-cols-[1fr_1.05fr]" : ""}`}>
           <div>
-            <p className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-primary"><Icon name={t.icon} className="h-3.5 w-3.5" />Included in every plan</p>
+            <p className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-primary"><Icon name={t.icon} className="h-3.5 w-3.5" />Included with your products</p>
             <h3 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl">{t.title}</h3>
             <ul className="mt-7 space-y-3.5">
               {t.items.map((it, n) => (

@@ -1,3 +1,4 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import { lockedUnless } from "@/lib/products/viralpulse-ai/gate";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -90,6 +91,8 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
     ["Brand information", c.brandInfo],
   ];
 
+  // Ad spend and results are imported into DealFlow's campaigns.
+  const adData = !(await hiddenProducts()).has("lms");
   return (
     <div className="space-y-4">
       <PageHeader
@@ -305,13 +308,15 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
         </TabsContent>
 
         <TabsContent value="performance" className="mt-4 space-y-4">
-          <SectionCard title="Linked ad-platform data" description="Spend and results live in DealFlow → Campaigns (CSV imports from Meta, Google and LinkedIn). Link the imported campaigns that belong to this one.">
-            {can(viewer, "campaigns.edit") ? (
-              <LmsLinker options={lmsOptions.map((o) => ({ key: o.key, name: o.name, platform: o.platform }))} selected={c.lmsCampaignKeys} save={linkLmsCampaignsAction.bind(null, id)} />
-            ) : (
-              <p className="text-sm text-muted-foreground">{`${c.lmsCampaignKeys.length} linked DealFlow campaign(s).`}</p>
-            )}
-          </SectionCard>
+          {adData && (
+            <SectionCard title="Linked ad-platform data" description="Spend and results live in DealFlow → Campaigns (CSV imports from Meta, Google and LinkedIn). Link the imported campaigns that belong to this one.">
+              {can(viewer, "campaigns.edit") ? (
+                <LmsLinker options={lmsOptions.map((o) => ({ key: o.key, name: o.name, platform: o.platform }))} selected={c.lmsCampaignKeys} save={linkLmsCampaignsAction.bind(null, id)} />
+              ) : (
+                <p className="text-sm text-muted-foreground">{`${c.lmsCampaignKeys.length} linked DealFlow campaign(s).`}</p>
+              )}
+            </SectionCard>
+          )}
           <SectionCard title="Performance" description={perf.rows.length ? `${formatCurrency(perf.totals.spend, perf.totals.currency)} spent · ${perf.totals.impressions.toLocaleString("en-IN")} impressions · ${perf.totals.clicks.toLocaleString("en-IN")} clicks · ${perf.totals.leads} leads` : "No imported results for the linked campaigns yet."}>
             {perf.rows.length > 0 && (
               <div className="overflow-x-auto">

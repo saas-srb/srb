@@ -1,4 +1,6 @@
 import "server-only";
+import { hiddenProducts } from "@/lib/platform/products/visible";
+import { hrefAvailable } from "@/lib/platform/products/routes";
 import { currentCompanyId, runAsCompany } from "@/lib/platform/tenancy/context";
 import { onConfigChange } from "@/lib/platform/config-events";
 import { gatherFacts } from "@/lib/platform/setup-progress/gather";
@@ -11,6 +13,7 @@ import type { SetupProgress } from "@/lib/platform/setup-progress/types";
 export * from "@/lib/platform/setup-progress/types";
 export { STEPS, NOT_PART_OF_SETUP } from "@/lib/platform/setup-progress/registry";
 export { buildProgress } from "@/lib/platform/setup-progress/scoring";
+
 
 /**
  * The company's setup progress, computed on the server from real data in a few batched queries (`gather.ts`), cached for a short time per company and
@@ -33,7 +36,10 @@ export async function getSetupProgress(opts: { fresh?: boolean } = {}): Promise<
   const running = inflight.get(companyId);
   if (running && !opts.fresh) return running;
   const p = (async () => {
-    const value = buildProgress(STEPS, await gatherFacts());
+    // Steps of a product the company can't use are not part of its setup at all (not even listed as "not applicable").
+    const hidden = await hiddenProducts();
+    const steps = STEPS.filter((s) => !(s.product && hidden.has(s.product)) && hrefAvailable(s.href, hidden));
+    const value = buildProgress(steps, await gatherFacts());
     cache.set(companyId, { at: Date.now(), value });
     // The Platform Console list reads the last percentage from here (never the truth: it is only a cache for the list).
     void recordPlatformSetup(companyId, value.summary.percent).catch(() => {});

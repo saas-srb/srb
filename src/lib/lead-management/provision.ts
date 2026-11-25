@@ -1,4 +1,6 @@
 import "server-only";
+import { hiddenProducts } from "@/lib/platform/products/visible";
+import { hrefAvailable } from "@/lib/platform/products/routes";
 import { randomInt } from "node:crypto";
 import { hashPassword } from "@/lib/lms-auth";
 import { externalUsers, type ExternalUserDoc } from "@/lib/portal-auth";
@@ -60,6 +62,11 @@ export interface ProvisionResult {
   role: LeadType;
   tempPassword: string | null;
   isNewAccount: boolean;
+}
+
+/** Whether this company's people can use the portal at all (ClientOS, or the pages that come with EvalIQ / Cohort AI). */
+export async function portalOpen(): Promise<boolean> {
+  return hrefAvailable("/clientos", await hiddenProducts());
 }
 
 export async function provisionLeadAndAccount(input: ProvisionInput): Promise<ProvisionResult> {
@@ -158,7 +165,8 @@ export async function provisionLeadAndAccount(input: ProvisionInput): Promise<Pr
     visibleToLead: true,
   });
 
-  if (!input.quiet) {
+  // Nothing points a person at a portal the company doesn't have.
+  if (!input.quiet && (await portalOpen())) {
     await notifyPortalUser({
       recipientUserId: externalUserId,
       type: "welcome",

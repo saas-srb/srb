@@ -78,7 +78,7 @@ export default function OfferPopup({ label, topPct, plans, endsAt, freeLine }: {
           {topPct > 0 ? (
             <>
               <p className="relative mt-4 text-6xl font-black leading-none tracking-tighter sm:text-8xl [@media(max-height:760px)]:text-6xl">{topPct}<span className="text-4xl sm:text-5xl">% off</span></p>
-              <p className="relative mt-2 text-lg font-semibold text-white/85">on every paid plan — every product and feature included</p>
+              <p className="relative mt-2 text-lg font-semibold text-white/85">on every paid plan — on all products</p>
             </>
           ) : (
             <>

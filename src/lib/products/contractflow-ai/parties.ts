@@ -1,9 +1,10 @@
 import "server-only";
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import { can } from "@/lib/products/contractflow-ai/viewer";
 import { randomUUID } from "node:crypto";
 import { cfParties } from "./cf-db";
 import { PARTY_ADAPTERS, escapeRegex, type SourceRecord } from "./party-adapters";
-import { MANUAL_PARTY_TYPES, PARTY_TYPES, isLinkedType, isPartyType, type PartyDoc, type PartyType, type PartyView, type PickerHit } from "./party-types";
+import { PARTY_TYPES, isLinkedFor, isLinkedType, isPartyType, type PartyDoc, type PartyType, type PartyView, type PickerHit } from "./party-types";
 import type { LpmsViewer } from "./types";
 
 /**
@@ -22,8 +23,8 @@ export class PartyError extends Error {
 const ctx = (v: LpmsViewer) => ({ roles: v.roles, permissionOverrides: v.overrides });
 
 /** Whether the viewer may see parties of this type at all. */
-export function canAccessPartyType(v: LpmsViewer, type: PartyType): boolean {
-  if (isLinkedType(type)) return PARTY_ADAPTERS[type].canAccess(v);
+export function canAccessPartyType(v: LpmsViewer, type: PartyType, manual = false): boolean {
+  if (!manual && isLinkedType(type)) return PARTY_ADAPTERS[type].canAccess(v);
   return v.sendForSignature === true || can(v, "documents.view") || can(v, "signatures.manage");
 }
 export function visiblePartyTypes(v: LpmsViewer): PartyType[] {
@@ -55,11 +56,12 @@ function viewOf(p: PartyDoc, live: SourceRecord | null): PartyView {
 /** Picker: records of one type matching the text. Linked types search the source product; manual types search the index. */
 export async function searchParties(v: LpmsViewer, input: { type: PartyType; q?: string; limit?: number }): Promise<PickerHit[]> {
   if (!isPartyType(input.type)) throw new PartyError("Unknown party type.", "invalid");
-  if (!canAccessPartyType(v, input.type)) throw new PartyError("You do not have access to this kind of party.", "forbidden");
+  const linked = isLinkedFor(input.type, await hiddenProducts());
+  if (!canAccessPartyType(v, input.type, !linked)) throw new PartyError("You do not have access to this kind of party.", "forbidden");
   const q = clean(input.q, 80);
   const limit = Math.min(Math.max(input.limit ?? 10, 1), 25);
   const col = await cfParties();
-  if (isLinkedType(input.type)) {
+  if (linked && isLinkedType(input.type)) {
     const adapter = PARTY_ADAPTERS[input.type];
     const found = await adapter.search(q, limit);
     const indexed = found.length ? await col.find({ "source.collection": adapter.ref.collection, "source.id": { $in: found.map((f) => f.id) } }).toArray() : [];
@@ -112,7 +114,7 @@ export async function linkParty(v: LpmsViewer, input: { type: PartyType; recordI
 
 /** A partner, freelancer, trainee or other party that has no record in another product. */
 export async function createManualParty(v: LpmsViewer, input: { type: PartyType; name: string; email?: string; phone?: string }): Promise<PartyView> {
-  if (!isPartyType(input.type) || !(MANUAL_PARTY_TYPES as readonly string[]).includes(input.type)) throw new PartyError("This kind of party comes from another product; link it instead.", "invalid");
+  if (!isPartyType(input.type) || isLinkedFor(input.type, await hiddenProducts())) throw new PartyError("This kind of party comes from another product; link it instead.", "invalid");
   if (!canCreateManual(v)) throw new PartyError("You may not add parties.", "forbidden");
   const name = clean(input.name, 160);
   if (name.length < 2) throw new PartyError("Enter the party's name.", "invalid");
@@ -131,7 +133,7 @@ export async function getParty(v: LpmsViewer, partyId: string): Promise<PartyVie
   const col = await cfParties();
   const p = typeof partyId === "string" && partyId.length <= 64 ? await col.findOne({ _id: partyId }) : null;
   if (!p) throw new PartyError("Party not found.", "not_found");
-  if (!canAccessPartyType(v, p.type)) throw new PartyError("You do not have access to this kind of party.", "forbidden");
+  if (!canAccessPartyType(v, p.type, !p.source)) throw new PartyError("You do not have access to this kind of party.", "forbidden");
   if (!p.source) return viewOf(p, null);
   const live = await PARTY_ADAPTERS[p.type as keyof typeof PARTY_ADAPTERS].resolve(p.source.id);
   const next = live ? "active" : p.status === "archived" ? "archived" : "source_missing";

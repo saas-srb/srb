@@ -1,3 +1,9 @@
+import { cashflowKeeps } from "@/components/products/cashflow-ai/records";
+import ClientForm from "@/components/products/sprintos/ClientForm";
+import { serializeClient } from "@/lib/products/sprintos/clients";
+import { saveClientFromCashflowAction } from "@/app/(products)/cashflow-ai/(protected)/records-actions";
+import { Button } from "@/components/ui/button";
+import { Pencil } from "lucide-react";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -17,6 +23,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   const detail = await getCustomerDetail(id);
   if (!detail) notFound();
   const { client, financials, transactions, invoices } = detail;
+  const keeps = await cashflowKeeps("pms");
 
   return (
     <div className="space-y-4">
@@ -24,7 +31,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         breadcrumbs={[{ label: "CashFlow", href: "/cashflow-ai" }, { label: "Customers", href: "/cashflow-ai/customers" }, { label: client.companyName }]}
         title={<>{client.companyName}</>}
         description={<>{client.clientCode} · {client.industry ?? "No industry set"}</>}
-        actions={<><Badge className={getClientStatusMeta(client.status).badgeClass}>{getClientStatusMeta(client.status).label}</Badge></>}
+        actions={<>{keeps.manage && <ClientForm client={serializeClient(client)} save={saveClientFromCashflowAction} trigger={<Button type="button" size="sm" variant="outline"><Pencil className="size-3.5" data-icon="inline-start" />Edit</Button>} />}<Badge className={getClientStatusMeta(client.status).badgeClass}>{getClientStatusMeta(client.status).label}</Badge></>}
       />
 
       <div className="grid gap-4 lg:grid-cols-2">

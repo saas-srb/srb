@@ -1,6 +1,10 @@
+import { cashflowKeeps } from "@/components/products/cashflow-ai/records";
+import ClientForm from "@/components/products/sprintos/ClientForm";
+import { saveClientFromCashflowAction } from "@/app/(products)/cashflow-ai/(protected)/records-actions";
+import { Button } from "@/components/ui/button";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import Link from "next/link";
-import { Users, Receipt, Clock } from "lucide-react";
+import { Users, Receipt, Clock, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import KpiCard from "@/components/products/dealflow-ai/KpiCard";
@@ -21,6 +25,7 @@ export default async function CustomersPage({
   const sortBy = (sp.sortBy as "createdAt" | "companyName" | "clientCode" | "status") || "companyName";
   const sortDir = sp.sortDir === "desc" ? "desc" : "asc";
 
+  const keeps = await cashflowKeeps("pms");
   const [result, receivables] = await Promise.all([
     listCustomers({ search: sp.search, status, page, pageSize: 20, sortBy, sortDir }),
     totalReceivables(),
@@ -31,7 +36,8 @@ export default async function CustomersPage({
       <PanelPageHeader
         breadcrumbs={[{ label: "CashFlow", href: "/cashflow-ai" }, { label: "Customers" }]}
         title={<>Customers</>}
-        description={<>Financial view over SprintOS&apos;s client records — {result.total} customer{result.total === 1 ? "" : "s"}.</>}
+        description={<>{keeps.here ? "Who you sell to and what they owe you" : "Financial view over SprintOS's client records"} — {result.total} customer{result.total === 1 ? "" : "s"}.</>}
+        actions={keeps.manage ? <ClientForm save={saveClientFromCashflowAction} trigger={<Button type="button" size="sm"><Plus className="size-3.5" data-icon="inline-start" />New customer</Button>} /> : undefined}
       />
 
       <KpiGrid>
@@ -72,14 +78,16 @@ export default async function CustomersPage({
         page={result.page}
         totalPages={result.totalPages}
         total={result.total}
-        emptyLabel="No customers found — client records are created in SprintOS."
+        emptyLabel={keeps.here ? "No customers yet." : "No customers found — client records are created in SprintOS."}
       />
 
-      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Receipt className="size-3.5" />
-        Customer records are owned by SprintOS. Create or edit a client at{" "}
-        <Link href="/sprintos/clients" className="text-primary hover:underline">/sprintos/clients</Link>.
-      </p>
+      {!keeps.here && (
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Receipt className="size-3.5" />
+          Customer records are owned by SprintOS. Create or edit a client at{" "}
+          <Link href="/sprintos/clients" className="text-primary hover:underline">/sprintos/clients</Link>.
+        </p>
+      )}
     </div>
   );
 }

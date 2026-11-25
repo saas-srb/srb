@@ -1,3 +1,4 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import { notFound, redirect } from "next/navigation";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import SendToContractFlowForm from "@/components/products/playbook-ai/items/SendToContractFlowForm";
@@ -19,7 +20,8 @@ export default async function SendPage({ params }: { params: Promise<{ id: strin
   const kind: ItemKind = (rec.document.kind as ItemKind | undefined) ?? "document";
   const info = ITEM_KIND_INFO[kind];
   const back = `/playbook-ai/${info.segment}`;
-  if (!pbDoc(actor, "SEND_FOR_SIGNATURE")) redirect(back);
+  // Signing happens in ContractFlow.
+  if (!pbDoc(actor, "SEND_FOR_SIGNATURE") || (await hiddenProducts()).has("lpms")) redirect(back);
   return (
     <div className="space-y-4">
       <PanelPageHeader title="Send to ContractFlow" description={<>Copy this {info.singular.toLowerCase()} to ContractFlow as a draft for an employee, client or other party. Nothing is sent to anyone from here.</>} />

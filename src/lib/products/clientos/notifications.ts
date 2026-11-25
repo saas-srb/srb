@@ -1,4 +1,6 @@
 import "server-only";
+import { hiddenProducts } from "@/lib/platform/products/visible";
+import { hrefAvailable } from "@/lib/platform/products/routes";
 import { signalNew } from "@/lib/notify/signals";
 import { logBell, planNotification } from "@/lib/notify/center/store";
 import { queuePush } from "@/lib/push/send";
@@ -53,6 +55,8 @@ export async function notifyPortalUser(input: {
   dedupeKey?: string | null;
 }): Promise<void> {
   try {
+    // A link into a portal page the company doesn't have is dropped; the words still reach the person.
+    if (input.link && !hrefAvailable(input.link, await hiddenProducts())) input = { ...input, link: null };
     const c = await collection();
     const plan = await planNotification({ type: input.type, title: input.title, body: input.body, link: input.link, product: "portal" });
     if (plan.inApp.on) await c.insertOne({

@@ -1,3 +1,6 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
+import { hrefAvailable } from "@/lib/platform/products/routes";
+import { STEPS } from "@/lib/products/cashflow-ai/month-close/core";
 import { safeDay } from "@/lib/products/cashflow-ai/accrual/core";
 import "server-only";
 import { getDb } from "@/lib/mongodb";
@@ -159,7 +162,9 @@ export async function gatherMonthFacts(month: string, override: Partial<FactRead
     attempt(() => r.accrual()),
     attempt(() => r.trialBalance(month)),
   ]);
-  const facts: MonthCloseFacts = {};
+  // A step that opens a screen of a product the company doesn't have (payroll, fixed assets) is not part of its month.
+  const hidden = await hiddenProducts();
+  const facts: MonthCloseFacts = { notUsed: STEPS.filter((s) => s.href && !hrefAvailable(s.href, hidden)).map((s) => s.key) };
   if (bank !== undefined) facts.unmatchedBankLines = bank;
   if (settle !== undefined) facts.settlementsOpen = settle;
   if (cash !== undefined) facts.cashAccountsNotCounted = cash;

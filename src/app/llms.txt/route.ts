@@ -30,7 +30,7 @@ export async function GET() {
     `> ${SAAS_BRAND.description}`,
     "",
     "## What it is",
-    `One software for the whole business, with a product for every job: ${modules.map((m) => m.name).join(", ")}. Each business's data is kept separate from every other business's. Every plan includes every product and every feature; plans differ by number of people and by monthly allowances of storage, AI, email and voice.`,
+    `One software for the whole business, with a product for every job: ${modules.map((m) => m.name).join(", ")}. Each business's data is kept separate from every other business's. A company takes one product or all of them, with every feature of what it takes; the free plan holds one product. Plans differ by number of people and by monthly allowances of storage, AI, email and voice.`,
     "",
     "## Plans",
     ...planLines,

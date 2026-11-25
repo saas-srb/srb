@@ -381,7 +381,7 @@ export default function BlogIndexPage() {
               Ready to automate your business operations?
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg">
-              Get started with SRB AI today. Free forever plan includes every product, every feature, and your own live website.
+              Get started with SRB AI today. The free forever plan gives you one product with every feature of it.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
               <Link

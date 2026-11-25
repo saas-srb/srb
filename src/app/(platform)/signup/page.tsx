@@ -1,3 +1,7 @@
+import { listPanels } from "@/lib/platform/panels/store";
+import { getDefaultPlan } from "@/lib/platform/billing/plans";
+import { productKeyFromSlug } from "@/lib/platform/saas/product-routes";
+import { ALL_PRODUCTS_VALUE, SELLABLE_PRODUCTS, offerName } from "@/lib/platform/products/selection";
 import "@/app/(platform)/saas/saas.css";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -11,7 +15,7 @@ import Footer from "@/components/platform/saas/Footer";
 import Interactions from "@/components/platform/saas/Interactions";
 import { OfferTopBar } from "@/components/platform/saas/OfferChrome";
 import SignupForm from "./SignupForm";
-import { resolveSignupPlan } from "@/lib/platform/billing/signup-plan";
+import { allProductsTrialPlan, resolveSignupPlan } from "@/lib/platform/billing/signup-plan";
 import { trialLabel } from "@/lib/platform/billing/signup-plan-rule";
 import { formatMoney } from "@/lib/platform/billing/types";
 
@@ -26,23 +30,31 @@ export const metadata: Metadata = {
 const POINTS = [
   { icon: Layers, t: "Every part of your business", x: "Customers, staff, money, projects, buying and training in one software." },
   { icon: Sparkles, t: "AI that helps", x: "Ask questions about your own records, and let automations handle the routine." },
-  { icon: Globe, t: "Your own workspace and website", x: "Your own address, a website, and a page for your customers." },
+  { icon: Globe, t: "Your own workspace", x: "Your own address, and a website if you want one." },
   { icon: Users, t: "Your team, your rules", x: "Invite your team and give each person only the access they need." },
 ];
 
 const STEPS = [
   { t: "Create your workspace", x: "A few seconds. No card needed." },
-  { t: "Set up your business", x: "A short guided setup: details, departments and the products you want." },
+  { t: "Set up your business", x: "A short guided setup: your details, departments and team." },
   { t: "Invite your team", x: "Give each person a role, and start working." },
 ];
 
-export default async function SignupPage({ searchParams }: { searchParams: Promise<{ plan?: string; interval?: string }> }) {
+export default async function SignupPage({ searchParams }: { searchParams: Promise<{ plan?: string; interval?: string; product?: string }> }) {
   // Sign-up belongs to the platform's own site, not to a company's workspace.
   if (!(await isPlatformOwnerContext())) notFound();
   const mode = await getSignupMode();
   const sp = await searchParams;
   // A plan picked on the pricing page: checked here, and again on the server when the form is sent.
   const picked = await resolveSignupPlan(sp.plan, sp.interval).catch(() => null);
+  const [registry, trial] = await Promise.all([listPanels(), allProductsTrialPlan().catch(() => null)]);
+  const free = (await getDefaultPlan().catch(() => null))?.lifetimeFree === true;
+  const products = SELLABLE_PRODUCTS.filter((k) => registry.find((p) => p.key === k)?.active !== false).map((k) => ({ value: k as string, label: offerName(k, registry.find((p) => p.key === k)?.name ?? k) }));
+  // A product page links here as /signup?product=<its address>.
+  const wantedKey = sp.product === ALL_PRODUCTS_VALUE ? ALL_PRODUCTS_VALUE : productKeyFromSlug(String(sp.product ?? "")) ?? "";
+  const initialProduct = wantedKey === ALL_PRODUCTS_VALUE || products.some((p) => p.value === wantedKey) ? wantedKey : "";
+  const allNote = free && trial ? `All products starts a ${trialLabel(trial.trialDays)} free trial of the ${trial.name} plan (no card needed). After the trial it is ${formatMoney(trial.price, trial.currency)} per month, excl. taxes.` : null;
+  const oneNote = free ? "One product starts on the Free plan. Add more any time." : null;
   const selectedPlan = picked ? { id: picked.planId, name: picked.name, interval: picked.interval, trial: trialLabel(picked.trialDays), priceLabel: `${formatMoney(picked.price, picked.currency)} per ${picked.interval === "yearly" ? "year" : "month"}, excl. taxes` } : null;
 
   return (
@@ -63,7 +75,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
               <h1 className="sr-h1 mt-6">
                 The business that <span className="bg-gradient-to-r from-primary to-brand-accent bg-clip-text text-transparent">runs itself.</span>
               </h1>
-              <p className="sr-lead mt-5 max-w-xl">Create your workspace in a few seconds. Every product and every feature is included — pay only when your team grows.</p>
+              <p className="sr-lead mt-5 max-w-xl">Create your workspace in a few seconds. Start with the product you need, or take them all.</p>
 
               <ul className="mt-9 grid gap-3 sm:grid-cols-2">
                 {POINTS.map((p) => (
@@ -97,7 +109,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
                 {mode === "closed" ? (
                   <p className="py-10 text-center text-muted-foreground">New sign-ups are paused right now. Please check back soon.</p>
                 ) : (
-                  <SignupForm rootDomain={platformRootDomain()} approval={mode === "approval"} selectedPlan={selectedPlan} />
+                  <SignupForm rootDomain={platformRootDomain()} approval={mode === "approval"} selectedPlan={selectedPlan} products={products} initialProduct={initialProduct} allNote={selectedPlan ? null : allNote} oneNote={selectedPlan ? null : oneNote} />
                 )}
               </div>
             </div>

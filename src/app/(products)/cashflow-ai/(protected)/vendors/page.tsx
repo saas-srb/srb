@@ -1,6 +1,10 @@
+import { cashflowKeeps } from "@/components/products/cashflow-ai/records";
+import VendorForm from "@/components/products/spendiq/VendorForm";
+import { saveVendorFromCashflowAction } from "@/app/(products)/cashflow-ai/(protected)/records-actions";
+import { Button } from "@/components/ui/button";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import Link from "next/link";
-import { Building2, Clock } from "lucide-react";
+import { Building2, Clock, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Breadcrumbs from "@/components/products/dealflow-ai/Breadcrumbs";
 import KpiCard from "@/components/products/dealflow-ai/KpiCard";
@@ -23,6 +27,7 @@ export default async function VendorsPage({
   const sortBy = (sp.sortBy as "createdAt" | "companyName" | "vendorCode" | "rating" | "status") || "companyName";
   const sortDir = sp.sortDir === "desc" ? "desc" : "asc";
 
+  const keeps = await cashflowKeeps("prms");
   const [result, payables] = await Promise.all([
     listVendors({ search: sp.search, status, category, page, pageSize: 20, sortBy, sortDir }),
     totalPayables(),
@@ -33,7 +38,8 @@ export default async function VendorsPage({
       <PanelPageHeader
         breadcrumbs={[{ label: "CashFlow", href: "/cashflow-ai" }, { label: "Vendors" }]}
         title={<>Vendors</>}
-        description={<>Financial view over SpendIQ&apos;s vendor records — {result.total} vendor{result.total === 1 ? "" : "s"}.</>}
+        description={<>{keeps.here ? "Who you buy from and what you owe them" : "Financial view over SpendIQ's vendor records"} — {result.total} vendor{result.total === 1 ? "" : "s"}.</>}
+        actions={keeps.manage ? <VendorForm save={saveVendorFromCashflowAction} trigger={<Button type="button" size="sm"><Plus className="size-3.5" data-icon="inline-start" />New vendor</Button>} /> : undefined}
       />
 
       <KpiGrid>
@@ -73,14 +79,16 @@ export default async function VendorsPage({
         page={result.page}
         totalPages={result.totalPages}
         total={result.total}
-        emptyLabel="No vendors found — vendor records are created in SpendIQ."
+        emptyLabel={keeps.here ? "No vendors yet." : "No vendors found — vendor records are created in SpendIQ."}
       />
 
-      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Building2 className="size-3.5" />
-        Vendor records are owned by SpendIQ. Create or edit a vendor at{" "}
-        <Link href="/spendiq/vendors" className="text-primary hover:underline">/spendiq/vendors</Link>.
-      </p>
+      {!keeps.here && (
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Building2 className="size-3.5" />
+          Vendor records are owned by SpendIQ. Create or edit a vendor at{" "}
+          <Link href="/spendiq/vendors" className="text-primary hover:underline">/spendiq/vendors</Link>.
+        </p>
+      )}
     </div>
   );
 }

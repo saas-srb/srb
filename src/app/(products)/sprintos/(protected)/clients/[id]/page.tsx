@@ -1,3 +1,4 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -25,7 +26,9 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
   const canManage = user ? pmsCan(user, "clients.manage") : false;
   const projects = (await listProjectsForClient(id)).map((p) => serializeProject(p));
   const serialized = serializeClient(client);
-  const doNotContact = canManage ? await isClientDoNotContact(id) : false;
+  // The switch stops AI calls, which come from AgentOS.
+  const callsOn = !(await hiddenProducts()).has("aibots");
+  const doNotContact = canManage && callsOn ? await isClientDoNotContact(id) : false;
 
   return (
     <div className="space-y-4">
@@ -94,7 +97,7 @@ export default async function ClientProfilePage({ params }: { params: Promise<{ 
         </GlassCard>
       </div>
 
-      {canManage && <DoNotContactSwitch initial={doNotContact} who={client.primaryContact.name} action={setClientDoNotContactAction.bind(null, id)} />}
+      {canManage && callsOn && <DoNotContactSwitch initial={doNotContact} who={client.primaryContact.name} action={setClientDoNotContactAction.bind(null, id)} />}
 
       {client.notes && (
         <GlassCard>

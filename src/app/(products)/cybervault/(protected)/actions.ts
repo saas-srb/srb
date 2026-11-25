@@ -1,4 +1,7 @@
 "use server";
+import { hiddenProducts } from "@/lib/platform/products/visible";
+import { saveClientRecord } from "@/lib/products/sprintos/client-write";
+import type { RecordWriteResult } from "@/lib/products/shared/record-write";
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -182,4 +185,24 @@ export async function saveSettingsAction(input: { warnDays: number; alertsEnable
     await recordAudit({ actorId: v.userId, actorEmail: v.email, action: "settings", entity: "settings", entityId: "main", entityLabel: "CyberVault settings", summary: `Expiry warning window ${Number(input?.warnDays) || 30} days; alerts ${input?.alertsEnabled ? "on" : "off"}` });
     return {};
   });
+}
+
+/**
+ * Clients added from the vault, for a company without SprintOS (which otherwise keeps the client list). Only people who
+ * see every vault may add one.
+ */
+async function requireClientKeeper(): Promise<DlmsViewer> {
+  const viewer = await requireViewer();
+  if (!viewer.seesAll || !can(viewer, "clients.manage") || !(await hiddenProducts()).has("pms")) throw new ForbiddenError();
+  return viewer;
+}
+
+export async function saveClientFromVaultAction(input: Record<string, unknown>, id?: string): Promise<RecordWriteResult> {
+  const viewer = await requireClientKeeper();
+  const result = await saveClientRecord({ id: viewer.userId, email: viewer.email }, input, id);
+  if (result.ok) {
+    revalidatePath("/cybervault/clients");
+    if (result.id) revalidatePath(`/cybervault/clients/${result.id}`);
+  }
+  return result;
 }

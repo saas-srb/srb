@@ -1,3 +1,6 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
+import { listCandidates } from "@/lib/products/talentos/candidates";
+import { AddCandidate, CandidateStatusSelect } from "@/components/products/talentos/CandidateControls";
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import Link from "next/link";
@@ -21,7 +24,11 @@ export default async function RecruitmentPage({ searchParams }: { searchParams: 
   // Candidates and offers carry personal and salary details: only people who manage employees (HR) open this, not every manager.
   const canConvert = !!user && hrCan(user, "recruitment.manage");
   const sp = await searchParams;
-  const tab = sp.tab === "convert" ? "convert" : sp.tab === "pipeline" ? "pipeline" : "offers";
+  // Without DealFlow there is no applications inbox elsewhere: candidates are added and moved along here.
+  const hidden = await hiddenProducts();
+  const keepsCandidates = hidden.has("lms");
+  const candidates = keepsCandidates ? await listCandidates() : null;
+  const tab = sp.tab === "convert" ? "convert" : sp.tab === "pipeline" ? "pipeline" : sp.tab === "candidates" && keepsCandidates ? "candidates" : "offers";
 
   const [applicants, offers, pipeline] = await Promise.all([getConvertibleApplicants(), listOffers(), listPipelineCandidates()]);
   const offeredIds = new Set(offers.map((o) => o.applicationId));
@@ -91,7 +98,7 @@ export default async function RecruitmentPage({ searchParams }: { searchParams: 
         breadcrumbs={[{ label: "TalentOS", href: "/talentos" }, { label: "Recruitment" }]}
         title={<>Recruitment</>}
         description={<>Track offers for shortlisted candidates and onboard them.</>}
-        actions={<><a href="/dealflow-ai/careers/applicants" target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: "outline", size: "sm" })}>
+        actions={keepsCandidates ? (canConvert ? <AddCandidate /> : undefined) : <><a href="/dealflow-ai/careers/applicants" target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: "outline", size: "sm" })}>
           <ArrowUpRight className="size-3.5" data-icon="inline-start" />
           Open Careers
         </a></>}
@@ -125,6 +132,27 @@ export default async function RecruitmentPage({ searchParams }: { searchParams: 
               />
             ),
           },
+          ...(candidates ? [{
+            key: "candidates",
+            label: "Candidates",
+            content: (
+              <GlassCard interactive={false}>
+                <CardHeader><CardTitle>All candidates ({candidates.total})</CardTitle></CardHeader>
+                <CardContent className="space-y-2">
+                  {candidates.items.length === 0 && <p className="text-sm text-muted-foreground">No candidates yet. Add one to start hiring.</p>}
+                  {candidates.items.map((c) => (
+                    <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/60 p-3 text-sm">
+                      <div className="min-w-0">
+                        <Link href={`/talentos/recruitment/${c.id}`} className="block truncate font-medium hover:text-primary hover:underline">{c.name}</Link>
+                        <p className="truncate text-xs text-muted-foreground">{c.positionTitle} · added {formatDate(c.appliedAt)}</p>
+                      </div>
+                      {canConvert ? <CandidateStatusSelect id={c.id} status={c.status} /> : <span className="text-xs text-muted-foreground">{getCareerApplicationStatusMeta(c.status).label}</span>}
+                    </div>
+                  ))}
+                </CardContent>
+              </GlassCard>
+            ),
+          }] : []),
           { key: "pipeline", label: "Pipeline", content: pipelineTab },
           { key: "convert", label: "Ready to Convert", content: convertTab },
         ]}

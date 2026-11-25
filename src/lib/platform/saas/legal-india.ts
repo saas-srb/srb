@@ -101,7 +101,7 @@ export function termsDoc(c: LegalContext): LegalDoc {
       {
         heading: "Plans, prices, GST and payment",
         list: [
-          "Plans: every plan includes every product and feature. Plans differ by the number of people and by allowances such as storage, AI use, email, voice and custom domains. The plans, prices and allowances are those on the pricing page and in your billing settings.",
+          "Plans: you choose one product or all products, and every feature of a chosen product is included. The Free plan holds one product. Plans differ by the number of products and people and by allowances such as storage, AI use, email, voice and custom domains. The plans, prices and allowances are those on the pricing page and in your billing settings.",
           "Currency and tax: prices are in Indian rupees (INR). Goods and Services Tax (GST) at the rate in force is charged in addition, unless the price is shown as inclusive of tax, and is itemised on the tax invoice.",
           "Tax invoices: we issue a tax invoice for every payment, with our GSTIN and SAC, and a credit note under section 34 of the CGST Act, 2017 where an invoice is corrected or refunded. Give us your correct GSTIN, legal name and state before you pay, so that the invoice supports your input tax credit. We cannot change an invoice after the return period for it has closed.",
           "Tax deducted at source: if the law requires you to deduct tax at source, pay us the invoice amount net of it and send us the deduction certificate; do not deduct on the GST part shown separately.",

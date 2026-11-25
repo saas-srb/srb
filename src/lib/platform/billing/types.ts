@@ -1,3 +1,4 @@
+import type { ProductSelection } from "@/lib/platform/products/selection";
 import type { ModuleKey } from "@/lib/platform/onboarding/catalog";
 
 /**
@@ -97,6 +98,7 @@ export interface PlanPriceVersion {
   currency: string;
   intervals: BillingInterval[];
   prices: Partial<Record<BillingInterval, number>>;
+  singlePrices?: Partial<Record<BillingInterval, number>>;
   effectiveFrom: Date;
   /** admin_users id, or "seed". */
   createdBy: string;
@@ -121,6 +123,10 @@ export interface Plan {
   intervals?: BillingInterval[];
   /** Price per offered cycle (paise, before tax). Absent on older docs = priceMonthly/priceYearly. */
   prices?: Partial<Record<BillingInterval, number>>;
+  /** Price of ONE product per cycle (paise, before tax); `prices` is for All products. A cycle without one costs the All price. */
+  singlePrices?: Partial<Record<BillingInterval, number>>;
+  /** Most products a company on this plan may choose (and not "All"). Absent = no limit. */
+  maxProducts?: number | null;
   /** Current price version (see `priceHistory`). Absent on older docs = 1. */
   priceVersion?: number;
   /** Every price version ever offered, oldest first, current last. */
@@ -184,6 +190,8 @@ export interface CompanySubscription {
   pendingChange?: { planId: string; interval: BillingInterval; effectiveAt: Date | null; pricing?: SubscriptionPricing | null } | null;
   /** Failed-renewal bookkeeping for dunning (subscriptions workstream); reset on every successful charge. */
   dunning?: { failedPayments: number; pastDueSince: Date | null } | null;
+  /** Products added since the last charge: they stay until they have been billed once. */
+  productHold?: { keys: string[]; since: Date } | null;
   /** What the company is charged per cycle — the checkout quote (plan, coupon) it subscribed with. */
   pricing?: SubscriptionPricing | null;
   /** The last successful charge (for invoices and pro-rata refunds on an immediate upgrade). */
@@ -246,6 +254,8 @@ export interface SubscriptionPricing {
   redemptionId?: string | null;
   /** Plan price version the plan line was priced at (becomes `CompanySubscription.priceVersion`). */
   priceVersion?: number | null;
+  /** The products this price is for. When it becomes the price being charged, the company's products follow it. */
+  products?: ProductSelection;
 }
 
 /** Usage metrics metered per company per calendar month. */
@@ -256,8 +266,10 @@ export interface Entitlements {
   planId: string | null;
   planName: string | null;
   status: SubscriptionStatus;
-  /** null = all products. */
+  /** The products the company may use: owned AND in the plan, then Console overrides. null = all products. */
   modules: Set<string> | null;
+  /** Whether we serve the company's public website. */
+  sites: boolean;
   /** What the company can use now: the plan's limits, Console overrides AND purchased top-up credits. */
   limits: PlanLimits;
   /** The same WITHOUT top-up credits: what the plan itself allows each month (credits are used only beyond this). */

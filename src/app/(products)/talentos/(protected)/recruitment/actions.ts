@@ -1,5 +1,7 @@
 "use server";
 
+import { hiddenProducts } from "@/lib/platform/products/visible";
+import { addCandidate, setCandidateStatus } from "@/lib/products/talentos/candidates";
 import { revalidatePath } from "next/cache";
 import { getCurrentHrmsUser } from "@/lib/hrms-auth";
 import { hrCan } from "@/lib/talentos-access";
@@ -93,4 +95,31 @@ export async function setApplicantDoNotContactAction(applicationId: string, valu
   if (!(await setApplicantDoNotContact(applicationId, value))) return { error: "Candidate not found." };
   revalidatePath(`/talentos/recruitment/${applicationId}`);
   return {};
+}
+
+/** Candidates are managed here only when the company doesn't have DealFlow, whose permissions guard them otherwise. */
+async function requireCandidateKeeper() {
+  const user = await requireRecruiter();
+  if (!(await hiddenProducts()).has("lms")) throw new Error("Forbidden");
+  return user;
+}
+
+export async function addCandidateAction(form: FormData): Promise<{ ok: boolean; id?: string; fieldErrors?: Record<string, string> }> {
+  const user = await requireCandidateKeeper();
+  const result = await addCandidate(form);
+  if (!result.ok) return { ok: false, fieldErrors: result.errors };
+  await recordAudit({ actorId: user.id, actorEmail: user.email, action: "create", entity: "candidate", entityId: result.id, entityLabel: String(form.get("name") ?? "") });
+  revalidatePath("/talentos/recruitment");
+  return { ok: true, id: result.id };
+}
+
+export async function setCandidateStatusAction(id: string, status: string): Promise<{ ok: boolean; error?: string }> {
+  const user = await requireCandidateKeeper();
+  const result = await setCandidateStatus(id, status);
+  if (result.ok) {
+    await recordAudit({ actorId: user.id, actorEmail: user.email, action: "status_change", entity: "candidate", entityId: id, summary: `status → ${status}` });
+    revalidatePath("/talentos/recruitment");
+    revalidatePath(`/talentos/recruitment/${id}`);
+  }
+  return result;
 }

@@ -1,4 +1,5 @@
 import "server-only";
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import { getLearnerSchedule, type LearnerOverview } from "@/lib/products/clientos/student";
 import { listProgramOptions } from "@/lib/products/cohort-ai/programs";
 import { ATTENDANCE_STATUSES } from "@/lib/products/cohort-ai/constants";
@@ -11,7 +12,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 const daysUntil = (iso: string) => Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000);
 
 export async function buildStudentDashboard(user: CurrentPortalUser, data: LearnerOverview | null, leadView: PortalLeadView | null): Promise<DashboardModel> {
-  const { can } = accessFor(user.role);
+  const { can } = accessFor(user.role, await hiddenProducts());
   const [walletPart, notif, schedule, programs] = await Promise.all([
     buildWalletPart(user),
     buildNotifications(user),

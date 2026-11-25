@@ -15,7 +15,9 @@ export interface PlanFormValues {
   description: string;
   currency: string;
   /** One row per known billing cycle. Price in major units, up to 2 decimals. */
-  cycles: { id: BillingInterval; enabled: boolean; price: string; /** The "usual" price shown struck through (blank or absent = none). */ list?: string }[];
+  cycles: { id: BillingInterval; enabled: boolean; price: string; /** The "usual" price shown struck through (blank or absent = none). */ list?: string; /** One product's price (blank or absent = the All price). */ single?: string }[];
+  /** Most products a company on the plan may choose; blank or absent = no limit. */
+  maxProducts?: string;
   allModules: boolean;
   modules: string[];
   /** One highlight per line. */
@@ -52,6 +54,8 @@ export interface ParsedPlanForm {
   active: boolean;
   isDefault: boolean;
   listPrices: Partial<Record<BillingInterval, number>>;
+  singlePrices: Partial<Record<BillingInterval, number>>;
+  maxProducts: number | null;
   offerLabel: string;
   lifetimeFree: boolean;
   contactSales: boolean;
@@ -66,7 +70,8 @@ export function emptyPlanForm(currency: string): PlanFormValues {
     name: "",
     description: "",
     currency,
-    cycles: BILLING_INTERVALS.map((i) => ({ id: i.id, enabled: true, price: "", list: "" })),
+    cycles: BILLING_INTERVALS.map((i) => ({ id: i.id, enabled: true, price: "", list: "", single: "" })),
+    maxProducts: "",
     allModules: false,
     modules: [],
     highlights: "",
@@ -112,7 +117,8 @@ export function planToFormValues(plan: Plan): PlanFormValues {
     cycles: BILLING_INTERVALS.map((i) => {
       const price = offered.includes(i.id) ? planPrice(plan, i.id) : (plan.prices?.[i.id] ?? null);
       const list = plan.listPrices?.[i.id];
-      return { id: i.id, enabled: offered.includes(i.id), price: price === null ? "" : minorToMajor(price), list: typeof list === "number" ? minorToMajor(list) : "" };
+      const single = plan.singlePrices?.[i.id];
+      return { id: i.id, enabled: offered.includes(i.id), price: price === null ? "" : minorToMajor(price), list: typeof list === "number" ? minorToMajor(list) : "", single: typeof single === "number" ? minorToMajor(single) : "" };
     }),
     allModules: plan.modules === "all",
     modules: plan.modules === "all" ? [] : [...plan.modules],
@@ -125,6 +131,7 @@ export function planToFormValues(plan: Plan): PlanFormValues {
     trialDays: plan.trialDays === null || plan.trialDays === undefined ? "" : String(plan.trialDays),
     active: plan.active,
     isDefault: plan.isDefault,
+    maxProducts: typeof plan.maxProducts === "number" ? String(plan.maxProducts) : "",
     offerLabel: plan.offerLabel ?? "",
     lifetimeFree: plan.lifetimeFree === true,
     contactSales: plan.contactSales === true,
@@ -142,6 +149,7 @@ export function parsePlanForm(v: PlanFormValues): { input: ParsedPlanForm; error
   const intervals: BillingInterval[] = [];
   const prices: Partial<Record<BillingInterval, number>> = {};
   const listPrices: Partial<Record<BillingInterval, number>> = {};
+  const singlePrices: Partial<Record<BillingInterval, number>> = {};
   for (const c of cycles) {
     if (!c || c.enabled !== true) continue;
     const id = String(c.id) as BillingInterval;
@@ -149,6 +157,12 @@ export function parsePlanForm(v: PlanFormValues): { input: ParsedPlanForm; error
     const amount = majorToMinor(String(c.price ?? ""));
     if (Number.isNaN(amount)) errors[`price.${id}`] = "Enter an amount, e.g. 999 or 999.50.";
     prices[id] = amount;
+    const singleText = String(c.single ?? "").trim();
+    if (singleText !== "") {
+      const sp = majorToMinor(singleText);
+      if (Number.isNaN(sp)) errors[`singlePrice.${id}`] = "Enter an amount, or leave blank.";
+      else singlePrices[id] = sp;
+    }
     const listText = String(c.list ?? "").trim();
     if (listText !== "") {
       const lp = majorToMinor(listText);
@@ -196,6 +210,8 @@ export function parsePlanForm(v: PlanFormValues): { input: ParsedPlanForm; error
       active: v.active === true,
       isDefault: v.isDefault === true,
       listPrices,
+      singlePrices,
+      maxProducts: String(v.maxProducts ?? "").trim() === "" ? null : toInt(String(v.maxProducts).trim()),
       offerLabel: String(v.offerLabel ?? ""),
       lifetimeFree: v.lifetimeFree === true,
       contactSales: v.contactSales === true,

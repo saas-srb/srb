@@ -111,7 +111,7 @@ export default function PlanForm({
 
   const priceChanged =
     mode === "update" &&
-    (values.currency !== initial.currency || JSON.stringify(values.cycles.map((c) => [c.enabled, c.enabled ? c.price : ""])) !== JSON.stringify(initial.cycles.map((c) => [c.enabled, c.enabled ? c.price : ""])));
+    (values.currency !== initial.currency || JSON.stringify(values.cycles.map((c) => [c.enabled, c.enabled ? c.price : "", c.enabled ? (c.single ?? "") : ""])) !== JSON.stringify(initial.cycles.map((c) => [c.enabled, c.enabled ? c.price : "", c.enabled ? (c.single ?? "") : ""])));
 
   return (
     <form onSubmit={submit} noValidate className="space-y-4">
@@ -155,8 +155,13 @@ export default function PlanForm({
                   Offer {label.toLowerCase()} billing
                 </label>
                 {c.enabled && (
-                  <Field id={id} label={`${label} price (${values.currency || "—"})`} error={errors[`price.${c.id}`]}>
+                  <Field id={id} label={`${label} price, All products (${values.currency || "—"})`} error={errors[`price.${c.id}`]}>
                     <Input {...a11y(`price.${c.id}`, id)} inputMode="decimal" value={c.price} onChange={(e) => set("cycles", values.cycles.map((x, i) => (i === index ? { ...x, price: e.target.value } : x)))} placeholder="0" />
+                  </Field>
+                )}
+                {c.enabled && (
+                  <Field id={`${id}-single`} label={`${label} price, one product (optional)`} hint="A company with some products pays this for each, never more than the All price. Blank = the All price." error={errors[`singlePrice.${c.id}`]}>
+                    <Input {...a11y(`singlePrice.${c.id}`, `${id}-single`)} inputMode="decimal" value={c.single ?? ""} onChange={(e) => set("cycles", values.cycles.map((x, i) => (i === index ? { ...x, single: e.target.value } : x)))} placeholder="Same as All" />
                   </Field>
                 )}
                 {c.enabled && (
@@ -169,6 +174,11 @@ export default function PlanForm({
           })}
         </div>
         {errors.intervals && <p className="text-xs text-destructive">{errors.intervals}</p>}
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Field id="plan-max-products" label="Most products a company may choose" hint="Blank = no limit. 1 = one product only (for a free plan)." error={errors.maxProducts}>
+            <Input {...a11y("maxProducts", "plan-max-products", true)} inputMode="numeric" value={values.maxProducts ?? ""} onChange={(e) => set("maxProducts", e.target.value)} placeholder="No limit" />
+          </Field>
+        </div>
         <div className="grid gap-4 sm:grid-cols-3">
           <Field id="plan-offer-label" label="Offer badge" hint="Shown on the card, e.g. “Launch offer”." error={errors.offerLabel}>
             <Input {...a11y("offerLabel", "plan-offer-label")} value={values.offerLabel} onChange={(e) => set("offerLabel", e.target.value)} maxLength={40} />

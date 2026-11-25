@@ -52,7 +52,7 @@ function routeFile(href: string): string | null {
     { heading: "", items: ["Dashboard"] },
     { heading: "Organization Setup", items: ["Setup progress", "Company setup", "Integrations", "Product settings"] },
     { heading: "Users & Access", items: ["Departments", "Teams", "Designations", "People & access"] },
-    { heading: "Branding & domains", items: ["Apps & downloads", "Default domain", "Custom domains"] },
+    { heading: "Branding & domains", items: ["Apps & downloads", "Default domain", "Website & public forms", "Custom domains"] },
     { heading: "Billing & plan", items: ["Plan & billing", "Invoices & payments", "Usage & limits"] },
     { heading: "System default", items: ["Notification center", "AI prompts", "Scheduled jobs", "Documents & PDFs"] },
     { heading: "Security & Logs", items: ["Backups & data", "Import data", "Audit log", "Security"] },

@@ -1,3 +1,5 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
+import { onlyAvailable } from "@/lib/platform/products/routes";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import type { Metadata } from "next";
 import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
@@ -14,6 +16,7 @@ export default async function DocumentsPage() {
   await requireWorkspaceAccess("company.pdfs");
   const controls = await getFeatureControls();
   const [stats, panels] = await Promise.all([pdfStats(), listPanels().catch(() => [])]);
+  const hidden = await hiddenProducts();
   return (
     <div className="min-h-screen bg-muted/70 px-4 py-10 dark:bg-background">
       <div className="space-y-4">
@@ -22,7 +25,7 @@ export default async function DocumentsPage() {
           title={<>Documents &amp; PDFs</>}
           description={<>Every PDF your workspace produces: what is on it, when it is made, where your team uses it and how it reaches people. Previews use your own letterhead with made-up figures, so nothing real is shown.</>}
         />
-        {controls.pdfLibrary ? <PdfLibrary disabled={Object.keys(controls.pdfs)} types={PDF_TYPES} stats={stats} products={Object.fromEntries(panels.map((p) => [p.key, p.shortName || p.name]))} /> : <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">Documents &amp; PDFs is turned off for your workspace by SelfRun. Your documents are still produced as before; contact support if you need the list.</p>}
+        {controls.pdfLibrary ? <PdfLibrary disabled={Object.keys(controls.pdfs)} types={onlyAvailable(PDF_TYPES, (t) => t.product, hidden)} stats={stats} products={Object.fromEntries(onlyAvailable(panels, (p) => p.key, hidden).map((p) => [p.key, p.shortName || p.name]))} /> : <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">Documents &amp; PDFs is turned off for your workspace by SelfRun. Your documents are still produced as before; contact support if you need the list.</p>}
       </div>
     </div>
   );

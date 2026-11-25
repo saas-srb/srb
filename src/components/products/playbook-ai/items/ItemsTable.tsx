@@ -1,5 +1,6 @@
 "use client";
 
+import { useUnavailableProducts } from "@/components/platform/PanelsProvider";
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -17,6 +18,7 @@ import { PdfPreviewDialog, SendChip, fmtDate } from "@/components/products/playb
 const exportUrl = (id: string, format: "pdf" | "docx") => `/api/playbook-ai/documents/${encodeURIComponent(id)}/export?format=${format}&version=draft`;
 
 function DetailsSheet({ id, onClose }: { id: string | null; onClose: () => void }) {
+  const signing = !useUnavailableProducts().has("lpms");
   const [data, setData] = useState<ItemDetailsData | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
@@ -46,17 +48,19 @@ function DetailsSheet({ id, onClose }: { id: string | null; onClose: () => void 
                 {data.meta.description && <><dt className="text-muted-foreground">Description</dt><dd className="col-span-2">{data.meta.description}</dd></>}
                 <dt className="text-muted-foreground">Created</dt><dd className="col-span-2">{fmtDate(data.createdAt)}</dd>
                 <dt className="text-muted-foreground">Last changed</dt><dd className="col-span-2">{fmtDate(data.updatedAt)}</dd>
-                <dt className="text-muted-foreground">ContractFlow</dt><dd className="col-span-2"><SendChip state={data.send?.state ?? null} />{data.send && <> <Link className="text-primary underline-offset-2 hover:underline" href={`/contractflow-ai/clones/${data.send.cloneId}`}>Open copy</Link></>}</dd>
+                {signing && <><dt className="text-muted-foreground">ContractFlow</dt><dd className="col-span-2"><SendChip state={data.send?.state ?? null} />{data.send && <> <Link className="text-primary underline-offset-2 hover:underline" href={`/contractflow-ai/clones/${data.send.cloneId}`}>Open copy</Link></>}</dd></>}
               </dl>
-              <section>
-                <h3 className="mb-1 font-semibold">Sent to ContractFlow</h3>
-                {data.sends.length === 0 ? <p className="text-muted-foreground">Not sent yet.</p> : (
-                  <ul className="space-y-1">{data.sends.map((s) => <li key={s.cloneId}>{s.partyName}, version {s.versionNumber}, {fmtDate(s.sentAt)} · <Link className="text-primary underline-offset-2 hover:underline" href={`/contractflow-ai/clones/${s.cloneId}`}>open</Link></li>)}</ul>
-                )}
-              </section>
+              {signing && (
+                <section>
+                  <h3 className="mb-1 font-semibold">Sent to ContractFlow</h3>
+                  {data.sends.length === 0 ? <p className="text-muted-foreground">Not sent yet.</p> : (
+                    <ul className="space-y-1">{data.sends.map((s) => <li key={s.cloneId}>{s.partyName}, version {s.versionNumber}, {fmtDate(s.sentAt)} · <Link className="text-primary underline-offset-2 hover:underline" href={`/contractflow-ai/clones/${s.cloneId}`}>open</Link></li>)}</ul>
+                  )}
+                </section>
+              )}
               <section>
                 <h3 className="mb-1 font-semibold">Versions</h3>
-                {data.versions.length === 0 ? <p className="text-muted-foreground">No saved versions yet. A version is saved when the item is sent to ContractFlow.</p> : (
+                {data.versions.length === 0 ? <p className="text-muted-foreground">No saved versions yet. A version is saved when the item is issued or sent.</p> : (
                   <ul className="space-y-1">{data.versions.map((v) => <li key={v.number}>Version {v.number}{v.label ? `, ${v.label}` : ""} · {v.by || "someone"} · {fmtDate(v.at)}</li>)}</ul>
                 )}
               </section>

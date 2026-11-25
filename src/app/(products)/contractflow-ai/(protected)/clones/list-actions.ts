@@ -1,16 +1,17 @@
 "use server";
 
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import { revalidatePath } from "next/cache";
 import { getViewer } from "@/lib/products/contractflow-ai/viewer";
 import { checkRenderable, renderClone } from "@/lib/products/contractflow-ai/clone-render";
 import { resendToSigner, sendCloneToSigners } from "@/lib/products/contractflow-ai/dispatch";
 import { deleteClone, getClone, markCloneReady, renameClone, restoreCloneVersion, updateSendPlan, voidClone } from "@/lib/products/contractflow-ai/clones";
 import { compareCloneVersions, listCloneVersions } from "@/lib/products/contractflow-ai/clone-versions";
-import { PartyError, linkParty, searchParties } from "@/lib/products/contractflow-ai/parties";
+import { PartyError, linkParty, createManualParty, searchParties } from "@/lib/products/contractflow-ai/parties";
 import { acceptSuggestions, applyCloneIssue, askClone, listChat, rejectSuggestions, reviewClone, sendChatMessage, transformClone, undoChatChange } from "@/lib/products/contractflow-ai/ai-edit";
 import { ensureSealed } from "@/lib/products/contractflow-ai/seal";
 import { getRequest } from "@/lib/products/contractflow-ai/requests";
-import { isLinkedType, isPartyType, type PickerHit } from "@/lib/products/contractflow-ai/party-types";
+import { isLinkedFor, isLinkedType, isPartyType, type PickerHit } from "@/lib/products/contractflow-ai/party-types";
 import type { ReviewIssue, TextAction } from "@/lib/products/playbook-ai/ai/edit-types";
 import { CLONE_STATUS_LABEL, type ChatTurn, type CloneStatus } from "@/lib/products/contractflow-ai/clone-types";
 import type { NewSigner } from "@/lib/products/contractflow-ai/requests-types";
@@ -62,10 +63,19 @@ export async function sendCloneAction(input: SendCloneInput): Promise<{ ok: true
   const v = await getViewer();
   if (!v) return SIGNED_OUT;
   let party = input.party ? { type: input.party.type, partyId: input.party.partyId ?? null, displayName: input.party.displayName } : undefined;
-  if (party && isPartyType(party.type) && isLinkedType(party.type) && !party.partyId) {
+  if (party && isPartyType(party.type) && isLinkedFor(party.type, await hiddenProducts()) && !party.partyId) {
     try {
       const linked = await linkParty({ ...v, sendForSignature: true }, { type: party.type, recordId: String(input.party?.recordId ?? "") });
       party = { type: party.type, partyId: linked.id, displayName: linked.displayName };
+    } catch (e) {
+      return { ok: false, message: e instanceof PartyError ? e.message : "The recipient could not be set up." };
+    }
+  }
+  // A kind of record no product keeps here is typed by hand.
+  if (party && isPartyType(party.type) && isLinkedType(party.type) && !party.partyId && !isLinkedFor(party.type, await hiddenProducts())) {
+    try {
+      const made = await createManualParty({ ...v, sendForSignature: true }, { type: party.type, name: String(party.displayName ?? "") });
+      party = { type: party.type, partyId: made.id, displayName: made.displayName };
     } catch (e) {
       return { ok: false, message: e instanceof PartyError ? e.message : "The recipient could not be set up." };
     }

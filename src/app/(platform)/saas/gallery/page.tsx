@@ -67,7 +67,7 @@ export default async function GalleryPage({ searchParams }: { searchParams: Prom
             {[
               { t: "Try the live demo", x: "Open the demo workspace and click around, no signup needed.", href: "/demo", c: "Open the demo" },
               { t: "Read the guides", x: "Step-by-step guides show each screen and exactly how to use it.", href: "/docs", c: "Open the docs" },
-              { t: "Start free", x: "Create your own workspace. Every product is in every plan, no card needed.", href: "/signup", c: "Get started free" },
+              { t: "Start free", x: "Create your own workspace. Choose one product or all of them. No card needed.", href: "/signup", c: "Get started free" },
             ].map((c, i) => (
               <Reveal key={c.t} delay={i * 70}><Link href={c.href} className="group flex h-full flex-col rounded-3xl border border-border/60 bg-card p-7 shadow-sm transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10"><h3 className="text-xl font-black">{c.t}</h3><p className="mt-2 flex-1 leading-relaxed text-muted-foreground">{c.x}</p><span className="mt-5 inline-flex items-center gap-2 font-bold text-primary">{c.c}<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></span></Link></Reveal>
             ))}

@@ -1,3 +1,4 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -289,6 +290,8 @@ export default async function EmployeeProfilePage({
     </div>
   );
 
+  const hidden = await hiddenProducts();
+
   return (
     <div className="space-y-4">
 
@@ -324,13 +327,13 @@ export default async function EmployeeProfilePage({
               { key: "salary", label: "Salary & Bank", content: salaryTab },
               { key: "attendance", label: "Attendance", content: attendanceTab },
               { key: "leave", label: "Leave", content: leaveTab },
-              { key: "assessments", label: "Assessments", content: <OtsCandidatePanel kind="employee" id={id} title="Assessments & Certifications" /> },
+              ...(hidden.has("ots") ? [] : [{ key: "assessments", label: "Assessments", content: <OtsCandidatePanel kind="employee" id={id} title="Assessments & Certifications" /> }]),
               {
                 key: "documents",
                 label: "Documents",
                 content: canDocs ? (
                   <div className="space-y-4">
-                  <EmployeeSignedDocuments employeeId={id} />
+                  {!hidden.has("lpms") && <EmployeeSignedDocuments employeeId={id} />}
                   <EmployeeDocumentsManager
                     employeeId={id}
                     documents={documents.map(serializeDocument).map((d) => ({

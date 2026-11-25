@@ -1,11 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { saveVendorRecord } from "@/lib/products/spendiq/vendor-write";
 import { getCurrentPrmsUser } from "@/lib/prms-auth";
 import { prmsCan } from "@/lib/prms-access";
-import { createVendor, updateVendor, deleteVendor, getVendor } from "@/lib/products/spendiq/vendors";
-import { validateVendor } from "@/lib/products/spendiq/validation";
-import { recordAudit, diffSummary } from "@/lib/products/spendiq/audit";
+import { deleteVendor, getVendor } from "@/lib/products/spendiq/vendors";
+import { recordAudit } from "@/lib/products/spendiq/audit";
 
 export interface VendorActionResult {
   ok: boolean;
@@ -32,41 +32,9 @@ export async function saveVendorAction(
   id?: string
 ): Promise<VendorActionResult> {
   const user = await requireManage();
-  const v = validateVendor(input);
-  if (!v.valid) return { ok: false, fieldErrors: v.errors };
-
-  if (id) {
-    const before = await getVendor(id);
-    if (!before) return { ok: false, error: "Vendor not found." };
-    const updated = await updateVendor(id, v.data, user.id);
-    await recordAudit({
-      actorId: user.id,
-      actorEmail: user.email,
-      action: "update",
-      entity: "vendor",
-      entityId: id,
-      entityLabel: v.data.companyName,
-      summary: diffSummary(
-        { name: before.companyName, status: before.status, category: before.category, rating: before.rating },
-        { name: v.data.companyName, status: v.data.status, category: v.data.category, rating: v.data.rating },
-        ["name", "status", "category", "rating"]
-      ),
-    });
-    revalidate(id);
-    return { ok: true, id: updated?._id };
-  }
-
-  const created = await createVendor(v.data, user.id);
-  await recordAudit({
-    actorId: user.id,
-    actorEmail: user.email,
-    action: "create",
-    entity: "vendor",
-    entityId: created._id,
-    entityLabel: v.data.companyName,
-  });
-  revalidate(created._id);
-  return { ok: true, id: created._id };
+  const result = await saveVendorRecord(user, input, id);
+  if (result.ok) revalidate(result.id);
+  return result;
 }
 
 export async function deleteVendorAction(id: string): Promise<VendorActionResult> {

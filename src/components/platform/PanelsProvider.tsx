@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, useMemo } from "react";
 import type { PanelMeta } from "@/lib/platform/panels/types";
 import ProductLauncher from "@/components/platform/ProductLauncher";
 import ProductLogo from "@/components/products/ProductLogo";
@@ -18,6 +18,12 @@ export function usePanels(): Record<string, PanelMeta> {
 
 export function usePanelMeta(key: string): PanelMeta | null {
   return useContext(PanelsContext)[key] ?? null;
+}
+
+/** The products this company can't use (not bought, not in its plan, switched off): screens leave out their links. */
+export function useUnavailableProducts(): ReadonlySet<string> {
+  const panels = useContext(PanelsContext);
+  return useMemo(() => new Set(Object.values(panels).filter((p) => p.available === false).map((p) => p.key)), [panels]);
 }
 
 /** The shared header action used to switch between the products in the registry. */

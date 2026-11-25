@@ -22,14 +22,14 @@ export default async function ProductsPage() {
       <JsonLd data={[webPage({ type: "CollectionPage", path: "/products", name: "Products", description: "See everything SRB AI does, product by section: customers and sales, HR and payroll, accounting, projects, purchasing, training, documents, AI, SEO and a website builder. Free to start." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Products", path: "/products" }]), itemList({ name: "SRB AI products", items: all.map((m) => ({ name: m.name, path: productPath(m.key) })) })]} />
       <PageHero
         art="features"
-        eyebrow="Every product · every feature included"
+        eyebrow="One product or all of them"
         title="Everything SRB AI does,"
         accent="product by product."
-        lead="SRB AI is one software for your whole business. It is made of products, one for each job: customers and sales, staff and payroll, invoices and accounts, projects, buying, training, documents, your website and more. Browse them below and open any product to see exactly what it does. Use only the ones you need. Every product and every feature is included in every plan."
+        lead="SRB AI is one software for your whole business. It is made of products, one for each job: customers and sales, staff and payroll, invoices and accounts, projects, buying, training, documents, your website and more. Browse them below and open any product to see exactly what it does. Take only the ones you need, each with every feature."
         photo="analytics"
         shot="workspace"
         chip={{
-          title: "Every product included",
+          title: "Start with one",
           text: "Every feature is free to start, no card needed",
         }}
       >

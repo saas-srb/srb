@@ -31,7 +31,7 @@ import ProductLogo from "@/components/products/ProductLogo";
 export const dynamic = "force-dynamic";
 
 const HOME_TITLE = "SRB AI — Selfrun Business: One Platform, 20 Business Tools, Free Forever";
-const HOME_DESC = "SRB AI (SRB - Selfrun Business) is one AI-powered platform for Startups, MSMEs and SMBs: CRM, HR & payroll, accounting, projects, procurement, training, website builder and AI automation — all free to start, with every feature in every plan.";
+const HOME_DESC = "SRB AI (SRB - Selfrun Business) is one AI-powered platform for Startups, MSMEs and SMBs: CRM, HR & payroll, accounting, projects, procurement, training, website builder and AI automation — take one or all of them, free to start.";
 export const metadata: Metadata = {
   ...pageMeta({
     path: "/",
@@ -82,7 +82,7 @@ export default async function SaasHome() {
       <JsonLd data={[
         webPage({ path: "/", name: HOME_TITLE, description: HOME_DESC, about: "Business automation software" }),
         softwareApplication({ path: "/", name: "SRB AI", description: HOME_DESC, features: ["CRM and lead management", "HR and payroll", "Accounting and invoicing", "Project management", "Procurement", "Training management", "Website builder and CMS", "AI assistants", "Workflow automation", "White-label branding"] }),
-        itemList({ name: "SRB AI products", items: modules.map((m) => ({ name: m.name, path: productPath(m.key) })) }), ...(plans.length ? [planOffers(plans.map((p) => ({ id: p.id, name: p.name, description: `${p.name} plan: every product and every feature.`, currency: p.currency, kind: p.kind, monthly: p.offer.monthly })))] : [])]} />
+        itemList({ name: "SRB AI products", items: modules.map((m) => ({ name: m.name, path: productPath(m.key) })) }), ...(plans.length ? [planOffers(plans.map((p) => ({ id: p.id, name: p.name, description: `${p.name} plan: every feature of the products you take.`, currency: p.currency, kind: p.kind, monthly: p.offer.monthly })))] : [])]} />
       {/* Hero */}
       <PageHero art="home"
         size="home"
@@ -281,7 +281,7 @@ export default async function SaasHome() {
       {/* Everything included */}
       <section id="included" className="sr-section relative overflow-hidden bg-muted/10" style={{ scrollMarginTop: 140 }}>
         <div className="sr-container">
-          <SectionHead n={no("included")} center icon="bolt" eyebrow="What you get" title="Everything below" accent="is included." lead="These are not extras. Every plan, even the free one, includes all of it from day one. Pick a group below to see what is inside it." />
+          <SectionHead n={no("included")} center icon="bolt" eyebrow="What you get" title="Everything below" accent="is included." lead="These are not extras. Platform features come with every plan; a product's own features come with that product. Pick a group below to see what is inside it." />
           <Reveal><CapabilityExplorer items={CAPABILITIES.map((c) => ({ title: c.title, icon: c.icon, items: c.items, media: CAP_SHOT[c.title] ? <MarketingShot screenKey={CAP_SHOT[c.title]} name={c.title} /> : undefined }))} /></Reveal>
         </div>
       </section>

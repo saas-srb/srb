@@ -1,3 +1,7 @@
+import CompanyProductsCard from "./CompanyProductsCard";
+import { NEEDS_ONE_OF, SELLABLE_PRODUCTS } from "@/lib/platform/products/selection";
+import type { ModuleKey } from "@/lib/platform/onboarding/catalog";
+import { getCompany } from "@/lib/platform/tenancy/companies";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
@@ -56,6 +60,7 @@ export default async function ConsoleCompanyPage({ params }: { params: Promise<{
   const { onboarding: ob } = company;
   const trial = company.isPlatformOwner ? null : await getTrialOverview(company.id);
   const reactivations = company.isPlatformOwner ? [] : await listRequests(company.id).catch(() => []);
+  const owned = await getCompany(company.id);
   const [registry, disabledHere] = await Promise.all([listPanels(), disabledPanelKeys(company.id)]);
   const maintenance = company.isPlatformOwner ? null : await getCompanyMaintenance(company.id);
   const subscription = company.isPlatformOwner ? null : await getCompanySubscription(company.id);
@@ -175,21 +180,33 @@ export default async function ConsoleCompanyPage({ params }: { params: Promise<{
           </GlassCard>
         </div>
 
-        <GlassCard interactive={false}>
-          <CardHeader>
-            <CardTitle className="text-base">Products</CardTitle>
-            <CardDescription>{company.enabledPanels ? `${company.enabledPanels.length} enabled.` : "No choice recorded, so every product is on."}</CardDescription>
-          </CardHeader>
-          {company.enabledPanels && (
-            <CardContent className="flex flex-wrap gap-1.5">
-              {company.enabledPanels.map((p) => (
-                <Badge key={p} variant="outline">
-                  {p}
-                </Badge>
-              ))}
-            </CardContent>
-          )}
-        </GlassCard>
+        {company.isPlatformOwner ? (
+          <GlassCard interactive={false}>
+            <CardHeader>
+              <CardTitle className="text-base">Products</CardTitle>
+              <CardDescription>{company.enabledPanels ? `${company.enabledPanels.length} enabled.` : "No choice recorded, so every product is on."}</CardDescription>
+            </CardHeader>
+            {company.enabledPanels && (
+              <CardContent className="flex flex-wrap gap-1.5">
+                {company.enabledPanels.map((p) => (
+                  <Badge key={p} variant="outline">
+                    {p}
+                  </Badge>
+                ))}
+              </CardContent>
+            )}
+          </GlassCard>
+        ) : (
+          <CompanyProductsCard
+            key={JSON.stringify([owned?.products, owned?.website])}
+            companyId={company.id}
+            choices={[...SELLABLE_PRODUCTS, ...(Object.keys(NEEDS_ONE_OF) as ModuleKey[])].map((k) => ({ key: k, name: registry.find((r) => r.key === k)?.name ?? k }))}
+            current={!owned?.products || owned.products.mode === "all" ? null : owned.products.keys}
+            website={owned?.website?.mode ?? "platform"}
+            externalUrl={owned?.website?.externalUrl ?? ""}
+            canEdit={can(user, "subscriptions.manage")}
+          />
+        )}
 
         <GlassCard interactive={false}>
           <CardHeader>

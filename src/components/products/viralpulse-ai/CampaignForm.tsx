@@ -93,9 +93,11 @@ export default function CampaignForm({ campaignId, initial, offers, clients, ser
         <Field label="Promote a live offer" hint="Read live from Festival Offers.">
           <OptionSelect value={v.offerId} onChange={(x) => set("offerId", x)} options={offers.map((o) => ({ value: o._id, label: `${o.title} · ${o.badge}` }))} noneLabel="No specific offer" aria-label="Offer" />
         </Field>
-        <Field label="Client (optional)" hint="Run for a SprintOS client — the AI then writes in the client's voice.">
-          <OptionSelect value={v.clientId} onChange={(x) => set("clientId", x)} options={clients.map((c) => ({ value: c._id, label: c.name }))} noneLabel="Our own brand" aria-label="Client" />
-        </Field>
+        {(clients.length > 0 || v.clientId) && (
+          <Field label="Client (optional)" hint="Run for a client — the AI then writes in the client's voice.">
+            <OptionSelect value={v.clientId} onChange={(x) => set("clientId", x)} options={clients.map((c) => ({ value: c._id, label: c.name }))} noneLabel="Our own brand" aria-label="Client" />
+          </Field>
+        )}
         <AiField {...ai("campaign.keywords")} label="Keywords" id="c-kw" as="custom" hint="Comma or line separated." value={v.keywords.split(/[,\n]/).map((k) => k.trim()).filter(Boolean)} onChange={(x) => set("keywords", Array.isArray(x) ? x.join(", ") : String(x))}><Input id="c-kw" value={v.keywords} onChange={(e) => set("keywords", e.target.value)} placeholder="Words people would search for" /></AiField>
         <AiField {...ai("campaign.tone")} label="Tone" id="c-tone" as="custom" value={v.tone} onChange={(x) => set("tone", String(x))}><Suggest id="c-tone" value={v.tone} onChange={(x) => set("tone", x)} options={TONES} placeholder="Brand default" /></AiField>
         <AiField {...ai("campaign.language")} label="Language" id="c-lang" as="custom" value={v.language} onChange={(x) => set("language", String(x))}><Suggest id="c-lang" value={v.language} onChange={(x) => set("language", x)} options={LANGUAGES} /></AiField>

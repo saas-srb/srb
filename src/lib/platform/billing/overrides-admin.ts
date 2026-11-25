@@ -10,6 +10,7 @@ import { runAsCompany } from "@/lib/platform/tenancy/context";
 import { getPlatformDb } from "@/lib/platform/tenancy/platform-db";
 import { COMPANIES_COLLECTION } from "@/lib/platform/tenancy/companies";
 import { recordPlatformAudit } from "@/lib/platform/audit";
+import { forgetCompanyAvailability } from "@/lib/platform/products/availability";
 
 /**
  * What the platform admin can change for ONE company on top of its plan: every limit (users, storage, AI tokens, emails, voice minutes,
@@ -121,6 +122,7 @@ export async function saveCompanyOverrides(companyId: string, input: OverridesIn
   const next = checked.value;
   const empty = !next.limits && !next.flags && !next.modules;
   await updateCompanySubscription(companyId, { overrides: empty ? null : { ...next, updatedAt: now, updatedBy: actorId } });
+  forgetCompanyAvailability(companyId);
 
   const changed = (a: Record<string, unknown> | undefined, b: Record<string, unknown> | undefined) => [...new Set([...Object.keys(a ?? {}), ...Object.keys(b ?? {})])].filter((k) => JSON.stringify(a?.[k] ?? null) !== JSON.stringify(b?.[k] ?? null));
   const diff = { limits: changed(before?.limits, next.limits), flags: changed(before?.flags, next.flags), modules: changed(before?.modules, next.modules) };

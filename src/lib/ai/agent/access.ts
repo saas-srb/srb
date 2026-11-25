@@ -77,13 +77,13 @@ export function ownRows(field: string) {
 }
 
 /**
- * Products disabled in the Product Registry are blocked. A suspended or
- * canceled subscription remains read-only, while products are available across plans.
+ * Products the company doesn't have, or that the Product Registry switched off, are blocked. A suspended or
+ * canceled subscription remains read-only.
  */
 export async function agentPlanState(): Promise<{ blockedPanels: string[]; readOnly: boolean }> {
   const companyId = await currentCompanyIdOrNull();
   if (!companyId) return { blockedPanels: [], readOnly: false };
   const [e, unavailable] = await Promise.all([getEntitlements(), unavailablePanelKeys(companyId)]);
-  const blocked = [...DATA_PANELS, "cms"].filter((p) => unavailable.has(p));
+  const blocked = [...DATA_PANELS, "cms", "portal"].filter((p) => unavailable.has(p));
   return { blockedPanels: blocked, readOnly: e.readOnly };
 }

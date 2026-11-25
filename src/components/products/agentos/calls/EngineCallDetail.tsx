@@ -1,3 +1,4 @@
+import ProductLink from "@/components/platform/ProductLink";
 import Link from "next/link";
 import { Activity, ExternalLink, FileText, ShieldCheck, Sparkles, UserRound, Volume2 } from "lucide-react";
 import { SectionCard } from "@/components/products/agentos/AibotsUi";
@@ -60,7 +61,7 @@ export default function EngineCallDetail({ data, viewer }: { data: CallDetailDat
         <dl className="divide-y divide-border/40">
           <Row label="About">
             {call.target ? (
-              href ? <Link href={href} className="inline-flex items-center gap-1 font-medium text-primary hover:underline">{call.target.label}<ExternalLink className="size-3" /></Link> : <span className="font-medium">{call.target.label}</span>
+              href ? <ProductLink href={href} className="inline-flex items-center gap-1 font-medium text-primary hover:underline" fallback={<span className="font-medium">{call.target.label}</span>}>{call.target.label}<ExternalLink className="size-3" /></ProductLink> : <span className="font-medium">{call.target.label}</span>
             ) : "-"}
             {call.target && <span className="ml-2 text-xs text-muted-foreground">{call.target.entityType} · {call.target.product}</span>}
           </Row>

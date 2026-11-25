@@ -380,7 +380,7 @@ export const COMPARISON: { row: string; us: string; them: string }[] = [
   { row: "Control", us: "Switch products on or off and choose who can see and do what", them: "Different admin settings in every app" },
   { row: "Record of actions", us: "A log of who did what, and sign-in history, in each product", them: "Scattered logs, if available" },
   { row: "Customer portal", us: "Built in for customers, students and job applicants", them: "Another app to buy" },
-  { row: "Features", us: "Every feature on every plan", them: "Features locked behind higher plans in each app" },
+  { row: "Features", us: "Every feature of what you take", them: "Features locked behind higher plans in each app" },
   { row: "Pricing", us: "Free forever to start; one plan by team size after", them: "Many subscriptions to track and renew" },
   { row: "Setup", us: "Guided setup in minutes, with spreadsheet (CSV) import built in", them: "Separate setup, training and support for each app" },
 ];

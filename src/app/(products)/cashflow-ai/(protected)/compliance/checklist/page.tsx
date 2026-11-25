@@ -1,3 +1,4 @@
+import ProductLink from "@/components/platform/ProductLink";
 import Link from "next/link";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
@@ -50,7 +51,7 @@ export default async function ChecklistPage({ searchParams }: { searchParams: Pr
               <p className="text-sm text-muted-foreground">{s.summary}</p>
               <p className="mb-2 mt-1 text-xs text-muted-foreground">
                 Usually handled by: {OWNER_LABELS[s.owner]}
-                {s.href && <> · <Link href={s.href} className="text-primary hover:underline">Open in CashFlow</Link></>}
+                {s.href && <ProductLink href={s.href} fallback={null} className="text-primary hover:underline"> · Open in CashFlow</ProductLink>}
               </p>
               <ul>
                 {s.items.map((title, i) => {

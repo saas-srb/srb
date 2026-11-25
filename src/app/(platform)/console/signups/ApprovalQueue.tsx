@@ -61,7 +61,7 @@ export default function ApprovalQueue({ requests, addressOf, canManage = true }:
               <div className="min-w-0">
                 <p className="font-medium text-foreground">{r.companyName}</p>
                 <p className="text-xs text-muted-foreground">
-                  {addressOf[r.slug]} · {r.name} &lt;{r.email}&gt; · requested {formatDateTime(r.createdAt)}
+                  {addressOf[r.slug]} · {r.name} &lt;{r.email}&gt; · requested {formatDateTime(r.createdAt)}<span className="block">{r.products}</span>
                 </p>
               </div>
               {canManage && <div className="flex gap-2">

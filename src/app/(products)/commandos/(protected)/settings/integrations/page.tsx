@@ -6,7 +6,7 @@ import PanelTabs from "@/components/products/commandos/PanelTabs";
 import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
 import { CONNECTION_PROVIDERS, HIDDEN_FROM_COMPANIES, canUseSrb, providerByKey } from "@/lib/platform/connections/catalog";
 import { CARD_COPY } from "@/lib/platform/connections/card-copy";
-import { CARD_CATEGORIES, cardStatus, categoryOf, usedByProducts, type IntegrationCard, type RegistryProduct } from "@/lib/platform/connections/cards";
+import { CARD_CATEGORIES, cardStatus, categoryOf, connectionRelevant, usedByProducts, type IntegrationCard, type RegistryProduct } from "@/lib/platform/connections/cards";
 import { whatsAppSenderNotice } from "@/lib/platform/messaging";
 import { listConnectionViews } from "@/lib/platform/connections/store";
 import { platformServiceReady } from "@/lib/platform/connections/platform-services";
@@ -60,7 +60,7 @@ async function buildCards(registry: RegistryProduct[], unavailable: ReadonlySet<
   cards.push({ key: "ai-chatbot", name: "AI Chatbot", description: "The assistant on your website: how it answers, what it knows and the conversations it has had.", category: "ai", status: openai?.status ?? "not_set_up", note: openai ? "Uses the OpenAI account below." : null, usedBy: usedBy("ai-chatbot"), kind: "panel", canSrb: true, testable: false, appliesToAll: true });
   cards.push({ key: "dealflow-sync", name: "Lead sources", description: "Where your leads and job applications come from.", category: "leads", status: "ready", note: null, usedBy: usedBy("dealflow-sync"), kind: "panel", canSrb: false, testable: false, appliesToAll: true });
   cards.push({ key: "webhooks", name: "Webhooks and automations", description: "Send a signed webhook, email, in-app notice or WhatsApp message when something happens in your workspace.", category: "webhooks", status: "using_own", note: "Rules you make yourself.", usedBy: usedBy("webhooks"), kind: "page", href: "/commandos/settings/automations", canSrb: false, testable: true, appliesToAll: true });
-  return cards;
+  return cards.filter((c) => connectionRelevant(c.key, registry, unavailable));
 }
 
 /** One place for every third-party service. A card per service; Configure opens it in a panel on the right. */

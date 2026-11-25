@@ -1,4 +1,5 @@
 "use client";
+import { useUnavailableProducts } from "@/components/platform/PanelsProvider";
 
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -70,7 +71,7 @@ function Field({ label, htmlFor, hint, error, children }: { label: string; htmlF
   );
 }
 
-export default function CallWithAI({ target, phone, context, defaultPurpose, variant = "default", size = "default", label = "Call with AI", className, onPlaced, initialNotes, contextSummaryLoader, contextSummaryLabel = "Share a short summary with the agent" }: CallWithAIProps) {
+function CallControl({ target, phone, context, defaultPurpose, variant = "default", size = "default", label = "Call with AI", className, onPlaced, initialNotes, contextSummaryLoader, contextSummaryLabel = "Share a short summary with the agent" }: CallWithAIProps) {
   const [open, setOpen] = useState(false);
   const [options, setOptions] = useState<CallOptions | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -447,4 +448,9 @@ export default function CallWithAI({ target, phone, context, defaultPurpose, var
       </DialogContent>
     </Dialog>
   );
+}
+
+/** AI calls come with AgentOS: a company without it sees no call button anywhere. */
+export default function CallWithAI(props: CallWithAIProps) {
+  return useUnavailableProducts().has("aibots") ? null : <CallControl {...props} />;
 }

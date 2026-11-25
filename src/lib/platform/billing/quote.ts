@@ -1,9 +1,11 @@
 import "server-only";
+import { getCompany } from "@/lib/platform/tenancy/companies";
+import { billableCount, type ProductSelection } from "@/lib/platform/products/selection";
 import { getPlan } from "@/lib/platform/billing/plans";
 import { getBillingSettings } from "@/lib/platform/billing/settings";
 import { computeCouponDiscount, validateCoupon } from "@/lib/platform/billing/coupons";
 import { describeCouponDiscount } from "@/lib/platform/billing/catalog-types";
-import { planPrice } from "@/lib/platform/billing/pricing";
+import { productPrice } from "@/lib/platform/billing/pricing";
 import type { BillingInterval } from "@/lib/platform/billing/types";
 
 /**
@@ -40,6 +42,8 @@ export interface Quote {
   couponId: string | null;
   /** Why a supplied coupon code was not applied. */
   couponError: string | null;
+  /** The products priced (absent = All products). */
+  products?: ProductSelection;
 }
 
 export interface QuoteInput {
@@ -47,6 +51,8 @@ export interface QuoteInput {
   interval: BillingInterval;
   companyId?: string | null;
   couponCode?: string | null;
+  /** Price these products instead of the ones the company has now. */
+  products?: ProductSelection;
 }
 
 /**
@@ -57,9 +63,11 @@ export async function quoteCheckout(input: QuoteInput): Promise<Quote | null> {
   const [plan, settings] = await Promise.all([getPlan(input.planId), getBillingSettings()]);
   if (!plan) return null;
   // Current catalogue price; null when the plan doesn't offer this billing cycle.
-  const price = planPrice(plan, input.interval);
+  const products = input.products ?? (input.companyId ? (await getCompany(input.companyId))?.products : undefined);
+  const price = productPrice(plan, input.interval, products);
   if (price === null) return null;
-  const lines: QuoteLine[] = [{ kind: "plan", refId: plan._id, label: `${plan.name} (${input.interval})`, amount: price }];
+  const count = billableCount(products);
+  const lines: QuoteLine[] = [{ kind: "plan", refId: plan._id, label: `${plan.name} (${input.interval})${count === null ? "" : ` · ${count} product${count === 1 ? "" : "s"}`}`, amount: price }];
 
   const subtotal = lines.reduce((sum, l) => sum + l.amount, 0);
 
@@ -86,5 +94,6 @@ export async function quoteCheckout(input: QuoteInput): Promise<Quote | null> {
     gstRatePercent: settings.tax.gstRatePercent,
     couponId,
     couponError,
+    ...(products ? { products } : {}),
   };
 }

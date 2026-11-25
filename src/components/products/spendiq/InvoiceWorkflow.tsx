@@ -31,7 +31,24 @@ import {
   recordPaymentAction,
 } from "@/app/(products)/spendiq/(protected)/invoices/actions";
 
-export default function InvoiceWorkflow({ invoice }: { invoice: SerializedInvoice }) {
+const OWN_ACTIONS = { decide: decideInvoiceAction, remove: deleteInvoiceAction, upload: uploadInvoiceFileAction };
+
+export default function InvoiceWorkflow({
+  invoice,
+  actions = OWN_ACTIONS,
+  payments = true,
+  listHref = "/spendiq/invoices",
+  fileBase = "/api/spendiq/attachments",
+}: {
+  invoice: SerializedInvoice;
+  /** Another product's screen acts with its own actions (and permission checks). */
+  actions?: typeof OWN_ACTIONS;
+  /** Off where the screen records payments its own way. */
+  payments?: boolean;
+  listHref?: string;
+  /** Where the attached file is streamed from. */
+  fileBase?: string;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -63,7 +80,7 @@ export default function InvoiceWorkflow({ invoice }: { invoice: SerializedInvoic
     const fd = new FormData();
     fd.set("file", file);
     startTransition(async () => {
-      const res = await uploadInvoiceFileAction(i._id, fd);
+      const res = await actions.upload(i._id, fd);
       if (!res.ok) {
         toast.error(res.error ?? "Upload failed.");
         return;
@@ -86,22 +103,24 @@ export default function InvoiceWorkflow({ invoice }: { invoice: SerializedInvoic
       <GlassCard interactive={false}>
         <CardHeader><CardTitle>Actions</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex flex-wrap gap-2 text-xs">
-            <span className={`rounded-md px-2 py-1 ${i.poMatched ? "bg-green-500/15 text-green-600 dark:text-green-400" : "bg-muted text-muted-foreground"}`}>
-              {i.poMatched ? "PO matched" : "No PO match"}
-            </span>
-            <span className={`rounded-md px-2 py-1 ${i.grnMatched ? "bg-green-500/15 text-green-600 dark:text-green-400" : "bg-muted text-muted-foreground"}`}>
-              {i.grnMatched ? "GRN matched" : "No GRN"}
-            </span>
-          </div>
+          {payments && (
+            <div className="flex flex-wrap gap-2 text-xs">
+              <span className={`rounded-md px-2 py-1 ${i.poMatched ? "bg-green-500/15 text-green-600 dark:text-green-400" : "bg-muted text-muted-foreground"}`}>
+                {i.poMatched ? "PO matched" : "No PO match"}
+              </span>
+              <span className={`rounded-md px-2 py-1 ${i.grnMatched ? "bg-green-500/15 text-green-600 dark:text-green-400" : "bg-muted text-muted-foreground"}`}>
+                {i.grnMatched ? "GRN matched" : "No GRN"}
+              </span>
+            </div>
+          )}
 
           {i.status === "pending" && (
             <div className="flex gap-2">
-              <Button type="button" size="sm" disabled={pending} onClick={() => run(() => decideInvoiceAction(i._id, "approved"), "Invoice approved")}>
+              <Button type="button" size="sm" disabled={pending} onClick={() => run(() => actions.decide(i._id, "approved"), "Invoice approved")}>
                 <Check className="size-3.5" data-icon="inline-start" />
                 Approve
               </Button>
-              <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => run(() => decideInvoiceAction(i._id, "cancelled"), "Invoice cancelled")}>
+              <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => run(() => actions.decide(i._id, "cancelled"), "Invoice cancelled")}>
                 <Ban className="size-3.5 text-destructive" data-icon="inline-start" />
                 Cancel
               </Button>
@@ -113,7 +132,7 @@ export default function InvoiceWorkflow({ invoice }: { invoice: SerializedInvoic
             <Upload className="size-3.5 text-muted-foreground" />
           </div>
           {i.storageKey && (
-            <a href={`/api/spendiq/attachments/${i.storageKey}`} target="_blank" rel="noopener noreferrer" className="block text-sm text-primary hover:underline">
+            <a href={`${fileBase}/${i.storageKey}`} target="_blank" rel="noopener noreferrer" className="block text-sm text-primary hover:underline">
               {i.filename ?? "View invoice file"}
             </a>
           )}
@@ -128,7 +147,7 @@ export default function InvoiceWorkflow({ invoice }: { invoice: SerializedInvoic
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction disabled={pending} onClick={() => run(() => deleteInvoiceAction(i._id), "Invoice deleted", "/spendiq/invoices")}>Delete</AlertDialogAction>
+                  <AlertDialogAction disabled={pending} onClick={() => run(() => actions.remove(i._id), "Invoice deleted", listHref)}>Delete</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
@@ -136,7 +155,7 @@ export default function InvoiceWorkflow({ invoice }: { invoice: SerializedInvoic
         </CardContent>
       </GlassCard>
 
-      {["approved", "partially_paid", "overdue"].includes(i.status) && outstanding > 0 && (
+      {payments && ["approved", "partially_paid", "overdue"].includes(i.status) && outstanding > 0 && (
         <GlassCard interactive={false}>
           <CardHeader><CardTitle>Record Payment</CardTitle></CardHeader>
           <CardContent className="space-y-3">
@@ -179,7 +198,7 @@ export default function InvoiceWorkflow({ invoice }: { invoice: SerializedInvoic
       )}
 
       <p className="text-xs text-muted-foreground">
-        <Link href="/spendiq/invoices" className="text-primary hover:underline">← Back to invoices</Link>
+        <Link href={listHref} className="text-primary hover:underline">← Back to invoices</Link>
       </p>
     </div>
   );

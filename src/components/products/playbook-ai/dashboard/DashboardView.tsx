@@ -36,8 +36,8 @@ function StatTile({ t }: { t: Tile }) {
   return <KpiLink href={t.href} label={label} value={value} icon={TILE_ICON[t.key]} trend={t.deltaPct} trendInvert={t.good === "down"} tone={t.key === "completion" && t.value !== null ? (t.value >= 70 ? "up" : t.value < 40 ? "down" : undefined) : undefined} />;
 }
 
-export default function DashboardView({ data, brand, canCreate, rangeHrefBase = "/playbook-ai/dashboard", csvHref, custom }: {
-  data: DashboardData; brand: BrandStatusItem[]; canCreate: boolean; rangeHrefBase?: string; csvHref?: string; custom?: { from: string; to: string };
+export default function DashboardView({ data, brand, signing = true, canCreate, rangeHrefBase = "/playbook-ai/dashboard", csvHref, custom }: {
+  data: DashboardData; brand: BrandStatusItem[]; canCreate: boolean; signing?: boolean; rangeHrefBase?: string; csvHref?: string; custom?: { from: string; to: string };
 }) {
   const r = data.range;
   const brandOk = brand.every((b) => b.ok);
@@ -100,8 +100,8 @@ export default function DashboardView({ data, brand, canCreate, rangeHrefBase = 
       <SectionDivider label="Trends and breakdowns" />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Section title="Created over time" description={`New SOPs, documents and KPI sheets per ${data.created.granularity}`} className="lg:col-span-2"><StackedBars points={data.created.points} series={[{ key: "sop", name: "SOPs", color: "#6366f1" }, { key: "document", name: "Documents", color: "#06b6d4" }, { key: "kpi", name: "KPI sheets", color: "#f59e0b" }]} label="Created over time" noun="items created" emptyText="Nothing was created in this period." /></Section>
-        <Section title="Signing funnel" description="How far the items created in this period got"><Funnel steps={data.funnel} /></Section>
+        <Section title="Created over time" description={`New SOPs, documents and KPI sheets per ${data.created.granularity}`} className={signing ? "lg:col-span-2" : "lg:col-span-3"}><StackedBars points={data.created.points} series={[{ key: "sop", name: "SOPs", color: "#6366f1" }, { key: "document", name: "Documents", color: "#06b6d4" }, { key: "kpi", name: "KPI sheets", color: "#f59e0b" }]} label="Created over time" noun="items created" emptyText="Nothing was created in this period." /></Section>
+        {signing && <Section title="Signing funnel" description="How far the items created in this period got"><Funnel steps={data.funnel} /></Section>}
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -111,10 +111,12 @@ export default function DashboardView({ data, brand, canCreate, rangeHrefBase = 
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Section title="Time to sign" description={data.turnaround.count ? `${data.turnaround.count} signed · average ${data.turnaround.avgDays} d · median ${data.turnaround.medianDays} d` : "How long signers take"}>
-          <Histogram data={data.turnaround.buckets} label="Signing turnaround" emptyText="Nothing was signed in this period." />
-        </Section>
-        <Section title="Turnaround trend" description="Average days from sent to signed"><TrendLine data={data.turnaround.trend} unit="days" label="Average time to sign" emptyText="Nothing was signed in this period." /></Section>
+        {signing && <>
+          <Section title="Time to sign" description={data.turnaround.count ? `${data.turnaround.count} signed · average ${data.turnaround.avgDays} d · median ${data.turnaround.medianDays} d` : "How long signers take"}>
+            <Histogram data={data.turnaround.buckets} label="Signing turnaround" emptyText="Nothing was signed in this period." />
+          </Section>
+          <Section title="Turnaround trend" description="Average days from sent to signed"><TrendLine data={data.turnaround.trend} unit="days" label="Average time to sign" emptyText="Nothing was signed in this period." /></Section>
+        </>}
         <Section title="Library or from scratch" description="Where new items start"><Donut data={[{ label: "From the library or a template", value: data.source.fromLibrary }, { label: "From scratch", value: data.source.scratch }]} label="Source of new items" emptyText="Nothing created in this period." /></Section>
       </div>
 
@@ -138,10 +140,10 @@ export default function DashboardView({ data, brand, canCreate, rangeHrefBase = 
       <SectionDivider label="Needs attention" />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
         <AttentionCard title="Drafts untouched for 14+ days" empty="No stale drafts." items={data.attention.staleDrafts} tone="warn" />
-        <AttentionCard title="Waiting for a signature (over 7 days or expired)" empty="Nothing is overdue." items={data.attention.awaitingSignature} tone="warn" />
+        {signing && <AttentionCard title="Waiting for a signature (over 7 days or expired)" empty="Nothing is overdue." items={data.attention.awaitingSignature} tone="warn" />}
         <AttentionCard title="Legal review not yet confirmed" empty="No legal document is waiting." items={data.attention.legalPending} tone="warn" />
         <AttentionCard title="SOPs not reviewed in 12 months" empty="All SOPs were reviewed within a year." items={data.attention.sopsDueReview} tone="info" />
-        <AttentionCard title="Employees with unsigned letters" empty="No employee letter is waiting." items={data.attention.employeesUnsigned} tone="info" />
+        {signing && <AttentionCard title="Employees with unsigned letters" empty="No employee letter is waiting." items={data.attention.employeesUnsigned} tone="info" />}
         <GlassCard interactive={false}>
           <CardHeader className="pb-1"><CardTitle className="flex items-center gap-2 text-sm font-bold"><Palette className="size-4 text-primary" aria-hidden />Brand and letterhead</CardTitle></CardHeader>
           <CardContent>
@@ -168,12 +170,12 @@ export default function DashboardView({ data, brand, canCreate, rangeHrefBase = 
             </ul>
           )}
         </Section>
-        <Section title={data.scope === "all" ? "Team" : "You"} description="Created and sent in this period">
+        <Section title={data.scope === "all" ? "Team" : "You"} description={signing ? "Created and sent in this period" : "Created in this period"}>
           {data.leaderboard.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">Nobody has created or sent anything in this period.</p> : (
             <table className="w-full text-sm">
-              <thead className="text-left text-[11px] uppercase tracking-wide text-muted-foreground"><tr><th className="py-1 font-semibold">Person</th><th className="py-1 text-right font-semibold">Created</th><th className="py-1 text-right font-semibold">Sent</th><th className="py-1 text-right font-semibold">Signed</th></tr></thead>
+              <thead className="text-left text-[11px] uppercase tracking-wide text-muted-foreground"><tr><th className="py-1 font-semibold">Person</th><th className="py-1 text-right font-semibold">Created</th>{signing && <><th className="py-1 text-right font-semibold">Sent</th><th className="py-1 text-right font-semibold">Signed</th></>}</tr></thead>
               <tbody className="divide-y divide-border/50">
-                {data.leaderboard.map((l, i) => <tr key={l.userId}><td className="py-1.5"><span className="mr-1.5 text-xs text-muted-foreground">{i + 1}</span>{l.name}</td><td className="py-1.5 text-right tabular-nums">{nf.format(l.created)}</td><td className="py-1.5 text-right tabular-nums">{nf.format(l.sent)}</td><td className="py-1.5 text-right tabular-nums">{nf.format(l.signed)}</td></tr>)}
+                {data.leaderboard.map((l, i) => <tr key={l.userId}><td className="py-1.5"><span className="mr-1.5 text-xs text-muted-foreground">{i + 1}</span>{l.name}</td><td className="py-1.5 text-right tabular-nums">{nf.format(l.created)}</td>{signing && <><td className="py-1.5 text-right tabular-nums">{nf.format(l.sent)}</td><td className="py-1.5 text-right tabular-nums">{nf.format(l.signed)}</td></>}</tr>)}
               </tbody>
             </table>
           )}

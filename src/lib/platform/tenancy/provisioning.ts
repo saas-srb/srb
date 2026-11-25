@@ -1,4 +1,5 @@
 import "server-only";
+import { ownedModules, resolveWebsite, sitesEnabled, type CompanyWebsite, type ProductSelection } from "@/lib/platform/products/selection";
 import type { BusinessSelection } from "@/lib/platform/business-taxonomy";
 import { cachedIntegrationsDoc } from "@/lib/platform/integrations/store";
 import { randomUUID } from "node:crypto";
@@ -102,6 +103,9 @@ export interface NewCompany {
   aiWebsite?: "wait" | "background";
   /** The plan chosen on the pricing page: the company starts a free trial of it (default plan when absent). */
   plan?: { id: string; interval: "monthly" | "yearly" };
+  /** The products the company chose (missing = all of them) and its website choice. */
+  products?: ProductSelection;
+  website?: CompanyWebsite;
   /** Where the owner is, from the sign-up request. */
   hints?: { country?: string; languages?: string; timezone?: string };
 }
@@ -130,6 +134,7 @@ export async function createCompanyWithOwner(input: NewCompany): Promise<Provisi
     status: "active",
     isPlatformOwner: false,
     ...(input.business ? { business: input.business } : {}),
+    ...(input.products ? { products: input.products, website: resolveWebsite(input.products, input.website) } : input.website ? { website: input.website } : {}),
     ...(input.hints && Object.values(input.hints).some(Boolean) ? { signupHints: input.hints } : {}),
     ...(defaults ? { locale: defaults.defaultLocale, timezone: defaults.defaultTimezone } : {}),
     createdAt: now,
@@ -191,13 +196,16 @@ export async function createCompanyWithOwner(input: NewCompany): Promise<Provisi
   // Every new company starts on a free trial of the default plan. Non-fatal.
   await startTrial(company._id, input.plan?.id, input.plan?.interval).catch((err) => console.error(`[provisioning] trial for ${company.slug} failed`, err));
 
+  // Whether we run this company's website (bought, and wanted).
+  const hasSite = sitesEnabled(company.products, company.website, ownedModules(company.products));
+
   // A working public site from minute one (neutral starter pages, editable in the CMS). Non-fatal.
-  await runAsCompany(company._id, () => publishStarterWebsite()).catch((err) => console.error(`[provisioning] starter website for ${company.slug} failed`, err));
+  if (hasSite) await runAsCompany(company._id, () => publishStarterWebsite()).catch((err) => console.error(`[provisioning] starter website for ${company.slug} failed`, err));
 
   // Then its own site, written by AI from the business categories it chose, replaces the starter. During self-serve sign-up we wait for it
   // (the sign-up progress screen has a "writing your website" step); elsewhere it is written in the background. The starter stays if AI
   // is unavailable or takes too long, and the company can retry from CMS → AI Website.
-  if (process.env.AI_WEBSITE_ON_SIGNUP !== "0") {
+  if (hasSite && process.env.AI_WEBSITE_ON_SIGNUP !== "0") {
     const build = () => runAsCompany(company._id, () => generateAiWebsite()).catch((err) => console.error(`[provisioning] AI website for ${company.slug} failed`, err));
     if (input.aiWebsite === "wait") {
       await Promise.race([build(), new Promise<void>((resolve) => setTimeout(resolve, 240_000))]);

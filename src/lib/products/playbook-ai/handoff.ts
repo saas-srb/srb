@@ -1,3 +1,4 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import { legacyToAccess } from "@/lib/access/adapter";
 import "server-only";
 import { randomUUID } from "node:crypto";
@@ -15,7 +16,7 @@ import { createCloneFromItem, createCloneFromPlaybook, type CloneInput } from "@
 import { MANDATORY_NOTICE } from "@/lib/products/contractflow-ai/sign-consent";
 import { createManualParty, linkParty } from "@/lib/products/contractflow-ai/parties";
 import type { LpmsViewer } from "@/lib/products/contractflow-ai/types";
-import { isLinkedType, isPartyType } from "@/lib/products/contractflow-ai/party-types";
+import { isLinkedFor, isPartyType } from "@/lib/products/contractflow-ai/party-types";
 import type { HandoffRecord, SendContext, SendIssue } from "@/lib/products/playbook-ai/handoff-types";
 import { pbDoc } from "@/lib/playbook-access";
 
@@ -102,6 +103,8 @@ export interface SendInput {
 export type SendResult = { ok: true; handoff: HandoffRecord; cloneId: string } | { ok: false; message: string; issues?: SendIssue[] };
 
 export async function sendForSignature(actor: PbActor, input: SendInput): Promise<SendResult> {
+  // The copy lives in ContractFlow, so the company must have it (a screen hiding the button is not the guard).
+  if ((await hiddenProducts()).has("lpms")) return { ok: false, message: "ContractFlow isn't part of your workspace. Add it in Settings → Billing to send documents for signature." };
   const ctx = await getSendContext(actor, input.documentId, input.versionNumber);
   if (!ctx.ok) return { ok: false, message: ctx.message };
   if (!ctx.context.eligible || !ctx.version) return { ok: false, message: ctx.context.issues[0]?.message ?? "This document cannot be sent.", issues: ctx.context.issues };
@@ -113,7 +116,7 @@ export async function sendForSignature(actor: PbActor, input: SendInput): Promis
   let displayName = String(input.party.displayName ?? "");
   try {
     if (input.party.partyId) partyId = String(input.party.partyId);
-    else if (isLinkedType(input.party.type)) {
+    else if (isLinkedFor(input.party.type, await hiddenProducts())) {
       const linked = await linkParty(viewer, { type: input.party.type, recordId: String(input.party.recordId ?? "") });
       partyId = linked.id;
       displayName = linked.displayName;
@@ -185,6 +188,8 @@ export interface SendItemInput {
  * client, vendor...) or created as a manual party. Playbook's item is not changed apart from the new version and the handoff row.
  */
 export async function sendItemToContractFlow(actor: PbActor, input: SendItemInput): Promise<SendResult> {
+  // The copy lives in ContractFlow, so the company must have it (a screen hiding the button is not the guard).
+  if ((await hiddenProducts()).has("lpms")) return { ok: false, message: "ContractFlow isn't part of your workspace. Add it in Settings → Billing to send documents for signature." };
   if (!pbDoc(ctxOf(actor), "SEND_FOR_SIGNATURE")) return { ok: false, message: "You do not have the right to send documents to ContractFlow." };
   const rec = await getDocument(actor, String(input.documentId));
   if (!rec.ok) return { ok: false, message: rec.error.message };
@@ -210,7 +215,7 @@ export async function sendItemToContractFlow(actor: PbActor, input: SendItemInpu
   let displayName = String(input.party.displayName ?? "");
   try {
     if (input.party.partyId) partyId = String(input.party.partyId);
-    else if (isLinkedType(input.party.type)) {
+    else if (isLinkedFor(input.party.type, await hiddenProducts())) {
       const linked = await linkParty(viewer, { type: input.party.type, recordId: String(input.party.recordId ?? "") });
       partyId = linked.id;
       displayName = linked.displayName;

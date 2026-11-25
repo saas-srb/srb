@@ -1,6 +1,6 @@
+import ProductLink from "@/components/platform/ProductLink";
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
-import Link from "next/link";
 import { CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
@@ -54,9 +54,9 @@ export default async function ProjectProfitabilityPage() {
               {rows.map((r) => (
                 <TableRow key={r.projectId}>
                   <TableCell>
-                    <Link href={`/sprintos/costing/${r.projectId}`} className="font-medium text-primary hover:underline">
+                    <ProductLink href={`/sprintos/costing/${r.projectId}`} className="font-medium text-primary hover:underline">
                       {r.projectName}
-                    </Link>
+                    </ProductLink>
                     <span className="ml-1 text-xs text-muted-foreground">({r.projectCode})</span>
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{formatMoney(r.revenue)}</TableCell>

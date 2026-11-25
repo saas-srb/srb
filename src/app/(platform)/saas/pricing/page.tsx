@@ -15,7 +15,7 @@ import SectionScrollNav from "@/components/platform/saas/SectionScrollNav";
 import Reveal from "@/components/platform/saas/Reveal";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = pageMeta({ path: "/pricing", title: "Pricing: Free Forever, Pay as Your Team Grows", description: "Start free, no card needed. Every plan includes every product and every feature; plans differ only by team size and by storage, AI, email and voice allowances.", keywords: ["business software pricing", "free CRM and HR software", "free business software forever", "SaaS pricing plans", "affordable business software for small business", "free ERP alternative", "business software free plan", "pricing for all-in-one business platform", "pay as your team grows software"], tag: "Pricing" });
+export const metadata: Metadata = pageMeta({ path: "/pricing", title: "Pricing: Free Forever, Pay as Your Team Grows", description: "Start free, no card needed. Take one product or all of them; plans differ by team size, number of products and storage, AI, email and voice allowances.", keywords: ["business software pricing", "free CRM and HR software", "free business software forever", "SaaS pricing plans", "affordable business software for small business", "free ERP alternative", "business software free plan", "pricing for all-in-one business platform", "pay as your team grows software"], tag: "Pricing" });
 
 export default async function PricingPage() {
   const allPlans = await Promise.all([getStandardPlans(), getBillingSettings().then((s) => s.billing.defaultTrialDays).catch(() => 30)]).then(([p, days]) => buildShowcase(p, days)).catch(() => []);
@@ -32,8 +32,8 @@ export default async function PricingPage() {
   const rows = plans[0]?.limits.map((l) => l.key) ?? [];
   return (
     <>
-      <JsonLd data={[webPage({ type: "CollectionPage", path: "/pricing", name: "Pricing", description: "Start free, no card needed. Every plan includes every product and every feature; plans differ only by team size and by storage, AI, email and voice allowances." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Pricing", path: "/pricing" }]), planOffers(plans.map((p) => ({ id: p.id, name: p.name, description: p.description, currency: p.currency, kind: p.kind, monthly: p.offer.monthly, validUntil: endsAt ? new Date(endsAt).toISOString() : null })))]} />
-      <PageHero art="pricing" eyebrow="Pricing" title="Free forever." accent="Pay only as your team grows." lead={`Every plan includes every product, with every feature. A plan sets your team size and your storage, AI, email and voice allowance — nothing else. Prices exclude applicable taxes.`} photo="analytics" shot="fms" shotName="SRB CashFlow AI" chip={{ title: "Every feature, every plan", text: "Nothing locked behind a higher tier" }}>
+      <JsonLd data={[webPage({ type: "CollectionPage", path: "/pricing", name: "Pricing", description: "Start free, no card needed. Take one product or all of them; plans differ by team size, number of products and storage, AI, email and voice allowances." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Pricing", path: "/pricing" }]), planOffers(plans.map((p) => ({ id: p.id, name: p.name, description: p.description, currency: p.currency, kind: p.kind, monthly: p.offer.monthly, validUntil: endsAt ? new Date(endsAt).toISOString() : null })))]} />
+      <PageHero art="pricing" eyebrow="Pricing" title="Free forever." accent="Pay only as your team grows." lead={`Take one product or all of them, with every feature of what you take. A plan sets your team size and your storage, AI, email and voice allowance. Prices exclude applicable taxes.`} photo="analytics" shot="fms" shotName="SRB CashFlow AI" chip={{ title: "Every feature, every plan", text: "Nothing locked behind a higher tier" }}>
         <HeroCtas primary={{ label: "Start free forever", href: "/signup" }} secondary={{ label: "Talk to us", href: "/contact" }} />
       </PageHero>
 
@@ -41,7 +41,7 @@ export default async function PricingPage() {
 
       <section id="plans" className="sr-section" style={{ scrollMarginTop: 140 }}>
         <div className="sr-container">
-          <SectionHead n={no("plans")} icon="wallet" eyebrow="Plans" title="Pick the size of" accent="your team." lead="Every plan has every product and every feature. You are choosing how many people, and how much storage, AI, email and voice." />
+          <SectionHead n={no("plans")} icon="wallet" eyebrow="Plans" title="Pick the size of" accent="your team." lead="Every feature of your products is in every plan. You are choosing how many people, and how much storage, AI, email and voice." />
           {plans.length ? <PricingPlans plans={plans} endsAt={endsAt} /> : <EmptyState title="Plans are being updated" body="Pricing isn't available right now. Contact us and we'll share the current plans."><Link href="/contact" className="sr-btn sr-btn-primary">Contact us</Link></EmptyState>}
         </div>
       </section>
@@ -51,7 +51,7 @@ export default async function PricingPage() {
           <SectionHead n={no("how")} icon="check" eyebrow="How pricing works" title="Simple, with" accent="no hidden tiers." lead="Three rules explain the whole page." />
           <div className="grid gap-5 md:grid-cols-3">
             {[
-              { icon: "layers" as const, t: "Everything is included", x: `Every product, with every feature, is in every plan, including the free one. Nothing is locked behind a higher tier.` },
+              { icon: "layers" as const, t: "No locked features", x: `Every feature of a product you take is yours on every plan. The free plan holds one product; paid plans can hold them all.` },
               { icon: "users" as const, t: "Plans differ by team size", x: "A plan sets how many people can use the workspace. Start small and move up when your team grows." },
               { icon: "chart" as const, t: "And by allowances", x: "Storage, AI, email and voice usage are set per plan, so you only pay for the capacity you use." },
             ].map((c, i) => (

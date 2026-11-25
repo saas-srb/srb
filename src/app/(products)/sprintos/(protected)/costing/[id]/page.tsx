@@ -1,3 +1,4 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -31,7 +32,8 @@ export default async function ProjectCostingPage({ params }: { params: Promise<{
     getCostingConfig(id),
     computeProjectFinancials(id),
     buildProjectReport(id),
-    projectFinancialSummary(id),
+    // Booked revenue and expenses come from CashFlow's ledger.
+    hiddenProducts().then((hidden) => (hidden.has("fms") ? null : projectFinancialSummary(id))),
   ]);
   if (!financials || !report) notFound();
 

@@ -27,6 +27,7 @@ export const CYBERVAULT_COVERAGE: Record<string, Guard> = {
   "cybervault/(protected)/urls/page.tsx": { any: ["urls.view"] },
   "cybervault/(protected)/notes/page.tsx": { any: ["notes.view"] },
   "cybervault/(protected)/expiry/page.tsx": { any: ["expiry.view"] },
+  [`${A}#saveClientFromVaultAction`]: { any: ["clients.manage"], via: "requireClientKeeper" },
   [`${A}#dlmsLogoutAction`]: open("self-service", "Signs the person out."),
   [`${A}#markNotificationsReadAction`]: open("self-service", "Marks the person's own notifications read."),
   [`${A}#saveCredentialAction`]: { any: ["credentials.create", "credentials.edit"] },

@@ -1,11 +1,12 @@
 "use client";
 
+import { useUnavailableProducts } from "@/components/platform/PanelsProvider";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { FormDescription, FormFooter, FormHeader, FormShell, FormTitle } from "@/components/products/playbook-ai/forms/FormShell";
-import { PARTY_TYPES, PARTY_TYPE_LABEL, isLinkedType, type PartyType, type PickerHit } from "@/lib/products/contractflow-ai/party-types";
+import { PARTY_TYPES, PARTY_TYPE_LABEL, isLinkedFor, type PartyType, type PickerHit } from "@/lib/products/contractflow-ai/party-types";
 import { searchPartyCfAction, sendCloneAction } from "@/app/(products)/contractflow-ai/(protected)/clones/list-actions";
 import { FIELD } from "@/components/products/playbook-ai/items/shared";
 
@@ -18,9 +19,11 @@ export default function CfSendForm({ id, title, party, plan, backHref }: { id: s
   const router = useRouter();
   const onClose = () => router.push(backHref);
   const [pending, start] = useTransition();
+  const unavailable = useUnavailableProducts();
+  const linkedType = (t: PartyType) => isLinkedFor(t, unavailable);
   const [partyType, setPartyType] = useState<PartyType>(party.type);
   const [picked, setPicked] = useState<PickerHit | null>(null);
-  const [changeParty, setChangeParty] = useState(!party.partyId && isLinkedType(party.type));
+  const [changeParty, setChangeParty] = useState(!party.partyId && linkedType(party.type));
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<PickerHit[]>([]);
   const [name, setName] = useState(party.partyId ? "" : party.displayName);
@@ -36,10 +39,10 @@ export default function CfSendForm({ id, title, party, plan, backHref }: { id: s
     setError(null);
     let partyInput: { type: string; partyId?: string | null; recordId?: string | null; displayName?: string } | undefined;
     if (changeParty || partyType !== party.type) {
-      partyInput = isLinkedType(partyType)
+      partyInput = linkedType(partyType)
         ? picked ? { type: partyType, partyId: picked.partyId, recordId: picked.recordId, displayName: picked.displayName } : undefined
         : { type: partyType, displayName: name };
-      if (!partyInput || (isLinkedType(partyType) && !picked)) { setError(isLinkedType(partyType) ? "Choose who this is for." : "Enter a name."); return; }
+      if (!partyInput || (linkedType(partyType) && !picked)) { setError(linkedType(partyType) ? "Choose who this is for." : "Enter a name."); return; }
     }
     start(async () => {
       const r = await sendCloneAction({ id, party: partyInput, signers: signers.map((s, i) => ({ name: s.name, email: s.email, role: s.role, order: i + 1 })), orderMode: order, expiryDays: Number(expiry) });
@@ -66,7 +69,7 @@ export default function CfSendForm({ id, title, party, plan, backHref }: { id: s
                 <select className={FIELD} value={partyType} aria-label="Kind of party" onChange={(e) => { setPartyType(e.target.value as PartyType); setPicked(null); setHits([]); }}>
                   {PARTY_TYPES.map((t) => <option key={t} value={t}>{PARTY_TYPE_LABEL[t]}</option>)}
                 </select>
-                {isLinkedType(partyType) ? (
+                {linkedType(partyType) ? (
                   <>
                     <div className="flex gap-2"><input autoComplete="off" className={FIELD} placeholder="Search by name" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); search(); } }} aria-label="Search" /><Button type="button" variant="outline" size="sm" onClick={search}>Search</Button></div>
                     {hits.length > 0 && <ul className="max-h-40 divide-y overflow-y-auto rounded-md border">{hits.map((h) => <li key={h.recordId}><button type="button" className={`w-full px-3 py-2 text-left hover:bg-muted/50 ${picked?.recordId === h.recordId ? "bg-muted" : ""}`} onClick={() => { setPicked(h); setSigners((rows) => (rows.length === 1 && !rows[0].name && !rows[0].email ? [{ ...rows[0], name: h.displayName, email: h.email ?? "" }] : rows)); }}>{h.displayName}{h.subtitle ? <span className="text-xs text-muted-foreground"> · {h.subtitle}</span> : null}</button></li>)}</ul>}

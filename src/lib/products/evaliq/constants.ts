@@ -106,10 +106,10 @@ export const ATTEMPT_SCORING = [
 export type AttemptScoring = (typeof ATTEMPT_SCORING)[number]["value"];
 
 export const CANDIDATE_KINDS = [
-  { value: "employee", label: "Employee", source: "TalentOS" },
+  { value: "employee", label: "Employee", source: "Your team" },
   { value: "user", label: "Staff User", source: "Admin Users" },
   { value: "applicant", label: "Applicant", source: "Careers" },
-  { value: "student", label: "Student", source: "Cohort AI" },
+  { value: "student", label: "Student", source: "Training" },
 ] as const;
 export type CandidateKind = (typeof CANDIDATE_KINDS)[number]["value"];
 
@@ -133,20 +133,27 @@ export function parseCandidateKey(key: string): CandidateRef | null {
 
 /** Everything a test can be assigned to. Each resolves to people LIVE from the owning module. */
 export const TARGET_TYPES = [
-  { value: "department", label: "Department", group: "Employees", source: "TalentOS departments" },
-  { value: "designation", label: "Role / Designation", group: "Employees", source: "TalentOS designations" },
-  { value: "team", label: "Team / User Group", group: "Employees", source: "TalentOS teams" },
-  { value: "employment_type", label: "Employee Type", group: "Employees", source: "TalentOS employment types" },
-  { value: "employee", label: "Individual Employee", group: "Employees", source: "TalentOS employees" },
+  { value: "department", label: "Department", group: "Employees", source: "Your departments" },
+  { value: "designation", label: "Role / Designation", group: "Employees", source: "Your designations" },
+  { value: "team", label: "Team / User Group", group: "Employees", source: "Your teams" },
+  { value: "employment_type", label: "Employee Type", group: "Employees", source: "Employment types" },
+  { value: "employee", label: "Individual Employee", group: "Employees", source: "Your employees" },
   { value: "platform_role", label: "Platform Role", group: "Staff Users", source: "Admin user roles" },
   { value: "user", label: "Individual Staff User", group: "Staff Users", source: "Admin users" },
   { value: "applicant", label: "Individual Applicant", group: "Applicants", source: "Careers applications" },
   { value: "applicant_position", label: "Applicants by Position", group: "Applicants", source: "Careers job positions" },
-  { value: "student", label: "Individual Student", group: "Students", source: "Cohort AI students" },
-  { value: "batch", label: "Batch", group: "Students", source: "Cohort AI batches" },
-  { value: "program", label: "Course / Program", group: "Students", source: "Cohort AI programs" },
+  { value: "student", label: "Individual Student", group: "Students", source: "Students" },
+  { value: "batch", label: "Batch", group: "Students", source: "Batches" },
+  { value: "program", label: "Course / Program", group: "Students", source: "Programs" },
 ] as const;
 export type TargetType = (typeof TARGET_TYPES)[number]["value"];
+
+/** The products that keep each group of people; "Employees" and "Staff Users" come with every workspace. */
+const GROUP_KEEPERS: Record<string, string[]> = { Applicants: ["hrms", "lms"], Students: ["tms"] };
+/** The targets a company can assign to (`unavailable` = the products it can't use). */
+export function targetTypesFor(unavailable: ReadonlySet<string>) {
+  return TARGET_TYPES.filter((t) => !GROUP_KEEPERS[t.group] || GROUP_KEEPERS[t.group].some((m) => !unavailable.has(m)));
+}
 
 export function labelOf<T extends readonly { value: string; label: string }[]>(list: T, value: string | null | undefined): string {
   return list.find((x) => x.value === value)?.label ?? (value ? value.replace(/_/g, " ") : "—");

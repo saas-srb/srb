@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { limitOr429 } from "@/lib/security/rate-limit";
 import { readSafeJson } from "@/lib/security/safe-json";
 import { createLead, validateLeadInput } from "@/lib/leads";
-import { provisionLeadAndAccount } from "@/lib/lead-management/provision";
+import { portalOpen, provisionLeadAndAccount } from "@/lib/lead-management/provision";
 import { CATEGORY_TO_SOURCE } from "@/lib/lead-management/types";
 import { createPortalSession, setPortalSessionCookie, getCurrentPortalUser } from "@/lib/portal-auth";
 import { resolveUsagePolicy, maxUsableCredits } from "@/lib/wallet/usage-rules";
@@ -166,11 +166,13 @@ async function handlePOST(req: NextRequest) {
       claimIsNew = result.isNewAccount;
       // Only a brand-new account is signed in automatically. An email that already has an account is NOT proof of identity —
       // logging the submitter in would let anyone take over (and spend the wallet of) any user whose email they know.
-      if (result.isNewAccount) {
-        const { token } = await createPortalSession(result.externalUserId, false);
-        await setPortalSessionCookie(token, false);
+      if (await portalOpen()) {
+        if (result.isNewAccount) {
+          const { token } = await createPortalSession(result.externalUserId, false);
+          await setPortalSessionCookie(token, false);
+        }
+        portal = { redirect: result.isNewAccount ? "/clientos" : "/login", isNewAccount: result.isNewAccount, tempPassword: result.tempPassword };
       }
-      portal = { redirect: result.isNewAccount ? "/clientos" : "/login", isNewAccount: result.isNewAccount, tempPassword: result.tempPassword };
     } catch (provErr) {
       console.error("Offer claim: lead provisioning failed (claim still saved)", provErr);
     }

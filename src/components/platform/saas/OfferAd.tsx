@@ -57,7 +57,7 @@ export default function OfferAd({ slides, endsAt }: { slides: AdSlide[]; endsAt:
             {s.kind === "launch" && <>Save up to <span className="text-2xl">{s.pct}%</span> on every paid plan</>}
             {s.kind === "plan" && <>{s.name}: <span className="text-white/60 line-through">{s.list}</span> <span className="text-2xl">{s.price}</span>/mo</>}
             {s.kind === "yearly" && <>Pay yearly on {s.plan} — save <span className="text-2xl">{s.save}</span></>}
-            {s.kind === "free" && <>Free forever — <span className="text-2xl">₹0</span> full access, AI included</>}
+            {s.kind === "free" && <>Free forever — <span className="text-2xl">₹0</span> one product, AI included</>}
           </p>
         </div>
         {endsAt && <div className="mt-3"><Countdown endsAt={endsAt} variant="bar" /></div>}

@@ -4,6 +4,7 @@ import { COMPANIES_COLLECTION } from "@/lib/platform/tenancy/companies";
 import { DEFAULT_PANELS, PANEL_KEY_RE, PLATFORM_ONLY_KEYS, defaultAliases, defaultConnections, whiteLabelProductName, type PanelMeta, type PanelRecord } from "@/lib/platform/panels/types";
 import type { NavIcon } from "@/lib/products/commandos/nav";
 import { productSlugFor } from "@/lib/platform/saas/product-routes";
+import { lockedModuleKeys } from "@/lib/platform/products/availability";
 
 export const PANELS_COLLECTION = "platform_panels";
 
@@ -75,10 +76,10 @@ export async function disabledPanelKeys(companyId: string): Promise<Set<string>>
   return keys;
 }
 
-/** Product keys that are NOT available to this company: switched off globally or for the company. */
+/** Product keys that are NOT available to this company: switched off globally or for the company, or not one of its products. */
 export async function unavailablePanelKeys(companyId: string): Promise<Set<string>> {
-  const [panels, disabled] = await Promise.all([listPanels(), disabledPanelKeys(companyId)]);
-  const out = new Set<string>(disabled);
+  const [panels, disabled, locked] = await Promise.all([listPanels(), disabledPanelKeys(companyId), lockedModuleKeys(companyId)]);
+  const out = new Set<string>([...disabled, ...locked]);
   for (const p of panels) if (!p.active && !p.core) out.add(p.key);
   for (const p of panels) if (p.core) out.delete(p.key);
   return out;

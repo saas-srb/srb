@@ -1,4 +1,6 @@
 import "server-only";
+import { currentCompanyIdOrNull } from "@/lib/platform/tenancy/context";
+import { lockedModuleKeys } from "@/lib/platform/products/availability";
 import { notifyPanel, notifyUsers } from "@/lib/notify";
 import { day, plural, short, today } from "@/lib/notify/triggers/format";
 
@@ -29,8 +31,14 @@ export const lmsEvents = {
       : notifyPanel("lms", { type: "lms_lead_reply", title: `${l.name} replied (no owner yet)`, body: short(preview, 120), link: `${link(l)}#messages`, priority: "high" }, { level: "any" }),
   interviewScheduled: (l: L | null, title: string, when: Date, actor: string) =>
     l?.ownerStaffId && l.ownerStaffId !== actor ? notifyUsers("lms", [l.ownerStaffId], { type: "lms_interview", title: `Interview scheduled: ${short(title, 60)}`, body: `${l.name} · ${day(when)} ${when.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`, link: link(l) }) : Promise.resolve(0),
-  applicationReceived: (a: { id: string; name: string; positionTitle: string }) =>
-    notifyPanel("lms", { type: "lms_application_new", title: `New application: ${a.name}`, body: a.positionTitle, link: `/dealflow-ai/careers/applicants/${a.id}`, priority: "high", dedupeKey: `lms-app-new:${a.id}` }, { level: "staff" }),
+  applicationReceived: async (a: { id: string; name: string; positionTitle: string }) => {
+    // A company without DealFlow handles candidates in TalentOS, so HR hears about it there.
+    const company = await currentCompanyIdOrNull();
+    if (company && (await lockedModuleKeys(company)).has("lms")) {
+      return notifyPanel("hrms", { type: "lms_application_new", title: `New application: ${a.name}`, body: a.positionTitle, link: `/talentos/recruitment/${a.id}`, priority: "high", dedupeKey: `lms-app-new:${a.id}` }, { level: "staff" });
+    }
+    return notifyPanel("lms", { type: "lms_application_new", title: `New application: ${a.name}`, body: a.positionTitle, link: `/dealflow-ai/careers/applicants/${a.id}`, priority: "high", dedupeKey: `lms-app-new:${a.id}` }, { level: "staff" });
+  },
   staleDigest: async (leads: { count: number; names: string[] }, apps: { count: number; names: string[] }) => {
     if (leads.count > 0) await notifyPanel("lms", { type: "lms_stale_leads", title: `${plural(leads.count, "lead")} waiting too long`, body: leads.names.length ? `Oldest: ${leads.names.join(", ")}` : "Open leads with no progress.", link: "/dealflow-ai/leads/list", priority: "high", dedupeKey: `lms-stale-leads:${today()}` }, { level: "staff" });
     if (apps.count > 0) await notifyPanel("lms", { type: "lms_stale_applications", title: `${plural(apps.count, "application")} waiting too long`, body: apps.names.length ? `Oldest: ${apps.names.join(", ")}` : "Open applications with no update.", link: "/dealflow-ai/careers/applicants", priority: "high", dedupeKey: `lms-stale-apps:${today()}` }, { level: "staff" });

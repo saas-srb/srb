@@ -1,3 +1,4 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import PanelListFilters from "@/components/platform/panel/PanelListFilters";
 import { CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -84,7 +85,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
               label: "Documents",
               content: (
                 <div className="space-y-5">
-                  <EmployeeSignedDocuments employeeId={user.employeeId} title="My signed documents" />
+                  {!(await hiddenProducts()).has("lpms") && <EmployeeSignedDocuments employeeId={user.employeeId} title="My signed documents" />}
                   <MyDocuments
                     canUpload={hrCan(user, "documents.upload")}
                     documents={docs.map((d) => ({ _id: d._id, category: d.category, title: d.title, filename: d.filename, contentType: d.contentType, size: d.size, expiryDate: d.expiryDate, version: d.version, uploadedByRole: d.uploadedByRole, createdAt: d.createdAt }))}

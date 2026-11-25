@@ -47,6 +47,8 @@ export const TALENTOS_COVERAGE: Record<string, Guard> = {
   [`${P}/recruitment/actions.ts#createOfferAction`]: { any: ["recruitment.manage"], via: "requireRecruiter" },
   [`${P}/recruitment/actions.ts#updateOfferStatusAction`]: { any: ["recruitment.manage"], via: "requireRecruiter" },
   [`${P}/recruitment/actions.ts#updateOfferDetailsAction`]: { any: ["recruitment.manage"], via: "requireRecruiter" },
+  [`${P}/recruitment/actions.ts#addCandidateAction`]: { any: ["recruitment.manage"], via: "requireCandidateKeeper" },
+  [`${P}/recruitment/actions.ts#setCandidateStatusAction`]: { any: ["recruitment.manage"], via: "requireCandidateKeeper" },
   [`${P}/recruitment/actions.ts#setApplicantDoNotContactAction`]: { any: ["recruitment.manage"] },
   // Settings
   [`${P}/settings/page.tsx`]: layout("settings.view"),

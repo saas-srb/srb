@@ -166,14 +166,14 @@ function buildApplicationFilter(opts: BaseApplicationFilterOptions, jobs: Job[])
 }
 
 export async function createApplication(
-  data: ApplicationRecord & { resume: ResumeMeta }
+  data: ApplicationRecord & { resume: ResumeMeta; positionTitle?: string }
 ): Promise<CareerApplication> {
   const collection = await getApplicationsCollection();
   const now = new Date();
 
   let positionId: ObjectId | null = null;
   let positionSlug: string | null = null;
-  let positionTitle = GENERAL_APPLICATION_TITLE;
+  let positionTitle = data.positionTitle?.trim().slice(0, 120) || GENERAL_APPLICATION_TITLE;
 
   if (data.positionSlug) {
     const position = await getOpenJobPositionBySlug(data.positionSlug);

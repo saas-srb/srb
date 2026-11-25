@@ -128,6 +128,8 @@ export function indiaFiscalYear(month: string): { label: string; startYear: numb
  * be read — that must never be treated as "fine".
  */
 export interface MonthCloseFacts {
+  /** Steps that don't apply because the company doesn't have the product behind them. */
+  notUsed?: string[];
   unmatchedBankLines?: number;
   settlementsOpen?: number;
   /** Active cash accounts with no count recorded in the month. */
@@ -209,7 +211,7 @@ export function checkDataStep(key: string, f: MonthCloseFacts): Check {
 /** Every step in order, with its status. The lock step is added by `decideLock`'s caller (its state depends on the fiscal period). */
 export function evaluateSteps(facts: MonthCloseFacts, records: StepRecord[]): StepView[] {
   const byKey = new Map(records.map((r) => [r.stepKey, r]));
-  return STEPS.filter((s) => s.kind !== "lock").map((s) => {
+  return STEPS.filter((s) => s.kind !== "lock" && !facts.notUsed?.includes(s.key)).map((s) => {
     if (s.kind === "data") return { ...s, ...checkDataStep(s.key, facts), record: null };
     const record = byKey.get(s.key) ?? null;
     return { ...s, status: record ? ("recorded" as const) : ("todo" as const), detail: record ? "" : "Not recorded yet.", record };

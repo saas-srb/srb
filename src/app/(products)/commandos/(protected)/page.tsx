@@ -67,13 +67,15 @@ export default async function HubDashboardPage() {
         description={`Product performance across your workspace · ${new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}`}
         actions={
           <div className="flex items-center gap-2">
-            <Link
-              href="/talentos/me"
-              className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground shadow-md transition-all hover:scale-[1.02] hover:bg-primary/90"
-            >
-              <UserCheck className="size-4" />
-              My Attendance Portal
-            </Link>
+            {!unavailable.has("hrms") && (
+              <Link
+                href="/talentos/me"
+                className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground shadow-md transition-all hover:scale-[1.02] hover:bg-primary/90"
+              >
+                <UserCheck className="size-4" />
+                My Attendance Portal
+              </Link>
+            )}
           </div>
         }
       />

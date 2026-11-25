@@ -1,3 +1,5 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
+import { onlyAvailable } from "@/lib/platform/products/routes";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import type { Metadata } from "next";
 import PromptManager from "@/components/platform/prompts/PromptManager";
@@ -18,8 +20,9 @@ export default async function CompanyPromptsPage() {
   const controls = await getFeatureControls();
   const [status, panels, readOnly] = await Promise.all([listCompanyPromptStatus(), listPanels().catch(() => []), writeBlockReason()]);
   // Every prompt is listed. The ones a company may change carry the standard text now in force; the rest carry no text at all (it never reaches the browser).
+  const hidden = await hiddenProducts();
   const prompts = await Promise.all(
-    PROMPTS.map(async (p) => {
+    onlyAvailable(PROMPTS, (p) => p.product, hidden).map(async (p) => {
       const open = !!p.companyEditable && companyMayEditPrompt(controls, p.key);
       return { ...p, companyEditable: open, text: open ? (await promptText(p.key)).text : "", usedBy: [] as string[], note: undefined };
     }),
@@ -38,7 +41,7 @@ export default async function CompanyPromptsPage() {
           scope="company"
           prompts={prompts}
           status={status}
-          products={Object.fromEntries(panels.map((p) => [p.key, p.shortName || p.name]))}
+          products={Object.fromEntries(onlyAvailable(panels, (p) => p.key, hidden).map((p) => [p.key, p.shortName || p.name]))}
           canEdit={!readOnly && controls.companyPrompts}
           api={{ save: saveCompanyPromptAction, setEnabled: setCompanyPromptEnabledAction, reset: resetCompanyPromptAction, restore: restoreCompanyPromptAction, history: companyPromptHistoryAction, test: testCompanyPromptAction }}
         />

@@ -1,3 +1,7 @@
+import { listPanels, panelNameMap } from "@/lib/platform/panels/store";
+import { getDefaultPlan } from "@/lib/platform/billing/plans";
+import { offerName, parseSelection, resolveWebsite, type CompanyWebsite, type ProductSelection } from "@/lib/platform/products/selection";
+import { productAppPath } from "@/lib/platform/saas/product-routes";
 import { passwordPolicyError } from "@/lib/security/password";
 import { platformEvents } from "@/lib/notify/triggers/platform";
 import "server-only";
@@ -12,7 +16,7 @@ import { hashPassword } from "@/lib/lms-auth";
 import { runAsCompany } from "@/lib/platform/tenancy/context";
 import { sendVerificationEmail } from "@/lib/platform/email-verification";
 import { headers } from "next/headers";
-import { resolveSignupPlan } from "@/lib/platform/billing/signup-plan";
+import { allProductsTrialPlan, resolveSignupPlan } from "@/lib/platform/billing/signup-plan";
 
 /** Country, browser languages and time zone the sign-up request carries (when the host or CDN provides them). Used only to tailor the website. */
 async function requestHints(): Promise<{ country?: string; languages?: string; timezone?: string }> {
@@ -66,6 +70,8 @@ interface PendingSignup {
   business?: BusinessSelection;
   /** The plan picked on the pricing page, started as a free trial once the company exists. */
   plan?: { id: string; interval: "monthly" | "yearly" };
+  products?: ProductSelection;
+  website?: CompanyWebsite;
   status: "pending" | "awaiting_approval";
   createdAt: Date;
   expiresAt: Date;
@@ -112,12 +118,37 @@ export interface SignupInput {
   businessCategories: string[];
   businessSubCategories: string[];
   acceptTerms: boolean;
+  /** What to start with: a product key, or "all". Missing (older callers) = every product. */
+  product?: string;
+  /** With "All products": a website from us, their own, or none. */
+  websiteMode?: string;
+  websiteUrl?: string;
   /** From the pricing page (`/signup?plan=…&interval=…`); checked on the server, ignored when it is not a plan that can be started. */
   planId?: string;
   interval?: string;
 }
 
 export type SignupFieldErrors = Partial<Record<keyof SignupInput | "form", string>>;
+
+/** The products and website the form asked for; nothing when it didn't ask (everything). */
+function chosenProducts(input: SignupInput): { products?: ProductSelection; website?: CompanyWebsite } {
+  const products = input.product === undefined ? null : parseSelection(input.product);
+  if (!products) return {};
+  const wanted: CompanyWebsite = input.websiteMode === "external" ? { mode: "external", externalUrl: input.websiteUrl!.trim() } : { mode: input.websiteMode === "none" ? "none" : "platform" };
+  return { products, website: resolveWebsite(products, products.mode === "all" ? wanted : undefined) };
+}
+
+/** Where a new owner lands first: the product they came for (CommandOS when they took them all). */
+function firstScreen(products: ProductSelection | undefined): string {
+  return products?.mode === "selected" && products.keys.length ? productAppPath(products.keys[0]) : "/commandos";
+}
+
+/** A product the platform has switched off can't be bought. */
+async function productOffSale(products: ProductSelection | undefined): Promise<boolean> {
+  if (products?.mode !== "selected") return false;
+  const registry = await listPanels();
+  return products.keys.some((k) => registry.find((p) => p.key === k)?.active === false);
+}
 
 export function validateSignup(input: SignupInput): SignupFieldErrors {
   const errors: SignupFieldErrors = {};
@@ -130,6 +161,10 @@ export function validateSignup(input: SignupInput): SignupFieldErrors {
   { const weak = passwordPolicyError(input.password, { email: input.email }); if (weak) errors.password = weak; }
   const business = resolveBusiness(input.businessCategories, input.businessSubCategories);
   if (!business.ok) Object.assign(errors, business.errors);
+  if (input.product !== undefined) {
+    if (!parseSelection(input.product)) errors.product = "Choose a product, or All products.";
+    if (input.websiteMode === "external" && !/^https?:\/\/[^\s/]+\.[^\s]+$/i.test(input.websiteUrl?.trim() ?? "")) errors.websiteUrl = "Enter your website's full address, e.g. https://example.com";
+  }
   if (!input.acceptTerms) errors.acceptTerms = "Accept the terms to continue.";
   return errors;
 }
@@ -183,10 +218,10 @@ export async function issueSupportHandoff(created: { companyId: string; adminId:
   return `${appBase}/commandos/handoff?token=${handoff}`;
 }
 
-async function issueHandoff(created: { companyId: string; adminId: string }, base: string): Promise<string> {
+async function issueHandoff(created: { companyId: string; adminId: string }, base: string, next = "/commandos"): Promise<string> {
   const { handoffs } = await collections();
   const handoff = randomBytes(32).toString("hex");
-  await handoffs.insertOne({ _id: sha256(handoff), companyId: created.companyId, adminId: created.adminId, next: "/commandos", expiresAt: new Date(Date.now() + HANDOFF_TTL_MS) });
+  await handoffs.insertOne({ _id: sha256(handoff), companyId: created.companyId, adminId: created.adminId, next, expiresAt: new Date(Date.now() + HANDOFF_TTL_MS) });
   return `${base}/commandos/handoff?token=${handoff}`;
 }
 
@@ -220,7 +255,10 @@ export async function startSignup(input: SignupInput, ctx: { hostHint: string | 
   if (!(await isSlugAvailable(input.slug, email))) return { ok: false, errors: { slug: "That workspace address is taken." } };
 
   const business = (resolveBusiness(input.businessCategories, input.businessSubCategories) as { ok: true; value: BusinessSelection }).value;
-  const picked = await resolveSignupPlan(input.planId, input.interval);
+  const chosen = chosenProducts(input);
+  if (await productOffSale(chosen.products)) return { ok: false, errors: { product: "That product isn't available right now. Choose another." } };
+  // "All products" without a picked plan starts a paid plan's free trial: the free plan holds one product.
+  const picked = (await resolveSignupPlan(input.planId, input.interval)) ?? (chosen.products?.mode === "all" && (await getDefaultPlan())?.lifetimeFree ? await allProductsTrialPlan() : null);
   const plan = picked ? { id: picked.planId, interval: picked.interval } : undefined;
   const passwordHash = hashPassword(input.password);
   const companyName = input.companyName.trim();
@@ -241,6 +279,7 @@ export async function startSignup(input: SignupInput, ctx: { hostHint: string | 
       passwordHash,
       business,
       ...(plan ? { plan } : {}),
+      ...chosen,
       status: "awaiting_approval",
       createdAt: now,
       expiresAt: new Date(now.getTime() + 30 * PENDING_TTL_MS),
@@ -248,13 +287,13 @@ export async function startSignup(input: SignupInput, ctx: { hostHint: string | 
     return { ok: true, kind: "awaiting_approval", email };
   }
 
-  const created = await createCompanyWithOwner({ name: companyName, slug: input.slug, owner: { email, name, passwordHash, mustChangePassword: false, emailVerified: false }, business, ...(plan ? { plan } : {}), aiWebsite: "wait", hints: await requestHints() });
+  const created = await createCompanyWithOwner({ name: companyName, slug: input.slug, owner: { email, name, passwordHash, mustChangePassword: false, emailVerified: false }, business, ...(plan ? { plan } : {}), ...chosen, aiWebsite: "wait", hints: await requestHints() });
   // "Address just taken" (two sign-ups racing for it) belongs on the address field.
   if (!created.ok) return { ok: false, errors: /address/i.test(created.error) ? { slug: created.error } : { form: created.error } };
 
   const base = companyAppBaseUrl(input.slug, ctx.hostHint);
   await sendOwnerVerification(created, base);
-  return { ok: true, kind: "created", redirectTo: await issueHandoff(created, base) };
+  return { ok: true, kind: "created", redirectTo: await issueHandoff(created, base, firstScreen(chosen.products)) };
 }
 
 export async function describePendingSignup(token: string): Promise<{ companyName: string; slug: string; email: string } | null> {
@@ -283,6 +322,7 @@ export async function confirmSignup(token: string, ctx: { hostHint: string | nul
     owner: { email: doc.email, name: doc.name, passwordHash: doc.passwordHash, mustChangePassword: false, emailVerified: true }, // confirmed through the emailed link
     business: doc.business,
     ...(doc.plan ? { plan: doc.plan } : {}),
+    ...(doc.products ? { products: doc.products, website: doc.website } : {}),
   });
   if (!created.ok) {
     // Put it back so the user can retry from the same link once they've been told why.
@@ -294,7 +334,15 @@ export async function confirmSignup(token: string, ctx: { hostHint: string | nul
   void sendWorkspaceReadyEmail(doc, base);
   await platformEvents.companyCreated(doc.companyName, doc.email, created.companyId);
 
-  return { ok: true, redirectTo: await issueHandoff(created, base) };
+  return { ok: true, redirectTo: await issueHandoff(created, base, firstScreen(doc.products)) };
+}
+
+/** "Your products: …" for the welcome email (nothing when they took the default). */
+async function productLine(products: ProductSelection | undefined): Promise<string[]> {
+  if (!products) return [];
+  if (products.mode === "all") return ["Your products: all of them."];
+  const name = await panelNameMap();
+  return [`Your products: ${products.keys.map((k) => offerName(k, name(k))).join(", ")}. You can add more any time in Settings → Billing.`];
 }
 
 async function sendWorkspaceReadyEmail(doc: PendingSignup, base: string, approved = false) {
@@ -302,7 +350,7 @@ async function sendWorkspaceReadyEmail(doc: PendingSignup, base: string, approve
   const { html, text } = renderEmail({
     brand: doc.companyName,
     heading: approved ? "Your workspace has been approved" : "Your workspace is ready",
-    paragraphs: [`Hi ${doc.name},`, `${doc.companyName} is set up. Sign in any time at your workspace address with the password you chose:`, base],
+    paragraphs: [`Hi ${doc.name},`, `${doc.companyName} is set up. Sign in any time at your workspace address with the password you chose:`, base, ...(await productLine(doc.products))],
     action: { label: "Open your workspace", url: `${base}/commandos/login` },
     ...(platform.supportLine ? { footnote: platform.supportLine } : {}),
   });
@@ -313,6 +361,8 @@ async function sendWorkspaceReadyEmail(doc: PendingSignup, base: string, approve
 
 export interface AwaitingApproval {
   id: string;
+  /** What they asked for, in words. */
+  products: string;
   email: string;
   name: string;
   companyName: string;
@@ -330,10 +380,16 @@ export async function countAwaitingApproval(): Promise<number> {
 export async function listAwaitingApproval(): Promise<AwaitingApproval[]> {
   const { pending } = await collections();
   const docs = await pending
-    .find({ status: "awaiting_approval", expiresAt: { $gt: new Date() } }, { projection: { email: 1, name: 1, companyName: 1, slug: 1, createdAt: 1, expiresAt: 1 } })
+    .find({ status: "awaiting_approval", expiresAt: { $gt: new Date() } }, { projection: { email: 1, name: 1, companyName: 1, slug: 1, createdAt: 1, expiresAt: 1, products: 1, website: 1 } })
     .sort({ createdAt: 1 })
     .toArray();
-  return docs.map((d) => ({ id: d._id, email: d.email, name: d.name, companyName: d.companyName, slug: d.slug, createdAt: d.createdAt, expiresAt: d.expiresAt }));
+  const name = await panelNameMap();
+  const words = (d: PendingSignup) => {
+    const list = !d.products || d.products.mode === "all" ? "All products" : d.products.keys.map((k) => offerName(k, name(k))).join(", ");
+    const site = d.website?.mode === "external" ? ` · own website ${d.website.externalUrl}` : d.website?.mode === "none" ? " · no website" : "";
+    return `${list}${site}`;
+  };
+  return docs.map((d) => ({ products: words(d), id: d._id, email: d.email, name: d.name, companyName: d.companyName, slug: d.slug, createdAt: d.createdAt, expiresAt: d.expiresAt }));
 }
 
 export type ApprovalResult = { ok: true; companyId: string; host: string; emailed: boolean } | { ok: false; error: string };
@@ -359,6 +415,7 @@ export async function approveSignup(id: string, ctx: { hostHint: string | null }
     owner: { email: doc.email, name: doc.name, passwordHash: doc.passwordHash, mustChangePassword: false, emailVerified: false },
     business: doc.business,
     ...(doc.plan ? { plan: doc.plan } : {}),
+    ...(doc.products ? { products: doc.products, website: doc.website } : {}),
   });
   if (!created.ok) {
     await pending.insertOne(doc);

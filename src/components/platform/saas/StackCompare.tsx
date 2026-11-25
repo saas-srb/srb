@@ -45,7 +45,7 @@ export default function StackCompare({ plan, products }: {
               </div>
               <p className="relative mt-2 flex items-baseline gap-2"><span className="text-5xl font-black leading-none tracking-tighter">₹0</span><span className="text-xl font-black">Free forever</span></p>
               <ul className="relative mt-3 grid gap-1 text-[13px] font-semibold sm:grid-cols-2">
-                {["No card needed", "Every product unlocked", "AI built in", "Live in minutes"].map((t) => (<li key={t} className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 flex-none" strokeWidth={3} />{t}</li>))}
+                {["No card needed", "All products", "AI built in", "Live in minutes"].map((t) => (<li key={t} className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 flex-none" strokeWidth={3} />{t}</li>))}
               </ul>
               <Link href="/signup" className="group relative mt-4 flex items-center justify-center gap-2 rounded-full bg-emerald-950 px-6 py-3.5 text-sm font-black text-white shadow-xl transition-transform hover:scale-[1.03]">Start free now <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></Link>
             </div>
@@ -53,7 +53,7 @@ export default function StackCompare({ plan, products }: {
             <p className="relative text-xs font-black uppercase tracking-[0.16em] text-white/75">SelfRun {plan?.name ?? ""}</p>
             <div className="relative">
               <p className="text-6xl font-black leading-none tracking-tighter tabular-nums">{plan?.price ?? "—"}<span className="text-lg font-bold text-white/75"> /mo</span></p>
-              <p className="mt-2 text-sm text-white/80">for up to {COMPARE_TEAM} people · every product · every feature · AI built in</p>
+              <p className="mt-2 text-sm text-white/80">for up to {COMPARE_TEAM} people · all products · every feature · AI built in</p>
             </div>
 
             {plan && plan.monthly > 0 && (

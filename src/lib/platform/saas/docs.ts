@@ -228,7 +228,7 @@ const added: Doc[] = [
   d({
     slug: "plans-and-billing", title: "Plans, usage and billing", summary: "How plans work, what is included and how to change.", category: "Security & admin", readMinutes: 4, shot: "workspace", panel: "workspace",
     sections: [
-      { heading: "What a plan sets", body: ["Every plan includes every product and every feature. A plan sets the number of people and the allowances for storage, AI, email and voice. The Free plan is free forever. The Free plan lets each person stay signed in on one device at a time; paid plans have no limit."] },
+      { heading: "What a plan sets", body: ["Every feature of the products you take is included. A plan sets how many products and people, and the allowances for storage, AI, email and voice. The Free plan is free forever. The Free plan lets each person stay signed in on one device at a time; paid plans have no limit."] },
       { heading: "See what you use", body: ["Workspace → Usage shows seats, AI, email, voice and storage against your plan."] },
       { heading: "Change plan or cancel", body: ["Upgrade or move down at any time from Plan & billing. Invoices, credit notes and payments for your subscription are under Invoices & payments."] },
       { heading: "When the free trial ends", body: ["If the trial ends and no plan has been bought, the workspace is locked: every page leads to a “Subscribe to continue” screen and changes are refused. Nothing is deleted. You can still sign in and open Plan & billing, and the moment a plan is subscribed everything is available again, exactly as you left it."], tip: "Subscribe before the trial ends and your team never notices a break." },

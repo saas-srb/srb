@@ -1,3 +1,5 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
+import { onlyAvailable } from "@/lib/platform/products/routes";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -29,7 +31,8 @@ export default async function NotificationCenterPage() {
     (await getDb()).collection<{ email: string; name?: string }>("admin_users").find({ status: { $nin: BLOCKED_STATUSES } }, { projection: { email: 1, name: 1 } }).sort({ email: 1 }).limit(500).toArray(),
     writeBlockReason(),
   ]);
-  const roles = [{ value: "super_admin", label: "Director" }, ...ROLE_GROUPS.flatMap((g) => g.roles.map((r) => ({ value: r.value, label: `${r.label} · ${g.module}` })))];
+  const hidden = await hiddenProducts();
+  const roles = [{ value: "super_admin", label: "Director" }, ...onlyAvailable(ROLE_GROUPS, (g) => g.panel, hidden).flatMap((g) => g.roles.map((r) => ({ value: r.value, label: `${r.label} · ${g.module}` })))];
 
   return (
     <div className="min-h-screen bg-muted/70 px-4 py-10 dark:bg-background">
@@ -44,8 +47,8 @@ export default async function NotificationCenterPage() {
         ) : null}
         {readOnly && <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">{readOnly}</p>}
         {controls.notificationCenter && <NotificationCenter
-          rules={rules}
-          products={panels.map((p) => ({ key: p.key, name: p.shortName || p.name }))}
+          rules={onlyAvailable(rules, (r) => r.product, hidden)}
+          products={onlyAvailable(panels, (p) => p.key, hidden).map((p) => ({ key: p.key, name: p.shortName || p.name }))}
           roles={roles}
           people={people.map((p) => ({ id: String((p as { _id: unknown })._id), label: p.name ? `${p.name} (${p.email})` : p.email }))}
           announcements={announcements}

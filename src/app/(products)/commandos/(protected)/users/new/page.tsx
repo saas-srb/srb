@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
-import { buildAccessUi } from "@/lib/access/ui-model";
+import { accessUiFor } from "@/lib/products/commandos/people";
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import { loadOrgOptions } from "@/lib/platform/organization/options";
 import { countSeatsUsed } from "@/lib/platform/billing/enforce";
 import { getEntitlements } from "@/lib/platform/billing/entitlements";
@@ -25,7 +26,7 @@ export default async function NewPersonPage() {
       <PersonWizard
         mode="create"
         initial={{ details: emptyDetails(), picked: {}, isDirector: false }}
-        model={buildAccessUi()}
+        model={accessUiFor(await hiddenProducts())}
         org={org}
         actions={{ check: checkPersonAction, create: createPersonAction, update: updatePersonAction }}
         seatLine={`Seats: ${seatsUsed} of ${limit === null ? "unlimited" : limit} in use.`}

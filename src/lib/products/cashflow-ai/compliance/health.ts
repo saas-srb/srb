@@ -1,3 +1,4 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import { safeDay } from "@/lib/products/cashflow-ai/accrual/core";
 import "server-only";
 import { getDb } from "@/lib/mongodb";
@@ -33,6 +34,7 @@ async function safe(key: string, label: string, href: string | undefined, run: (
 }
 
 export async function runHealthChecks(today: string): Promise<HealthCheck[]> {
+  const hidden = await hiddenProducts();
   return Promise.all([
     safe("coa", "Chart of accounts is set up", "/cashflow-ai/settings/accounts", async () => {
       const n = (await listAccounts()).length;
@@ -94,12 +96,12 @@ export async function runHealthChecks(today: string): Promise<HealthCheck[]> {
       const active = cfg.rates.filter((r) => r.isActive).length;
       return active > 0 ? { level: "ok", detail: `${active} active tax rates.` } : { level: "bad", detail: "No active tax rate. Invoices cannot charge GST." };
     }),
-    safe("payroll-dues", "Payroll government dues paid on time", "/talentos/payroll/compliance", async () => {
+    ...(hidden.has("hrms") ? [] : [safe("payroll-dues", "Payroll government dues paid on time", "/talentos/payroll/compliance", async () => {
       const overview = await dueOverview();
       const overdue = overview.reduce((n, m) => n + m.overdue, 0);
       if (overview.length === 0) return { level: "ok", detail: "No approved payroll yet, so nothing is due." };
       return overdue === 0 ? { level: "ok", detail: "No payroll due is overdue." } : { level: "bad", detail: `${overdue} payroll due${overdue === 1 ? " is" : "s are"} overdue (PF, ESI, TDS, PT or LWF).` };
-    }),
+    })]),
     safe("filings", "Filing calendar is up to date", "/cashflow-ai/compliance/calendar", async () => {
       const filings = await listFilings();
       if (filings.length === 0) return { level: "warn", detail: "Your filing calendar is empty: tap Fill in my filing calendar." };

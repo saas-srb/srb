@@ -6,7 +6,9 @@ import { normalizeAccess } from "@/lib/access/can";
 import { CATALOGUE, PRODUCTS, isAccessGate } from "@/lib/access/catalogue";
 import { completeWith, WORKSPACE_PRODUCT } from "@/lib/access/complete";
 import type { AccessMap } from "@/lib/access/types";
-import { buildAccessUi } from "@/lib/access/ui-model";
+import { buildAccessUi, type AccessUiModel } from "@/lib/access/ui-model";
+import { hiddenProducts } from "@/lib/platform/products/visible";
+import { productKeyFromSlug } from "@/lib/platform/saas/product-routes";
 import { microByKey, isFinished, microOf, FINISHED_PRODUCTS } from "@/lib/access/micro";
 import { withMicros } from "@/lib/access/micro/derive";
 import { summarizeAccess, productCount, type ProductSummary } from "@/lib/access/summary";
@@ -47,21 +49,39 @@ export interface AccessCheck {
   explanation: string[];
 }
 
+const productOfKey = (key: string) => CATALOGUE.find((e) => e.key === key)?.product ?? microByKey(key)?.product ?? key.split(".")[0];
+
+/** Whether an access-catalogue product (a URL slug such as "talentos") is one the company can't use. CommandOS never is. */
+export function isHiddenAccessProduct(product: string, hidden: ReadonlySet<string>): boolean {
+  return product !== WORKSPACE_PRODUCT && hidden.has(productKeyFromSlug(product) ?? product);
+}
+
+/** The products the access screens offer: the company's own. */
+export function accessUiFor(hidden: ReadonlySet<string>): AccessUiModel {
+  const ui = buildAccessUi();
+  return hidden.size === 0 ? ui : { ...ui, products: ui.products.filter((p) => !isHiddenAccessProduct(p.key, hidden)) };
+}
+
 /** Completes and checks a draft access map. Pure with respect to the database. */
-export function checkAccess(input: unknown, opts: { isDirector?: boolean } = {}): AccessCheck {
+export function checkAccess(input: unknown, opts: { isDirector?: boolean; hidden?: ReadonlySet<string> } = {}): AccessCheck {
   const picked = normalizeAccess(input);
   const completed = opts.isDirector ? picked : completeAccess(picked);
   const derived = accessToLegacy(completed, { isDirector: opts.isDirector });
-  const ui = buildAccessUi();
+  const hidden = opts.hidden ?? new Set<string>();
+  const ui = accessUiFor(hidden);
+  // Access to a product the company doesn't have is kept (it comes back with the product) but is not talked about.
+  const seen = (key: string) => !isHiddenAccessProduct(productOfKey(key), hidden);
+  const widened = derived.widened.filter(seen);
+  const withheld = derived.withheld.filter(seen);
   const addedAutomatically: string[] = [];
-  for (const [p, m] of Object.entries(completed)) for (const k of Object.keys(m)) if (!picked[p]?.[k] && CATALOGUE.find((e) => e.key === k)?.kind !== "tier" && !(isFinished(p) && CATALOGUE.some((e) => e.key === k))) addedAutomatically.push(label(k));
+  for (const [p, m] of Object.entries(completed)) for (const k of Object.keys(m)) if (!isHiddenAccessProduct(p, hidden) && !picked[p]?.[k] && CATALOGUE.find((e) => e.key === k)?.kind !== "tier" && !(isFinished(p) && CATALOGUE.some((e) => e.key === k))) addedAutomatically.push(label(k));
   const summary = summarizeAccess(completed, ui.products, opts.isDirector);
   const explanation: string[] = [];
-  if (derived.widened.length) explanation.push(`These would also be allowed because older roles bundle them with what you picked: ${derived.widened.map(label).join(", ")}. Remove the related feature or choose a different level.`);
-  if (derived.withheld.length) explanation.push(`These are saved but older parts of the product cannot honour them yet, so they show as not available there: ${derived.withheld.map(label).join(", ")}.`);
+  if (widened.length) explanation.push(`These would also be allowed because older roles bundle them with what you picked: ${widened.map(label).join(", ")}. Remove the related feature or choose a different level.`);
+  if (withheld.length) explanation.push(`These are saved but older parts of the product cannot honour them yet, so they show as not available there: ${withheld.map(label).join(", ")}.`);
   return {
     access: completed, roles: derived.roles, overrides: derived.permissionOverrides,
-    widened: derived.widened.map(label), withheld: derived.withheld.map(label), addedAutomatically: [...new Set(addedAutomatically)],
+    widened: widened.map(label), withheld: withheld.map(label), addedAutomatically: [...new Set(addedAutomatically)],
     products: productCount(summary), summary, explanation,
   };
 }
@@ -144,7 +164,7 @@ export async function validateDraft(draftIn: Partial<PersonDraft>, personId?: st
   for (const [field, ids, list] of [["departmentIds", details.departmentIds, org.departments], ["teamIds", details.teamIds, org.teams], ["designationIds", details.designationIds, org.designations]] as const) {
     if (ids.some((id) => !list.some((x) => x._id === id))) errors[field] = "One of the choices no longer exists. Refresh and choose again.";
   }
-  const check = checkAccess(draftIn.access ?? {}, { isDirector });
+  const check = checkAccess(draftIn.access ?? {}, { isDirector, hidden: await hiddenProducts() });
   let refusal: string | null = null;
   if (!isDirector) {
     if (check.widened.length) refusal = check.explanation[0];

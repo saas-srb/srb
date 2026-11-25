@@ -128,7 +128,7 @@ export default async function DocArticle({ params }: { params: Promise<{ slug: s
           </article>
         </div>
       </section>
-      <CtaBand title="Put this guide to work — free." lead="Every product and every feature is included in every plan, starting free forever." />
+      <CtaBand title="Put this guide to work — free." lead="Every feature of the products you choose is included, starting free forever with one product." />
       <FaqSection topics={["Setup", "AI & automation", "Your brand"]} limit={5} />
     </>
   );

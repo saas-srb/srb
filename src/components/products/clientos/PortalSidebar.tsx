@@ -1,4 +1,6 @@
 "use client";
+import { useUnavailableProducts } from "@/components/platform/PanelsProvider";
+import { hrefAvailable } from "@/lib/platform/products/routes";
 
 import Link from "next/link";
 import React from "react";
@@ -131,7 +133,9 @@ export default function PortalSidebar({
   collapsed?: boolean;
   onNavigate?: () => void;
 }) {
-  const items = PORTAL_NAV[role];
+  const unavailable = useUnavailableProducts();
+  // Without the whole of ClientOS only the pages of the company's own products are listed.
+  const items = PORTAL_NAV[role].filter((i) => hrefAvailable(i.href, unavailable));
 
   return (
     <nav className="flex h-full flex-col gap-1 overflow-y-auto p-3">

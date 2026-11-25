@@ -48,9 +48,9 @@ const AGENDA = [
     label: "Next steps",
     icon: Rocket,
     title: "Start free — no commitment needed",
-    copy: "Every product is included in the free plan. You can sign up, invite your team, and run a real process before spending a rupee. If you want a deeper evaluation, we'll set up a private sandbox with your own data.",
+    copy: "The free plan holds one product, free for life. You can sign up, invite your team, and run a real process before spending a rupee. If you want a deeper evaluation, we'll set up a private sandbox with your own data.",
     points: [
-      "Free plan includes every product — no trial expiry",
+      "Free plan: one product, no trial expiry",
       "Upgrade only when your team grows or you need more AI tokens",
       "Private sandbox with your data available on request",
       "Dedicated onboarding call for Growth plan and above",

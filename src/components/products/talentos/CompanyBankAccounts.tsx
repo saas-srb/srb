@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useUnavailableProducts } from "@/components/platform/PanelsProvider";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { CardContent } from "@/components/ui/card";
@@ -24,6 +25,8 @@ interface Account {
 }
 
 export default function CompanyBankAccounts({ accounts, salaryAccountId, connected, razorpayxBalance }: { accounts: Account[]; salaryAccountId: string | null; connected: boolean; razorpayxBalance: number }) {
+  // CashFlow keeps the books; without it the payment is simply recorded against the account.
+  const books = !useUnavailableProducts().has("fms");
   const router = useRouter();
   const [pending, start] = useTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -78,7 +81,7 @@ export default function CompanyBankAccounts({ accounts, salaryAccountId, connect
           <ol className="list-decimal space-y-1 pl-5 text-muted-foreground">
             <li>Every payment (salaries, vendors, refunds, reimbursements) is made by <strong>RazorpayX</strong> from your RazorpayX balance. {connected ? <span className="text-emerald-700 dark:text-emerald-400">Razorpay is connected.</span> : <>It is <strong>not connected</strong> yet: <Link className="underline" href="/commandos/settings/payments">connect Razorpay</Link>.</>}</li>
             <li>You add money to RazorpayX from your current account (net banking, to the RazorpayX account), then record it here so your books agree.</li>
-            <li>Each payment shows as paid, with its UTR, when the bank confirms, and is booked against the RazorpayX balance in CashFlow.</li>
+            <li>Each payment shows as paid, with its UTR, when the bank confirms, and is booked against the RazorpayX balance{books ? " in CashFlow" : ""}.</li>
             <li>PF, ESI, tax and professional tax cannot be paid through Razorpay. Pay them on their portals from your current account and record them under <em>Government payments</em>.</li>
           </ol>
           <p className="pt-1">RazorpayX balance in your books: <strong>{formatCurrency(razorpayxBalance)}</strong></p>

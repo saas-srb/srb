@@ -17,7 +17,7 @@ interface Step {
  * redirects when it's done, so the steps are paced by time (they describe what the server is doing, in order) and the
  * ring eases toward — but never reaches — 100% until the page changes. A small workspace sketch fills in as steps finish.
  */
-export default function CreatingWorkspace({ companyName, host, approval = false }: { companyName: string; host: string; approval?: boolean }) {
+export default function CreatingWorkspace({ companyName, host, approval = false, website = true }: { companyName: string; host: string; approval?: boolean; website?: boolean }) {
   const reduce = useReducedMotion();
   const [elapsed, setElapsed] = useState(0);
 
@@ -35,9 +35,10 @@ export default function CreatingWorkspace({ companyName, host, approval = false 
     : [
         { title: "Creating your business", detail: companyName ? `Setting up ${companyName}` : "Setting up your business record", icon: Building2, at: 0 },
         { title: "Reserving your address", detail: host, icon: Globe, at: 1400 },
-        { title: "Preparing your workspace", detail: "Roles, products and your free plan", icon: PanelsTopLeft, at: 3200 },
-        { title: "Writing your website with AI", detail: "Pages, menu, colours and photos made for your kind of business", icon: LayoutDashboard, at: 5600 },
-        { title: "Signing you in", detail: "Opening your workspace", icon: LogIn, at: 95000 },
+        { title: "Preparing your workspace", detail: "Roles, your products and plan", icon: PanelsTopLeft, at: 3200 },
+        // Only a workspace with a website from us waits for it to be written.
+        ...(website ? [{ title: "Writing your website with AI", detail: "Pages, menu, colours and photos made for your kind of business", icon: LayoutDashboard, at: 5600 }] : []),
+        { title: "Signing you in", detail: "Opening your workspace", icon: LogIn, at: website ? 95000 : 5600 },
       ];
 
   const active = steps.reduce((acc, s, i) => (elapsed >= s.at ? i : acc), 0);

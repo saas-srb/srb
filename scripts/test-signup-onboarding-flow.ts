@@ -84,8 +84,8 @@ async function run() {
   await check("the sign-up form asks only for company, address, business type, e-mail, password and terms - no setup steps", () => {
     const form = fs.readFileSync(path.join(process.cwd(), "src/app/(platform)/signup/SignupForm.tsx"), "utf8");
     const names = [...form.matchAll(/name="([A-Za-z]+)"/g)].map((m) => m[1]).sort();
-    // The business category and sub-category are asked at sign-up (they decide the starter website); the chosen plan travels as two hidden fields; there is still no setup wizard in the form.
-    assert.deepEqual(names, ["acceptTerms", "businessCategory", "businessSubCategory", "companyName", "email", "interval", "password", "plan", "slug"]);
+    // The product (and, for All products, the website choice), the business category and sub-category are asked at sign-up (they decide the starter website); the chosen plan travels as two hidden fields; there is still no setup wizard in the form.
+    assert.deepEqual(names, ["acceptTerms", "businessCategory", "businessSubCategory", "companyName", "email", "interval", "password", "plan", "product", "slug", "websiteMode", "websiteUrl"]);
     assert.ok(!/useState\(\s*(0|1)\s*\)[^\n]*step/i.test(form) && !/\bstep\b/i.test(form.replace(/\/\/.*$/gm, "")), "no multi-step flow in the form");
   });
 
@@ -235,7 +235,7 @@ async function run() {
     assert.ok(!read("src/app/(products)/commandos/(protected)/onboarding/page.tsx").includes('redirect("/commandos")') || read("src/app/(products)/commandos/(protected)/onboarding/page.tsx").includes("super_admin"), "the wizard only bounces non-owners");
     assert.ok(fs.existsSync(path.join(root, "src/app/(products)/commandos/(protected)/onboarding/OnboardingWizard.tsx")));
     assert.ok(!read("src/lib/platform/signup.ts").includes('next: "/onboarding"'));
-    assert.ok(read("src/lib/platform/signup.ts").includes('next: "/commandos"'));
+    assert.ok(read("src/lib/platform/signup.ts").includes('next = "/commandos"'), "the workspace unless a product was chosen");
   });
 }
 

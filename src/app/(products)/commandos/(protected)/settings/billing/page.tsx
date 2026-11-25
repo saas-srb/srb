@@ -1,3 +1,11 @@
+import ProductsCard from "@/components/platform/billing/ProductsCard";
+import { productState } from "@/lib/platform/billing/products";
+import { productPrice } from "@/lib/platform/billing/pricing";
+import { disabledPanelKeys, listPanels, panelNameMap } from "@/lib/platform/panels/store";
+import { whiteLabelProductName } from "@/lib/platform/panels/types";
+import { getCompany } from "@/lib/platform/tenancy/companies";
+import { NEEDS_ONE_OF, SELLABLE_PRODUCTS } from "@/lib/platform/products/selection";
+import type { ModuleKey } from "@/lib/platform/onboarding/catalog";
 import { getCompanyIdentity } from "@/lib/platform/company-identity";
 import { billingDetailsFromIdentity } from "@/lib/platform/billing/company-details-prefill";
 import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
@@ -16,7 +24,6 @@ import { getPlan, getStandardPlans } from "@/lib/platform/billing/plans";
 import { razorpayConfigured } from "@/lib/platform/billing/razorpay";
 import { hasLiveSubscription } from "@/lib/platform/billing/subscriptions";
 import type { PlanOption } from "@/lib/platform/billing/billing-details";
-import { planPrice } from "@/lib/platform/billing/pricing";
 import BillingManager, { type BillingView } from "@/components/platform/billing/BillingManager";
 import PlanChooser from "@/components/billing/PlanChooser";
 import UsageMeters from "@/components/billing/UsageMeters";
@@ -30,6 +37,8 @@ import {
   confirmCheckoutAction,
   quoteAction,
   resumeSubscriptionAction,
+  previewProductsAction,
+  changeProductsAction,
   saveBillingDetailsAction,
   startCheckoutAction,
 } from "./actions";
@@ -82,6 +91,15 @@ export default async function BillingSettingsPage() {
   const pricing = sub.pricing && sub.pricing.planId === sub.planId && sub.pricing.interval === sub.interval ? sub.pricing : null;
 
   const usageRows = await getUsageSummary().catch(() => []);
+  // The company's own products: what it has, what is waiting, and what can be picked.
+  const [state, names, registry, company, hiddenByPlatform] = await Promise.all([productState(companyId), panelNameMap(), listPanels(), getCompany(companyId), disabledPanelKeys(companyId)]);
+  const nameOf = (k: string) => whiteLabelProductName(names(k));
+  const keysOf = (s: typeof state.current) => (s.mode === "all" ? null : (s.keys as string[]));
+  const listed = (s: typeof state.current) => (s.mode === "all" ? "All products" : s.keys.map(nameOf).join(", "));
+  const choices = [...SELLABLE_PRODUCTS, ...(Object.keys(NEEDS_ONE_OF) as ModuleKey[])]
+    .filter((k) => k !== "messenger" || keysOf(state.current)?.includes(k))
+    .filter((k) => registry.find((p) => p.key === k)?.active !== false && !hiddenByPlatform.has(k))
+    .map((k) => ({ key: k as string, name: nameOf(k), description: registry.find((p) => p.key === k)?.description ?? "" }));
   const showcase = buildShowcase(plans).filter((p) => p.id !== "enterprise");
   const perksOf = (sp: (typeof showcase)[number] | undefined) =>
     sp ? [{ label: "Users", value: sp.seats === null ? "Unlimited" : sp.seats === 1 ? "1" : `Up to ${sp.seats.toLocaleString("en-IN")}` }, ...sp.limits.filter((l) => l.included).map((l) => ({ label: l.short, value: l.shortValue }))] : [];
@@ -90,8 +108,9 @@ export default async function BillingSettingsPage() {
     name: p.name,
     description: p.description,
     currency: p.currency,
-    priceMonthly: planPrice(p, "monthly"),
-    priceYearly: planPrice(p, "yearly"),
+    // What this company would pay: priced for its own products.
+    priceMonthly: productPrice(p, "monthly", company?.products),
+    priceYearly: productPrice(p, "yearly", company?.products),
     perks: perksOf(showcase.find((x) => x.id === p._id)),
   }));
 
@@ -135,6 +154,17 @@ export default async function BillingSettingsPage() {
             </ul>
           </CardContent>
         </GlassCard>
+      )}
+      {sub.status !== "internal" && (
+        <ProductsCard
+          key={JSON.stringify([state.current, state.next])}
+          choices={choices}
+          current={keysOf(state.current)}
+          next={state.next ? { names: listed(state.next.products), on: state.next.effectiveAt ? state.next.effectiveAt.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) : "your next renewal" } : null}
+          held={state.held}
+          maxProducts={state.maxProducts}
+          actions={{ preview: previewProductsAction, change: changeProductsAction, confirm: confirmCheckoutAction }}
+        />
       )}
       <BillingManager
         view={view}

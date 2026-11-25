@@ -1,3 +1,4 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -199,7 +200,7 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
             <StudentLoginPanel studentId={s._id} defaultEmail={s.email ?? ""} status={loginStatus} />
           )}
 
-          <OtsCandidatePanel kind="student" id={s._id} title="Tests & Exams" />
+          {!(await hiddenProducts()).has("ots") && <OtsCandidatePanel kind="student" id={s._id} title="Tests & Exams" />}
         </div>
       </div>
     </div>

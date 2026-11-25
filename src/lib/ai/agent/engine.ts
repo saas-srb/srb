@@ -67,7 +67,7 @@ function dataTools(ctx: Ctx) {
 const askTool = fn("ask_user", "Ask the person ONE short question when you need information you cannot look up (a missing required value, a choice between options, which of several matches they mean). Give `choices` when the answers are a small known set. Use this instead of guessing.", { question: { type: "string" }, choices: { type: "array", items: { type: "string" } } }, ["question"]);
 
 /** The Platform Console's guide is only for the platform team. */
-const guidePanels = (ctx: Ctx) => (ctx.panel === "platform" ? GUIDE_PANELS : GUIDE_PANELS.filter((p) => p !== "platform"));
+const guidePanels = (ctx: Ctx) => (ctx.panel === "platform" ? GUIDE_PANELS : GUIDE_PANELS.filter((p) => p !== "platform" && !ctx.user.blockedPanels?.includes(p)));
 
 const guideTools = (ctx: Ctx) => [
   fn("panel_guide", `Look up how this product works: what a product is for, how to do something step by step, which screen to open. Use it for any "how do I…", "where is…", "what does… mean" question instead of answering from memory. product is one of: ${guidePanels(ctx).join(", ")}${ctx.panel === "workspace" ? "" : ` (default: ${ctx.panel})`}.`, { panel: { type: "string" }, topic: { type: "string", description: "What the person wants to know, as short ENGLISH keywords even if they asked in Hindi or Hinglish (the guide is written in English), e.g. 'approve leave' or 'import clients'" } }),
@@ -113,7 +113,7 @@ async function runRead(name: string, a: Json, ctx: Ctx): Promise<Json> {
   if (name === "panel_guide") {
     const panel = guidePanel(ctx, a);
     if (!guidePanels(ctx).includes(panel)) return err(`Unknown product "${panel}". Products: ${guidePanels(ctx).join(", ")}.`);
-    return panelGuide(panel, typeof a.topic === "string" ? a.topic : undefined) as unknown as Json;
+    return panelGuide(panel, typeof a.topic === "string" ? a.topic : undefined, ctx.user.blockedPanels) as unknown as Json;
   }
   if (name === "run_report") {
     const rep = ctx.reports.find((r) => r.key === a.report);

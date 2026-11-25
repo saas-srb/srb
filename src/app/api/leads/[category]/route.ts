@@ -12,7 +12,7 @@ import {
   validateLeadInput,
   validateResumeFile,
 } from "@/lib/leads";
-import { provisionLeadAndAccount } from "@/lib/lead-management/provision";
+import { portalOpen, provisionLeadAndAccount } from "@/lib/lead-management/provision";
 import { CATEGORY_TO_SOURCE } from "@/lib/lead-management/types";
 import { getLeadCategories, type LeadCategoryConfig } from "@/lib/lead-categories";
 import type { CategorySlug } from "@/lib/categories";
@@ -114,11 +114,13 @@ async function handlePOST(req: NextRequest, { params }: Context) {
         });
         // Only a brand-new account is signed in automatically. An email that already has an account is NOT proof of identity —
         // logging the submitter in would let anyone take over (and spend the wallet of) any user whose email they know.
-        if (result.isNewAccount) {
-          const { token } = await createPortalSession(result.externalUserId, false);
-          await setPortalSessionCookie(token, false);
+        if (await portalOpen()) {
+          if (result.isNewAccount) {
+            const { token } = await createPortalSession(result.externalUserId, false);
+            await setPortalSessionCookie(token, false);
+          }
+          portal = { redirect: result.isNewAccount ? "/clientos" : "/login", isNewAccount: result.isNewAccount, tempPassword: result.tempPassword };
         }
-        portal = { redirect: result.isNewAccount ? "/clientos" : "/login", isNewAccount: result.isNewAccount, tempPassword: result.tempPassword };
       } catch (provErr) {
         console.error("Lead provisioning failed (submission still saved)", provErr);
       }

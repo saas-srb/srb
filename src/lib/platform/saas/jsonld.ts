@@ -51,7 +51,7 @@ export function softwareApplication(o: {
     ...(o.audience ? { audience: { "@type": "BusinessAudience", audienceType: o.audience } } : {}),
     ...(o.screenshots?.length ? { screenshot: o.screenshots.slice(0, 4).map((u) => ({ "@type": "ImageObject", url: u, caption: `${o.name} screen` })) } : {}),
     ...(o.related?.length ? { isRelatedTo: o.related.map((r) => ({ "@type": "SoftwareApplication", name: r.name, url: r.path })) } : {}),
-    offers: { "@type": "Offer", price: "0", priceCurrency: "INR", url: "/pricing", availability: "https://schema.org/InStock", description: "Free plan with every product and every feature" },
+    offers: { "@type": "Offer", price: "0", priceCurrency: "INR", url: "/pricing", availability: "https://schema.org/InStock", description: "Free plan with one product and every feature of it" },
     publisher: { "@id": ORG_ID },
     provider: { "@id": ORG_ID },
     isPartOf: { "@type": "SoftwareApplication", name: "SRB AI", alternateName: "SRB - Selfrun Business AI", url: "/" },

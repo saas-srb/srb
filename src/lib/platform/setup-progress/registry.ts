@@ -185,7 +185,7 @@ export const STEPS: StepDef[] = [
   },
   {
     id: "branding:domain", group: "branding", title: "Use your own web address", description: "Serve your workspace and website from your own domain, so your address carries only your name.", why: "It looks professional and builds trust.", tier: "optional", minutes: 10,
-    href: "/commandos/settings/domains", feature: "company.domains", needs: ["domain"], covers: ["integration:domains", "nav:company.domains", "nav:company.addresses"],
+    href: "/commandos/settings/domains", feature: "company.domains", needs: ["domain"], covers: ["integration:domains", "nav:company.domains", "nav:company.addresses", "nav:company.website"],
     check: (f) => (f.domain!.customVerified ? done("Your domain is verified.") : f.domain!.customPending ? partial("Your domain is waiting for DNS.") : todo("Using the default address.")),
   },
   {

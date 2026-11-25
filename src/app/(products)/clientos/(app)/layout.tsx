@@ -10,12 +10,12 @@ import { SidebarCollapseProvider } from "@/components/products/dealflow-ai/Sideb
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { brandedMetadata } from "@/lib/platform/branding/metadata";
-import { requireModule } from "@/lib/platform/billing/enforce";
+import { requireAnyModule } from "@/lib/platform/billing/enforce";
 
 export const generateMetadata = () => brandedMetadata("{brand} {product:portal}", { robots: { index: false, follow: false } });
 
 export default async function PortalAppLayout({ children }: { children: React.ReactNode }) {
-  await requireModule("portal");
+  await requireAnyModule(["portal", "tms", "ots"]);
   const user = await getCurrentPortalUser();
   if (!user) redirect("/login");
   if (user.mustChangePassword) redirect("/clientos/change-password");

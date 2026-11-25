@@ -1,3 +1,4 @@
+import ProductLink from "@/components/platform/ProductLink";
 import Link from "next/link";
 import { CheckCircle2, AlertTriangle, XCircle, HelpCircle, ListChecks, CalendarClock } from "lucide-react";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
@@ -59,7 +60,7 @@ export default async function CompliancePage() {
                 <li key={c.key} className="flex gap-2.5 text-sm">
                   {ICON[c.level]}
                   <div className="min-w-0">
-                    <div className="font-medium">{c.href ? <Link href={c.href} className="hover:text-primary hover:underline">{c.label}</Link> : c.label}</div>
+                    <div className="font-medium">{c.href ? <ProductLink href={c.href} className="hover:text-primary hover:underline">{c.label}</ProductLink> : c.label}</div>
                     <div className="text-xs text-muted-foreground">{c.detail}</div>
                   </div>
                 </li>

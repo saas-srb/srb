@@ -1,7 +1,7 @@
 import { BLOCKED_STATUSES, canSignIn } from "@/lib/security/account-status";
 import { checkAiTokenUsage, checkStorageUsage } from "@/lib/notify/triggers/usage";
 import "server-only";
-import { notFound, unstable_rethrow } from "next/navigation";
+import { notFound, redirect, unstable_rethrow } from "next/navigation";
 import { getDb } from "@/lib/mongodb";
 import { currentCompanyId, currentCompanyIdOrNull, runAsCompany } from "@/lib/platform/tenancy/context";
 import { resolveConnection } from "@/lib/platform/connections/resolve";
@@ -9,15 +9,15 @@ import { getEntitlements } from "@/lib/platform/billing/entitlements";
 import { getCompanySubscription } from "@/lib/platform/billing/subscription";
 import { getUsage, recordUsage, recordUsageEvent } from "@/lib/platform/billing/usage";
 import { isPanelAvailable } from "@/lib/platform/panels/store";
+import { lockedModuleKeys } from "@/lib/platform/products/availability";
 import type { ModuleKey } from "@/lib/platform/onboarding/catalog";
 import type { SubscriptionStatus } from "@/lib/platform/billing/types";
 
 /**
  * Plan enforcement for the business products: read-only mode and the seat /
- * AI-token / storage limits. Everything reads the current
- * company's entitlements (`getEntitlements()`), so the platform owner
- * (`internal`) is never gated or blocked — only metered. Product modules are
- * available across plans; workspace roles and product availability control access.
+ * AI-token / storage limits, and which products the company has. Everything reads
+ * the current company's entitlements (`getEntitlements()`), so the platform owner
+ * (`internal`) is never gated or blocked — only metered.
  *
  * Two styles for every check: `…BlockReason()` returns a friendly message or
  * null (for code that returns `{ ok: false, error }`), `assert…()` throws a
@@ -50,26 +50,40 @@ const fmt = (n: number) => new Intl.NumberFormat("en-IN").format(n);
 // Module access
 // ---------------------------------------------------------------------------
 
-/** Friendly reason a product is locked for the current company, or null when it's included. */
+/** Friendly reason a product is locked for the current company, or null when it has it. */
 export async function moduleBlockReason(moduleKey: ModuleKey | string): Promise<string | null> {
   const e = await getEntitlements();
   if (e.modules === null || e.modules.has(moduleKey)) return null;
-  return `This product isn't included in your ${e.planName ?? "current"} plan. Upgrade in Settings → Billing to unlock it.`;
+  return "This product isn't part of your workspace. Add it in Settings → Billing.";
 }
 
 /**
- * Called at the top of a product's protected layout. Plans do not gate product
- * access; the Product Registry can still disable a product globally or for a
- * company. Fails open on lookup errors (the layout's own data access will fail
- * on its own if the database is down).
+ * Called at the top of a product's protected layout. A product the company doesn't have leads to the upgrade page; one
+ * the Product Registry switched off (everywhere, or for this company) is not found. The proxy already refuses both;
+ * this is the second lock. Fails open on lookup errors (the layout's own data access fails by itself if the database is down).
  */
 export async function requireModule(moduleKey: ModuleKey): Promise<void> {
   try {
-    // Switched off in the Product Registry (everywhere, or for this company)? The proxy already blocks it; this is the second lock.
-    if (!(await isPanelAvailable(await currentCompanyId(), moduleKey))) notFound();
+    const companyId = await currentCompanyId();
+    if ((await lockedModuleKeys(companyId)).has(moduleKey)) redirect(`/commandos/upgrade?module=${moduleKey}`);
+    if (!(await isPanelAvailable(companyId, moduleKey))) notFound();
   } catch (err) {
     unstable_rethrow(err);
     console.error(`[billing] module check failed for ${moduleKey}`, err);
+  }
+}
+
+/** The top of a layout shared by several products (ClientOS): open while the company has any one of them. */
+export async function requireAnyModule(modules: ModuleKey[]): Promise<void> {
+  try {
+    const companyId = await currentCompanyId();
+    const locked = await lockedModuleKeys(companyId);
+    const owned = modules.find((m) => !locked.has(m));
+    if (!owned) redirect(`/commandos/upgrade?module=${modules[0]}`);
+    if (!(await isPanelAvailable(companyId, owned)) && !locked.has(modules[0])) notFound();
+  } catch (err) {
+    unstable_rethrow(err);
+    console.error(`[billing] module check failed for ${modules.join(", ")}`, err);
   }
 }
 

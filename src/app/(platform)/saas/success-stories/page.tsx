@@ -286,7 +286,7 @@ export default async function SuccessStoriesPage() {
         </div>
       </section>
 
-      <CtaBand title="Write your own story, start free." lead="Every feature is included in every plan. Start free, no card needed." />
+      <CtaBand title="Write your own story, start free." lead="Every feature of your products is included. Start free, no card needed." />
       <FaqSection
         topics={["General"]}
         limit={3}

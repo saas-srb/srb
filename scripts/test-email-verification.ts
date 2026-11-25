@@ -12,6 +12,7 @@ import { ObjectId } from "mongodb";
 import { clientPromise, getPlatformDb } from "@/lib/platform/tenancy/platform-db";
 import { runAsCompany } from "@/lib/platform/tenancy/context";
 import { startSignup } from "@/lib/platform/signup";
+import { startTrial } from "@/lib/platform/billing/subscription";
 import { setSignupMode } from "@/lib/platform/settings";
 import { acceptInvitation, inviteTeammate } from "@/lib/platform/invitations";
 import { consumeVerification, describeVerification, isEmailVerified, sendVerificationEmail, showVerifyStrip, verifyStripHiddenOn, MAX_SENDS_PER_HOUR } from "@/lib/platform/email-verification";
@@ -51,7 +52,7 @@ console.log = (...args: unknown[]) => {
   else origLog(...args);
 };
 const emailsTo = (addr: string) => sentEmails.filter((e) => e.includes(`to=${addr}`));
-const tokenIn = (mail: string) => mail.match(/workspace\/verify-email\?token=([a-f0-9]+)/)?.[1] ?? "";
+const tokenIn = (mail: string) => mail.match(/commandos\/verify-email\?token=([a-f0-9]+)/)?.[1] ?? "";
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
 
 async function run() {
@@ -71,7 +72,7 @@ async function run() {
     assert.equal(owner?.emailVerified, false);
     const mail = emailsTo("a@alpha.test").find((m) => m.includes("verify-email"));
     assert.ok(mail, "email sent");
-    assert.ok(mail.includes("http://alpha.localhost:3000/commandos/verify-email?token="), "link on the company's host");
+    assert.ok(mail.includes("http://alpha-app.localhost:3000/commandos/verify-email?token="), "link on the company's host");
   });
   await check("a legacy user (no emailVerified field) counts as verified", async () => {
     assert.equal(isEmailVerified({}), true);
@@ -84,10 +85,11 @@ async function run() {
     assert.ok(!res.ok, "nothing to verify for a legacy user");
   });
   await check("accepting an invitation makes the user verified", async () => {
+    await startTrial(alpha, "growth"); // the free plan is for one person
     const owner = await ownerOf(alpha, "a@alpha.test");
     const invited = await runAsCompany(alpha, () => inviteTeammate({ email: "dev@alpha.test", name: "Dev", preset: "developer" }, { id: String(owner!._id), email: "a@alpha.test" }, "http://alpha.localhost:3000"));
     assert.ok(invited.ok, invited.ok ? "" : invited.error);
-    const token = emailsTo("dev@alpha.test")[0].match(/workspace\/invite\?token=([a-f0-9]+)/)![1];
+    const token = emailsTo("dev@alpha.test")[0].match(/commandos\/invite\?token=([a-f0-9]+)/)![1];
     const accepted = await runAsCompany(alpha, () => acceptInvitation(token, { name: "Dev", password: "another-long-password" }));
     assert.ok(accepted.ok, accepted.ok ? "" : accepted.error);
     const dev = await ownerOf(alpha, "dev@alpha.test");
@@ -196,12 +198,12 @@ async function run() {
 
   console.log("entry point (form POST to a route handler)");
   await check("the verify page is a plain form POST to /commandos/verify-email/confirm (no server action / client router); the route exports POST only", () => {
-    const page = fs.readFileSync("src/app/commandos/verify-email/page.tsx", "utf8");
-    assert.ok(page.includes('method="post"') && page.includes('action="/commandos/verify-email/confirm"') && page.includes("Verify my email"));
-    const route = fs.readFileSync("src/app/commandos/verify-email/confirm/route.ts", "utf8");
+    const page = fs.readFileSync("src/app/(products)/commandos/verify-email/page.tsx", "utf8");
+    assert.ok(page.includes('method="post"') && page.includes('action="/commandos/verify-email/confirm"') && fs.readFileSync("src/app/(products)/commandos/verify-email/VerifyButton.tsx", "utf8").includes("Verify my email"));
+    const route = fs.readFileSync("src/app/(products)/commandos/verify-email/confirm/route.ts", "utf8");
     assert.ok(/export async function POST/.test(route) && !/export async function GET/.test(route), "POST only: a GET never consumes");
     assert.ok(route.includes("303") && route.includes("/commandos?emailVerified=1") && route.includes("requestOrigin()") && !route.includes("req.url"));
-    assert.ok(!fs.existsSync("src/app/commandos/verify-email/actions.ts"), "no server-action redirect");
+    assert.ok(!fs.existsSync("src/app/(products)/commandos/verify-email/actions.ts"), "no server-action redirect");
   });
   await check("same-origin rule: cross-site posts are refused", () => {
     assert.equal(isSameOriginPost({ secFetchSite: "same-origin", origin: null, host: "a.localhost" }), true);

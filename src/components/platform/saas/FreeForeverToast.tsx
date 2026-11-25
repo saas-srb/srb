@@ -10,9 +10,9 @@ let closedThisLoad = false;
 /** Pages where an ad would get in the way. */
 const QUIET = ["/signup", "/login", "/register", "/contact"];
 const LINES = [
-  { tag: "Free forever", body: "Every product and feature. AI built in. No card." },
+  { tag: "Free forever", body: "One product, free. AI built in. No card." },
   { tag: "Start at ₹0", body: "Independent products for sales, HR, finance and more — free." },
-  { tag: "Try it free", body: "Set up in minutes. Full access, no card needed." },
+  { tag: "Try it free", body: "Set up in minutes. No card needed." },
 ];
 const W = 232;
 

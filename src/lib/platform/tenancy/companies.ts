@@ -1,4 +1,5 @@
 import { getPlatformDb } from "@/lib/platform/tenancy/platform-db";
+import type { CompanyWebsite, ProductSelection } from "@/lib/platform/products/selection";
 import type { BusinessSelection } from "@/lib/platform/business-taxonomy";
 import type { DnsRecord } from "@/lib/platform/domains/types";
 import { RESERVED_SLUGS } from "@/lib/platform/tenancy/slug";
@@ -42,6 +43,10 @@ export interface Company {
   business?: BusinessSelection;
   /** What the sign-up request told us about where the owner is (country code, browser languages, time zone): used to pick the language and style of the AI-written website. */
   signupHints?: { country?: string; languages?: string; timezone?: string };
+  /** The products the company owns (see `platform/products/selection.ts`). Missing = every product. */
+  products?: ProductSelection;
+  /** Whether we serve the company's website. Missing = yes. */
+  website?: CompanyWebsite;
   /** Products the platform switched off for THIS company only (Platform Console → Companies). The global switch lives in the Product Registry. */
   disabledPanels?: string[];
   /** Overrides the 30-day email-verification deadline for this company (see `email-lapse-rule.ts`). Normally unset. */

@@ -1,3 +1,4 @@
+import ProductLink from "@/components/platform/ProductLink";
 import Link from "next/link";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
@@ -78,7 +79,7 @@ export default async function TdsOverviewPage({ searchParams }: { searchParams: 
             <ul className="space-y-3 text-sm">
               {flagged.slice(0, 100).map((r) => (
                 <li key={r.bill.billId}>
-                  <div><Link href={`/spendiq/invoices/${r.bill.billId}`} className="font-medium text-primary hover:underline">{r.bill.billNumber}</Link> · {r.bill.vendorName} · {d(r.bill.date)} · paid {formatMoney(r.bill.base)} · deducted {formatMoney(r.deducted)}{r.expected !== null ? ` · expected ${formatMoney(r.expected)}` : ""}</div>
+                  <div><ProductLink href={`/spendiq/invoices/${r.bill.billId}`} className="font-medium text-primary hover:underline">{r.bill.billNumber}</ProductLink> · {r.bill.vendorName} · {d(r.bill.date)} · paid {formatMoney(r.bill.base)} · deducted {formatMoney(r.deducted)}{r.expected !== null ? ` · expected ${formatMoney(r.expected)}` : ""}</div>
                   <ul className="list-disc pl-5 text-xs text-muted-foreground">
                     {r.flags.filter((f) => f !== "numbers_unconfirmed").map((f) => <li key={f}><span className="font-medium text-foreground">{DEDUCTION_FLAG_TEXT[f].title}.</span> {DEDUCTION_FLAG_TEXT[f].detail}</li>)}
                   </ul>

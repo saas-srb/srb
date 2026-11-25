@@ -77,7 +77,7 @@ export default function ProductSidebar({ groups, activeKey }: { groups: SidebarG
         </div>
 
         <div className="border-t border-border/50 bg-muted/30 p-3">
-          <Link href="/signup" className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-md shadow-primary/25 transition-transform hover:-translate-y-0.5">Start free · every product<ArrowRight className="h-4 w-4" /></Link>
+          <Link href="/signup" className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-md shadow-primary/25 transition-transform hover:-translate-y-0.5">Start free<ArrowRight className="h-4 w-4" /></Link>
         </div>
       </div>
   );

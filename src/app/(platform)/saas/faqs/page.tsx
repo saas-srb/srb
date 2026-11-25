@@ -79,7 +79,7 @@ export default function FaqsPage() {
 
       <section id="start" className="sr-section" style={{ scrollMarginTop: 140 }}>
         <div className="sr-container">
-          <SectionHead n="04" icon="rocket" eyebrow="Start here" title="Better than reading:" accent="trying it." lead="Every product and feature is in every plan, starting free." />
+          <SectionHead n="04" icon="rocket" eyebrow="Start here" title="Better than reading:" accent="trying it." lead="Start with one product, free, or take them all." />
           <div className="flex justify-center"><HeroCtas primary={{ label: "Get started free", href: "/signup" }} secondary={{ label: "Request a demo", href: "/demo" }} /></div>
         </div>
       </section>

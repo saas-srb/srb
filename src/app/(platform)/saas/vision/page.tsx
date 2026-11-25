@@ -56,7 +56,7 @@ const BELIEFS = [
 ];
 
 const PROMISES = [
-  "Every plan includes every feature, and you can start free.",
+  "Every feature of your products is included, and you can start free.",
   "We do not publish guessed release dates, and we never present an idea as a promise.",
   "AI never changes anything until a person approves it.",
   "One business's data is never visible to another.",
@@ -96,7 +96,7 @@ export default async function VisionPage() {
         photo="team-desk"
         shot="workspace"
         shotName="SRB CommandOS"
-        chip={{ title: "Products live today", text: "Every feature, all in every plan" }}
+        chip={{ title: "Products live today", text: "Take one product or all" }}
       >
         <HeroCtas primary={{ label: "Get started free", href: "/signup" }} secondary={{ label: "Explore the products", href: "/products" }} />
       </PageHero>
@@ -172,7 +172,7 @@ export default async function VisionPage() {
       {/* 04 built today */}
       <section id="today" className="sr-section bg-muted/10" style={{ scrollMarginTop: 140 }}>
         <div className="sr-container">
-          <Head id="today" title="What exists today." lead="This is not a slide deck. These products are live now, and every one of them is included in every plan." />
+          <Head id="today" title="What exists today." lead="This is not a slide deck. These products are live now. Take one or all of them." />
           <Reveal><div className="mb-10 rounded-3xl border border-border/60 bg-card px-4 shadow-sm"><CountStats items={[{ v: "All", l: "ready-made products" }, { v: "AI", l: "built into the software" }, { v: "Every", l: "area of your business" }, { v: "Free", l: "to start, every feature included" }]} /></div></Reveal>
           <div className="grid gap-5 lg:grid-cols-2">
             {groups.map((g, i) => (
@@ -344,7 +344,7 @@ export default async function VisionPage() {
         </div>
       </section>
 
-      <CtaBand title="Build a business that runs itself." lead="Every feature is included in every plan. Start free, no card needed." />
+      <CtaBand title="Build a business that runs itself." lead="Every feature of your products is included. Start free, no card needed." />
       <FaqSection
         topics={["General", "Data & security", "Your brand"]}
         limit={5}
@@ -353,7 +353,7 @@ export default async function VisionPage() {
         lead="What we are building, how far it has come and how we decide what comes next."
         extra={[
           { q: "What is the SRB vision?", a: "Every business should be able to run on one intelligent software that handles the routine work, so its people can focus on customers, creativity and growth. In practice that means one software with a product for every job, automation you can trust, AI that stays within each person's access, and your own brand on everything." },
-          { q: "Is the vision already built, or is it a plan?", a: `The products on this page are live today and all of them are included in every plan. We describe the product as it is now and do not present ideas as commitments.` },
+          { q: "Is the vision already built, or is it a plan?", a: `The products on this page are live today, and you can take one or all of them. We describe the product as it is now and do not present ideas as commitments.` },
           { q: "Will you publish release dates?", a: "No. We announce something only when it is ready to be described clearly. The roadmap page lists what the software offers today." },
         ]}
       />

@@ -1,4 +1,5 @@
 "use client";
+import { useUnavailableProducts } from "@/components/platform/PanelsProvider";
 
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -70,6 +71,7 @@ const Check = ({ checked, onChange, label, hint }: { checked: boolean; onChange:
 );
 
 export default function ScheduleMeeting({ open, onClose, staff, agents, me, meeting, prefillTarget, onCreated, onUpdated }: Props) {
+  const agentsOn = !useUnavailableProducts().has("aibots");
   const editing = !!meeting;
   const zone0 = meeting?.timezone ?? browserZone();
   const init = meeting ? utcToZoned(meeting.scheduledAt, meeting.timezone) : { date: "", time: "" };
@@ -247,7 +249,7 @@ export default function ScheduleMeeting({ open, onClose, staff, agents, me, meet
             </Section>
           )}
 
-          {!editing && (
+          {!editing && agentsOn && (
             <Section icon={Bot} title="AI agents" hint="AgentOS voice agents. They only speak when someone addresses them by name; add nicknames below.">
               {agents.length === 0 ? (
                 <p className="text-sm text-muted-foreground">You have no voice agents yet. <a className="font-medium text-primary underline-offset-2 hover:underline" href={AGENTOS_NEW_VOICE}>Create one in AgentOS</a>.</p>

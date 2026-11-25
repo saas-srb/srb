@@ -1,4 +1,5 @@
 "use client";
+import { useUnavailableProducts } from "@/components/platform/PanelsProvider";
 
 import { PhoneOff } from "lucide-react";
 import CallWithAI from "@/components/products/agentos/calls/CallWithAI";
@@ -19,9 +20,14 @@ export function DealflowCallUnavailable({ reason, compact = false, className }: 
   );
 }
 
-export default function DealflowCallButton({ spec, variant = "outline", size = "sm", compact = false, className }: { spec: DealflowCallSpec; variant?: "default" | "outline" | "secondary" | "ghost" | "icon"; size?: "default" | "sm" | "lg"; compact?: boolean; className?: string }) {
+function CallButton({ spec, variant = "outline", size = "sm", compact = false, className }: { spec: DealflowCallSpec; variant?: "default" | "outline" | "secondary" | "ghost" | "icon"; size?: "default" | "sm" | "lg"; compact?: boolean; className?: string }) {
   if (spec.unavailable) {
     return <DealflowCallUnavailable reason={spec.unavailable} compact={compact} className={className} />;
   }
   return <CallWithAI target={spec.target} phone={spec.phone} context={spec.context} defaultPurpose={spec.defaultPurpose} variant={compact ? "icon" : variant} size={size} className={className} />;
+}
+
+export default function DealflowCallButton(props: { spec: DealflowCallSpec; variant?: "default" | "outline" | "secondary" | "ghost" | "icon"; size?: "default" | "sm" | "lg"; compact?: boolean; className?: string }) {
+  // AI calls come with AgentOS.
+  return useUnavailableProducts().has("aibots") ? null : <CallButton {...props} />;
 }

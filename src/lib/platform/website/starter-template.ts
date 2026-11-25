@@ -264,7 +264,8 @@ export function starterPages(v: StarterVars, pack: StarterPack): StarterPage[] {
     seo: { title: `${svc.title} | ${v.name}`, description: t(svc.description) },
     sections: [
       section("page-hero", { category: "services", categoryLabel: "services", title: svc.title, subtitle: svc.subtitle, description: t(svc.description), icon: svc.icon, image: svc.image, primaryCtaLabel: pack.cta.label, primaryCtaHref: "/contact" }),
-      section("feature-highlights", { title: c.detail?.included ?? "What's included", features: svc.highlights.slice(0, 6).map((h) => ({ name: h, desc: (c.detail?.highlightText ?? "{h} — taken care of by the {name} team.").replaceAll("{h}", h).replaceAll("{name}", v.name) })) }),
+      // A service with nothing listed has no "What's included" block: an empty one would stop the page publishing.
+      ...(svc.highlights.length ? [section("feature-highlights", { title: c.detail?.included ?? "What's included", features: svc.highlights.slice(0, 6).map((h) => ({ name: h, desc: (c.detail?.highlightText ?? "{h} — taken care of by the {name} team.").replaceAll("{h}", h).replaceAll("{name}", v.name) })) })] : []),
       homeSections.steps(),
       section("faq-accordion", { title: `${svc.title} — questions`, faqs: pack.faqs.slice(0, 2).map((f) => ({ question: t(f.question), answer: f.answer })) }),
       section("detail-cta", { heading: `Interested in ${svc.title}?`, description: c.detail?.ctaDescription ?? "Tell us what you need and we'll reply with next steps.", ctaLabel: pack.cta.label, external: false, checklist: pack.cta.checklist }),

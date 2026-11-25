@@ -1,3 +1,4 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import { lockedUnless } from "@/lib/products/cybervault/gate";
 import { notFound, redirect } from "next/navigation";
 import OwnerVault, { type OwnerInfo } from "@/components/products/cybervault/OwnerVault";
@@ -23,7 +24,7 @@ export default async function ClientVaultPage({ params, searchParams }: { params
     subtitle: `${c.clientCode}${c.industry ? ` · ${c.industry}` : ""}`,
     badge: getClientStatusMeta(c.status).label,
     crumbs: [{ label: "Clients", href: "/cybervault/clients" }, { label: c.companyName }],
-    notice: "Client details come from the client master (SprintOS).",
+    notice: (await hiddenProducts()).has("pms") ? "Client details come from your client list." : "Client details come from the client master (SprintOS).",
     lines: [
       ...(c.website ? [{ icon: "web" as const, text: c.website, href: /^https?:\/\//i.test(c.website) ? c.website : `https://${c.website}` }] : []),
       ...(c.primaryContact.email ? [{ icon: "mail" as const, text: c.primaryContact.email }] : []),

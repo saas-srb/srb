@@ -13,6 +13,10 @@ export interface ShowcasePlan {
   currency: string;
   kind: "free" | "paid" | "contact";
   offer: Record<BillingInterval, number | null>;
+  /** One product's price per cycle; null where the plan charges the same for one as for all. */
+  single?: Record<BillingInterval, number | null>;
+  /** Set when the plan holds a limited number of products (the free plan: one). */
+  maxProducts?: number | null;
   list: Record<BillingInterval, number | null>;
   offerLabel: string;
   seats: number | null;
@@ -45,6 +49,8 @@ export function buildShowcase(plans: Plan[], defaultTrialDays = 30): ShowcasePla
     currency: p.currency,
     kind: p.contactSales ? "contact" : p.lifetimeFree ? "free" : "paid",
     offer: { monthly: planPrice(p, "monthly"), yearly: planPrice(p, "yearly") },
+    single: { monthly: p.singlePrices?.monthly ?? null, yearly: p.singlePrices?.yearly ?? null },
+    maxProducts: p.maxProducts ?? null,
     list: { monthly: p.listPrices?.monthly ?? null, yearly: p.listPrices?.yearly ?? null },
     offerLabel: p.offerLabel ?? "",
     seats: p.limits.seats ?? null,

@@ -1,4 +1,5 @@
 import "server-only";
+import { hrefAvailable } from "@/lib/platform/products/routes";
 import { getDb } from "@/lib/mongodb";
 import { TRANSACTIONS_COLLECTION, type WalletTransaction } from "@/lib/wallet/transactions";
 import { getWalletOverview } from "@/lib/products/clientos/wallet";
@@ -12,8 +13,8 @@ import type { PortalLeadView } from "@/lib/products/clientos/lead";
 import type { ChartDef, DashboardModel, FeedItem, Insight, QuickAction, Recommendation, TableDef, ActionItem } from "@/lib/products/clientos/dashboard/types";
 
 /** Feature/product access: a link is only offered when the user's role actually has that page in its portal nav. */
-export function accessFor(role: PortalRole) {
-  const hrefs = new Set(PORTAL_NAV[role].map((i) => i.href));
+export function accessFor(role: PortalRole, hidden: ReadonlySet<string> = new Set()) {
+  const hrefs = new Set(PORTAL_NAV[role].map((i) => i.href).filter((href) => hrefAvailable(href, hidden)));
   return { can: (href: string) => hrefs.has(href.split("?")[0]) || href.startsWith("/offers") || href.startsWith("/careers") || href.startsWith("/industrial-training") || href.startsWith("/internship-program") };
 }
 

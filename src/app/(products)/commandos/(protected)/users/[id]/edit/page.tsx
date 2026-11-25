@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
-import { buildAccessUi } from "@/lib/access/ui-model";
+import { accessUiFor } from "@/lib/products/commandos/people";
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import { loadOrgOptions } from "@/lib/platform/organization/options";
 import { loadPersonForEdit } from "@/lib/products/commandos/people";
 import { getAccessRequest } from "@/lib/products/commandos/access-requests";
@@ -35,7 +36,7 @@ export default async function EditPersonPage({ params, searchParams }: { params:
         mode="edit"
         personId={person.id}
         initial={{ details: person.details, picked: person.picked, isDirector: person.isDirector, fromLegacyRoles: person.fromLegacyRoles }}
-        model={buildAccessUi()}
+        model={accessUiFor(await hiddenProducts())}
         org={org}
         actions={{ check: checkPersonAction, create: createPersonAction, update: updatePersonAction }}
       />

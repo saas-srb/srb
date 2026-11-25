@@ -1,4 +1,7 @@
 import "server-only";
+import { setCompanyProducts } from "@/lib/platform/products/company-products";
+import { ALL_PRODUCTS_VALUE, type ProductSelection } from "@/lib/platform/products/selection";
+import { productPrice } from "@/lib/platform/billing/pricing";
 import { getPlatformDb } from "@/lib/platform/tenancy/platform-db";
 import { COMPANIES_COLLECTION, type Company } from "@/lib/platform/tenancy/companies";
 import { companyAppBaseUrl } from "@/lib/platform/tenancy/provisioning";
@@ -212,11 +215,13 @@ export async function priceSubscription(input: {
   couponCode?: string | null;
   /** Keep the plan line at this price version (an existing subscriber being re-priced); omitted = current catalogue price. */
   priceVersion?: number | null;
+  /** Price these products instead of the ones the company has now. */
+  products?: ProductSelection;
 }): Promise<PricingResult> {
   if (!isInterval(input.interval)) return { ok: false, error: "Choose monthly or yearly billing." };
   const couponCode = input.couponCode?.trim().toUpperCase() || null;
   const [quote, plan, settings] = await Promise.all([
-    quoteCheckout({ planId: String(input.planId ?? ""), interval: input.interval, companyId: input.companyId, couponCode }),
+    quoteCheckout({ planId: String(input.planId ?? ""), interval: input.interval, companyId: input.companyId, couponCode, products: input.products }),
     getPlan(String(input.planId ?? "")),
     getBillingSettings(),
   ]);
@@ -227,7 +232,7 @@ export async function priceSubscription(input: {
   if (input.priceVersion && input.priceVersion !== priceVersion) {
     // Grandfathered subscriber: the plan line stays at the version they bought; the discount is re-worked on the new subtotal.
     const planLine = quote.lines.find((l) => l.kind === "plan");
-    const old = planPriceAtVersion(plan, quote.interval, input.priceVersion);
+    const old = productPrice(plan, quote.interval, quote.products, input.priceVersion);
     if (planLine && old !== null) {
       planLine.amount = old;
       priceVersion = input.priceVersion;
@@ -257,6 +262,7 @@ export async function priceSubscription(input: {
     lines: quote.lines.map((l) => ({ kind: l.kind, refId: l.refId, label: l.label, amount: l.amount })),
     redemptionId: null,
     priceVersion,
+    ...(quote.products ? { products: quote.products } : {}),
   };
   const summary: PriceSummary = {
     planId: plan._id,
@@ -335,6 +341,12 @@ interface ChangeOptions {
  */
 export async function applyChange(companyId: string, before: CompanySubscription, patch: Partial<CompanySubscription>, opts: ChangeOptions): Promise<CompanySubscription> {
   await updateCompanySubscription(companyId, patch);
+  // The products follow the price once it is the one being charged (a removal takes effect here, at the end of the paid period).
+  const priced = patch.pricing?.products;
+  if (priced && JSON.stringify(priced) !== JSON.stringify(before.pricing?.products ?? null)) {
+    const set = await setCompanyProducts(companyId, { products: priced.mode === "all" ? ALL_PRODUCTS_VALUE : priced.keys }, { id: opts.actorId, reason: opts.action });
+    if (!set.ok) console.error(`[billing] products not updated for ${companyId}: ${set.error}`);
+  }
   const after = (await getCompanySubscription(companyId)) ?? { ...before, ...patch };
   const type = eventTypeFor(before, after);
   if (type) {
@@ -614,7 +626,7 @@ export async function saveBillingDetails(companyId: string, input: Partial<Recor
 
 // ── Checkout ─────────────────────────────────────────────────────────────────
 
-export async function startCheckout(companyId: string, input: { planId: string; interval: BillingInterval; couponCode?: string | null; replaceLive?: boolean; /** During a free trial: pay and start the paid plan today instead of when the trial ends. */ startNow?: boolean }, actorId = "system"): Promise<StartCheckoutResult> {
+export async function startCheckout(companyId: string, input: { planId: string; interval: BillingInterval; couponCode?: string | null; replaceLive?: boolean; /** During a free trial: pay and start the paid plan today instead of when the trial ends. */ startNow?: boolean; products?: ProductSelection }, actorId = "system"): Promise<StartCheckoutResult> {
   if (!(await razorpayConfigured())) return { ok: false, error: "Online billing isn't configured yet. Please contact support." };
   const company = await (await companies()).findOne({ _id: companyId }, { projection: { name: 1, slug: 1, isPlatformOwner: 1 } });
   if (!company) return { ok: false, error: "Unknown workspace." };
@@ -625,7 +637,7 @@ export async function startCheckout(companyId: string, input: { planId: string; 
   if (lower) return { ok: false, error: lower };
   const replacing = input.replaceLive === true && hasLiveSubscription(sub);
   if (hasLiveSubscription(sub) && !replacing) return { ok: false, error: "You already have a subscription — change your plan instead." };
-  const priced = await priceSubscription({ companyId, planId: input.planId, interval: input.interval, couponCode: input.couponCode });
+  const priced = await priceSubscription({ companyId, planId: input.planId, interval: input.interval, couponCode: input.couponCode, products: input.products });
   if (!priced.ok) return priced;
   if (input.couponCode?.trim() && priced.summary.couponError) return { ok: false, error: priced.summary.couponError };
   const { pricing } = priced;
@@ -789,7 +801,7 @@ export async function resumeSubscription(companyId: string, actorId = "system"):
  */
 export async function changePlan(
   companyId: string,
-  input: { planId: string; interval: BillingInterval; couponCode?: string | null; when?: "auto" | "now" | "cycle_end"; startNow?: boolean },
+  input: { planId: string; interval: BillingInterval; couponCode?: string | null; when?: "auto" | "now" | "cycle_end"; startNow?: boolean; products?: ProductSelection },
   actorId = "system",
   action = "subscription.change_plan",
   /** The customer is at the screen and can authorise a payment (not the Platform Console). */
@@ -808,7 +820,7 @@ export async function changePlan(
   const running = await getRenewalRedemption(companyId);
   const couponCode = input.couponCode === undefined ? (running && running.couponId === currentPricing(sub)?.couponId ? running.code : null) : input.couponCode;
   // Staying on the same plan (interval switch): the plan line keeps the price version the company bought.
-  const priced = await priceSubscription({ companyId, planId: input.planId, interval: input.interval, couponCode, priceVersion: input.planId === sub.planId ? sub.priceVersion : null });
+  const priced = await priceSubscription({ companyId, planId: input.planId, interval: input.interval, couponCode, priceVersion: input.planId === sub.planId ? sub.priceVersion : null, products: input.products });
   if (!priced.ok) return priced;
   if (input.couponCode?.trim() && priced.summary.couponError) return { ok: false, error: priced.summary.couponError };
   const { pricing } = priced;
@@ -840,7 +852,7 @@ export async function changePlan(
         if (!customerPresent) return { ok: false, error: "This company pays by UPI, which can't be changed from here. Ask them to change the plan in Settings → Billing, where they can approve the new payment." };
         await cancelRazorpaySubscription(subscriptionId, false);
         await applyChange(companyId, sub, { provider: { ...sub.provider!, subscriptionId: null }, pendingChange: null }, { actorId, action: `${action}.upi_replace`, details: { reason: "not charged yet" } });
-        const started = await startCheckout(companyId, { planId: input.planId, interval: input.interval, couponCode, startNow: input.startNow }, actorId);
+        const started = await startCheckout(companyId, { planId: input.planId, interval: input.interval, couponCode, startNow: input.startNow, products: input.products }, actorId);
         if (!started.ok) return started;
         return { ok: true, checkout: started.checkout, message: "Approve the new plan's payment to finish." };
       }
@@ -858,7 +870,7 @@ export async function changePlan(
         await updateSubscriptionPlan(subscriptionId, razorpayPlanId, "now", pricing.interval);
       } catch (err) {
         if (!isUpiNoEdit(err)) throw err;
-        return await switchViaNewSubscription(companyId, sub, { planId: input.planId, interval: input.interval, couponCode }, "now", actorId, customerPresent);
+        return await switchViaNewSubscription(companyId, sub, { planId: input.planId, interval: input.interval, couponCode, products: input.products }, "now", actorId, customerPresent);
       }
       const refund = await refundUnused(companyId, sub, actorId);
       await applyChange(companyId, sub, { planId: plan._id, interval: pricing.interval, pricing, pendingChange: null, ...versionPatch }, { actorId, action, details: { when: "now", upgrade: isUpgrade, refund: refund ?? null } });
@@ -871,7 +883,7 @@ export async function changePlan(
       await updateSubscriptionPlan(subscriptionId, razorpayPlanId, "cycle_end", pricing.interval);
     } catch (err) {
       if (!isUpiNoEdit(err)) throw err;
-      return await switchViaNewSubscription(companyId, sub, { planId: input.planId, interval: input.interval, couponCode }, "cycle_end", actorId, customerPresent);
+      return await switchViaNewSubscription(companyId, sub, { planId: input.planId, interval: input.interval, couponCode, products: input.products }, "cycle_end", actorId, customerPresent);
     }
     const effectiveAt = fromUnix(remote.current_end) ?? sub.currentPeriodEnd;
     await applyChange(companyId, sub, { pendingChange: { planId: plan._id, interval: pricing.interval, effectiveAt, pricing } }, { actorId, action: `${action}.scheduled`, details: { to: `${plan._id}/${pricing.interval}`, effectiveAt } });
@@ -896,7 +908,7 @@ function isUpiNoEdit(err: unknown): boolean {
 async function switchViaNewSubscription(
   companyId: string,
   sub: CompanySubscription,
-  input: { planId: string; interval: BillingInterval; couponCode: string | null },
+  input: { planId: string; interval: BillingInterval; couponCode: string | null ; products?: ProductSelection },
   when: "now" | "cycle_end",
   actorId: string,
   customerPresent: boolean,
@@ -906,7 +918,7 @@ async function switchViaNewSubscription(
     const ended = await cancelSubscription(companyId, { when: "period_end" }, actorId, "subscription.change_plan.upi_switch");
     if (!ended.ok) return ended;
   }
-  const started = await startCheckout(companyId, { ...input, replaceLive: when === "now" }, actorId);
+  const started = await startCheckout(companyId, { ...input, replaceLive: when === "now", products: input.products }, actorId);
   if (!started.ok) return started;
   await recordPlatformAudit({ actorId, action: "subscription.change_plan.upi_switch", target: { type: "subscription", id: companyId }, companyId, details: { from: `${sub.planId}/${sub.interval}`, to: `${input.planId}/${input.interval}`, when } });
   return {
@@ -990,7 +1002,7 @@ export async function cancelSubscription(companyId: string, input: { when: "peri
  * total is unchanged or there is no live Razorpay subscription (the next
  * checkout is quoted fresh anyway).
  */
-export async function repriceSubscription(companyId: string, actorId = "system"): Promise<BillingActionResult> {
+export async function repriceSubscription(companyId: string, actorId = "system", change: { /** The products to bill from now on (the Platform Console changed them); default: what is already priced. */ products?: ProductSelection } = {}): Promise<BillingActionResult> {
   const sub = await getCompanySubscription(companyId);
   const blocked = notBilled(sub);
   if (blocked || !sub) return { ok: false, error: blocked ?? "Unknown workspace." };
@@ -1007,11 +1019,16 @@ export async function repriceSubscription(companyId: string, actorId = "system")
     interval: target.interval,
     couponCode: keepCoupon ? running!.code : null,
     priceVersion: target.planId === sub.planId ? sub.priceVersion : (base?.priceVersion ?? null),
+    products: change.products ?? base?.products,
   });
   if (!priced.ok) return priced;
   const { pricing } = priced;
   pricing.redemptionId = keepCoupon && pricing.couponId ? running!._id : null;
-  if (base && base.total === pricing.total) return { ok: true, message: "Price unchanged." };
+  if (base && base.total === pricing.total) {
+    // Same money for different products: remember which products it is for.
+    if (change.products && !sub.pendingChange) await applyChange(companyId, sub, { pricing: { ...base, products: change.products } }, { actorId, action: "subscription.products" });
+    return { ok: true, message: "Price unchanged." };
+  }
 
   const couponEnded = Boolean(base?.couponId && !pricing.couponId);
   const action = couponEnded ? "subscription.coupon_ended" : "subscription.reprice";
@@ -1210,6 +1227,8 @@ async function processEvent(eventId: string, payload: RazorpayWebhookPayload): P
         if (after.pricing?.redemptionId && after.pricing.discount > 0) await markRedemptionCycleBilled(after.pricing.redemptionId);
         const invoice = await issueInvoice(companyId, entity, { id: payment.id, amount: payment.amount, currency: payment.currency }, after);
         await ledgerPayment(companyId, entity, { id: payment.id, amount: payment.amount, currency: payment.currency.toUpperCase(), method: payment.method ?? null }, after, invoice);
+        // Whatever was added has now been billed.
+        if (after.productHold) await updateCompanySubscription(companyId, { productHold: null });
         // A limited coupon that has now run out → next cycle at the new price. The daily cron retries a failure.
         await repriceSubscription(companyId, "system").catch((err) => console.error(`[billing] reprice after charge failed for ${companyId}`, err));
       }

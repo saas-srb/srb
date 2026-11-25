@@ -1,11 +1,12 @@
 "use client";
 
+import { useUnavailableProducts } from "@/components/platform/PanelsProvider";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { FormDescription, FormFooter, FormHeader, FormShell, FormTitle } from "@/components/products/playbook-ai/forms/FormShell";
-import { PARTY_TYPES, PARTY_TYPE_LABEL, isLinkedType, type PartyType, type PickerHit } from "@/lib/products/contractflow-ai/party-types";
+import { PARTY_TYPES, PARTY_TYPE_LABEL, isLinkedFor, type PartyType, type PickerHit } from "@/lib/products/contractflow-ai/party-types";
 import { searchPartyForItemAction, sendItemAction } from "@/app/(products)/playbook-ai/(protected)/items-actions";
 import { FIELD } from "@/components/products/playbook-ai/items/shared";
 
@@ -20,6 +21,8 @@ export default function SendToContractFlowForm({ documentId, title, defaultType 
   const router = useRouter();
   const onClose = () => router.push(backHref);
   const [pending, start] = useTransition();
+  const unavailable = useUnavailableProducts();
+  const linkedType = (t: PartyType) => isLinkedFor(t, unavailable);
   const [partyType, setPartyType] = useState<PartyType>(defaultType);
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<PickerHit[]>([]);
@@ -42,7 +45,7 @@ export default function SendToContractFlowForm({ documentId, title, defaultType 
     start(async () => {
       const r = await sendItemAction({
         documentId,
-        party: isLinkedType(partyType) ? { type: partyType, recordId: picked?.recordId ?? null, partyId: picked?.partyId ?? null } : { type: partyType, displayName: name, email: email || undefined },
+        party: linkedType(partyType) ? { type: partyType, recordId: picked?.recordId ?? null, partyId: picked?.partyId ?? null } : { type: partyType, displayName: name, email: email || undefined },
         signers: signers.filter((s) => s.name.trim() || s.email.trim()).map((s, i) => ({ name: s.name, email: s.email, role: s.role, order: i + 1 })),
       });
       if (!r.ok) { setError(r.message); return; }
@@ -51,7 +54,7 @@ export default function SendToContractFlowForm({ documentId, title, defaultType 
     });
   }
 
-  const ready = isLinkedType(partyType) ? !!picked : name.trim().length >= 2;
+  const ready = linkedType(partyType) ? !!picked : name.trim().length >= 2;
   return (
     <FormShell>
         <FormHeader>
@@ -70,7 +73,7 @@ export default function SendToContractFlowForm({ documentId, title, defaultType 
               <select className={FIELD} value={partyType} aria-label="Kind of party" onChange={(e) => { setPartyType(e.target.value as PartyType); setPicked(null); setHits([]); setError(null); }}>
                 {PARTY_TYPES.map((t) => <option key={t} value={t}>{PARTY_TYPE_LABEL[t]}</option>)}
               </select>
-              {isLinkedType(partyType) ? (
+              {linkedType(partyType) ? (
                 <div className="space-y-2">
                   <div className="flex gap-2">
                     <input autoComplete="off" className={FIELD} placeholder="Search by name" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); search(); } }} aria-label="Search" />

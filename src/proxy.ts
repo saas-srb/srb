@@ -1,3 +1,5 @@
+import { embedOrigin, websitelessTarget } from "@/lib/platform/products/website";
+import { lockedModuleKeys } from "@/lib/platform/products/availability";
 import { NextResponse } from "next/server";
 import { emailLapseFor } from "@/lib/platform/email-lapse";
 import { getFeatureControls, pdfOff } from "@/lib/platform/feature-controls";
@@ -8,7 +10,7 @@ import { LAPSE_OPEN_PATH } from "@/lib/platform/email-lapse-rule";
 import type { NextRequest } from "next/server";
 import { frameAncestorsFor } from "@/lib/products/agentos/calls/public-embed";
 import { isMaintenanceOn, isPublicSitePath } from "@/lib/products/sitecraft-ai/maintenance-gate";
-import { resolveCompanyIdByHost, resolveHostInfo, resolveSuspendedHost, normalizeHost, type HostInfo } from "@/lib/platform/tenancy/companies";
+import { getCompany, resolveCompanyIdByHost, resolveHostInfo, resolveSuspendedHost, normalizeHost, type HostInfo } from "@/lib/platform/tenancy/companies";
 import { gateApi, gatePage, hardenApiResponse, isAssetPath } from "@/lib/security/gate";
 import { gateSessionBinding } from "@/lib/security/session-bind";
 import { counterpartHost, surfaceRedirect } from "@/lib/platform/tenancy/surfaces";
@@ -18,6 +20,7 @@ import { getEffectiveMaintenance } from "@/lib/platform/maintenance-state";
 import { isTakeoverNow } from "@/lib/platform/maintenance-shared";
 import { isSaasPagePath } from "@/lib/platform/saas/routes";
 import { entitlementsFor } from "@/lib/platform/billing/entitlements";
+import { hrefAvailable, productRuleFor, missingModule, ruleAllows } from "@/lib/platform/products/routes";
 import type { Entitlements } from "@/lib/platform/billing/types";
 import { productKeyFromSlug, productSlugFor } from "@/lib/platform/saas/product-routes";
 
@@ -85,6 +88,9 @@ async function panelGate(request: NextRequest, companyId: string | null | undefi
     // The company's public website is the "website" product: its public pages go offline when it is switched off.
     if (!isApi && off.has("website") && isPublicSitePath(pathname)) return unavailable("website", "The website");
     if (!panelKey || panelKey === "workspace" || !off.has(panelKey)) return null;
+    // A screen another of the company's products also opens (ClientOS test pages with EvalIQ) is only "locked", not
+    // switched off: `planGate` already decided by the same rule.
+    if (hrefAvailable(pathname, off) && (await lockedModuleKeys(companyId)).has(panelKey)) return null;
     const panel = (await listPanels()).find((p) => p.key === panelKey);
     return panel && !panel.core ? unavailable(panelKey, panel.name) : null;
   } catch (err) {
@@ -95,11 +101,11 @@ async function panelGate(request: NextRequest, companyId: string | null | undefi
 
 
 /**
- * Subscription gate for the business products, applied to every API call and every Server Action (page views are
- * covered by each product's layout, which sends people to the upgrade page):
- *  - a product that is not in the company's plan answers 403, whatever the caller tries;
+ * The company's products and subscription, applied to every page view, API call and Server Action:
+ *  - a URL of a product the company doesn't have (see `products/routes.ts`) is refused: staff pages lead to the upgrade
+ *    page, pages opened by outsiders say "not available", APIs and actions answer 403;
  *  - while the subscription is suspended or canceled (read-only) nothing can be created, changed or deleted in a product.
- * Sign-in and password pages stay open. Fails open on a lookup error (each product still checks its own entitlements).
+ * Sign-in and password pages stay open in read-only mode. Fails open on a lookup error (each product still checks itself).
  */
 const PLAN_PANELS = new Set(["hrms", "pms", "lms", "fms", "prms", "tms", "ots", "sop", "lpms", "dlms", "cms", "seo", "smms", "aibots", "intelligence", "portal"]);
 const OPEN_IN_READ_ONLY = /\/(login|logout|signin|change-password|forgot-password|reset-password|verify-email|handoff)(\/|$)/i;
@@ -112,20 +118,29 @@ async function planGate(request: NextRequest, companyId: string | null | undefin
   const isApi = parts[0] === "api";
   const segment = isApi ? parts[1] : parts[0];
   const panelKey = segment ? productKeyFromSlug(segment) ?? segment : "";
-  if (!panelKey || !PLAN_PANELS.has(panelKey)) return null;
   const mutating = !["GET", "HEAD"].includes(request.method.toUpperCase());
-  if (!isApi && !mutating) return null;
+  const rule = productRuleFor(pathname);
+  const writes = mutating && PLAN_PANELS.has(panelKey);
+  if (!rule && !writes) return null;
   try {
     let hit = entCache.get(companyId);
-    if (!hit || Date.now() - hit.at > 20_000) {
+    if (!hit || Date.now() - hit.at > 15_000) {
       hit = { at: Date.now(), ent: await entitlementsFor(companyId) };
       if (entCache.size > 2000) entCache.clear();
       entCache.set(companyId, hit);
     }
     const { ent } = hit;
     const deny = (status: number, error: string) => (isApi ? NextResponse.json({ error }, { status, headers: { "Cache-Control": "no-store" } }) : new NextResponse(error, { status, headers: { "Cache-Control": "no-store", "Content-Type": "text/plain; charset=utf-8" } }));
-    if (ent.modules !== null && !ent.modules.has(panelKey)) return deny(403, "This product isn't included in your plan. Upgrade in Settings → Billing to unlock it.");
-    if (ent.readOnly && mutating && !OPEN_IN_READ_ONLY.test(pathname)) return deny(402, "Your workspace is read-only because its subscription is suspended or has ended. You can still view everything; renew in Settings → Billing to make changes.");
+    if (rule && !ruleAllows(rule, ent.modules)) {
+      if (isApi || mutating) return deny(403, rule.audience === "external" ? "This service isn't available." : "This product isn't part of your workspace. Add it in Settings → Billing.");
+      if (rule.audience === "external") {
+        const url = new URL("/product-unavailable", request.url);
+        url.searchParams.set("panel", missingModule(rule, ent.modules) ?? rule.modules[0]);
+        return NextResponse.rewrite(url, { status: 403, headers: { "Cache-Control": "no-store" } });
+      }
+      return NextResponse.redirect(new URL(`/commandos/upgrade?module=${missingModule(rule, ent.modules) ?? rule.modules[0]}`, request.url));
+    }
+    if (ent.readOnly && writes && !OPEN_IN_READ_ONLY.test(pathname)) return deny(402, "Your workspace is read-only because its subscription is suspended or has ended. You can still view everything; renew in Settings → Billing to make changes.");
   } catch (err) {
     console.error("[plan] gate lookup failed in proxy", err);
   }
@@ -252,6 +267,19 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // A company whose website we don't run: its site address serves only the working public pages (see `products/website.ts`).
+  if (companyId && info?.surface === "site" && !isSaasHost(request.headers.get("host"))) {
+    try {
+      if ((await lockedModuleKeys(companyId)).has("website")) {
+        const own = (await getCompany(companyId))?.website?.externalUrl ?? null;
+        const target = websitelessTarget(request.nextUrl.pathname, own);
+        if (target && target !== request.nextUrl.pathname) return NextResponse.redirect(new URL(target, request.url), 307);
+      }
+    } catch (err) {
+      console.error("[website] lookup failed in proxy", err);
+    }
+  }
+
   // Platform maintenance (Platform Console → Maintenance), "takeover" mode: every company's website / products show the maintenance screen for
   // the length of the window and come back on their own after it. Page views only (APIs, webhooks, crons and payment links keep working),
   // and never the product's own hosts, so the platform staff can always end it.
@@ -265,7 +293,7 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  const blocked = await panelGate(request, companyId);
+  const blocked = (await planGate(request, companyId)) ?? (await panelGate(request, companyId));
   if (blocked) return blocked;
 
   // CMS maintenance mode: visitors to the public site get the maintenance page
@@ -289,6 +317,11 @@ export async function proxy(request: NextRequest) {
   if (companyId && request.nextUrl.pathname === "/agentos-public/agents") {
     response.headers.set("Content-Security-Policy", `${await frameAncestorsFor(companyId)}; base-uri 'self'; object-src 'none'; form-action 'self'`);
     response.headers.set("Cache-Control", "private, no-store, max-age=0");
+  }
+  // The hosted forms may be embedded in the company's own website, and in no other.
+  if (companyId && (request.nextUrl.pathname === "/forms" || request.nextUrl.pathname.startsWith("/forms/"))) {
+    const origin = embedOrigin((await getCompany(companyId).catch(() => null))?.website?.externalUrl);
+    response.headers.set("Content-Security-Policy", `frame-ancestors 'self'${origin ? ` ${origin}` : ""}; base-uri 'self'; object-src 'none'; form-action 'self'`);
   }
   // A signed-in page is for that person only: no browser, shared or CDN cache may keep a copy of it.
   if (appSurface) response.headers.set("Cache-Control", "private, no-store, max-age=0");

@@ -1,3 +1,6 @@
+import { ALL_PRODUCTS_VALUE, SELLABLE_PRODUCTS } from "@/lib/platform/products/selection";
+import { productSlugFor } from "@/lib/platform/saas/product-routes";
+
 /** Choosing a plan on the pricing page and carrying it through sign-up (pure: used by the pricing cards, the sign-up form and the server). */
 
 /** Used when neither the plan nor the platform settings say how long the trial is. */
@@ -24,4 +27,11 @@ export function trialLabel(days: number): string {
   if (days % 30 === 0) return `${days / 30} months`;
   if (days % 7 === 0) return `${days / 7} week${days === 7 ? "" : "s"}`;
   return `${days} days`;
+}
+
+/** The sign-up link of a product page: that product already chosen (one that is only sold with the rest chooses "All products"). */
+export function signupProductHref(moduleKey: string): string {
+  if (moduleKey === "workspace" || moduleKey === "admin") return "/signup";
+  const alone = (SELLABLE_PRODUCTS as readonly string[]).includes(moduleKey);
+  return `/signup?product=${alone ? productSlugFor(moduleKey) : ALL_PRODUCTS_VALUE}`;
 }

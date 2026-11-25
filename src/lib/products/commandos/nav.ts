@@ -11,6 +11,7 @@
  *   2. The product is switched on for this company and in the product registry.
  *   3. `platform` items: the Platform Console's own access check passed.
  */
+import { hrefAvailable, productRuleFor } from "@/lib/platform/products/routes";
 import { hasAdminAccess } from "@/lib/admin-roles";
 import { productAnalyticsPath, productSlugFor } from "@/lib/platform/saas/product-routes";
 import { canViewWorkspaceAnalytics } from "@/lib/workspace-roles";
@@ -256,7 +257,7 @@ const COMPANY_GROUPS: Record<string, string> = {
   progress: "Organization Setup", setup: "Organization Setup", integrations: "Organization Setup", products: "Organization Setup",
   departments: "Users & Access", teams: "Users & Access", designations: "Users & Access", users: "Users & Access",
   billing: "Billing & plan", invoices: "Billing & plan", usage: "Billing & plan",
-  app: "Branding & domains", addresses: "Branding & domains", domains: "Branding & domains",
+  app: "Branding & domains", website: "Branding & domains", addresses: "Branding & domains", domains: "Branding & domains",
   notifications: "System default", prompts: "System default", schedules: "System default", pdfs: "System default",
   backups: "Security & Logs", import: "Security & Logs", audit: "Security & Logs", security: "Security & Logs",
 };
@@ -272,6 +273,7 @@ const COMPANY: NavItemDef[] = [
   { ...company("users", "/commandos/users", "users", "People & access", "Everyone who can sign in: where they work, their status (active, on leave, left the company …), which products and features they can use, and seats used.", "People & access"), allow: may(P.users) },
   company("app", "/commandos/settings/apps", "smartphone", "Apps & downloads", "Your company's own apps for phones and Windows, macOS and Linux computers: settings, and a Generate button and download link for each app.", "Apps"),
   company("addresses", "/commandos/addresses", "website", "Default domain", "The default addresses we give your company: your public website and the app where your team signs in to the Workspace and every product, ready to copy and share.", "Default domain"),
+  company("website", "/commandos/settings/website", "website", "Website & public forms", "Run your website here or use your own, share or embed the enquiry and careers forms, and list your job openings.", "Website"),
   company("domains", "/commandos/settings/domains", "globe", "Custom domains", "Your workspace address and your own custom domains, with automatic SSL.", "Domains"),
   company("billing", "/commandos/settings/billing", "card", "Plan & billing", "Your plan, payments, coupon codes and GST billing details."),
   company("invoices", "/commandos/settings/billing/invoices", "receipt", "Invoices & payments", "Tax invoices, credit notes and every payment made for your subscription."),
@@ -358,8 +360,15 @@ export type NavState = "open" | "locked" | "hidden";
 
 export function stateOf(item: NavItemDef, ctx: NavContext): NavState {
   if (item.platform) return ctx.platformAccess ? "open" : "hidden";
-  const panelKey = item.module ?? item.panel;
-  if (panelKey && ctx.unavailablePanels?.has(panelKey)) return "hidden";
+  const unavailable = ctx.unavailablePanels;
+  if (unavailable) {
+    // A screen shared by several products (clients, job applicants …) stays while the company has one of them.
+    // Only a CommandOS screen can belong to "any of" several products; a product's own entry follows that product (ClientOS
+    // stays out of the menu even where some of its sign-in pages open with another product).
+    const shared = item.href.startsWith("/commandos/") ? productRuleFor(item.href) : null;
+    const panelKey = item.module ?? item.panel;
+    if (shared ? !hrefAvailable(item.href, unavailable) : panelKey && unavailable.has(panelKey)) return "hidden";
+  }
   // `allow` is the older role rule; a person's roles and overrides are the exact image of their access map (see src/lib/access), so this IS the matrix answer.
   return item.allow(ctx.user) ? "open" : "locked";
 }
@@ -425,7 +434,7 @@ export function resolveNav(ctx: NavContext): ResolvedNav {
         const named = meta && i.section === "panels" ? meta.name : meta && i.section === "analytics" ? `${meta.name} Analytics` : null;
         const label = named ?? i.label;
         const description = meta && i.section === "panels" ? meta.description : (i.description ?? null);
-        return { key: i.key, label, title: named ?? i.title ?? i.label, description, href: locked ? lockedHref(i.key) : i.href, icon: i.icon, group: (i.group && ctx.panels?.[GROUP_PANEL[i.group] ?? ""]?.name) || i.group || null, external: locked ? false : Boolean(i.external), locked, inSidebar: i.inSidebar !== false };
+        return { key: i.key, label, title: named ?? i.title ?? i.label, description, href: locked ? lockedHref(i.key) : i.href, icon: i.icon, group: (i.group && !ctx.unavailablePanels?.has(GROUP_PANEL[i.group] ?? "") && ctx.panels?.[GROUP_PANEL[i.group] ?? ""]?.name) || i.group || null, external: locked ? false : Boolean(i.external), locked, inSidebar: i.inSidebar !== false };
       }),
   })).filter((s) => s.items.length > 0);
   return { sections, allowed: shown.filter((x) => !x.locked).map((x) => x.item.key), lockedKeys: shown.filter((x) => x.locked).map((x) => x.item.key) };

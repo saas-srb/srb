@@ -1,6 +1,6 @@
+import ProductLink from "@/components/platform/ProductLink";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -103,7 +103,7 @@ export default async function EmployeeExpenseDetailPage({ params }: { params: Pr
 
       <p className="text-xs text-muted-foreground">
         Created {formatDateTime(expense.createdAt)}. Claim data is owned by SpendIQ — approve/reject at{" "}
-        <Link href={`/spendiq/expenses/${expense._id}`} className="text-primary hover:underline">/spendiq/expenses/{expense._id}</Link>.
+        <ProductLink href={`/spendiq/expenses/${expense._id}`} className="text-primary hover:underline">/spendiq/expenses/{expense._id}</ProductLink>.
       </p>
     </div>
   );

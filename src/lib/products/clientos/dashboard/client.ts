@@ -1,4 +1,5 @@
 import "server-only";
+import { hiddenProducts } from "@/lib/platform/products/visible";
 import type { ClientOverview } from "@/lib/products/clientos/client";
 import { listInvoicesForCustomer } from "@/lib/products/cashflow-ai/invoices";
 import { invoiceBalance } from "@/lib/products/cashflow-ai/constants";
@@ -18,7 +19,7 @@ const inr = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
  * requirements pipeline and contract view on top of the client sections.
  */
 export async function buildClientDashboard(user: CurrentPortalUser, data: ClientOverview | null, leadView: PortalLeadView | null): Promise<DashboardModel> {
-  const { can } = accessFor(user.role);
+  const { can } = accessFor(user.role, await hiddenProducts());
   const clientId = data?.client._id ?? user.clientId ?? null;
   const [walletPart, notif, invoices, leads] = await Promise.all([
     buildWalletPart(user),

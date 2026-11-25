@@ -1,4 +1,5 @@
 "use client";
+import { ALL_PRODUCTS_VALUE, SITES_MODULE } from "@/lib/platform/products/selection";
 
 import { startTransition, useActionState, useEffect, useId, useState } from "react";
 import { motion } from "framer-motion";
@@ -49,7 +50,11 @@ function StepHead({ n, title, note }: { n: number; title: string; note: string }
 }
 type SlugCheck = { for: string; state: "idle" | "checking" | "ok" | "bad"; message: string | null };
 
-export default function SignupForm({ rootDomain, approval = false, selectedPlan = null }: { rootDomain: string; approval?: boolean; selectedPlan?: SelectedPlan | null }) {
+export default function SignupForm({ rootDomain, approval = false, selectedPlan = null, products, initialProduct = "", allNote = null, oneNote = null }: { rootDomain: string; approval?: boolean; selectedPlan?: SelectedPlan | null; products: { value: string; label: string }[]; initialProduct?: string; allNote?: string | null; oneNote?: string | null }) {
+  const [product, setProduct] = useState(initialProduct);
+  const [websiteMode, setWebsiteMode] = useState("platform");
+  // Whether a website is written for them: SiteCraft, or all products with "make my website".
+  const makesWebsite = product === SITES_MODULE || (product === ALL_PRODUCTS_VALUE && websiteMode === "platform");
   const [state, formAction] = useActionState(startSignupAction, initialState);
   // Two phases: the server validates first (`checking`), and only then the creation starts and the progress replaces the form (`creating`).
   const [checking, setChecking] = useState(false);
@@ -89,7 +94,7 @@ export default function SignupForm({ rootDomain, approval = false, selectedPlan 
     }
     return out;
   };
-  const ids = { company: useId(), slug: useId(), email: useId(), password: useId(), terms: useId(), category: useId(), sub: useId() };
+  const ids = { product: useId(), site: useId(), siteUrl: useId(), company: useId(), slug: useId(), email: useId(), password: useId(), terms: useId(), category: useId(), sub: useId() };
 
   // The creation answered with something to fix (rate limit, address taken a moment ago…): back to the form.
   useEffect(() => {
@@ -160,7 +165,7 @@ export default function SignupForm({ rootDomain, approval = false, selectedPlan 
   return (
     <>
       {/* While the workspace is being created the form is hidden (kept mounted, so the submission completes) and the progress is shown instead. */}
-      {creating && <CreatingWorkspace companyName={companyName} host={`${slug || "your-company"}.${rootDomain}`} approval={approval} />}
+      {creating && <CreatingWorkspace companyName={companyName} host={`${slug || "your-company"}.${rootDomain}`} approval={approval} website={makesWebsite} />}
       <motion.div hidden={creating} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <div className="mb-7">
           <h2 className="text-3xl font-black tracking-tight">Create your workspace</h2>
@@ -229,6 +234,37 @@ export default function SignupForm({ rootDomain, approval = false, selectedPlan 
               <span className={slugMessage ? "" : "text-muted-foreground"}>{slugMessage ?? (current.state === "ok" ? "Available" : "Your team signs in here. You can add your own domain later.")}</span>
             </p>
           </div>
+
+          <div>
+            <label htmlFor={ids.product} className="sr-label">What do you want to use?</label>
+            <select id={ids.product} name="product" required value={product} onChange={(e) => setProduct(e.target.value)} className="sr-input w-full" style={{ ...inputStyle, ...(errors.product ? bad : null) }} aria-invalid={!!errors.product || undefined} aria-describedby={`${ids.product}-note`}>
+              <option value="" disabled>Choose a product</option>
+              <option value={ALL_PRODUCTS_VALUE}>All products</option>
+              {products.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+            </select>
+            <p id={`${ids.product}-note`} className="mt-1.5 text-xs text-muted-foreground" aria-live="polite">
+              {(product === ALL_PRODUCTS_VALUE ? allNote : product ? oneNote : null) ?? "CommandOS and Huddle come with every workspace. You can change your products later."}
+            </p>
+            {fieldError(errors.product)}
+          </div>
+
+          {product === ALL_PRODUCTS_VALUE && (
+            <div>
+              <label htmlFor={ids.site} className="sr-label">Do you need a website?</label>
+              <select id={ids.site} name="websiteMode" value={websiteMode} onChange={(e) => setWebsiteMode(e.target.value)} className="sr-input w-full" style={inputStyle}>
+                <option value="platform">Yes, make my website</option>
+                <option value="external">No, I already have a website</option>
+                <option value="none">No website</option>
+              </select>
+              {websiteMode === "external" && (
+                <div className="mt-3">
+                  <label htmlFor={ids.siteUrl} className="sr-label">Your website address</label>
+                  <input id={ids.siteUrl} name="websiteUrl" type="url" placeholder="https://www.example.com" className="sr-input" style={{ ...inputStyle, ...(errors.websiteUrl ? bad : null) }} aria-invalid={!!errors.websiteUrl || undefined} />
+                  {fieldError(errors.websiteUrl)}
+                </div>
+              )}
+            </div>
+          )}
 
           <div>
             <label htmlFor={ids.category} className="sr-label">Business categories</label>
@@ -329,7 +365,7 @@ export default function SignupForm({ rootDomain, approval = false, selectedPlan 
             )}
           </button>
           <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs font-semibold text-muted-foreground">
-            {["Free to start", "No card needed", "Every feature included"].map((t) => <li key={t} className="inline-flex items-center gap-1.5"><Check className="size-3.5 text-emerald-600" strokeWidth={3} />{t}</li>)}
+            {["Free to start", "No card needed", "Change products any time"].map((t) => <li key={t} className="inline-flex items-center gap-1.5"><Check className="size-3.5 text-emerald-600" strokeWidth={3} />{t}</li>)}
           </ul>
           <p className="text-center text-sm text-muted-foreground">
             Already have a workspace? <Link href="/login" className="font-bold text-primary hover:underline">Log in</Link>

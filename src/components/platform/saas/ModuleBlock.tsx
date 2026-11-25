@@ -22,7 +22,7 @@ export default function ModuleBlock({ m, flip = false, detailed = false, variant
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <span className="sr-icon"><ProductLogo productKey={m.key} size={36} title={m.name} /></span>
             <span className="sr-eyebrow">{m.name}</span>
-            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">Included in every plan</span>
+            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">Free to start</span>
           </div>
           <h3 className="mb-3 text-3xl font-bold leading-[1.15] tracking-tight sm:text-4xl">{m.headline}</h3>
           <p className="sr-lead">{m.summary}</p>

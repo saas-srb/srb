@@ -1,4 +1,5 @@
 "use client";
+import { useUnavailableProducts } from "@/components/platform/PanelsProvider";
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -32,8 +33,10 @@ export default function LeadLinksPanel({
   const [cid, setCid] = useState("");
   const [pid, setPid] = useState("");
 
-  const isLearner = type === "intern" || type === "trainee";
-  const isClient = type === "client";
+  const unavailable = useUnavailableProducts();
+  // A link is offered only into a product the company has.
+  const isLearner = (type === "intern" || type === "trainee") && !unavailable.has("tms");
+  const isClient = type === "client" && !unavailable.has("pms");
   if (!isLearner && !isClient) return null;
 
   return (

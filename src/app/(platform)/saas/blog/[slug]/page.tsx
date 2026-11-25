@@ -250,7 +250,7 @@ export default async function BlogPostPage({
                 Start automating your business with SRB AI
               </h3>
               <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
-                Every product included on our free plan. Launch your website, manage your sales pipeline, and run payroll with zero complexity.
+                One product, free forever. Launch your website, manage your sales pipeline, and run payroll with zero complexity.
               </p>
               <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                 <Link

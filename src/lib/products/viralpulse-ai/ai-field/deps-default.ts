@@ -128,14 +128,14 @@ async function resolveField(id: Parameters<RunDeps["resolve"]>[0], input: Parame
     case "company_location": {
       const c = await getCompanyDetails();
       const place = [c.city, c.state, c.country].map((x) => x?.trim()).filter(Boolean).join(", ");
-      if (!place) return { ok: false, error: "Your company address isn't filled in yet. Add it under TalentOS → Settings → Company." };
+      if (!place) return { ok: false, error: "Your company address isn't filled in yet. Add it under CommandOS → Company setup." };
       return { ok: true, value: place, note: "Taken from your company address.", sources: [{ kind: "company", ref: "Company address" }] };
     }
     case "company_website": {
       const c = await getCompanyDetails();
       const raw = (c.website ?? "").trim();
       const url = raw ? validateUrl(/^https?:\/\//i.test(raw) ? raw.replace(/^http:\/\//i, "https://") : `https://${raw}`) : null;
-      if (!url) return { ok: false, error: "Your company website isn't filled in yet. Add it under TalentOS → Settings → Company." };
+      if (!url) return { ok: false, error: "Your company website isn't filled in yet. Add it under CommandOS → Company setup." };
       return { ok: true, value: url, note: "Your company website. Change it if this campaign has its own page.", sources: [{ kind: "company", ref: "Company website" }] };
     }
     case "offer_end": {

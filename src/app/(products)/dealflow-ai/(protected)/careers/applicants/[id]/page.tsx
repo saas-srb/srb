@@ -1,3 +1,5 @@
+import { hiddenProducts } from "@/lib/platform/products/visible";
+import ProductLink from "@/components/platform/ProductLink";
 import { requireLmsPage } from "@/lib/lms-auth";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import Link from "next/link";
@@ -94,6 +96,7 @@ export default async function ApplicantDetailPage({ params, searchParams }: { pa
   const messages = leads.flatMap((l) => [...l.portalMessages, ...l.internalMessages]).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const timeline = leads.flatMap((l) => l.timeline).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
+  const hidden = await hiddenProducts();
   const overview = (
     <div className="space-y-4">
       <div className="grid gap-4 lg:grid-cols-3">
@@ -161,7 +164,7 @@ export default async function ApplicantDetailPage({ params, searchParams }: { pa
                 <Row label="Messages">{messages.length}</Row>
                 <Row label="Documents">{files.length}</Row>
                 <Row label="Offer">{offer ? offer.status.replace(/_/g, " ") : "None"}</Row>
-                <Row label="Employee">{employee ? <Link href={`/talentos/employees/${employee.id}`} className="text-primary hover:underline">{employee.code}</Link> : "Not hired"}</Row>
+                <Row label="Employee">{employee ? <ProductLink href={`/talentos/employees/${employee.id}`} className="text-primary hover:underline">{employee.code}</ProductLink> : "Not hired"}</Row>
                 <Row label="Other applications">{otherApplications.length}</Row>
               </dl>
             </CardContent>
@@ -291,7 +294,7 @@ export default async function ApplicantDetailPage({ params, searchParams }: { pa
 
   const offerTab = (
     <div className="grid gap-4 lg:grid-cols-2">
-      <Section title="Offer" icon={<Handshake className="size-4" />} action={offer ? <Link href="/talentos/recruitment" className={buttonVariants({ variant: "outline", size: "sm" })}>Open in TalentOS <ExternalLink className="size-3.5" /></Link> : undefined}>
+      <Section title="Offer" icon={<Handshake className="size-4" />} action={offer && !hidden.has("hrms") ? <Link href="/talentos/recruitment" className={buttonVariants({ variant: "outline", size: "sm" })}>Open in TalentOS <ExternalLink className="size-3.5" /></Link> : undefined}>
         {!offer ? (
           <Empty>No offer has been made.</Empty>
         ) : (
@@ -310,7 +313,7 @@ export default async function ApplicantDetailPage({ params, searchParams }: { pa
           <Empty>Not converted to an employee.</Empty>
         ) : (
           <dl className="divide-y divide-border/40">
-            <Row label="Employee"><Link href={`/talentos/employees/${employee.id}`} className="text-primary hover:underline">{`${employee.name} (${employee.code})`}</Link></Row>
+            <Row label="Employee"><ProductLink href={`/talentos/employees/${employee.id}`} className="text-primary hover:underline">{`${employee.name} (${employee.code})`}</ProductLink></Row>
             <Row label="Status"><span className="capitalize">{employee.status.replace(/_/g, " ")}</span></Row>
             <Row label="Joining date">{employee.joiningDate ?? "—"}</Row>
           </dl>
@@ -384,7 +387,7 @@ export default async function ApplicantDetailPage({ params, searchParams }: { pa
         description={<>{`${application.positionTitle} · applied ${formatDateTime(application.createdAt)}${lead ? ` · ${lead.code}` : ""}`}</>}
         actions={<><div className="flex flex-wrap items-center gap-2">
           <DealflowCallButton spec={applicantCallSpec({ _id: id, name: application.name, phone: application.phone, positionTitle: application.positionTitle })} />
-          {account ? (
+          {hidden.has("portal") ? null : account ? (
             <LoginAsPortalUserButton
               applicationId={id}
               leadId={lead?.id}
@@ -413,7 +416,7 @@ export default async function ApplicantDetailPage({ params, searchParams }: { pa
           { key: "overview", label: "Overview", content: overview },
           { key: "journey", label: `Journey & Messages (${messages.length})`, content: journey },
           { key: "interviews", label: `Interviews (${interviews.length})`, content: interviewsTab },
-          { key: "assessments", label: "Assessments", content: <OtsCandidatePanel kind="applicant" id={id} title="Assessments & Screening Tests" /> },
+          ...(hidden.has("ots") ? [] : [{ key: "assessments", label: "Assessments", content: <OtsCandidatePanel kind="applicant" id={id} title="Assessments & Screening Tests" /> }]),
           { key: "documents", label: `Documents (${files.length + 1})`, content: documents },
           { key: "offer", label: "Offer & Employment", content: offerTab },
           { key: "account", label: "Portal Account & Activity", content: accountTab },

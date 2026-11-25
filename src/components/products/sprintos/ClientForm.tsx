@@ -44,7 +44,10 @@ export default function ClientForm({
   client,
   trigger,
   onSaved,
+  save = saveClientAction,
 }: {
+  /** Another product's screen saves with its own action (and permission check). */
+  save?: typeof saveClientAction;
   client?: SerializedClient;
   trigger: ReactNode;
   onSaved?: (id: string) => void;
@@ -69,7 +72,7 @@ export default function ClientForm({
   function submit() {
     setErrors({});
     startTransition(async () => {
-      const result = await saveClientAction(form, client?._id);
+      const result = await save(form, client?._id);
       if (!result.ok) {
         if (result.fieldErrors) setErrors(result.fieldErrors);
         toast.error(result.error ?? "Please fix the highlighted fields.");
