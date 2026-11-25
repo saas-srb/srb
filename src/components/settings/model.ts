@@ -2,7 +2,7 @@
  * The one model behind every settings grid (Integrations, Product settings and any later one): the card data, the ONE status vocabulary and the
  * search and filter rules. Pure and client-safe, so the pages, the dev harness and the tests all use the same code.
  */
-export type SettingsStatus = "ready" | "using_srb" | "using_own" | "not_set_up" | "needs_attention" | "locked";
+export type SettingsStatus = "ready" | "using_srb" | "using_own" | "not_set_up" | "needs_attention" | "locked" | "company_only";
 
 export const SETTINGS_STATUSES: SettingsStatus[] = ["ready", "using_srb", "using_own", "not_set_up", "needs_attention", "locked"];
 
@@ -14,7 +14,11 @@ export const STATUS_WORDS: Record<SettingsStatus, string> = {
   not_set_up: "Not set up",
   needs_attention: "Needs attention",
   locked: "Locked",
+  company_only: "Company only",
 };
+
+/** The statuses the Platform Console's defaults grid filters by (a default is in place, missing, or deliberately left to each company). */
+export const CONSOLE_STATUSES: SettingsStatus[] = ["ready", "not_set_up", "company_only"];
 
 /** The colour family and icon of each status (names are mapped to icons in `SettingsCard.tsx`). */
 export const STATUS_LOOK: Record<SettingsStatus, { tone: "good" | "brand" | "muted" | "warn"; icon: "check" | "shield" | "dashed" | "alert" | "lock" }> = {
@@ -24,12 +28,14 @@ export const STATUS_LOOK: Record<SettingsStatus, { tone: "good" | "brand" | "mut
   not_set_up: { tone: "muted", icon: "dashed" },
   needs_attention: { tone: "warn", icon: "alert" },
   locked: { tone: "muted", icon: "lock" },
+  company_only: { tone: "muted", icon: "lock" },
 };
 
 /** The label of the one primary button: Set up when nothing is configured, Manage when it works, Configure for a card with no state. */
 export function primaryLabel(status: SettingsStatus | null): string {
   if (status === "not_set_up") return "Set up";
   if (status === null) return "Configure";
+  if (status === "company_only") return "Why";
   return "Manage";
 }
 
@@ -57,10 +63,10 @@ export interface SettingsCategory { key: string; title: string; description?: st
 export interface SettingsFilter { q: string; status: SettingsStatus | ""; category: string }
 
 /** Reads `?q=&status=&category=` safely. */
-export function readFilter(sp: Record<string, string | string[] | undefined>): SettingsFilter {
+export function readFilter(sp: Record<string, string | string[] | undefined>, statuses: SettingsStatus[] = SETTINGS_STATUSES): SettingsFilter {
   const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : "");
   const status = one(sp.status) as SettingsStatus;
-  return { q: one(sp.q).trim().slice(0, 80), status: SETTINGS_STATUSES.includes(status) ? status : "", category: one(sp.category) };
+  return { q: one(sp.q).trim().slice(0, 80), status: statuses.includes(status) ? status : "", category: one(sp.category) };
 }
 
 /** Search by name (and the sentence) plus the status and category filters. */

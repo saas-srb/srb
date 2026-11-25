@@ -29,7 +29,6 @@ import {
 import { adminExtendTrial, adminSetComplimentary, adminSuspend, adminUnsuspend, adminReactivate, listSubscriptions } from "@/lib/platform/billing/subscriptions-admin";
 import type { IssueSaasInvoiceInput } from "@/lib/platform/billing/invoices";
 import { saveCoupon } from "@/lib/platform/billing/coupons";
-import { saveAddon, setCompanyAddon } from "@/lib/platform/billing/addons";
 import { getPlan, savePlan } from "@/lib/platform/billing/plans";
 import { POST as webhookPOST } from "@/app/(platform)/api/platform/billing/webhook/route";
 
@@ -427,8 +426,8 @@ async function main() {
   await handleWebhook("evt_h1", payload("subscription.halted", { ...remoteSubs.get(s2.id)!, status: "halted" }));
   eq((await red.findOne({ companyId: c2 }))!.status, "released", "halted before the first charge releases the coupon");
 
-  // Add-ons + price versions: reprice at cycle end; a plan price edit doesn't touch existing subscribers.
-  const ca = await newCompany("addon-co");
+  // Price versions: reprice at cycle end; a plan price edit doesn't touch existing subscribers.
+  const ca = await newCompany("price-co");
   const sa2 = await subscribe(ca, null);
   await chargeCycle(sa2.id);
   eq(((await repriceSubscription(ca, "admin1")) as { message?: string }).message, "Price unchanged.", "reprice is a no-op when nothing changed");
@@ -437,14 +436,6 @@ async function main() {
   ok(saved.ok && saved.priceChanged, "plan price edited");
   ok(((await db.collection("billing_plans").findOne({ _id: "growth" as never }))!.razorpayPlans ?? []).length > 0, "razorpayPlans survive a plan save");
   eq(((await repriceSubscription(ca, "admin1")) as { message?: string }).message, "Price unchanged.", "existing subscriber keeps the price version it bought");
-  const addon = await saveAddon(null, { name: "Extra seats", description: "5 seats", priceMonthly: 50_000, priceYearly: 500_000, type: "limit", limitKey: "seats", amountPerUnit: 5, moduleKey: null, plans: "all", maxQuantity: null, active: true, sortOrder: 10 }, "admin1");
-  assert.ok(addon.ok, JSON.stringify(addon));
-  if (addon.ok) assert.ok((await setCompanyAddon(ca, addon.id, 2, { actorId: "admin1" })).ok);
-  ok((await repriceSubscription(ca, "admin1")).ok, "reprice after an add-on change");
-  const withAddon = 199_900 + 100_000;
-  eq((await getCompanySubscription(ca))!.pendingChange?.pricing?.total, withAddon + Math.round((withAddon * 18) / 100), "old plan price + add-ons scheduled for the next cycle");
-  eq(await chargeCycle(sa2.id), withAddon + Math.round((withAddon * 18) / 100), "next cycle charged with add-ons");
-  eq(invoices.at(-1)!.lines!.map((l) => [l.kind, l.amount]), [["plan", 199_900], ["addon", 100_000]], "invoice prints the add-on line");
   const fresh = await priceSubscription({ companyId: cr, planId: "growth", interval: "monthly" });
   ok(fresh.ok && fresh.pricing.net === 299_900 && fresh.pricing.priceVersion === 3, "new subscribers get the new price version");
 

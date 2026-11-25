@@ -35,12 +35,12 @@ export const CONFIG_SECTIONS: ConfigSection[] = [
   {
     id: "voice",
     title: "Voice & messaging",
-    description: "Voice replies and WhatsApp messages for companies that have not connected their own accounts.",
+    description: "Voice replies and phone calls for companies that have not connected their own accounts. Companies' WhatsApp messages always need their own sender.",
     fields: [
       { key: "ELEVENLABS_API_KEY", label: "ElevenLabs API key", secret: true, help: "Voice mode." },
       { key: "TWILIO_ACCOUNT_SID", label: "Twilio account SID", secret: false, help: "Starts with AC.", placeholder: "AC…" },
       { key: "TWILIO_AUTH_TOKEN", label: "Twilio auth token", secret: true, help: "Twilio console → Account info." },
-      { key: "TWILIO_WHATSAPP_FROM", label: "Twilio WhatsApp sender", secret: false, help: "The WhatsApp-enabled number, e.g. whatsapp:+14155238886.", placeholder: "whatsapp:+…" },
+      { key: "TWILIO_WHATSAPP_FROM", label: "Twilio WhatsApp sender", secret: false, help: "Only for the platform's own approved messages and the operator's own workspace; never used for a company's messages. E.g. whatsapp:+14155238886.", placeholder: "whatsapp:+…" },
     ],
   },
   {
@@ -67,6 +67,28 @@ export const CONFIG_SECTIONS: ConfigSection[] = [
       { key: "VAPID_PUBLIC_KEY", label: "VAPID public key", secret: false, help: "The public half of the pair." },
       { key: "VAPID_PRIVATE_KEY", label: "VAPID private key", secret: true, help: "The private half of the pair." },
       { key: "VAPID_SUBJECT", label: "Contact (optional)", secret: false, help: "A mailto: address or https URL the push services can contact. Defaults to the platform admin email.", placeholder: "mailto:support@example.com" },
+    ],
+  },
+  {
+    id: "platform-smtp",
+    title: "Included email: SMTP",
+    description: "Used to send email for companies without their own account when the platform has no Resend account. Mail always comes from this verified address, shown under the company's name.",
+    fields: [
+      { key: "PLATFORM_SMTP_HOST", label: "SMTP host", secret: false, help: "For example smtp.yourprovider.com.", placeholder: "smtp.example.com" },
+      { key: "PLATFORM_SMTP_PORT", label: "Port", secret: false, help: "Usually 587 (STARTTLS) or 465 (SSL).", placeholder: "587" },
+      { key: "PLATFORM_SMTP_SECURE", label: "Security", secret: false, help: "starttls, ssl or none.", placeholder: "starttls" },
+      { key: "PLATFORM_SMTP_USERNAME", label: "User name", secret: false, help: "" },
+      { key: "PLATFORM_SMTP_PASSWORD", label: "Password", secret: true, help: "" },
+      { key: "PLATFORM_SMTP_FROM", label: "Verified sender address", secret: false, help: "An address on a domain the platform owns and has verified. Never a company's domain.", placeholder: "no-reply@yourplatform.com" },
+    ],
+  },
+  {
+    id: "platform-sendgrid",
+    title: "Included email: SendGrid",
+    description: "Used when the platform has neither a Resend nor an SMTP account. Mail always comes from this verified sender, shown under the company's name.",
+    fields: [
+      { key: "PLATFORM_SENDGRID_API_KEY", label: "SendGrid API key", secret: true, help: "SendGrid → Settings → API keys (Mail Send)." },
+      { key: "PLATFORM_SENDGRID_FROM", label: "Verified sender address", secret: false, help: "A verified sender of the platform. Never a company's domain.", placeholder: "no-reply@yourplatform.com" },
     ],
   },
   {

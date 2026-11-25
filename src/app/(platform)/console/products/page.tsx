@@ -25,7 +25,7 @@ export default async function PlatformPanelsPage() {
       <PlatformPageHeader
         title="Products"
         description="The Product Registry: one name, description and on/off switch for every product, used by the Workspace, onboarding, plans, product headers and search. Deactivating a product hides it and blocks access."
-        crumbs={[{ label: "Tenants" }]}
+        crumbs={[{ label: "Platform setup" }]}
       />
       <PanelListFilters>
 <PanelsManager panels={panels} disabledFor={disabledFor} canManage={can(user, "panels.manage")} />

@@ -28,7 +28,7 @@ export default async function PlatformCouponsPage() {
       <PlatformPageHeader
         title="Coupons & discounts"
         description="Discount codes companies can apply at checkout — percentage or fixed, per plan and billing cycle, with limits and validity."
-        crumbs={[{ label: "Billing" }]}
+        crumbs={[{ label: "Plans & pricing" }]}
         actions={
           <Link href="/console/coupons/new" className={buttonVariants()}>
             <Plus className="size-4" data-icon="inline-start" />

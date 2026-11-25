@@ -62,7 +62,7 @@ export interface IntegrationsView {
 function secretView(stored: StoredSecret | null | undefined, context: string, envName: string, effectiveSource: ConfigSource | null): SecretView {
   const unreadable = Boolean(stored) && decryptPlatformSecret(stored!.enc, context) === null;
   const envValue = process.env[envName]?.trim();
-  const shown = effectiveSource === "db" ? (stored?.last4 ?? null) : effectiveSource === "env" && envValue ? last4(envValue) : null;
+  const shown = effectiveSource === "db" ? (stored?.last4 && stored.last4.length < 4 ? "" : (stored?.last4 ?? null)) : effectiveSource === "env" && envValue ? last4(envValue) : null;
   return { saved: Boolean(stored), source: effectiveSource, last4: shown, unreadable };
 }
 

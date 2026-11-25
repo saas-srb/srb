@@ -91,6 +91,7 @@ export function canOpenPlatformSecret(value: EncryptedValue | null | undefined, 
   return false;
 }
 
+/** The tail shown next to a saved secret. A secret of 8 characters or fewer shows nothing: its last four would be half of it, or all of it. */
 export function last4(value: string): string {
-  return value.length <= 4 ? value : value.slice(-4);
+  return value.length > 8 ? value.slice(-4) : "";
 }

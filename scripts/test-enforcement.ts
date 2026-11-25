@@ -1,6 +1,6 @@
 /**
  * Plan enforcement checks (module gating, read-only mode, seats, AI tokens,
- * storage, add-on extras, the internal owner never blocked, the usage
+ * storage, the internal owner never blocked, the usage
  * report) against a throwaway database that is dropped at the end. The AI
  * wrapper is exercised against a local mock OpenAI server — no real calls.
  *
@@ -18,7 +18,7 @@ import { getDb } from "@/lib/mongodb";
 import { listPlans } from "@/lib/platform/billing/plans";
 import { updateCompanySubscription } from "@/lib/platform/billing/subscription";
 import { getUsage, recordUsage } from "@/lib/platform/billing/usage";
-import { applyAddonExtras, getEffectiveLimits } from "@/lib/platform/billing/limits";
+import { getEffectiveLimits } from "@/lib/platform/billing/limits";
 import {
   BillingLimitError,
   aiBlockReason,
@@ -126,8 +126,8 @@ async function main() {
     assert.equal(await runAsCompany(starter, () => moduleBlockReason("messenger")), null, "core product");
     assert.match((await runAsCompany(starter, () => moduleBlockReason("fms"))) ?? "", /Starter plan/);
   });
-  await check("requireModule redirects a locked product to /commandos/upgrade", async () => {
-    await rejectsWith(runAsCompany(starter, () => requireModule("fms")), (e) => String((e as { digest?: string }).digest ?? "").includes("/commandos/upgrade?module=fms"), "redirect to upgrade");
+  await check("requireModule leaves plan gating to the proxy", async () => {
+    await runAsCompany(starter, () => requireModule("fms"));
     await runAsCompany(starter, () => requireModule("pms"));
   });
   await check("internal owner: every product open", async () => {
@@ -163,7 +163,7 @@ async function main() {
 
   console.log("billing notice");
   await check("trial / grace / suspended / active / owner", async () => {
-    assert.deepEqual(await runAsCompany(trial, () => getBillingNotice()), { status: "trialing", planName: "Growth", daysLeft: 5 });
+    assert.deepEqual(await runAsCompany(trial, () => getBillingNotice()), { status: "trialing", planName: "Growth", daysLeft: 5, firstChargeAt: null });
     assert.deepEqual(await runAsCompany(grace, () => getBillingNotice()), { status: "grace", planName: "Growth", daysLeft: 3 });
     assert.equal((await runAsCompany(susp, () => getBillingNotice()))?.status, "canceled");
     assert.equal(await runAsCompany(starter, () => getBillingNotice()), null);
@@ -218,27 +218,6 @@ async function main() {
     });
   });
 
-  console.log("add-on extras");
-  await check("applyAddonExtras adds quantity × amount; unlimited stays unlimited; unknown ignored", () => {
-    const out = applyAddonExtras({ seats: 10, aiTokensPerMonth: null, storageMb: 100 }, [{ addonId: "s", quantity: 3 }, { addonId: "ai", quantity: 2 }, { addonId: "nope", quantity: 9 }], [
-      { _id: "s", limitKey: "seats", amountPerUnit: 5 },
-      { _id: "ai", limitKey: "aiTokensPerMonth", amountPerUnit: 1000 },
-    ]);
-    assert.deepEqual(out, { seats: 25, aiTokensPerMonth: null, storageMb: 100 });
-  });
-  await check("getEffectiveLimits + entitlements include purchased add-ons", async () => {
-    await db.collection("billing_addons").insertMany([
-      { _id: "seats5" as never, limitKey: "seats", amountPerUnit: 5 },
-      { _id: "ai10k" as never, limitKey: "aiTokensPerMonth", amountPerUnit: 10_000 },
-    ]);
-    await db.collection("companies").updateOne({ _id: tiny as never }, { $set: { "subscription.addons": [{ addonId: "seats5", quantity: 2 }] } });
-    assert.deepEqual(await getEffectiveLimits(tiny), { seats: 12, aiTokensPerMonth: 1000, storageMb: 1 });
-    assert.deepEqual(await getEffectiveLimits(owner), { seats: null, aiTokensPerMonth: null, storageMb: null, emailsPerMonth: null, voiceMinutesPerMonth: null, customDomains: null });
-    await runAsCompany(tiny, async () => {
-      assert.ok((await createAdminUser("three@tiny.test", ["employee"])).ok, "extra seats unblock creation");
-    });
-  });
-
   console.log("AI tokens");
   await check("blocks at the monthly limit with a friendly error", async () => {
     await runAsCompany(tiny, () => recordUsage("ai_tokens", 999));
@@ -248,11 +227,6 @@ async function main() {
     const reason = await runAsCompany(tiny, () => aiBlockReason());
     assert.match(reason ?? "", /used all 1,000 AI tokens/);
     await rejectsWith(runAsCompany(tiny, () => assertAiAvailable()), (e) => isBillingLimitError(e) && (e as BillingLimitError).code === "ai_tokens", "ai_tokens error");
-  });
-  await check("AI add-on raises the limit", async () => {
-    await db.collection("companies").updateOne({ _id: tiny as never }, { $set: { "subscription.addons": [{ addonId: "seats5", quantity: 2 }, { addonId: "ai10k", quantity: 1 }] } });
-    assert.equal(await runAsCompany(tiny, () => aiBlockReason()), null);
-    await db.collection("companies").updateOne({ _id: tiny as never }, { $set: { "subscription.addons": [{ addonId: "seats5", quantity: 2 }] } });
   });
   await check("internal owner never blocked on AI (still metered)", async () => {
     await runAsCompany(owner, () => recordUsage("ai_tokens", 50_000_000));

@@ -11,6 +11,7 @@ import { getDb } from "@/lib/mongodb";
 import { ROLE_GROUPS } from "@/lib/products/commandos/role-catalog";
 import { listWorkflows } from "@/lib/platform/workflows";
 import { MAX_WORKFLOWS_PER_COMPANY } from "@/lib/platform/workflows/shared";
+import { companyWhatsAppSender } from "@/lib/platform/messaging";
 import AutomationsManager from "@/components/platform/automations/AutomationsManager";
 
 export const metadata: Metadata = { title: "Automations", robots: { index: false, follow: false } };
@@ -20,8 +21,9 @@ export default async function AutomationsSettingsPage() {
   if (!user) redirect("/commandos/login");
   await requireWorkspaceAccess("company.automations"); // Director-only item: anyone else sees the locked page inside this shell
 
-  const [workflows, people] = await Promise.all([
+  const [workflows, whatsApp, people] = await Promise.all([
     listWorkflows(),
+    companyWhatsAppSender().catch(() => null),
     (await getDb()).collection<{ email: string }>("admin_users").find({}, { projection: { email: 1 } }).sort({ email: 1 }).limit(500).toArray(),
   ]);
   const roles = [{ value: "super_admin", label: "Director" }, ...ROLE_GROUPS.flatMap((g) => g.roles.map((r) => ({ value: r.value, label: `${r.label} · ${g.module}` })))];
@@ -37,7 +39,7 @@ export default async function AutomationsSettingsPage() {
 <div className="space-y-4">
         <GlassCard interactive={false}>
           <CardContent>
-            <AutomationsManager initial={workflows} roles={roles} people={people.map((p) => ({ id: String(p._id), email: p.email }))} max={MAX_WORKFLOWS_PER_COMPANY} />
+            <AutomationsManager initial={workflows} roles={roles} people={people.map((p) => ({ id: String(p._id), email: p.email }))} max={MAX_WORKFLOWS_PER_COMPANY} whatsAppReady={whatsApp !== null} />
           </CardContent>
         </GlassCard>
       </div>

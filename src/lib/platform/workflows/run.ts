@@ -10,7 +10,7 @@ import { notify } from "@/lib/platform/notifications";
 import { actorEmails, runInWorkflowScope, type PlatformEvent } from "@/lib/platform/events";
 import { eventDef, eventLabel, type EventType } from "@/lib/platform/events/catalog";
 import { workflowCollections, type WorkflowDoc } from "@/lib/platform/workflows";
-import { isEmailAddress, matchesAll, renderTemplate, type EventContext, type WorkflowAction } from "@/lib/platform/workflows/shared";
+import { isEmailAddress, matchesAll, renderTemplate, type EventContext, type WorkflowAction, type WorkflowRunStatus } from "@/lib/platform/workflows/shared";
 import { deliverWebhook } from "@/lib/platform/workflows/webhook";
 import { isPhoneNumber, sendWhatsApp } from "@/lib/platform/messaging";
 
@@ -50,6 +50,8 @@ interface ActionResult {
   action: string;
   ok: boolean;
   detail: string;
+  /** Nothing was attempted because the company has not set up what this action needs (for example its own WhatsApp sender). */
+  skipped?: true;
 }
 
 async function runAction(action: WorkflowAction, wf: Pick<WorkflowDoc, "_id" | "name" | "secret">, event: RunnableEvent, env: { brand: string; origin: string | null; test: boolean }): Promise<ActionResult> {
@@ -66,7 +68,9 @@ async function runAction(action: WorkflowAction, wf: Pick<WorkflowDoc, "_id" | "
       if (!isPhoneNumber(to)) return { action: action.type, ok: false, detail: to ? `"${to.slice(0, 40)}" isn't a phone number.` : "No phone number: the field is empty for this event." };
       const text = renderTemplate(action.body, event.ctx).slice(0, 1000);
       const sent = await sendWhatsApp(to, text);
-      return sent.ok ? { action: action.type, ok: true, detail: `Sent to ${to}` } : { action: action.type, ok: false, detail: sent.error.slice(0, 200) };
+      if (sent.ok) return { action: action.type, ok: true, detail: `Sent to ${to}` };
+      if (sent.skipped) return { action: action.type, ok: false, skipped: true, detail: sent.error };
+      return { action: action.type, ok: false, detail: sent.error.slice(0, 200) };
     }
     if (action.type === "notify") {
       const count = await notify({
@@ -90,7 +94,7 @@ async function runAction(action: WorkflowAction, wf: Pick<WorkflowDoc, "_id" | "
 }
 
 /** Runs one workflow's actions for an event and logs the run. Conditions are the caller's job. */
-export async function executeWorkflow(wf: WorkflowDoc, event: RunnableEvent, opts: { test?: boolean } = {}): Promise<{ status: "success" | "failed"; results: ActionResult[] }> {
+export async function executeWorkflow(wf: WorkflowDoc, event: RunnableEvent, opts: { test?: boolean } = {}): Promise<{ status: WorkflowRunStatus; results: ActionResult[] }> {
   const companyId = await currentCompanyId();
   const [company, origin] = await Promise.all([getCompany(companyId).catch(() => null), appUrlForCompany(companyId).catch(() => null)]);
   const env = { brand: company?.name ?? "Your workspace", origin, test: opts.test === true };
@@ -103,7 +107,8 @@ export async function executeWorkflow(wf: WorkflowDoc, event: RunnableEvent, opt
   });
 
   const failed = results.filter((r) => !r.ok);
-  const status = failed.length === 0 ? "success" : "failed";
+  // "skipped" is its own neutral outcome: only when nothing actually went wrong and something could not be attempted.
+  const status: WorkflowRunStatus = failed.length === 0 ? "success" : failed.every((f) => f.skipped) ? "skipped" : "failed";
   const error = failed.length ? failed.map((f) => `${f.action}: ${f.detail}`).join("; ").slice(0, 500) : null;
   const at = new Date();
   const { workflows, runs } = await workflowCollections();
@@ -111,6 +116,7 @@ export async function executeWorkflow(wf: WorkflowDoc, event: RunnableEvent, opt
   await workflows.updateOne({ _id: wf._id }, { $set: { lastRun: { status, at, error } } });
   // Tell the admins once when an automation starts failing (not on every failed run, and never for a test).
   if (status === "failed" && !env.test && wf.lastRun?.status !== "failed") await workspaceEvents.automationFailed(wf.name, wf._id, error ?? "An action failed.");
+  if (status === "skipped" && !env.test && wf.lastRun?.status !== "skipped") await workspaceEvents.automationSkipped(wf.name, wf._id, failed[0].detail);
   return { status, results };
 }
 
@@ -140,12 +146,12 @@ export async function runWorkflowsForEvent(event: PlatformEvent): Promise<number
 }
 
 /** "Send test": runs the workflow's actions once with the trigger's sample payload (conditions are skipped). */
-export async function sendTestRun(workflowId: string, actor: { id: string; email: string }): Promise<{ ok: boolean; error?: string; results?: ActionResult[] }> {
+export async function sendTestRun(workflowId: string, actor: { id: string; email: string }): Promise<{ ok: boolean; skipped?: true; error?: string; results?: ActionResult[] }> {
   const { workflows } = await workflowCollections();
   const wf = await workflows.findOne({ _id: workflowId });
   if (!wf) return { ok: false, error: "That automation no longer exists." };
   const def = eventDef(wf.trigger);
   const ctx: EventContext = { ...(def?.sample ?? {}), label: `Sample ${eventLabel(wf.trigger).toLowerCase()}`, url: "/commandos", actorEmail: actor.email, source: "test" };
   const run = await executeWorkflow(wf, { id: null, type: wf.trigger, at: new Date(), entity: { type: "sample", id: "sample", label: String(ctx.label), url: "/commandos" }, ctx }, { test: true });
-  return { ok: run.status === "success", results: run.results, error: run.status === "failed" ? run.results.filter((r) => !r.ok).map((r) => r.detail).join(" ") : undefined };
+  return { ok: run.status === "success", ...(run.status === "skipped" ? { skipped: true as const } : {}), results: run.results, error: run.status === "success" ? undefined : run.results.filter((r) => !r.ok).map((r) => r.detail).join(" ") };
 }

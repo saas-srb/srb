@@ -1,10 +1,9 @@
-import type { ModuleKey } from "@/lib/platform/onboarding/catalog";
 import { formatMoney, type BillingInterval, type PlanLimits } from "@/lib/platform/billing/types";
 
 /**
- * Coupon and add-on shapes (platform-level `billing_coupons`,
- * `billing_coupon_redemptions`, `billing_addons`). Client-safe — the data
- * access is in `coupons.ts` and `addons.ts`. Money is integer paise.
+ * Coupon shapes (platform-level `billing_coupons`,
+ * `billing_coupon_redemptions`). Client-safe — the data
+ * access is in `coupons.ts`. Money is integer paise.
  */
 
 export type CouponDuration = "once" | "repeating" | "forever";
@@ -67,35 +66,6 @@ export interface CouponRedemption {
   refKey?: string;
 }
 
-export type AddonLimitKey = keyof PlanLimits;
-export const ADDON_LIMIT_KEYS: { key: AddonLimitKey; label: string; unit: string }[] = [
-  { key: "seats", label: "Extra seats", unit: "seats" },
-  { key: "aiTokensPerMonth", label: "Extra AI tokens / month", unit: "AI tokens" },
-  { key: "storageMb", label: "Extra storage", unit: "MB" },
-];
-
-export interface Addon {
-  _id: string;
-  name: string;
-  description: string;
-  currency: string;
-  /** Per unit, per cycle, pre-tax paise. */
-  priceMonthly: number;
-  priceYearly: number;
-  /** limit = raises a plan limit by `amountPerUnit` per unit; module = unlocks a product. */
-  type: "limit" | "module";
-  limitKey: AddonLimitKey | null;
-  amountPerUnit: number | null;
-  moduleKey: ModuleKey | null;
-  plans: string[] | "all";
-  /** Max units per company; null = unlimited. Module unlocks are always 1. */
-  maxQuantity: number | null;
-  active: boolean;
-  sortOrder: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 export function describeCouponDiscount(c: Pick<Coupon, "kind" | "percentOff" | "amountOff">, currency = "INR"): string {
   return c.kind === "percent" ? `${c.percentOff}% off` : `${formatMoney(c.amountOff ?? 0, currency)} off`;
 }
@@ -104,12 +74,6 @@ export function describeCouponDuration(c: Pick<Coupon, "duration" | "durationCyc
   if (c.duration === "once") return "First cycle";
   if (c.duration === "forever") return "Every cycle";
   return `${c.durationCycles} cycle${c.durationCycles === 1 ? "" : "s"}`;
-}
-
-export function describeAddonEffect(a: Pick<Addon, "type" | "limitKey" | "amountPerUnit" | "moduleKey">): string {
-  if (a.type === "module") return `Unlocks ${a.moduleKey}`;
-  const meta = ADDON_LIMIT_KEYS.find((k) => k.key === a.limitKey);
-  return `+${(a.amountPerUnit ?? 0).toLocaleString("en-IN")} ${meta?.unit ?? a.limitKey} per unit`;
 }
 
 export type CouponStatus = "active" | "inactive" | "scheduled" | "expired" | "used_up";

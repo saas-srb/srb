@@ -18,7 +18,7 @@ export default async function PlatformDocumentsPage() {
       <PlatformPageHeader
         title="Documents & PDFs"
         description="Every PDF the platform produces, with a sample in your own letterhead and how much each is used across all companies. Switch a kind of PDF off and nobody can produce it until you turn it back on."
-        crumbs={[{ label: "Administration" }]}
+        crumbs={[{ label: "Messages & content" }]}
       />
       <DocumentControls types={PDF_TYPES} stats={stats} controls={controls} products={Object.fromEntries(panels.map((p) => [p.key, p.shortName || p.name]))} canEdit={can(user, "settings.manage")} />
     </div>

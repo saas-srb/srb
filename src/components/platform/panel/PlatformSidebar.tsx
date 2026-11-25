@@ -13,7 +13,6 @@ import {
   Repeat,
   FileText,
   TicketPercent,
-  Puzzle,
   CreditCard,
   Receipt,
   LineChart,
@@ -33,6 +32,11 @@ import {
   AlertTriangle,
   Clock,
   BellRing,
+  IndianRupee,
+  Percent,
+  Stamp,
+  HeartPulse,
+  ArrowUpRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -56,31 +60,43 @@ type Icon = React.ComponentType<{ className?: string }>;
 const SECTIONS: { label: string; items: { href: string; label: string; icon: Icon; exact?: boolean; planned?: boolean; badge?: "pendingApprovals" }[] }[] = [
   { label: "", items: [{ href: "/console", label: "Dashboard", icon: LayoutDashboard, exact: true }] },
   {
-    label: "Tenants",
+    label: "Customers",
     items: [
       { href: "/console/companies", label: "Companies", icon: Building2 },
-      { href: "/console/products", label: "Products", icon: LayoutGrid },
       { href: "/console/signups", label: "Sign-ups & approvals", icon: UserPlus, badge: "pendingApprovals" },
       { href: "/console/domains", label: "Domains & SSL", icon: Globe },
     ],
   },
   {
-    label: "Billing",
+    label: "Platform setup",
+    items: [
+      { href: "/console/settings", label: "Platform settings", icon: Settings2, exact: true },
+      { href: "/console/integrations", label: "Integrations", icon: Plug },
+      { href: "/console/product-settings", label: "Product settings", icon: SlidersHorizontal },
+      { href: "/console/products", label: "Products", icon: LayoutGrid },
+    ],
+  },
+  {
+    label: "Plans & pricing",
     items: [
       { href: "/console/plans", label: "Plans & pricing", icon: Package },
-      { href: "/console/costs", label: "Costs & pricing calculator", icon: Calculator },
+      { href: "/console/coupons", label: "Coupons & discounts", icon: TicketPercent },
+      { href: "/console/costs", label: "Cost calculator", icon: Calculator },
+    ],
+  },
+  {
+    label: "Billing",
+    items: [
       { href: "/console/subscriptions", label: "Subscriptions", icon: Repeat },
       { href: "/console/invoices", label: "SaaS invoices", icon: FileText },
-      { href: "/console/coupons", label: "Coupons & discounts", icon: TicketPercent },
-      { href: "/console/addons", label: "Add-ons", icon: Puzzle },
       { href: "/console/payments", label: "Payments & Razorpay", icon: CreditCard },
       { href: "/console/settings/billing", label: "Tax & invoicing", icon: Receipt },
     ],
   },
   {
-    label: "Analytics",
+    label: "Insights",
     items: [
-      { href: "/console/revenue", label: "Revenue & subscriptions", icon: LineChart },
+      { href: "/console/revenue", label: "Revenue", icon: LineChart },
       { href: "/console/usage", label: "Usage & limits", icon: Gauge },
       { href: "/console/ai-usage", label: "AI token history", icon: Sparkles },
     ],
@@ -94,25 +110,39 @@ const SECTIONS: { label: string; items: { href: string; label: string; icon: Ico
     ],
   },
   {
-    label: "Administration",
+    label: "Messages & content",
     items: [
-      { href: "/console/users", label: "Platform users & roles", icon: ShieldCheck },
-      { href: "/console/integrations", label: "Integrations", icon: Plug },
-      { href: "/console/audit", label: "Audit log", icon: ScrollText },
-      { href: "/console/settings", label: "Platform settings", icon: Settings2, exact: true },
-      { href: "/console/maintenance", label: "Maintenance", icon: Wrench },
       { href: "/console/notification-center", label: "Notification center", icon: BellRing },
       { href: "/console/documents", label: "Documents & PDFs", icon: FileText },
       { href: "/console/prompts", label: "AI prompts", icon: MessageSquareText },
-      { href: "/console/legal", label: "Legal & compliance", icon: Scale },
-      { href: "/console/payroll-rates", label: "Payroll rates", icon: Scale },
-      { href: "/console/tax-rulebook", label: "Tax rulebook", icon: Scale },
-      { href: "/console/stamp-rulebook", label: "Stamp rulebook", icon: Scale },
-      { href: "/console/scheduled-jobs", label: "Cron jobs", icon: Clock },
-      { href: "/console/incidents", label: "Incidents & status", icon: AlertTriangle },
-      { href: "/commandos", label: "Workspace", icon: LayoutGrid, exact: true },
     ],
   },
+  {
+    label: "Legal & statutory",
+    items: [
+      { href: "/console/legal", label: "Legal & compliance", icon: Scale },
+      { href: "/console/payroll-rates", label: "Payroll rates", icon: IndianRupee },
+      { href: "/console/tax-rulebook", label: "Tax rulebook", icon: Percent },
+      { href: "/console/stamp-rulebook", label: "Stamp rulebook", icon: Stamp },
+    ],
+  },
+  {
+    label: "Team & security",
+    items: [
+      { href: "/console/users", label: "Platform users & roles", icon: ShieldCheck },
+      { href: "/console/audit", label: "Audit log", icon: ScrollText },
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      { href: "/console/health", label: "System health", icon: HeartPulse },
+      { href: "/console/scheduled-jobs", label: "Scheduled jobs", icon: Clock },
+      { href: "/console/maintenance", label: "Maintenance", icon: Wrench },
+      { href: "/console/incidents", label: "Incidents & status", icon: AlertTriangle },
+    ],
+  },
+  { label: "Your company", items: [{ href: "/commandos", label: "Workspace", icon: ArrowUpRight, exact: true }] },
 ];
 
 function NavItem({

@@ -1,4 +1,5 @@
 import "server-only";
+import { resolveSettings, settingsPatch } from "@/lib/platform/defaults/product/company";
 import { getCompanyIdentity } from "@/lib/platform/company-identity";
 import { getDb } from "@/lib/mongodb";
 import { updateStamp } from "@/lib/products/talentos/db";
@@ -47,16 +48,15 @@ const DEFAULTS: Omit<OrgSettings, "_id" | "updatedAt" | "updatedBy"> = {
   state: null,
 };
 
+const codeDefaults = (): OrgSettings => ({ _id: ORG_SETTINGS_ID, ...DEFAULTS, updatedAt: new Date(0), updatedBy: null });
+
+/** Nothing is written by reading: a field the company never saved follows the platform's default, else the code default. */
 export async function getOrgSettings(): Promise<OrgSettings> {
   const db = await getDb();
-  const collection = db.collection<OrgSettings>(SETTINGS_COLLECTION);
-  const existing = await collection.findOne({ _id: ORG_SETTINGS_ID });
+  const doc = await db.collection<OrgSettings>(SETTINGS_COLLECTION).findOne({ _id: ORG_SETTINGS_ID });
+  const settings = await resolveSettings("talentos", SETTINGS_COLLECTION, { ...codeDefaults(), ...(doc ?? {}) }, doc);
   // The time zone is the company's one setting (Company setup).
-  if (existing) return { ...DEFAULTS, ...existing, timezone: (await getCompanyIdentity()).timeZone || existing.timezone || DEFAULTS.timezone };
-
-  const doc: OrgSettings = { _id: ORG_SETTINGS_ID, ...DEFAULTS, updatedAt: new Date(), updatedBy: null };
-  await collection.updateOne({ _id: ORG_SETTINGS_ID }, { $setOnInsert: doc }, { upsert: true });
-  return { ...doc, timezone: (await getCompanyIdentity()).timeZone || doc.timezone };
+  return { ...settings, timezone: (await getCompanyIdentity()).timeZone || settings.timezone || DEFAULTS.timezone };
 }
 
 export type OrgSettingsInput = Omit<OrgSettings, "_id" | "updatedAt" | "updatedBy">;
@@ -64,12 +64,10 @@ export type OrgSettingsInput = Omit<OrgSettings, "_id" | "updatedAt" | "updatedB
 export async function updateOrgSettings(data: OrgSettingsInput, actorId: string): Promise<OrgSettings> {
   const db = await getDb();
   const collection = db.collection<OrgSettings>(SETTINGS_COLLECTION);
-  const result = await collection.findOneAndUpdate(
-    { _id: ORG_SETTINGS_ID },
-    { $set: { ...data, ...updateStamp(actorId) } },
-    { upsert: true, returnDocument: "after" }
-  );
-  return { ...DEFAULTS, ...(result as OrgSettings) };
+  const before = await collection.findOne({ _id: ORG_SETTINGS_ID });
+  const set = await settingsPatch("talentos", SETTINGS_COLLECTION, before, data, codeDefaults());
+  await collection.updateOne({ _id: ORG_SETTINGS_ID }, { $set: { ...set, ...updateStamp(actorId) } }, { upsert: true });
+  return getOrgSettings();
 }
 
 export function isWorkingDay(date: string, settings: Pick<OrgSettings, "workingDays">): boolean {

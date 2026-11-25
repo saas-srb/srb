@@ -20,7 +20,7 @@ export default async function StampRulebookPage({ searchParams }: { searchParams
       <PlatformPageHeader
         title="Stamp rulebook"
         description="Stamp duty for every state and union territory, by kind of document. Used for guidance in ContractFlow's stamping step."
-        crumbs={[{ label: "Administration" }]}
+        crumbs={[{ label: "Legal & statutory" }]}
       />
       <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm">
         <p>Stamp duty is state law. This table ships with the structure only: no amount has been entered for any state. Type each figure from the state&apos;s Stamp Act or notification and give the link to it. An entry counts as checked only after someone with the confirm permission confirms it, and any later change removes that confirmation. Companies are always told that the figures are guidance, never authoritative.</p>

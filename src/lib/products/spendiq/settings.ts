@@ -1,4 +1,5 @@
 import "server-only";
+import { resolveSettings, settingsPatch } from "@/lib/platform/defaults/product/company";
 import { getDb } from "@/lib/mongodb";
 import { updateStamp } from "@/lib/products/spendiq/db";
 import { DEFAULT_CURRENCY, SUPPORTED_CURRENCIES } from "@/lib/products/spendiq/constants";
@@ -84,17 +85,16 @@ const DEFAULTS: Omit<PrmsSettings, "_id" | "updatedAt" | "updatedBy"> = {
   company: DEFAULT_COMPANY,
 };
 
+/** Nothing is written by reading: a default-able field the company never saved follows the platform's default, else the code default. */
 export async function getPrmsSettings(): Promise<PrmsSettings> {
   const db = await getDb();
-  const collection = db.collection<PrmsSettings>(PRMS_SETTINGS_COLLECTION);
-  const existing = await collection.findOne({ _id: PRMS_SETTINGS_ID });
+  const doc = await db.collection<PrmsSettings>(PRMS_SETTINGS_COLLECTION).findOne({ _id: PRMS_SETTINGS_ID });
   const base = await defaultCompanyIdentity();
-  if (existing) return { ...DEFAULTS, ...existing, company: await withIdentity({ ...base, ...existing.company, name: existing.company?.name || base.name }) };
-
-  const doc: PrmsSettings = { _id: PRMS_SETTINGS_ID, ...DEFAULTS, company: base, updatedAt: new Date(), updatedBy: null };
-  await collection.updateOne({ _id: PRMS_SETTINGS_ID }, { $setOnInsert: doc }, { upsert: true });
-  return { ...doc, company: await withIdentity(doc.company) };
+  const merged = { ...codeDefaults(), ...(doc ?? {}), company: await withIdentity({ ...base, ...doc?.company, name: doc?.company?.name || base.name }) };
+  return resolveSettings("spendiq", PRMS_SETTINGS_COLLECTION, merged, doc);
 }
+
+const codeDefaults = (): PrmsSettings => ({ _id: PRMS_SETTINGS_ID, ...DEFAULTS, updatedAt: new Date(0), updatedBy: null });
 
 export interface PrmsSettingsInput {
   defaultCurrency: string;
@@ -150,10 +150,8 @@ export function normalizeSettingsInput(input: Record<string, unknown>): PrmsSett
 export async function updatePrmsSettings(data: PrmsSettingsInput, actorId: string): Promise<PrmsSettings> {
   const db = await getDb();
   const collection = db.collection<PrmsSettings>(PRMS_SETTINGS_COLLECTION);
-  const result = await collection.findOneAndUpdate(
-    { _id: PRMS_SETTINGS_ID },
-    { $set: { ...data, ...updateStamp(actorId) } },
-    { upsert: true, returnDocument: "after" }
-  );
-  return { ...DEFAULTS, ...(result as PrmsSettings) };
+  const before = await collection.findOne({ _id: PRMS_SETTINGS_ID });
+  const set = await settingsPatch("spendiq", PRMS_SETTINGS_COLLECTION, before, data, codeDefaults());
+  await collection.updateOne({ _id: PRMS_SETTINGS_ID }, { $set: { ...set, ...updateStamp(actorId) } }, { upsert: true });
+  return getPrmsSettings();
 }

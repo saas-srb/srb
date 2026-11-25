@@ -14,7 +14,7 @@ export interface PanelChoice {
 /**
  * The products this company can choose from (onboarding, plan & settings screens): the code-level module list with the
  * Product Registry's names and descriptions applied, minus anything the platform switched off for everyone or for this company
- * (`includeUnavailable` keeps them — for the Platform Console's plan and add-on editors).
+ * (`includeUnavailable` keeps them — for the Platform Console's plan editor).
  */
 export async function listPanelChoices(opts: { includeUnavailable?: boolean } = {}): Promise<PanelChoice[]> {
   const [registry, off] = await Promise.all([listPanels(), opts.includeUnavailable ? Promise.resolve(new Set<string>()) : currentCompanyId().then(unavailablePanelKeys)]);
@@ -26,7 +26,7 @@ export async function listPanelChoices(opts: { includeUnavailable?: boolean } = 
     .map((p) => ({ key: p.key, label: opts.includeUnavailable ? p.name : whiteLabelProductName(p.name), description: p.description, core: p.core || !planModules.has(p.key) }));
 }
 
-/** Registry name per module key — for admin screens that list modules (plans, add-ons, companies). */
+/** Registry name per module key — for admin screens that list modules (plans, companies). */
 export async function panelLabels(): Promise<Map<string, string>> {
   const registry = await listPanels();
   const labels = new Map<string, string>(MODULES.map((m) => [m.key, m.label]));

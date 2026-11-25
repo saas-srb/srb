@@ -1,4 +1,5 @@
 import "server-only";
+import { resolveSettings, settingsPatch } from "@/lib/platform/defaults/product/company";
 import { getDb } from "@/lib/mongodb";
 import { COLLECTIONS, smmsCollection, createStamp, notDeleted, type Stamps } from "@/lib/products/viralpulse-ai/db";
 import type { Variation } from "./styles/types";
@@ -186,7 +187,7 @@ export async function getProjectDoc(id: string): Promise<ProjectDoc | null> {
 export async function getUgcSettings(): Promise<UgcSettings> {
   const db = await getDb();
   const doc = await db.collection<{ _id: string; ugc?: Partial<UgcSettings> }>(COLLECTIONS.settings).findOne({ _id: "main" });
-  return { ...DEFAULT_UGC_SETTINGS, ...(doc?.ugc ?? {}) };
+  return (await resolveSettings("viralpulse-ai", COLLECTIONS.settings, { ugc: { ...DEFAULT_UGC_SETTINGS, ...(doc?.ugc ?? {}) } }, doc)).ugc;
 }
 
 export async function saveUgcSettings(patch: Partial<UgcSettings>, actorId: string): Promise<UgcSettings> {
@@ -207,7 +208,9 @@ export async function saveUgcSettings(patch: Partial<UgcSettings>, actorId: stri
     pricePerSecUsd: patch.pricePerSecUsd === null ? null : patch.pricePerSecUsd === undefined ? cur.pricePerSecUsd : clampN(patch.pricePerSecUsd, 0.001, 20, cur.pricePerSecUsd ?? 0.1),
   };
   const db = await getDb();
-  await db.collection(COLLECTIONS.settings).updateOne({ _id: "main" } as never, { $set: { ugc: next, updatedAt: new Date(), updatedBy: actorId } }, { upsert: true });
+  const col = db.collection<{ _id: string }>(COLLECTIONS.settings);
+  const set = await settingsPatch("viralpulse-ai", COLLECTIONS.settings, await col.findOne({ _id: "main" }), { ugc: next }, { ugc: DEFAULT_UGC_SETTINGS });
+  await col.updateOne({ _id: "main" }, { $set: { ...set, updatedAt: new Date(), updatedBy: actorId } }, { upsert: true });
   return next;
 }
 

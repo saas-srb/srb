@@ -60,7 +60,7 @@ try {
 
   await step("sidebar links to every SaaS area", async () => {
     const nav = page.getByRole("navigation", { name: "Platform Console" }).first();
-    const labels = ["Companies", "Sign-ups & approvals", "Domains & SSL", "Plans & pricing", "Subscriptions", "SaaS invoices", "Coupons & discounts", "Add-ons", "Payments & Razorpay", "Tax & invoicing", "Revenue & subscriptions", "Usage & limits", "Platform users & roles", "Integrations", "Audit log", "Platform settings"];
+    const labels = ["Companies", "Sign-ups & approvals", "Domains & SSL", "Plans & pricing", "Subscriptions", "SaaS invoices", "Coupons & discounts", "Payments & Razorpay", "Tax & invoicing", "Revenue", "Usage & limits", "Platform users & roles", "Integrations", "Audit log", "Platform settings"];
     for (const label of labels) await nav.getByRole("link", { name: label, exact: true }).waitFor();
     assert.equal(await nav.getByText("Soon", { exact: true }).count(), 0, "nothing is marked Soon");
   });

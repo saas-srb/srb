@@ -21,7 +21,7 @@ export const MAX_ROWS = 750_000;
 /** Platform-level collections that never belong in a company's archive. */
 const SKIP = new Set<string>([
   COMPANIES_COLLECTION, "pending_signups", "signup_attempts", "login_handoffs", "platform_settings", "platform_audit_log", "platform_roles", "platform_panels",
-  "billing_plans", "billing_webhook_events", "billing_coupons", "billing_coupon_redemptions", "billing_addons", "game_scores", "app_builds",
+  "billing_plans", "billing_webhook_events", "billing_coupons", "billing_coupon_redemptions", "game_scores", "app_builds",
   "support_counters", "support_config", "support_articles", "saas_inquiries", "company_deletion_requests", "security_rate_limits", "session_bindings", "status_incidents",
 ]);
 /** Sign-in state, keys and throttles, rather than the company's records. */

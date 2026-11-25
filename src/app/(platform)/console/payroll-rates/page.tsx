@@ -16,7 +16,7 @@ export default async function PayrollRatesPage() {
       <PlatformPageHeader
         title="Payroll rates"
         description="Income tax slabs, PF, ESI, gratuity, bonus, professional tax and labour welfare rates are set by law, so they live here once for every company, not in each company's settings. A table you publish applies to all payroll runs straight away."
-        crumbs={[{ label: "Administration" }]}
+        crumbs={[{ label: "Legal & statutory" }]}
       />
       <div className={`rounded-lg border p-4 text-sm ${pending ? "border-amber-500/40 bg-amber-500/10" : "border-emerald-500/40 bg-emerald-500/10"}`}>
         {pending ? (

@@ -1,16 +1,15 @@
 /**
- * Coupons & add-ons checks (validation rules, race-safe redemption, quote
+ * Coupon checks (validation rules, race-safe redemption, quote
  * math) against a throwaway database that is dropped at the end.
  *
  *   MONGODB_URI=mongodb://127.0.0.1:27099/coupons_test_$(date +%s) \
- *     npx --yes tsx --require ./scripts/lib/next-server-shims.cjs scripts/test-coupons-addons.ts
+ *     npx --yes tsx --require ./scripts/lib/next-server-shims.cjs scripts/test-coupons.ts
  */
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { clientPromise, getPlatformDb } from "@/lib/platform/tenancy/platform-db";
 import { listPlans } from "@/lib/platform/billing/plans";
-import { startTrial } from "@/lib/platform/billing/subscription";
-import { updateCompanySubscription, getCompanySubscription } from "@/lib/platform/billing/subscription";
+import { updateCompanySubscription } from "@/lib/platform/billing/subscription";
 import {
   computeCouponDiscount,
   getCoupon,
@@ -24,17 +23,6 @@ import {
   validateCoupon,
   type CouponInput,
 } from "@/lib/platform/billing/coupons";
-import {
-  applyLimitBoosters,
-  countAddonHolders,
-  getCompanyAddons,
-  getLimitBoosters,
-  getModuleUnlocks,
-  saveAddon,
-  setAddonActive,
-  setCompanyAddon,
-  type AddonInput,
-} from "@/lib/platform/billing/addons";
 import { quoteCheckout } from "@/lib/platform/billing/quote";
 
 let checks = 0;
@@ -171,7 +159,7 @@ async function main() {
     for (let i = 0; i < 2; i++) await markRedemptionCycleBilled(r3.redemptionId);
     eq((await getRenewalRedemption(d))?.code, "THREEMONTHS", "2 of 3 cycles billed → renewal still discounted");
     await setCouponActive((await getCoupon(r3.couponId))!._id, false, "tester");
-    const q = await quoteCheckout({ planId: "growth", interval: "monthly", companyId: d, couponCode: "THREEMONTHS", addonIds: [] });
+    const q = await quoteCheckout({ planId: "growth", interval: "monthly", companyId: d, couponCode: "THREEMONTHS" });
     eq(q?.discount, 39_980, "continuation priced even after the coupon was deactivated");
     await markRedemptionCycleBilled(r3.redemptionId);
     eq(await getRenewalRedemption(d), null, "3 of 3 billed → no more discount");
@@ -201,75 +189,25 @@ async function main() {
   const raised = await saveCoupon(three, { ...base, code: "THREE", maxRedemptions: 5, maxPerCompany: null }, "tester");
   ok(raised.ok && (await getCoupon(three))?.maxRedemptions === 5 && (await getCoupon(three))?.redeemedCount === 3, "edit keeps the redeemed count");
 
-  // --- add-ons --------------------------------------------------------------------
-  const addonBase: AddonInput = { name: "", description: "", priceMonthly: 0, priceYearly: 0, type: "limit", limitKey: "seats", amountPerUnit: 5, moduleKey: null, plans: "all", maxQuantity: 10, active: true, sortOrder: 0 };
-  const badAddon = await saveAddon(null, { ...addonBase, name: "Seats", amountPerUnit: 0 }, "tester");
-  ok(!badAddon.ok && "amountPerUnit" in badAddon.errors, "booster amount required");
-  const badModule = await saveAddon(null, { ...addonBase, name: "Core", type: "module", moduleKey: "workspace" }, "tester");
-  ok(!badModule.ok && "moduleKey" in badModule.errors, "core products can't be sold");
-  const seats = await saveAddon(null, { ...addonBase, name: "5 extra seats", priceMonthly: 25_000, priceYearly: 250_000 }, "tester");
-  const smms = await saveAddon(null, { ...addonBase, name: "Social Media product", type: "module", moduleKey: "smms", limitKey: null, amountPerUnit: null, priceMonthly: 49_900, priceYearly: 499_000, plans: ["starter", "growth"] }, "tester");
-  const storage = await saveAddon(null, { ...addonBase, name: "Storage 10 GB", limitKey: "storageMb", amountPerUnit: 10_000, priceMonthly: 10_000, priceYearly: 100_000 }, "tester");
-  assert.ok(seats.ok && smms.ok && storage.ok);
-  eq(seats.id, "5-extra-seats", "slug id");
-
-  const q1 = await quoteCheckout({ planId: "growth", interval: "monthly", addonIds: [`${seats.id}:2`, smms.id] });
-  eq(q1?.lines.map((l) => [l.kind, l.amount]), [["plan", 199_900], ["addon", 50_000], ["addon", 49_900]], "plan + 2×seats + module lines");
-  eq(q1?.subtotal, 299_800, "subtotal");
-  const q1y = await quoteCheckout({ planId: "growth", interval: "yearly", addonIds: [seats.id, seats.id] });
-  eq(q1y?.lines[1]?.amount, 500_000, "yearly price × repeated id quantity");
-  const qCap = await quoteCheckout({ planId: "growth", interval: "monthly", addonIds: [`${seats.id}:50`] });
-  eq(qCap?.lines[1]?.amount, 250_000, "quantity capped at max (10)");
-  const qNotOnPlan = await quoteCheckout({ planId: "business", interval: "monthly", addonIds: [smms.id] });
-  eq(qNotOnPlan?.lines.length, 1, "add-on not available on the plan is left out");
-
-  // quote with coupon + add-ons
+  // quote with a coupon
   await coupon({ code: "TENPCT", percentOff: 10, maxPerCompany: null });
-  const q2 = await quoteCheckout({ planId: "growth", interval: "monthly", addonIds: [`${seats.id}:2`, smms.id], couponCode: "tenpct", companyId: e });
-  eq(q2?.discount, 29_980, "percent applies to plan + add-ons");
-  eq(q2?.taxable, 299_800 - 29_980, "taxable = subtotal − discount");
-  eq(q2?.lines.at(-1)?.amount, -29_980, "negative discount line");
+  const q2 = await quoteCheckout({ planId: "growth", interval: "monthly", couponCode: "tenpct", companyId: e });
+  eq(q2?.discount, 19_990, "percent applies to the plan price");
+  eq(q2?.taxable, 199_900 - 19_990, "taxable = subtotal − discount");
+  eq(q2?.lines.at(-1)?.amount, -19_990, "negative discount line");
   ok(q2?.couponId && q2.couponError === null, "coupon id set");
   await coupon({ code: "BIGFIXED", kind: "fixed", percentOff: null, amountOff: 1_000_000, maxPerCompany: null });
-  const q3 = await quoteCheckout({ planId: "growth", interval: "monthly", addonIds: [smms.id], couponCode: "BIGFIXED" });
-  eq([q3?.subtotal, q3?.discount, q3?.taxable], [249_800, 249_800, 0], "fixed discount capped at subtotal");
+  const q3 = await quoteCheckout({ planId: "growth", interval: "monthly", couponCode: "BIGFIXED" });
+  eq([q3?.subtotal, q3?.discount, q3?.taxable], [199_900, 199_900, 0], "fixed discount capped at subtotal");
   const q4 = await quoteCheckout({ planId: "starter", interval: "monthly", couponCode: "growthonly" });
   ok(q4 && q4.discount === 0 && q4.couponId === null && /Starter plan/.test(q4.couponError ?? ""), "invalid coupon → couponError, no discount");
   eq(q4?.gstRatePercent, 18, "gst rate from settings");
 
-  // company add-ons
-  await db.collection("billing_plans").updateOne({ _id: "starter" as never }, { $unset: { trialDays: "" } });
-  await startTrial(e, "starter"); // the real catalogue starts on Free (no trial); the checks need a trialing company
-  const addSeats = await setCompanyAddon(e, seats.id, 3, { actorId: "tester" });
-  ok(addSeats.ok, "add seats to a company with an implicit trial");
-  eq((await getCompanySubscription(e))?.status, "trialing", "implicit trial materialised intact");
-  ok((await setCompanyAddon(e, smms.id, 1, { actorId: "tester", complimentary: true })).ok, "complimentary module grant");
-  ok(!(await setCompanyAddon(e, seats.id, 11, { actorId: "tester" })).ok, "over max rejected");
-  ok(!(await setCompanyAddon(owner, seats.id, 1, { actorId: "tester" })).ok, "platform owner can't get add-ons");
-  ok(!(await setCompanyAddon(e, smms.id, 2, { actorId: "tester" })).ok, "module unlock is max 1");
-  eq((await getCompanyAddons(e)).map((x) => [x.addonId, x.quantity, Boolean(x.complimentary)]), [[seats.id, 3, false], [smms.id, 1, true]], "company add-ons stored");
-  eq(await getModuleUnlocks(e), ["smms"], "module unlocks");
-  const boosters = await getLimitBoosters(e);
-  eq(boosters.map((x) => [x.limitKey, x.amountPerUnit, x.quantity]), [["seats", 5, 3]], "limit boosters shape {limitKey, amountPerUnit}");
-  eq(applyLimitBoosters({ seats: 50, aiTokensPerMonth: null, storageMb: 100 }, boosters), { seats: 65, aiTokensPerMonth: null, storageMb: 100 }, "boosted limits (unlimited stays unlimited)");
-  const qHeld = await quoteCheckout({ planId: "growth", interval: "monthly", companyId: e });
-  eq(qHeld?.lines.map((l) => l.amount), [199_900, 75_000, 0], "renewal quote prices held add-ons; complimentary = 0");
-  ok(/complimentary/.test(qHeld?.lines[2]?.label ?? ""), "complimentary label");
-  ok((await setCompanyAddon(e, seats.id, 1, { actorId: "tester" })).ok, "change quantity");
-  eq((await getCompanyAddons(e)).find((x) => x.addonId === seats.id)?.quantity, 1, "quantity updated in place");
-  eq((await countAddonHolders()).get(seats.id), 1, "holders count");
-  await setAddonActive(seats.id, false, "tester");
-  eq((await quoteCheckout({ planId: "growth", interval: "monthly", companyId: e }))?.lines[1]?.amount, 25_000, "inactive add-on still priced for an existing holder");
-  eq((await quoteCheckout({ planId: "growth", interval: "monthly", addonIds: [seats.id] }))?.lines.length, 1, "inactive add-on not sold to new buyers");
-  ok(!(await setCompanyAddon(a, seats.id, 1, { actorId: "tester" })).ok, "inactive add-on can't be newly added");
-  ok((await setCompanyAddon(e, seats.id, 0, { actorId: "tester" })).ok, "remove");
-  eq((await getCompanyAddons(e)).map((x) => x.addonId), [smms.id], "removed");
-
   const audits = await db.collection("platform_audit_log").distinct("action");
-  for (const act of ["coupon.create", "coupon.update", "coupon.deactivate", "coupon.redeem", "coupon.release", "addon.create", "addon.deactivate", "company.addon.add", "company.addon.update", "company.addon.remove"]) {
+  for (const act of ["coupon.create", "coupon.update", "coupon.deactivate", "coupon.redeem", "coupon.release"]) {
     ok(audits.includes(act), `audited: ${act}`);
   }
-  console.log(`coupons & add-ons: all ${checks} checks passed`);
+  console.log(`coupons: all ${checks} checks passed`);
 }
 
 main()

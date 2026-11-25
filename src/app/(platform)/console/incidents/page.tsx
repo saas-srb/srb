@@ -16,7 +16,7 @@ export default async function PlatformIncidentsPage() {
       <PlatformPageHeader
         title="Incidents"
         description="The record behind the public status page and the Uptime SLA. Add an incident when something goes wrong, post updates while you work on it, and resolve it when it ends."
-        crumbs={[{ label: "Administration" }]}
+        crumbs={[{ label: "System" }]}
       />
       <IncidentsManager incidents={incidents} uptime30={uptimePercent(incidents, 30)} uptime90={uptimePercent(incidents, 90)} />
     </div>

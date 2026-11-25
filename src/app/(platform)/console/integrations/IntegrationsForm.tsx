@@ -46,7 +46,8 @@ function SecretStatus({ id, secret }: { id: string; secret: SecretView }) {
 
 type Message = { ok: boolean; text: string } | null;
 
-export default function IntegrationsForm({ view, adminEmail }: { view: IntegrationsView; adminEmail: string }) {
+/** Email or Domains, one at a time (each is its own card's panel); saving keeps the other part exactly as saved. */
+export default function IntegrationsForm({ view, adminEmail, section }: { view: IntegrationsView; adminEmail: string; section: "email" | "domains" }) {
   const router = useRouter();
   const [v, setV] = useState<IntegrationsInput>({
     email: { provider: view.email.provider.saved as IntegrationsInput["email"]["provider"], apiKey: "", clearApiKey: false, from: view.email.from.saved },
@@ -106,14 +107,14 @@ export default function IntegrationsForm({ view, adminEmail }: { view: Integrati
         </p>
       )}
 
-      <GlassCard interactive={false}>
+      {section === "email" && <GlassCard interactive={false}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Mail className="size-4 text-primary" /> Email
           </CardTitle>
           <CardDescription>Sign-up, invitation, billing and every other email the platform sends.</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
+        <CardContent className="grid gap-4">
           <div className="space-y-1.5">
             <Label htmlFor="int-email-provider">Provider</Label>
             <select id="int-email-provider" className={selectClass} value={v.email.provider} onChange={(e) => setEmail("provider", e.target.value as IntegrationsInput["email"]["provider"])}>
@@ -130,7 +131,7 @@ export default function IntegrationsForm({ view, adminEmail }: { view: Integrati
             <Effective field={view.email.from} />
             {err("email.from")}
           </div>
-          <div className="space-y-1.5 sm:col-span-2">
+          <div className="space-y-1.5">
             <Label htmlFor="int-resend-key">Resend API key</Label>
             <Input
               id="int-resend-key"
@@ -150,7 +151,7 @@ export default function IntegrationsForm({ view, adminEmail }: { view: Integrati
             )}
             {err("email.apiKey")}
           </div>
-          <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+          <div className="flex flex-wrap items-center gap-3">
             <Button id="int-test-email" type="button" variant="outline" onClick={() => test("email")} disabled={testing}>
               {testing ? <Loader2 className="size-4 animate-spin" /> : "Send test email"}
             </Button>
@@ -162,16 +163,16 @@ export default function IntegrationsForm({ view, adminEmail }: { view: Integrati
             )}
           </div>
         </CardContent>
-      </GlassCard>
+      </GlassCard>}
 
-      <GlassCard interactive={false}>
+      {section === "domains" && <GlassCard interactive={false}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Globe className="size-4 text-primary" /> Domains &amp; hosting
           </CardTitle>
           <CardDescription>Where company subdomains and custom domains are attached for routing and SSL.</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
+        <CardContent className="grid gap-4">
           <div className="space-y-1.5">
             <Label htmlFor="int-domain-provider">Provider</Label>
             <select id="int-domain-provider" className={selectClass} value={v.domains.provider} onChange={(e) => setDomains("provider", e.target.value as IntegrationsInput["domains"]["provider"])}>
@@ -201,7 +202,7 @@ export default function IntegrationsForm({ view, adminEmail }: { view: Integrati
             <Effective field={view.domains.teamId} empty="none" />
             {err("domains.teamId")}
           </div>
-          <div className="space-y-1.5 sm:col-span-2">
+          <div className="space-y-1.5">
             <Label htmlFor="int-vercel-token">Vercel API token</Label>
             <Input
               id="int-vercel-token"
@@ -221,7 +222,7 @@ export default function IntegrationsForm({ view, adminEmail }: { view: Integrati
             )}
             {err("domains.token")}
           </div>
-          <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+          <div className="flex flex-wrap items-center gap-3">
             <Button id="int-test-vercel" type="button" variant="outline" onClick={() => test("domains")} disabled={testing}>
               {testing ? <Loader2 className="size-4 animate-spin" /> : "Test connection"}
             </Button>
@@ -233,7 +234,7 @@ export default function IntegrationsForm({ view, adminEmail }: { view: Integrati
             )}
           </div>
         </CardContent>
-      </GlassCard>
+      </GlassCard>}
 
       <div className="flex flex-wrap items-center gap-3">
         <Button id="int-save" type="submit" disabled={pending}>

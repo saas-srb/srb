@@ -1,8 +1,9 @@
 import "server-only";
+import { resolveSettings, settingsPatch } from "@/lib/platform/defaults/product/company";
 import { newId, updateStamp } from "@/lib/products/agentos/db";
 import { maskPhone, normalizeCallingCodes, normalizeE164 } from "@/lib/products/agentos/calls/phone";
 import { settingsCollection } from "@/lib/products/agentos/calls/store";
-import type { CallSettings } from "@/lib/products/agentos/calls/types";
+import { CALL_COLLECTIONS, type CallSettings } from "@/lib/products/agentos/calls/types";
 import { AibotsInputError, ForbiddenError, can, type AibotsViewer } from "@/lib/products/agentos/viewer";
 import { recordAudit } from "@/lib/products/agentos/audit";
 
@@ -30,7 +31,7 @@ export const minutesOf = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Numbe
 export async function getCallSettings(): Promise<CallSettings> {
   const doc = await (await settingsCollection()).findOne({ kind: "main" });
   const d = (doc ?? {}) as Partial<CallSettings>;
-  return {
+  return resolveSettings("agentos", CALL_COLLECTIONS.settings, {
     allowedCallingCodes: Array.isArray(d.allowedCallingCodes) ? d.allowedCallingCodes : DEFAULT_CALL_SETTINGS.allowedCallingCodes,
     windowStart: typeof d.windowStart === "string" && HHMM.test(d.windowStart) ? d.windowStart : DEFAULT_CALL_SETTINGS.windowStart,
     windowEnd: typeof d.windowEnd === "string" && HHMM.test(d.windowEnd) ? d.windowEnd : DEFAULT_CALL_SETTINGS.windowEnd,
@@ -41,7 +42,7 @@ export async function getCallSettings(): Promise<CallSettings> {
     recordingNotice: typeof d.recordingNotice === "boolean" ? d.recordingNotice : DEFAULT_CALL_SETTINGS.recordingNotice,
     testNumber: normalizeE164(d.testNumber),
     callMode: d.callMode === "conference" || d.callMode === "direct" || d.callMode === "auto" ? d.callMode : DEFAULT_CALL_SETTINGS.callMode,
-  };
+  }, doc);
 }
 
 const int = (v: unknown, min: number, max: number, what: string) => {
@@ -80,7 +81,8 @@ export async function saveCallSettings(viewer: AibotsViewer, raw: Record<string,
     // Callers that don't send the field (older forms) keep the saved mode.
     callMode: raw.callMode === undefined ? (await getCallSettings()).callMode : raw.callMode === "conference" || raw.callMode === "direct" || raw.callMode === "auto" ? raw.callMode : (() => { throw new AibotsInputError("Pick automatic, conference or direct calling."); })(),
   };
-  await (await settingsCollection()).updateOne({ kind: "main" }, { $set: { ...next, ...updateStamp(viewer.userId) }, $setOnInsert: { _id: newId() } }, { upsert: true });
+  const set = await settingsPatch("agentos", CALL_COLLECTIONS.settings, await (await settingsCollection()).findOne({ kind: "main" }), next, DEFAULT_CALL_SETTINGS);
+  await (await settingsCollection()).updateOne({ kind: "main" }, { $set: { ...set, ...updateStamp(viewer.userId) }, $setOnInsert: { _id: newId() } }, { upsert: true });
   await recordAudit({ actorId: viewer.userId, actorEmail: viewer.email, action: "settings", entity: "settings", entityId: "calls", entityLabel: "Call settings", summary: "Changed calling rules", metadata: { codes: next.allowedCallingCodes.join(" "), window: `${next.windowStart}-${next.windowEnd}` } });
   if (before.testNumber !== next.testNumber) {
     await recordAudit({ actorId: viewer.userId, actorEmail: viewer.email, action: "settings", entity: "settings", entityId: "calls", entityLabel: "Call settings", summary: next.testNumber ? "Switched call test mode on" : "Switched call test mode off", metadata: { from: before.testNumber ? maskPhone(before.testNumber) : "off", to: next.testNumber ? maskPhone(next.testNumber) : "off" } });
@@ -122,16 +124,17 @@ export const PUBLIC_SETTING_LIMITS = { dailyMinutesMax: 10_000, hourlyMax: 1000,
 const posInt = (v: unknown, fallback: number, min: number, max: number) => (typeof v === "number" && Number.isInteger(v) && v >= min && v <= max ? v : fallback);
 
 export async function getPublicCallSettings(): Promise<PublicCallSettings> {
-  const d = ((await (await settingsCollection()).findOne({ kind: "main" })) ?? {}) as Partial<PublicCallSettings>;
+  const doc = await (await settingsCollection()).findOne({ kind: "main" });
+  const d = (doc ?? {}) as Partial<PublicCallSettings>;
   const L = PUBLIC_SETTING_LIMITS;
-  return {
+  return resolveSettings("agentos", CALL_COLLECTIONS.settings, {
     publicKillSwitch: d.publicKillSwitch === true,
     publicDailyMinutes: posInt(d.publicDailyMinutes, DEFAULT_PUBLIC_CALL_SETTINGS.publicDailyMinutes, 0, L.dailyMinutesMax),
     publicPerIpHourly: posInt(d.publicPerIpHourly, DEFAULT_PUBLIC_CALL_SETTINGS.publicPerIpHourly, 1, L.hourlyMax),
     publicPerAgentHourly: posInt(d.publicPerAgentHourly, DEFAULT_PUBLIC_CALL_SETTINGS.publicPerAgentHourly, 1, L.hourlyMax),
     publicMaxSessionSecs: posInt(d.publicMaxSessionSecs, DEFAULT_PUBLIC_CALL_SETTINGS.publicMaxSessionSecs, L.sessionMin, L.sessionMax),
     maskInboundNumbers: d.maskInboundNumbers !== false,
-  };
+  }, doc);
 }
 
 /** Validates and stores the website-call limits. A field that isn't sent keeps its stored value. Needs VOICE_CALL_MANAGE. */
@@ -148,7 +151,8 @@ export async function savePublicCallSettings(viewer: AibotsViewer, raw: Record<s
     publicMaxSessionSecs: pick("publicMaxSessionSecs", (v) => int(v, L.sessionMin, L.sessionMax, "The longest website call (seconds)"), cur.publicMaxSessionSecs),
     maskInboundNumbers: pick("maskInboundNumbers", (v) => v !== false, cur.maskInboundNumbers),
   };
-  await (await settingsCollection()).updateOne({ kind: "main" }, { $set: { ...next, ...updateStamp(viewer.userId) }, $setOnInsert: { _id: newId() } }, { upsert: true });
+  const set = await settingsPatch("agentos", CALL_COLLECTIONS.settings, await (await settingsCollection()).findOne({ kind: "main" }), next, DEFAULT_PUBLIC_CALL_SETTINGS);
+  await (await settingsCollection()).updateOne({ kind: "main" }, { $set: { ...set, ...updateStamp(viewer.userId) }, $setOnInsert: { _id: newId() } }, { upsert: true });
   await recordAudit({ actorId: viewer.userId, actorEmail: viewer.email, action: "settings", entity: "settings", entityId: "calls-public", entityLabel: "Website call limits", summary: next.publicKillSwitch ? "Switched website calls off" : "Changed website call limits", metadata: { dailyMinutes: String(next.publicDailyMinutes), killSwitch: String(next.publicKillSwitch) } });
   return next;
 }

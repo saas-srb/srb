@@ -49,7 +49,7 @@ export default function PreviousProjectForm({ view, canManage, movedAll = false 
           Remove it when the move is done.
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-4 sm:grid-cols-2">
+      <CardContent className="grid gap-4">
         <div className="space-y-1.5">
           <Label htmlFor="prev-project">Old project id</Label>
           <Input id="prev-project" value={projectId} onChange={(e) => setProjectId(e.target.value)} placeholder="prj_…" disabled={!canManage} />
@@ -58,11 +58,11 @@ export default function PreviousProjectForm({ view, canManage, movedAll = false 
           <Label htmlFor="prev-team">Old team id (optional)</Label>
           <Input id="prev-team" value={teamId} onChange={(e) => setTeamId(e.target.value)} placeholder="team_…" disabled={!canManage} />
         </div>
-        <div className="space-y-1.5 sm:col-span-2">
+        <div className="space-y-1.5">
           <Label htmlFor="prev-token">Old account API token</Label>
           <Input id="prev-token" type="password" autoComplete="off" value={token} onChange={(e) => setToken(e.target.value)} placeholder={view.saved ? `Saved (…${view.tokenLast4}). Leave blank to keep it` : "Token with access to the old project"} disabled={!canManage} />
         </div>
-        <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+        <div className="flex flex-wrap items-center gap-3">
           <Button type="button" onClick={() => save()} disabled={pending || !canManage}>
             {pending ? <Loader2 className="size-4 animate-spin" /> : "Save"}
           </Button>

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { last4 } from "../src/lib/platform/crypto";
 import { KEYED_COLLECTIONS, GLOBAL_COLLECTIONS } from "../src/lib/platform/tenancy/collections";
 
 // Static checks that keep the P8-E security review fixes in place. Run: npx tsx scripts/test-security-review.ts
@@ -54,5 +55,10 @@ T("server actions keep Next's same-origin check; the dev-only allowed origins ar
   const cfg = read("next.config.ts");
   assert.match(cfg, /serverActions/);
   assert.match(cfg, /NODE_ENV !== "production" && \{ allowedOrigins/);
+});
+T("a short secret never shows any of itself", () => {
+  assert.equal(last4("abcd"), "");
+  assert.equal(last4("12345678"), "");
+  assert.equal(last4("sk_live_ABCD1234wxyz"), "wxyz");
 });
 console.log(`\n${passed} passed`);

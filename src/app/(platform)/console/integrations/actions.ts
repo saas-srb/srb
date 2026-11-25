@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requirePlatformPermission } from "@/lib/platform/console/access";
+import { rateLimit } from "@/lib/push/rate-limit";
+import { testPlatformDefault } from "@/lib/platform/defaults/console";
 import { saveConfig, type ConfigInput, type SaveConfigResult } from "@/lib/platform/config/store";
 import { savePreviousProject, testPreviousProject, saveIntegrations, sendIntegrationsTestEmail, testDomainProvider, type IntegrationsInput, type IntegrationsResult, type TestResult } from "@/lib/platform/integrations";
 
@@ -36,6 +38,13 @@ export async function sendTestEmailAction(): Promise<TestResult> {
 export async function testDomainProviderAction(): Promise<TestResult> {
   const user = await requirePlatformPermission("integrations.manage");
   return testDomainProvider(user.id);
+}
+
+/** Checks the platform default of one card (read-only calls). Staff permission, 10 checks a minute per person, audited; the result never carries a secret. */
+export async function testPlatformDefaultAction(cardKey: string): Promise<{ ok: boolean; message: string }> {
+  const user = await requirePlatformPermission("integrations.manage");
+  if (!rateLimit(`platform-default-test:${user.id}`, 10, 60_000)) return { ok: false, message: "Too many checks. Wait a minute and try again." };
+  return testPlatformDefault(String(cardKey ?? ""), user.id);
 }
 
 /** Saves the server keys (AI, voice, push, storage, upload safety). A blank field keeps what is saved. */

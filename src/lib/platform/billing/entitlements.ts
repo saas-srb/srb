@@ -7,7 +7,6 @@ import { getCompanySubscription } from "@/lib/platform/billing/subscription";
 import { MODULES } from "@/lib/platform/onboarding/catalog";
 import { getBillingSettings } from "@/lib/platform/billing/settings";
 import { effectiveSubscriptionStatus, trialDaysLeft } from "@/lib/platform/billing/lifecycle";
-import { getModuleUnlocks } from "@/lib/platform/billing/addons";
 import { UNLIMITED_LIMITS, effectiveLimitsFor } from "@/lib/platform/billing/limits";
 import { withCreditLimits } from "@/lib/platform/billing/credits-store";
 import { applyFlagOverrides, applyModuleOverrides } from "@/lib/platform/billing/overrides";
@@ -25,7 +24,7 @@ export const getEntitlements = cache(async (): Promise<Entitlements> => entitlem
 
 /**
  * A given company's entitlements (uncached) — for platform-level code that
- * looks at several companies in one request. Limits include add-on extras.
+ * looks at several companies in one request. Limits include the company's own overrides.
  */
 export async function entitlementsFor(companyId: string): Promise<Entitlements> {
   const sub = await getCompanySubscription(companyId);
@@ -39,8 +38,8 @@ export async function entitlementsFor(companyId: string): Promise<Entitlements> 
   const { status } = effectiveSubscriptionStatus(sub, (await getBillingSettings()).billing.graceDays, now);
 
   const plan = await getPlan(sub.planId);
-  // Products in the plan, plus any unlocked by module add-ons the company holds.
-  const planModules = !plan || plan.modules === "all" ? null : new Set<string>([...CORE, ...plan.modules, ...(await getModuleUnlocks(companyId))]);
+  // Products in the plan.
+  const planModules = !plan || plan.modules === "all" ? null : new Set<string>([...CORE, ...plan.modules]);
   // Then what the platform admin unlocked or locked for this company alone.
   const modules = applyModuleOverrides(planModules, sub.overrides, now, MODULES.map((m) => m.key), CORE);
   // A company scheduled for deletion is read-only until the day it is deleted, or until the request is cancelled.

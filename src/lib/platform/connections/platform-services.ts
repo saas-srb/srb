@@ -1,5 +1,6 @@
 import "server-only";
 import { getConfigs } from "@/lib/platform/config/store";
+import { platformSendgrid, platformSmtp } from "@/lib/platform/email/platform-accounts";
 import { resolveEmailConfig } from "@/lib/platform/integrations/resolve";
 import { fromEnv } from "@/lib/platform/connections/resolve";
 import { providerByKey } from "@/lib/platform/connections/catalog";
@@ -14,7 +15,11 @@ import { providerByKey } from "@/lib/platform/connections/catalog";
 export async function platformServiceReady(provider: string): Promise<boolean> {
   const p = providerByKey.get(provider);
   if (!p) return false;
-  if (p.group === "email") return resolveEmailConfig().then((e) => e.provider === "resend" && Boolean(e.resendApiKey)).catch(() => false);
+  // Email: any of the platform's three sending accounts makes the included default available.
+  if (p.group === "email") {
+    const resend = await resolveEmailConfig().then((e) => e.provider === "resend" && Boolean(e.resendApiKey)).catch(() => false);
+    return resend || Boolean(await platformSmtp().catch(() => null)) || Boolean(await platformSendgrid().catch(() => null));
+  }
   if (provider === "vapid") {
     const c = await getConfigs(["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY"]).catch(() => ({}) as Record<string, string | null>);
     return Boolean(c.VAPID_PUBLIC_KEY && c.VAPID_PRIVATE_KEY);

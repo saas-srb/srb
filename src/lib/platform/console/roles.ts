@@ -49,8 +49,8 @@ const BUILT_INS: { _id: string; name: string; description: string; permissions: 
   {
     _id: "billing",
     name: "Billing Manager",
-    description: "Plans, subscriptions, invoices, coupons, add-ons, payments, tax settings and revenue.",
-    permissions: ["plans.manage", "subscriptions.manage", "invoices.manage", "coupons.manage", "addons.manage", "payments.manage", "tax.manage", "revenue.read", "companies.read"],
+    description: "Plans, subscriptions, invoices, coupons, payments, tax settings and revenue.",
+    permissions: ["plans.manage", "subscriptions.manage", "invoices.manage", "coupons.manage", "payments.manage", "tax.manage", "revenue.read", "companies.read"],
   },
   {
     _id: "support",

@@ -57,10 +57,10 @@ plans and prices.
 | **External users** | Client & Student Portal for clients, students, interns and applicants |
 | **Help** | Help & Support: AI help chatbot, help center and support requests to the platform team |
 
-Customer self-service: sign-up with email confirmation, a free plan for life (no trial), plan upgrade and billing, add-ons, coupons, custom
+Customer self-service: sign-up with email confirmation, a free plan for life (no trial), plan upgrade and billing, coupons, custom
 domains with automatic TLS, and a starter website that is live from the first minute.
 
-Platform staff: company registry, plans and prices, subscriptions, revenue metrics, invoices, coupons, add-ons, usage,
+Platform staff: company registry, plans and prices, subscriptions, revenue metrics, invoices, coupons, usage,
 domains and SSL, support requests and help content, platform roles, audit log and integrations.
 
 ---

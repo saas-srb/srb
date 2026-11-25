@@ -313,3 +313,9 @@ Rule: a popup that is a FORM (the user fills in or chooses something) is a page,
 - 2026-11-23 TalentOS shared pieces + Leave module (staged).
 - 2026-11-23: Playbook access moved to micro features (`pbCan`/`pbDoc`/`pbSop`); send-from-Playbook, the signing allowlist, brand/letterhead, library preview and PDF/DOCX export are unchanged. `test-pb-numbering` shows a timing race in the 6-way simultaneous issue case (winner expected to be number 21); it is unrelated to access.
 - 2026-11-24: Playbook numbering proven safe under concurrency (unique, no hole); `test-pb-numbering` expectation fixed; PDF/DOCX creator metadata is now "Playbook".
+- 2026-11-25: platform defaults analysis only (docs/platform-defaults.md); no Playbook change.
+- 2026-11-25: Console Integrations became cards (platform defaults step 1); no Playbook change.
+- 2026-11-25: platform email accounts; no Playbook change.
+- 2026-11-25: WhatsApp now needs a company's own sender (platform defaults); no Playbook change.
+- 2026-11-25: platform email fallback; no Playbook change.
+- 2026-11-25: Playbook settings (approval defaults, AI limits, SOP reminders) now resolve company > platform > code; `test:playbook` and `test:playbook-access` pass.

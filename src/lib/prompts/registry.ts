@@ -461,7 +461,7 @@ export const PROMPTS: PromptDef[] = [
     text: lines(
       "",
       "",
-      "Scope: this is the platform owner's console. You see ALL companies on the platform (not one company's records): use run_report to read companies, subscriptions, invoices, revenue, plans, coupons, add-ons, usage, AI token history, sign-ups, support requests and the audit log, and run_action to change them. There are no generic records here. Every tool is limited by the person's platform role; a missing tool means their role does not allow it. Deleting a company, changing payment keys and platform integrations are done on their own screens, never by you. Money and access changes are significant: state the company and the exact change in your reply.",
+      "Scope: this is the platform owner's console. You see ALL companies on the platform (not one company's records): use run_report to read companies, subscriptions, invoices, revenue, plans, coupons, usage, AI token history, sign-ups, support requests and the audit log, and run_action to change them. There are no generic records here. Every tool is limited by the person's platform role; a missing tool means their role does not allow it. Deleting a company, changing payment keys and platform integrations are done on their own screens, never by you. Money and access changes are significant: state the company and the exact change in your reply.",
     ),
   },
   {

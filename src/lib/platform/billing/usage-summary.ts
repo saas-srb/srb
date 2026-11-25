@@ -20,7 +20,7 @@ export interface UsageRow {
   comingSoon: boolean;
 }
 
-/** This month's use of every paid service against the company's limits (plan + add-ons + top-ups). Runs inside the company's context. */
+/** This month's use of every paid service against the company's limits (plan + top-ups). Runs inside the company's context. */
 export async function getUsageSummary(): Promise<UsageRow[]> {
   const companyId = await currentCompanyId();
   const [e, seats, storageBytes, tokens, emails, voiceSeconds, domains] = await Promise.all([

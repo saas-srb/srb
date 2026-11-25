@@ -176,8 +176,6 @@ export interface CompanySubscription {
   provider: { id: "razorpay"; subscriptionId: string | null; customerId: string | null } | null;
   /** GST / billing details for invoices. */
   billingDetails?: { legalName: string; gstin: string | null; address: string; state: string; email: string } | null;
-  /** Purchased (or complimentary) add-ons — see `addons.ts`. Missing = none. */
-  addons?: CompanyAddon[];
   /** The plan price version this subscription was bought at (set at checkout); price edits never change it. */
   priceVersion?: number | null;
   /** Trial reminder thresholds (days left, e.g. 7/3/1) already emailed — see `billing/trials.ts`. */
@@ -186,7 +184,7 @@ export interface CompanySubscription {
   pendingChange?: { planId: string; interval: BillingInterval; effectiveAt: Date | null; pricing?: SubscriptionPricing | null } | null;
   /** Failed-renewal bookkeeping for dunning (subscriptions workstream); reset on every successful charge. */
   dunning?: { failedPayments: number; pastDueSince: Date | null } | null;
-  /** What the company is charged per cycle — the checkout quote (plan, coupon, add-ons) it subscribed with. */
+  /** What the company is charged per cycle — the checkout quote (plan, coupon) it subscribed with. */
   pricing?: SubscriptionPricing | null;
   /** The last successful charge (for invoices and pro-rata refunds on an immediate upgrade). */
   lastPayment?: { id: string; amount: number; currency: string; at: Date; periodStart: Date | null; periodEnd: Date | null } | null;
@@ -200,7 +198,7 @@ export interface CompanySubscription {
 }
 
 /**
- * One limit changed for one company. `set` replaces the plan's limit with `value`; `add` gives `value` more than the plan (and any add-ons)
+ * One limit changed for one company. `set` replaces the plan's limit with `value`; `add` gives `value` more than the plan
  * does; `unlimited` removes the limit. With `until` it ends on its own and the plan's limit applies again.
  */
 export interface LimitOverride {
@@ -226,15 +224,6 @@ export interface CompanyOverrides {
   updatedBy?: string;
 }
 
-/** One add-on held by a company (`companies.subscription.addons[]`). */
-export interface CompanyAddon {
-  addonId: string;
-  quantity: number;
-  addedAt: Date;
-  /** Granted free by the platform: priced at 0 for this company. */
-  complimentary?: boolean;
-}
-
 /** Snapshot of a checkout quote (`quoteCheckout`) with its tax worked out. Smallest currency unit. */
 export interface SubscriptionPricing {
   planId: string;
@@ -251,8 +240,8 @@ export interface SubscriptionPricing {
   /** Charged per cycle, tax-inclusive — the Razorpay plan amount. */
   total: number;
   quotedAt: Date;
-  /** The quote's lines (plan, add-ons, discount; pre-tax/catalogue basis, discounts negative) — printed on invoices. */
-  lines?: { kind: "plan" | "addon" | "discount"; refId: string; label: string; amount: number }[];
+  /** The quote's lines (plan, discount; pre-tax/catalogue basis, discounts negative) — printed on invoices. */
+  lines?: { kind: "plan" | "topup" | "discount"; refId: string; label: string; amount: number }[];
   /** The coupon redemption (`billing_coupon_redemptions`) this discount is billed against. */
   redemptionId?: string | null;
   /** Plan price version the plan line was priced at (becomes `CompanySubscription.priceVersion`). */
@@ -269,7 +258,7 @@ export interface Entitlements {
   status: SubscriptionStatus;
   /** null = all products. */
   modules: Set<string> | null;
-  /** What the company can use now: the plan's limits, add-ons, Console overrides AND purchased top-up credits. */
+  /** What the company can use now: the plan's limits, Console overrides AND purchased top-up credits. */
   limits: PlanLimits;
   /** The same WITHOUT top-up credits: what the plan itself allows each month (credits are used only beyond this). */
   baseLimits?: PlanLimits;

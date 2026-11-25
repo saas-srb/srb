@@ -1,4 +1,5 @@
 import "server-only";
+import { resolveSettings, settingsPatch } from "@/lib/platform/defaults/product/company";
 import { getDb } from "@/lib/mongodb";
 import { PB_COLLECTIONS } from "@/lib/products/playbook-ai/pb-collections";
 import { recordPbAudit } from "@/lib/products/playbook-ai/pb-audit";
@@ -66,15 +67,17 @@ async function col() {
 
 export async function getPbSettings(): Promise<PbSettings> {
   const row = await (await col()).findOne({ _id: "main" });
-  if (!row) return structuredClone(DEFAULT_SETTINGS);
-  return {
-    numbering: { default: { ...DEFAULT_SETTINGS.numbering.default, ...row.numbering?.default }, byType: row.numbering?.byType ?? {} },
-    approval: { default: { ...DEFAULT_SETTINGS.approval.default, ...row.approval?.default }, byType: row.approval?.byType ?? {} },
-    legalTypes: row.legalTypes ?? [],
-    categoryRoles: row.categoryRoles ?? {},
-    retentionMonths: { default: row.retentionMonths?.default ?? null, byType: row.retentionMonths?.byType ?? {} },
-    ai: { ...DEFAULT_SETTINGS.ai, ...row.ai },
-  };
+  const merged: PbSettings = row
+    ? {
+        numbering: { default: { ...DEFAULT_SETTINGS.numbering.default, ...row.numbering?.default }, byType: row.numbering?.byType ?? {} },
+        approval: { default: { ...DEFAULT_SETTINGS.approval.default, ...row.approval?.default }, byType: row.approval?.byType ?? {} },
+        legalTypes: row.legalTypes ?? [],
+        categoryRoles: row.categoryRoles ?? {},
+        retentionMonths: { default: row.retentionMonths?.default ?? null, byType: row.retentionMonths?.byType ?? {} },
+        ai: { ...DEFAULT_SETTINGS.ai, ...row.ai },
+      }
+    : structuredClone(DEFAULT_SETTINGS);
+  return resolveSettings("playbook-ai", PB_COLLECTIONS.settings, merged, row);
 }
 
 const CATALOGUE_PREFIX = new Map(ALL_META.map((m) => [m.id, m.numberingPrefix]));
@@ -206,9 +209,10 @@ export async function savePbSettings(actor: PbActor, input: unknown): Promise<Se
   if (JSON.stringify(before.retentionMonths) !== JSON.stringify(v.value.retentionMonths) && !pbDoc(actor, "MANAGE_RETENTION")) {
     return { ok: false, error: "Only someone allowed to manage retention can change retention periods." };
   }
-  await (await col()).updateOne({ _id: "main" }, { $set: { ...v.value, updatedAt: new Date(), updatedBy: actor.id } }, { upsert: true });
+  const set = await settingsPatch("playbook-ai", PB_COLLECTIONS.settings, await (await col()).findOne({ _id: "main" }), v.value, DEFAULT_SETTINGS);
+  await (await col()).updateOne({ _id: "main" }, { $set: { ...set, updatedAt: new Date(), updatedBy: actor.id } }, { upsert: true });
   await recordPbAudit({ actor, action: "settings", entity: "settings", entityId: "main", summary: "Changed document settings" });
-  return { ok: true, settings: v.value };
+  return { ok: true, settings: await getPbSettings() };
 }
 
 /** The approval policy `documents.ts` uses unless something replaces it: reads the company's settings on every call. */

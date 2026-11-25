@@ -1,4 +1,5 @@
 import "server-only";
+import { resolveSettings, settingsPatch } from "@/lib/platform/defaults/product/company";
 import { getDb } from "@/lib/mongodb";
 import { COLLECTIONS, smmsCollection, createStamp, notDeleted, newId, str, strList, type Stamps } from "@/lib/products/viralpulse-ai/db";
 import { cleanSettings, DEFAULT_IMAGE_SETTINGS, istDayStart, type ImageSettings } from "@/lib/products/viralpulse-ai/images/limits";
@@ -94,13 +95,15 @@ export async function insertProject(brief: Brief, actorId: string): Promise<Proj
 export async function getImageSettings(): Promise<ImageSettings> {
   const db = await getDb();
   const doc = await db.collection<{ _id: string; images?: Partial<ImageSettings> }>(COLLECTIONS.settings).findOne({ _id: "main" });
-  return { ...DEFAULT_IMAGE_SETTINGS, ...(doc?.images ?? {}) };
+  return (await resolveSettings("viralpulse-ai", COLLECTIONS.settings, { images: { ...DEFAULT_IMAGE_SETTINGS, ...(doc?.images ?? {}) } }, doc)).images;
 }
 
 export async function saveImageSettings(patch: Partial<ImageSettings>, actorId: string): Promise<ImageSettings> {
   const next = cleanSettings(patch, await getImageSettings());
   const db = await getDb();
-  await db.collection(COLLECTIONS.settings).updateOne({ _id: "main" } as never, { $set: { images: next, updatedAt: new Date(), updatedBy: actorId } }, { upsert: true });
+  const col = db.collection<{ _id: string }>(COLLECTIONS.settings);
+  const set = await settingsPatch("viralpulse-ai", COLLECTIONS.settings, await col.findOne({ _id: "main" }), { images: next }, { images: DEFAULT_IMAGE_SETTINGS });
+  await col.updateOne({ _id: "main" }, { $set: { ...set, updatedAt: new Date(), updatedBy: actorId } }, { upsert: true });
   return next;
 }
 

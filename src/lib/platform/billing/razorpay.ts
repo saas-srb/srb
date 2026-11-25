@@ -170,7 +170,7 @@ type PlanWithRazorpayPlans = Plan & { razorpayPlans?: RazorpayPlanRef[] };
  * The Razorpay plan that charges exactly `amount` (tax-inclusive, from the
  * checkout quote) every `interval` for our plan — created lazily and
  * remembered in `billing_plans.razorpayPlans`. Razorpay plans are immutable,
- * so a new price, coupon discount or add-on mix gets its own Razorpay plan;
+ * so a new price, coupon discount gets its own Razorpay plan;
  * existing subscribers keep theirs until they change plan.
  */
 export async function ensureRazorpayPlan(plan: Plan, interval: BillingInterval, amount: number, currency: string): Promise<string> {

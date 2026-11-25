@@ -1,4 +1,5 @@
 import "server-only";
+import { resolveSettings, settingsPatch } from "@/lib/platform/defaults/product/company";
 import { getDb } from "@/lib/mongodb";
 import { updateStamp } from "@/lib/products/cashflow-ai/db";
 
@@ -36,7 +37,8 @@ const COLLECTION = "fms_payment_controls";
 
 export async function getPaymentControls(): Promise<PaymentControls & { updatedBy: string | null }> {
   const doc = await (await getDb()).collection<PaymentControls & { _id: string; updatedBy?: string | null }>(COLLECTION).findOne({ _id: "main" });
-  return { ...DEFAULT_CONTROLS, ...(doc ?? {}), updatedBy: doc?.updatedBy ?? null };
+  const controls = await resolveSettings("cashflow-ai", COLLECTION, { ...DEFAULT_CONTROLS, ...(doc ?? {}) }, doc);
+  return { ...controls, updatedBy: doc?.updatedBy ?? null };
 }
 
 export function validateControls(input: Record<string, unknown>): { valid: true; data: PaymentControls } | { valid: false; errors: Record<string, string> } {
@@ -59,7 +61,9 @@ export function validateControls(input: Record<string, unknown>): { valid: true;
 }
 
 export async function savePaymentControls(data: PaymentControls, actorId: string): Promise<void> {
-  await (await getDb()).collection(COLLECTION).updateOne({ _id: "main" as never }, { $set: { ...data, ...updateStamp(actorId), updatedBy: actorId } }, { upsert: true });
+  const collection = (await getDb()).collection<{ _id: string }>(COLLECTION);
+  const set = await settingsPatch("cashflow-ai", COLLECTION, await collection.findOne({ _id: "main" }), data, DEFAULT_CONTROLS);
+  await collection.updateOne({ _id: "main" }, { $set: { ...set, ...updateStamp(actorId), updatedBy: actorId } }, { upsert: true });
 }
 
 /** The start of today in India time (UTC+5:30), as a Date. */

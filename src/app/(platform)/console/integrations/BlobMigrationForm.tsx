@@ -78,7 +78,7 @@ export default function BlobMigrationForm({ initial, canManage }: { initial: Blo
       </CardHeader>
       <CardContent className="space-y-4">
         {!running && v.status !== "done" && (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="blob-old">Old store token</Label>
               <Input id="blob-old" type="password" autoComplete="off" value={source} onChange={(e) => setSource(e.target.value)} placeholder="Blank = the token saved above" disabled={!canManage} />

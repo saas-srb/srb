@@ -1,4 +1,6 @@
 import "server-only";
+import { resolveSettings, settingsPatch } from "@/lib/platform/defaults/product/company";
+import { rateId } from "@/lib/platform/defaults/product/model";
 import { getDb } from "@/lib/mongodb";
 import { newId, updateStamp } from "@/lib/products/cashflow-ai/db";
 
@@ -37,21 +39,16 @@ export function serializeTaxConfig(c: TaxConfig): SerializedTaxConfig {
   return { ...c, updatedAt: c.updatedAt.toISOString() };
 }
 
-const DEFAULT_RATES: TaxRate[] = [
-  { id: newId(), name: "GST 18%", ratePercent: 18, isActive: true },
-  { id: newId(), name: "GST 12%", ratePercent: 12, isActive: true },
-  { id: newId(), name: "GST 5%", ratePercent: 5, isActive: true },
-  { id: newId(), name: "No Tax", ratePercent: 0, isActive: true },
-];
+// Fixed ids: a company that never saved the list reads it without it being written, so the ids must be the same every time.
+const DEFAULT_RATES: TaxRate[] = ([["GST 18%", 18], ["GST 12%", 12], ["GST 5%", 5], ["No Tax", 0]] as const).map(([name, ratePercent]) => ({ id: rateId(name), name, ratePercent, isActive: true }));
 
+const codeDefaults = (): TaxConfig => ({ _id: TAX_CONFIG_ID, rates: DEFAULT_RATES, updatedAt: new Date(0), updatedBy: null });
+
+/** Nothing is written by reading: a company that never saved the list follows the platform's default, else the code default. */
 export async function getTaxConfig(): Promise<TaxConfig> {
   const db = await getDb();
-  const collection = db.collection<TaxConfig>(TAX_CONFIG_COLLECTION);
-  const existing = await collection.findOne({ _id: TAX_CONFIG_ID });
-  if (existing) return existing;
-  const doc: TaxConfig = { _id: TAX_CONFIG_ID, rates: DEFAULT_RATES, updatedAt: new Date(), updatedBy: null };
-  await collection.updateOne({ _id: TAX_CONFIG_ID }, { $setOnInsert: doc }, { upsert: true });
-  return doc;
+  const doc = await db.collection<TaxConfig>(TAX_CONFIG_COLLECTION).findOne({ _id: TAX_CONFIG_ID });
+  return resolveSettings("cashflow-ai", TAX_CONFIG_COLLECTION, { ...codeDefaults(), ...(doc ?? {}) }, doc);
 }
 
 export async function updateTaxConfig(rates: (Omit<TaxRate, "id"> & { id?: string })[], actorId: string): Promise<TaxConfig> {
@@ -63,10 +60,8 @@ export async function updateTaxConfig(rates: (Omit<TaxRate, "id"> & { id?: strin
     ratePercent: r.ratePercent,
     isActive: r.isActive,
   }));
-  const result = await collection.findOneAndUpdate(
-    { _id: TAX_CONFIG_ID },
-    { $set: { rates: withIds, ...updateStamp(actorId) } },
-    { upsert: true, returnDocument: "after" }
-  );
-  return result as TaxConfig;
+  const before = await collection.findOne({ _id: TAX_CONFIG_ID });
+  const set = await settingsPatch("cashflow-ai", TAX_CONFIG_COLLECTION, before, { rates: withIds }, codeDefaults());
+  await collection.updateOne({ _id: TAX_CONFIG_ID }, { $set: { ...set, ...updateStamp(actorId) } }, { upsert: true });
+  return getTaxConfig();
 }

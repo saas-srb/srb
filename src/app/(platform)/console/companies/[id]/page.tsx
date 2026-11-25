@@ -16,9 +16,6 @@ import { requestOrigin } from "@/lib/platform/request";
 import StatusBadge from "../StatusBadge";
 import StatusControl from "./StatusControl";
 import DeleteCompanyControl from "./DeleteCompanyControl";
-import CompanyAddonsCard from "./CompanyAddonsCard";
-import { getCompanyAddons, listAddons } from "@/lib/platform/billing/addons";
-import { describeAddonEffect } from "@/lib/platform/billing/catalog-types";
 import Link from "next/link";
 import { listDomainsForCompany } from "@/lib/platform/domains/overview";
 import DomainActions from "../../domains/DomainActions";
@@ -57,7 +54,6 @@ export default async function ConsoleCompanyPage({ params }: { params: Promise<{
   const base = companyBaseUrl(company.slug, host);
   const appBase = company.isPlatformOwner ? saasAppOrigin(host) : companyAppBaseUrl(company.slug, host);
   const { onboarding: ob } = company;
-  const [allAddons, heldAddons] = company.isPlatformOwner ? [[], []] : await Promise.all([listAddons(), getCompanyAddons(company.id)]);
   const trial = company.isPlatformOwner ? null : await getTrialOverview(company.id);
   const reactivations = company.isPlatformOwner ? [] : await listRequests(company.id).catch(() => []);
   const [registry, disabledHere] = await Promise.all([listPanels(), disabledPanelKeys(company.id)]);
@@ -254,14 +250,6 @@ export default async function ConsoleCompanyPage({ params }: { params: Promise<{
 
         {maintenance && can(user, "companies.status") && <MaintenanceForm initial={maintenance} companyId={company.id} companyName={company.name} />}
 
-        <CompanyAddonsCard
-            companyId={company.id}
-            held={heldAddons.flatMap((h) => {
-              const a = allAddons.find((x) => x._id === h.addonId);
-              return [{ addonId: h.addonId, name: a?.name ?? h.addonId, effect: a ? describeAddonEffect(a) : "", quantity: h.quantity, complimentary: Boolean(h.complimentary) }];
-            })}
-            available={allAddons.filter((a) => a.active).map((a) => ({ id: a._id, name: a.name, maxQuantity: a.type === "module" ? 1 : a.maxQuantity }))}
-          />
           </>
         )}
     </div>

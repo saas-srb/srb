@@ -27,6 +27,8 @@ export interface PanelProvider {
   /** SelfRun's own account for it is set up. */
   srbReady: boolean;
   mode: "srb" | "own";
+  /** Something this service still needs from the company (for example its own WhatsApp sender). */
+  notice?: string | null;
   saved: { secrets: Record<string, { set: true; last4: string }>; values: Record<string, string>; lastTest: { ok: boolean; at: string; message: string } | null; updatedAt: string | null } | null;
 }
 
@@ -86,6 +88,7 @@ export default function ConnectionPanel({ p, encryptionReady }: { p: PanelProvid
   return (
     <div className="space-y-4">
       {!encryptionReady && <p role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">Secure storage is not available right now, so keys cannot be saved. Please try again in a few minutes, or contact support.</p>}
+      {p.notice && <p role="note" className="rounded-lg bg-muted px-3 py-2 text-sm">{p.notice}</p>}
       <fieldset className="space-y-2" aria-label="Which account to use">
         <legend className="mb-1 text-sm font-semibold">Which account should be used?</legend>
         {option("srb", "Use the included default (recommended)", p.canSrb ? (p.srbReady ? "Included with your plan. Nothing to set up and nothing to pay separately for this service." : "No included default, add your own.") : "No included default is available for this service. Connect your own account.", !p.canSrb)}

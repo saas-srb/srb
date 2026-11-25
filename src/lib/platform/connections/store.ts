@@ -81,7 +81,7 @@ export async function getConnectionView(provider: string): Promise<ConnectionVie
     saved: !!doc,
     mode: doc ? (doc.mode ?? "own") : "srb",
     values: doc?.values ?? {},
-    secrets: Object.fromEntries(Object.entries(doc?.secrets ?? {}).map(([k, s]) => [k, { set: true as const, last4: s.last4 }])),
+    secrets: Object.fromEntries(Object.entries(doc?.secrets ?? {}).map(([k, s]) => [k, { set: true as const, last4: s.last4.length < 4 ? "" : s.last4 }])),
     lastTest: doc?.lastTest ? { ok: doc.lastTest.ok, at: doc.lastTest.at.toISOString(), message: doc.lastTest.message } : null,
     updatedAt: doc?.updatedAt ? doc.updatedAt.toISOString() : null,
   };
@@ -96,7 +96,7 @@ export async function listConnectionViews(): Promise<Record<string, ConnectionVi
       saved: true,
       mode: d.mode ?? "own",
       values: d.values ?? {},
-      secrets: Object.fromEntries(Object.entries(d.secrets ?? {}).map(([k, s]) => [k, { set: true as const, last4: s.last4 }])),
+      secrets: Object.fromEntries(Object.entries(d.secrets ?? {}).map(([k, s]) => [k, { set: true as const, last4: s.last4.length < 4 ? "" : s.last4 }])),
       lastTest: d.lastTest ? { ok: d.lastTest.ok, at: d.lastTest.at.toISOString(), message: d.lastTest.message } : null,
       updatedAt: d.updatedAt ? d.updatedAt.toISOString() : null,
     };

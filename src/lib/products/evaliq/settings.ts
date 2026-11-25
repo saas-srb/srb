@@ -1,4 +1,5 @@
 import "server-only";
+import { resolveSettings, settingsPatch } from "@/lib/platform/defaults/product/company";
 import { getCompanyIdentity } from "@/lib/platform/company-identity";
 import { getDb } from "@/lib/mongodb";
 import { COLLECTIONS } from "@/lib/products/evaliq/db";
@@ -45,7 +46,8 @@ export async function getOtsSettings(): Promise<OtsSettings> {
   void _ignored;
   // The organisation printed on certificates is the one company identity (Company setup); the value saved here is only a fallback.
   const identity = await getCompanyIdentity();
-  return { ...DEFAULTS, ...rest, organizationName: identity.brandName || rest.organizationName || DEFAULTS.organizationName };
+  const settings = await resolveSettings("evaliq", COLLECTIONS.settings, { ...DEFAULTS, ...rest }, doc);
+  return { ...settings, organizationName: identity.brandName || rest.organizationName || DEFAULTS.organizationName };
 }
 
 const num = (v: unknown, min: number, max: number, dflt: number) => {
@@ -70,6 +72,8 @@ export async function saveOtsSettings(input: Record<string, unknown>, actorId: s
     updatedBy: actorId,
   };
   const db = await getDb();
-  await db.collection<{ _id: string } & OtsSettings>(COLLECTIONS.settings).updateOne({ _id: "global" }, { $set: after }, { upsert: true });
+  const col = db.collection<{ _id: string } & OtsSettings>(COLLECTIONS.settings);
+  const set = await settingsPatch("evaliq", COLLECTIONS.settings, await col.findOne({ _id: "global" }), after, DEFAULTS);
+  await col.updateOne({ _id: "global" }, { $set: set }, { upsert: true });
   return { before, after };
 }

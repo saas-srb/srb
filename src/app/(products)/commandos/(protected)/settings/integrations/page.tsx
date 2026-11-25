@@ -7,6 +7,7 @@ import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
 import { CONNECTION_PROVIDERS, HIDDEN_FROM_COMPANIES, canUseSrb, providerByKey } from "@/lib/platform/connections/catalog";
 import { CARD_COPY } from "@/lib/platform/connections/card-copy";
 import { CARD_CATEGORIES, cardStatus, categoryOf, usedByProducts, type IntegrationCard, type RegistryProduct } from "@/lib/platform/connections/cards";
+import { whatsAppSenderNotice } from "@/lib/platform/messaging";
 import { listConnectionViews } from "@/lib/platform/connections/store";
 import { platformServiceReady } from "@/lib/platform/connections/platform-services";
 import { connectionStatus, noteFor } from "@/lib/platform/connections/summary";
@@ -51,7 +52,7 @@ async function buildCards(registry: RegistryProduct[], unavailable: ReadonlySet<
     }
     // "Included default" only when the platform really has the service set up: the same function the product summaries and the staff checklist use.
     const { status, canSrb } = await connectionStatus(p.key, view ?? null);
-    const note = noteFor(status, canSrb, view?.lastTest?.message);
+    const note = [noteFor(status, canSrb, view?.lastTest?.message), await whatsAppSenderNotice(p.key)].filter(Boolean).join(" ");
     cards.push({ key: p.key, name: p.key === "elevenlabs" ? "Voice (ElevenLabs)" : p.name, description: p.description, category: categoryOf(p.key), status, note, usedBy: usedBy(p.key), kind: "panel", canSrb, testable: !!p.testable, appliesToAll: true });
   }
   // The AI chatbot: its configuration, knowledge and conversations are one card (the AI account itself is the OpenAI card).
@@ -87,6 +88,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
       canSrb: canUseSrb(p.key), srbReady: canUseSrb(p.key) ? await platformServiceReady(p.key) : false,
       isEmail: p.group === "email", mode: view?.mode ?? "srb", saved: view ? { values: view.values, secrets: view.secrets, lastTest: view.lastTest, updatedAt: view.updatedAt } : null,
     } : null;
+    if (panelProvider) panelProvider.notice = await whatsAppSenderNotice(panelProvider.key);
     const ready = isPlatformEncryptionConfigured();
     if (current.kind === "page") {
       const meta = providerByKey.get(current.key);

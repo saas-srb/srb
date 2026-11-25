@@ -1,3 +1,4 @@
+import ProductDefaults from "@/components/settings/ProductDefaults";
 import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { redirect } from "next/navigation";
@@ -28,6 +29,7 @@ export default async function SprintosSettingsScreen() {
         technologySuggestions={settings.technologySuggestions}
         defaultCurrency={settings.defaultCurrency}
       />
+      <ProductDefaults product="sprintos" />
     </div>
   );
 }

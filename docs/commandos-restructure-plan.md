@@ -187,3 +187,16 @@ Evidence is a test name; "not verified" means no real browser or sign-in was use
 | R42, R43 Shared service by default, own account optional | Done; wording changed 2026-11-24: "Included default" (the old "Using SRB" is gone from everything a customer reads) | `test:connections`, `test:white-label` |
 | White label (new) | Done in code; see `docs/white-label.md` | `test:white-label` |
 | Not done | (a) migrations apply on real data (waiting for a throwaway copy); (b) real-browser checks of every screen; (c) FAQ/docs text under `lib/platform/saas` still names the platform (marketing only, allowlisted); (d) mobile layout of People & access only checked in dev-harness screenshots at 390px | |
+
+## 11. Platform defaults (2026-11-25)
+Ledger in `docs/platform-defaults.md`; guards `test:platform-defaults` and `test:product-defaults`. (The updates below are in order.)
+
+Update: platform defaults step 1 (Console Integrations cards) built; steps 2-5 open. Evidence: `test:platform-defaults`, `test:platform-integrations`.
+
+Update: platform email accounts built; product defaults open (`docs/platform-defaults.md`).
+
+Update: company-written WhatsApp needs the company's own sender (`test:whatsapp-sender`).
+
+Update: platform email fallback built (`test:email-fallback`).
+
+Update: section 11 is built: Console Integrations and Product settings; product defaults for every product that has any (`test:product-defaults`). Open items in `docs/platform-defaults.md`.

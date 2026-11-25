@@ -1,4 +1,5 @@
 import "server-only";
+import { resolveSettings, settingsPatch } from "@/lib/platform/defaults/product/company";
 import { getDb } from "@/lib/mongodb";
 import { COLLECTIONS, updateStamp } from "@/lib/products/cybervault/db";
 import { LIMITS } from "@/lib/products/cybervault/constants";
@@ -21,13 +22,13 @@ export const DEFAULT_SETTINGS = { warnDays: LIMITS.defaultWarnDays, alertsEnable
 export async function getSettings(): Promise<DlmsSettings> {
   const db = await getDb();
   const doc = await db.collection<DlmsSettings>(COLLECTIONS.settings).findOne({ _id: ID });
-  return { _id: ID, ...DEFAULT_SETTINGS, updatedAt: new Date(0), updatedBy: null, ...(doc ?? {}) };
+  return resolveSettings("cybervault", COLLECTIONS.settings, { _id: ID, ...DEFAULT_SETTINGS, updatedAt: new Date(0), updatedBy: null, ...(doc ?? {}) }, doc);
 }
 
 export async function saveSettings(input: { warnDays: number; alertsEnabled: boolean }, actorId: string): Promise<void> {
   const db = await getDb();
   const warnDays = Math.min(Math.max(Math.round(input.warnDays), 1), 365);
-  await db
-    .collection<DlmsSettings>(COLLECTIONS.settings)
-    .updateOne({ _id: ID }, { $set: { warnDays, alertsEnabled: Boolean(input.alertsEnabled), ...updateStamp(actorId) } }, { upsert: true });
+  const col = db.collection<DlmsSettings>(COLLECTIONS.settings);
+  const set = await settingsPatch("cybervault", COLLECTIONS.settings, await col.findOne({ _id: ID }), { warnDays, alertsEnabled: Boolean(input.alertsEnabled) }, DEFAULT_SETTINGS);
+  await col.updateOne({ _id: ID }, { $set: { ...set, ...updateStamp(actorId) } }, { upsert: true });
 }

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { CirclePause, CirclePlay } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-/** Activate / deactivate a catalogue item (coupon, add-on) via a server action. */
+/** Activate / deactivate a catalogue item (coupon) via a server action. */
 export default function ActiveToggleButton({ id, active, noun, action }: { id: string; active: boolean; noun: string; action: (id: string, active: boolean) => Promise<{ ok: boolean }> }) {
   const router = useRouter();
   const [pending, start] = useTransition();

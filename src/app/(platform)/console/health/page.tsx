@@ -25,7 +25,7 @@ export default async function PlatformHealthPage() {
   const copy = await legacyCopyStatus().catch(() => ({ state: "no-blob" as const, listed: 0, inDatabase: 0, remaining: 0, failed: 0, bytes: 0, error: null, finishedAt: null, missing: null, auditedAt: null }));
   return (
     <div className="space-y-6 p-1">
-      <PlatformPageHeader title="Health" description="Portability: what a deployment on another Vercel account finds by itself, and what it still needs." crumbs={[{ label: "Administration" }]} />
+      <PlatformPageHeader title="Health" description="Portability: what a deployment on another Vercel account finds by itself, and what it still needs." crumbs={[{ label: "System" }]} />
       <SetupStatusCard />
       <ResetNeededList canReset={can(user, "companies.manage")} rows={flagged.map((f) => ({ id: f._id, companyId: f.companyId, companyName: names.get(f.companyId) ?? f.companyId, email: f.email, maskedEmail: f.email, firstSeenAt: f.firstSeenAt.toISOString(), seen: f.seen }))} />
       <SecondStepPolicyForm initial={await getSecondStepPolicy("")} canManage={can(user, "integrations.manage")} canCompanies={can(user, "companies.manage")} />

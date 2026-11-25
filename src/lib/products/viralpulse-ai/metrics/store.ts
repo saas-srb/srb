@@ -1,4 +1,5 @@
 import "server-only";
+import { resolveSettings, settingsPatch } from "@/lib/platform/defaults/product/company";
 import { currentCompanyId } from "@/lib/platform/tenancy/context";
 import { smmsCollection } from "@/lib/products/viralpulse-ai/db";
 import { snapshotKey, snapshotsCollection, type SnapshotDoc } from "@/lib/products/viralpulse-ai/ads-platforms/snapshots";
@@ -31,14 +32,16 @@ export function normalizeSettings(raw: Partial<MetricsSettings> | null | undefin
 }
 
 export async function getMetricsSettings(): Promise<MetricsSettings> {
-  return normalizeSettings(await (await settingsCol()).findOne({}));
+  const doc = await (await settingsCol()).findOne({});
+  return resolveSettings("viralpulse-ai", SETTINGS_COLLECTION, normalizeSettings(doc), doc);
 }
 
 export async function saveMetricsSettings(input: Partial<MetricsSettings>, actorId: string): Promise<MetricsSettings> {
   const next = normalizeSettings({ ...(await getMetricsSettings()), ...input, x: { ...(await getMetricsSettings()).x, ...(input.x ?? {}) }, updatedAt: new Date().toISOString(), updatedBy: actorId });
   // One row per company, found by company alone (the scoped layer adds it) so an earlier row under the old fixed id "main" is still the one
   // updated; a new row's `_id` carries the company id because a fixed id would collide across companies in this shared collection.
-  await (await settingsCol()).updateOne({}, { $set: next as never, $setOnInsert: { _id: `main:${await currentCompanyId()}` } as never }, { upsert: true });
+  const set = await settingsPatch("viralpulse-ai", SETTINGS_COLLECTION, await (await settingsCol()).findOne({}), next, DEFAULT_SETTINGS);
+  await (await settingsCol()).updateOne({}, { $set: set as never, $setOnInsert: { _id: `main:${await currentCompanyId()}` } as never }, { upsert: true });
   return next;
 }
 

@@ -50,20 +50,23 @@ export interface WorkflowView extends WorkflowInput {
   trigger: EventType;
   /** Signs webhook calls (`X-Webhook-Signature`). */
   secret: string;
-  lastRun: { status: "success" | "failed"; at: string; error: string | null } | null;
+  lastRun: { status: WorkflowRunStatus; at: string; error: string | null } | null;
   createdAt: string;
   updatedAt: string;
 }
 
+/** "skipped": nothing went wrong, but a message could not be attempted because the company has no sender of its own for it. */
+export type WorkflowRunStatus = "success" | "failed" | "skipped";
+
 export interface WorkflowRunView {
   id: string;
-  status: "success" | "failed";
+  status: WorkflowRunStatus;
   error: string | null;
   at: string;
   test: boolean;
   eventType: string;
   label: string | null;
-  results: { action: string; ok: boolean; detail: string }[];
+  results: { action: string; ok: boolean; detail: string; skipped?: true }[];
 }
 
 /** The flat values conditions and templates read: the event's data plus the built-ins. */

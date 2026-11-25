@@ -125,7 +125,7 @@ export default function CouponForm({ coupon, plans, currency }: { coupon: Coupon
       <GlassCard interactive={false}>
         <CardHeader>
           <CardTitle className="text-base">Code & discount</CardTitle>
-          <CardDescription>Codes are matched case-insensitively. Discounts apply before GST, to the plan and any add-ons.</CardDescription>
+          <CardDescription>Codes are matched case-insensitively. Discounts apply before GST, to the plan price.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">

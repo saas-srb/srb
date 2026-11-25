@@ -2,6 +2,7 @@ import "server-only";
 import { canUseSrb, providerByKey } from "@/lib/platform/connections/catalog";
 import { cardStatus, usedByProducts, STATUS_LABEL, type CardStatus } from "@/lib/platform/connections/cards";
 import { noteFor } from "@/lib/platform/connections/summary-note";
+import { whatsAppSenderNotice } from "@/lib/platform/messaging";
 
 export { noteFor };
 import { platformServiceReady } from "@/lib/platform/connections/platform-services";
@@ -39,5 +40,5 @@ export async function connectionSummary(provider: string): Promise<ConnectionSum
   const p = providerByKey.get(provider);
   if (!p) return null;
   const [{ status, canSrb, srbReady, view }, registry, unavailable] = await Promise.all([connectionStatus(provider), listPanels(), currentCompanyId().then(unavailablePanelKeys)]);
-  return { key: provider, name: p.name, status, label: STATUS_LABEL[status], note: noteFor(status, canSrb, view?.lastTest?.message), canSrb, srbReady, usedBy: usedByProducts(provider, registry, unavailable), href: integrationHref(provider) };
+  return { key: provider, name: p.name, status, label: STATUS_LABEL[status], note: [noteFor(status, canSrb, view?.lastTest?.message), await whatsAppSenderNotice(provider)].filter(Boolean).join(" "), canSrb, srbReady, usedBy: usedByProducts(provider, registry, unavailable), href: integrationHref(provider) };
 }

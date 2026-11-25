@@ -24,7 +24,7 @@ export default async function TaxRulebookPage() {
       <PlatformPageHeader
         title="Tax rulebook"
         description="TDS sections, company income-tax rates, advance-tax instalments and the dates of returns and payments, one table for each financial year, published once for every company."
-        crumbs={[{ label: "Administration" }]}
+        crumbs={[{ label: "Legal & statutory" }]}
       />
       <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm">
         <p>Companies read these figures automatically; they never type a rate or a date. Check each year against the current Act and notifications before confirming. Extensions of due dates are announced during the year: update the dates here.</p>

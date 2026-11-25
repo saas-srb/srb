@@ -17,7 +17,7 @@ export const SUB_PROCESSORS: SubProcessor[] = [
   { name: "MongoDB Atlas", purpose: "The database every workspace's records live in", data: "All data a customer stores, and account details", scope: "platform" },
   { name: "Vercel", purpose: "Hosting and delivery of the website and the products, and file storage (Vercel Blob)", data: "Requests to the service, and files customers upload", scope: "platform" },
   { name: "Resend", purpose: "Delivery of the service's own emails (sign-up, invitations, alerts, receipts)", data: "Recipient email address, name and the message", scope: "platform" },
-  { name: "Razorpay", purpose: "Taking payment for plans and add-ons", data: "Billing contact details and payment status. Card details go to Razorpay, not to us", scope: "platform" },
+  { name: "Razorpay", purpose: "Taking payment for plans and top-ups", data: "Billing contact details and payment status. Card details go to Razorpay, not to us", scope: "platform" },
   { name: "OpenAI", purpose: "AI features, only when a person uses one", data: "The question or content needed to answer, and the answer", scope: "platform" },
   { name: "GitHub", purpose: "Building and publishing a company's desktop and mobile apps, only when a Director presses Generate", data: "The company's name, icon and app address. No personal data", scope: "platform" },
   { name: "ElevenLabs", purpose: "Voice features, when a company connects it", data: "Audio and text of a voice conversation", scope: "company" },

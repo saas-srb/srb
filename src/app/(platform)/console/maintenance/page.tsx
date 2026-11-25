@@ -15,7 +15,7 @@ export default async function PlatformMaintenancePage() {
       <PlatformPageHeader
         title="Maintenance"
         description="Announce and run maintenance for every company's website and app at once. It starts, counts down and ends on its own."
-        crumbs={[{ label: "Administration" }]}
+        crumbs={[{ label: "System" }]}
       />
       <MaintenanceForm initial={m} />
     </div>

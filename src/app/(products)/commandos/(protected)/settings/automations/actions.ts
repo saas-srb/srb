@@ -10,7 +10,7 @@ import { sendTestRun } from "@/lib/platform/workflows/run";
 import { findTemplate } from "@/lib/platform/workflows/templates";
 import type { WorkflowRunView, WorkflowView } from "@/lib/platform/workflows/shared";
 
-export type AutomationResult = { ok: true; workflows: WorkflowView[]; message?: string } | { ok: false; error: string };
+export type AutomationResult = { ok: true; workflows: WorkflowView[]; message?: string; /** A neutral outcome, not a success or a failure. */ neutral?: true } | { ok: false; error: string };
 
 async function requireOwner() {
   const user = await getCurrentHubUser();
@@ -69,6 +69,7 @@ export async function testAutomationAction(id: string): Promise<AutomationResult
   return guarded(async () => {
     const res = await sendTestRun(String(id), { id: user.id, email: user.email });
     const workflows = await listWorkflows();
+    if (res.skipped) return { ok: true, workflows, neutral: true, message: `Not sent. ${(res.results ?? []).map((r) => r.detail).join(" · ")}` };
     if (!res.ok) return { ok: false, error: `Test failed. ${res.error ?? ""}`.trim() };
     return { ok: true, workflows, message: `Test sent: ${(res.results ?? []).map((r) => r.detail).join(" · ")}` };
   });

@@ -1,4 +1,5 @@
 import "server-only";
+import { resolveSettings, settingsPatch } from "@/lib/platform/defaults/product/company";
 import { getDb } from "@/lib/mongodb";
 import { COLLECTIONS } from "@/lib/products/playbook-ai/db";
 
@@ -38,7 +39,7 @@ async function col() {
 
 export async function getSettings(): Promise<SopSettings> {
   const doc = await (await col()).findOne({ _id: "main" });
-  return { ...DEFAULT_SETTINGS, updatedAt: new Date(0), updatedBy: null, ...(doc ?? {}) } as SopSettings;
+  return resolveSettings("playbook-ai", COLLECTIONS.settings, { ...DEFAULT_SETTINGS, updatedAt: new Date(0), updatedBy: null, ...(doc ?? {}) } as SopSettings, doc);
 }
 
 function int(v: unknown, min: number, max: number, fallback: number): number {
@@ -56,6 +57,7 @@ export async function updateSettings(input: Partial<Omit<SopSettings, "_id" | "u
     reminderRepeatDays: int(input.reminderRepeatDays, 1, 60, current.reminderRepeatDays),
     defaultAllowDownload: input.defaultAllowDownload ?? current.defaultAllowDownload,
   };
-  await (await col()).updateOne({ _id: "main" }, { $set: { ...next, updatedAt: new Date(), updatedBy: actorId } }, { upsert: true });
+  const set = await settingsPatch("playbook-ai", COLLECTIONS.settings, await (await col()).findOne({ _id: "main" }), next, DEFAULT_SETTINGS);
+  await (await col()).updateOne({ _id: "main" }, { $set: { ...set, updatedAt: new Date(), updatedBy: actorId } }, { upsert: true });
   return getSettings();
 }

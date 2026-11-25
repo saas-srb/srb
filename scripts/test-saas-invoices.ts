@@ -90,7 +90,7 @@ async function main() {
   }
   eq(computeGst({ amounts: [118_000], ratePercent: 18, pricesIncludeTax: true, sellerStateCode: "09", buyerStateCode: "09" }).taxable, 100_000, "₹1,180 incl. → ₹1,000 taxable");
   eq(computeGst({ amounts: [1000], ratePercent: 18, pricesIncludeTax: false, sellerStateCode: "09", buyerStateCode: null }).supplyType, "inter", "unknown buyer state → IGST");
-  // Lines with add-on + discount, inclusive: line taxable values sum exactly.
+  // Lines with top-up + discount, inclusive: line taxable values sum exactly.
   const mixed = computeGst({ amounts: [99_900, 33_333, -13_323], ratePercent: 18, pricesIncludeTax: true, sellerStateCode: "09", buyerStateCode: "09" });
   eq(mixed.lineTaxable.reduce((a, b) => a + b, 0), mixed.taxable, "inclusive line taxable values sum to the invoice taxable");
   ok(mixed.lineTaxable[2] < 0, "discount line stays negative");
@@ -151,7 +151,7 @@ async function main() {
   const period = { start: new Date("2026-10-01T00:00:00+05:30"), end: new Date("2026-10-31T23:59:59+05:30") };
   const q = quote([
     { kind: "plan", refId: "growth", label: "Growth (monthly)", amount: 99_900 },
-    { kind: "addon", refId: "seats5", label: "5 extra seats", amount: 25_000 },
+    { kind: "topup", refId: "seats5", label: "5 extra seats", amount: 25_000 },
     { kind: "discount", refId: "c1", label: "Coupon WELCOME10", amount: -12_490 },
   ]);
   const expected = chargeTotal(q.taxable, 18, false);
@@ -182,10 +182,10 @@ async function main() {
   // ── Stored invoice: tax split, lines, snapshots ──
   const i1 = (await getSaasInvoice(r1!.id))!;
   eq(i1.supplyType, "intra", "UP seller → UP buyer = CGST+SGST");
-  eq(i1.taxable, 112_410, "taxable = plan + add-on − discount");
+  eq(i1.taxable, 112_410, "taxable = plan + top-up − discount");
   eq(i1.taxable + i1.cgst + i1.sgst, i1.total, "intra parts sum");
   eq(i1.igst, 0, "no IGST intra");
-  eq(i1.items.length, 3, "plan, add-on and discount lines");
+  eq(i1.items.length, 3, "plan, top-up and discount lines");
   eq(i1.items.reduce((a, it) => a + it.taxable, 0), i1.taxable, "lines sum to taxable");
   eq(i1.sac, "998315", "SAC from settings");
   eq(i1.items[0].sac, "998315", "line SAC from settings");

@@ -12,7 +12,7 @@ import { CONFIG_FIELDS, CONFIG_SECRET_CONTEXT, CONFIG_SECTIONS } from "@/lib/pla
 
 const DOC_ID = "platform_config";
 /** Values that may contain spaces or line breaks (a PEM private key, a sender with a label). */
-const MULTILINE_OK = new Set(["TWILIO_WHATSAPP_FROM", "VAPID_SUBJECT", "GOOGLE_SEO_PRIVATE_KEY"]);
+const MULTILINE_OK = new Set(["TWILIO_WHATSAPP_FROM", "VAPID_SUBJECT", "GOOGLE_SEO_PRIVATE_KEY", "PLATFORM_SMTP_PASSWORD"]);
 const CACHE_TTL_MS = 30_000;
 
 interface StoredValue {
@@ -95,7 +95,7 @@ export async function getConfigView(): Promise<ConfigView> {
       saved: Boolean(stored),
       source: stored ? "db" : fromEnv(f.key) ? "env" : "none",
       value: !f.secret ? (stored ? (stored.plain ?? "") : (fromEnv(f.key) ?? "")) : "",
-      last4: stored ? stored.last4 : f.secret ? (fromEnv(f.key) ? last4(fromEnv(f.key)!) : null) : null,
+      last4: stored ? (stored.last4 && stored.last4.length < 4 ? "" : stored.last4) : f.secret ? (fromEnv(f.key) ? last4(fromEnv(f.key)!) : null) : null,
       unreadable,
     };
   }
@@ -131,6 +131,8 @@ export async function saveConfig(input: ConfigInput, actorId: string): Promise<S
     if (!value) continue;
     if (value.length > 4000 || (/\s/.test(value) && !MULTILINE_OK.has(key))) errors[key] = "That doesn't look right: remove spaces and line breaks.";
     else if (key === "EMAIL_DEV_TO" && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)) errors[key] = "Enter one valid email address.";
+    else if ((key === "PLATFORM_SMTP_FROM" || key === "PLATFORM_SENDGRID_FROM") && !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(value)) errors[key] = "Enter one email address (the company's name is added for you).";
+    else if (key === "PLATFORM_SMTP_SECURE" && !/^(starttls|ssl|none)$/i.test(value)) errors[key] = "Use starttls, ssl or none.";
     else if (key === "CRON_SECRET" && value.length < 24) errors[key] = "Use at least 24 characters (the Generate button makes a strong one).";
     else if (field.secret && !isPlatformEncryptionConfigured()) errors[key] = "PLATFORM_ENCRYPTION_KEY isn't set on the server, so the secret can't be stored safely.";
     else changes[key] = value;

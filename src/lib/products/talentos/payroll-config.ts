@@ -1,4 +1,5 @@
 import "server-only";
+import { resolveSettings, settingsPatch } from "@/lib/platform/defaults/product/company";
 import { getCompanyIdentity } from "@/lib/platform/company-identity";
 import { getDb } from "@/lib/mongodb";
 import { updateStamp } from "@/lib/products/talentos/db";
@@ -123,26 +124,24 @@ export const PAYROLL_DEFAULTS: PayrollConfigInput & { salaryAccountId: string | 
   financialYearStartMonth: 4,
 };
 
+const codeDefaults = (): PayrollConfig => ({ _id: PAYROLL_CONFIG_ID, ...PAYROLL_DEFAULTS, updatedAt: new Date(0), updatedBy: null });
+
+/** Nothing is written by reading: a default-able field the company never saved follows the platform's default, else the code default. */
 export async function getPayrollConfig(): Promise<PayrollConfig> {
   const db = await getDb();
-  const collection = db.collection<PayrollConfig>(PAYROLL_CONFIG_COLLECTION);
-  const existing = await collection.findOne({ _id: PAYROLL_CONFIG_ID });
+  const doc = await db.collection<PayrollConfig>(PAYROLL_CONFIG_COLLECTION).findOne({ _id: PAYROLL_CONFIG_ID });
+  const config = await resolveSettings("talentos", PAYROLL_CONFIG_COLLECTION, { ...codeDefaults(), ...(doc ?? {}) }, doc);
   // The financial year start is the company's one setting (Company setup).
-  if (existing) return { ...PAYROLL_DEFAULTS, ...existing, financialYearStartMonth: (await getCompanyIdentity()).fiscalYearStartMonth };
-  const doc: PayrollConfig = { _id: PAYROLL_CONFIG_ID, ...PAYROLL_DEFAULTS, updatedAt: new Date(), updatedBy: null };
-  await collection.updateOne({ _id: PAYROLL_CONFIG_ID }, { $setOnInsert: doc }, { upsert: true });
-  return { ...doc, financialYearStartMonth: (await getCompanyIdentity()).fiscalYearStartMonth };
+  return { ...config, financialYearStartMonth: (await getCompanyIdentity()).fiscalYearStartMonth };
 }
 
 export async function updatePayrollConfig(data: PayrollConfigInput, actorId: string): Promise<PayrollConfig> {
   const db = await getDb();
   const collection = db.collection<PayrollConfig>(PAYROLL_CONFIG_COLLECTION);
-  const result = await collection.findOneAndUpdate(
-    { _id: PAYROLL_CONFIG_ID },
-    { $set: { ...data, financialYearStartMonth: 4, ...updateStamp(actorId) } },
-    { upsert: true, returnDocument: "after" },
-  );
-  return { ...PAYROLL_DEFAULTS, ...(result as PayrollConfig) };
+  const before = await collection.findOne({ _id: PAYROLL_CONFIG_ID });
+  const set = await settingsPatch("talentos", PAYROLL_CONFIG_COLLECTION, before, { ...data, financialYearStartMonth: 4 }, codeDefaults());
+  await collection.updateOne({ _id: PAYROLL_CONFIG_ID }, { $set: { ...set, ...updateStamp(actorId) } }, { upsert: true });
+  return getPayrollConfig();
 }
 
 /** Months remaining in the financial year that contains `month` ("yyyy-mm"), inclusive. */

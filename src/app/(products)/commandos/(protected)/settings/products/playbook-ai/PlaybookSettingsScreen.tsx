@@ -1,3 +1,4 @@
+import ProductDefaults from "@/components/settings/ProductDefaults";
 import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import Link from "next/link";
@@ -101,6 +102,7 @@ export default async function PlaybookSettingsScreen() {
           </CardContent>
         </GlassCard>
       </div>
+      <ProductDefaults product="playbook-ai" />
     </div>
   );
 }

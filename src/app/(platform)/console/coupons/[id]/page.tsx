@@ -32,7 +32,7 @@ export default async function CouponDetailPage({ params }: { params: Promise<{ i
       <PlatformPageHeader
         title={coupon.code}
         description={`${describeCouponDiscount(coupon, currency)} · ${coupon.redeemedCount} of ${coupon.maxRedemptions ?? "unlimited"} redemptions used`}
-        crumbs={[{ label: "Billing" }, { label: "Coupons & discounts", href: "/console/coupons" }]}
+        crumbs={[{ label: "Plans & pricing" }, { label: "Coupons & discounts", href: "/console/coupons" }]}
         actions={
           <div className="flex flex-wrap items-center gap-3">
             <CouponStatusBadge status={couponStatus(coupon)} />

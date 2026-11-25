@@ -44,15 +44,15 @@ import { formatMoney, type BillingInterval, type CompanySubscription, type Plan,
  * Paid subscriptions through Razorpay (the platform owner's own account,
  * configured in the Platform Console → Payments & Razorpay).
  *
- *  pricing    every amount comes from `quoteCheckout()` (plan + coupon +
- *             add-ons) plus GST from the billing settings. The quote is stored
+ *  pricing    every amount comes from `quoteCheckout()` (plan + coupon)
+ *             plus GST from the billing settings. The quote is stored
  *             on the subscription (`pricing`) and a Razorpay plan is created
  *             for that exact tax-inclusive amount (`ensureRazorpayPlan`), so
  *             a coupon discount is charged every cycle it applies to. A
  *             limited coupon (once / N cycles) is ended by `repriceSubscription`
  *             after its last discounted charge: the subscription is scheduled
  *             onto the full-price Razorpay plan at cycle end. The same function
- *             re-prices after an add-on change. A plan price edit never changes
+ *             is also the daily cron's retry. A plan price edit never changes
  *             what an existing subscriber pays (`priceVersion`).
  *  checkout   startCheckout → Razorpay Checkout in the browser → confirmCheckout
  *             (signature-verified; the subscription is re-fetched from Razorpay,
@@ -425,7 +425,7 @@ async function notify(companyId: string, kind: NoticeKind): Promise<void> {
 /**
  * Issues the SaaS invoice for one successful charge via `issueSaasInvoice`
  * (idempotent on the payment id). Lines are the stored quote's lines (plan,
- * add-ons, discount) when the captured amount is that quote's total; otherwise
+ * discount) when the captured amount is that quote's total; otherwise
  * one plan line worked back from the captured amount (GST backed out when
  * prices exclude tax).
  *
@@ -975,7 +975,7 @@ export async function cancelSubscription(companyId: string, input: { when: "peri
   }
 }
 
-// ── Re-pricing (coupon ended, add-ons changed) ───────────────────────────────
+// ── Re-pricing (coupon ended) ───────────────────────────────
 
 /**
  * Re-quotes a live subscription and, when the per-cycle total has changed,
@@ -985,7 +985,6 @@ export async function cancelSubscription(companyId: string, input: { when: "peri
  *    cycles are all billed (`getRenewalRedemption` no longer returns it) is
  *    dropped, so the next cycle is charged at full price; a "forever" coupon
  *    keeps re-quoting to the same total and is left alone;
- *  - by the Platform Console after a company's add-ons change;
  *  - by the daily cron, as a retry.
  * The plan line stays at the price version the company bought. No-op when the
  * total is unchanged or there is no live Razorpay subscription (the next
@@ -1190,7 +1189,7 @@ async function processEvent(eventId: string, payload: RazorpayWebhookPayload): P
       }
       const pending = current.pendingChange;
       // A scheduled change has taken effect once Razorpay reports the plan it was scheduled onto (matched by amount:
-      // a coupon ending or an add-on change keeps the same plan + interval).
+      // a coupon ending keeps the same plan + interval).
       const rzpAmount = pending?.pricing ? await razorpayPlanAmount(entity.plan_id) : null;
       if (resolved && pending && pending.planId === resolved.planId && pending.interval === resolved.interval && (!pending.pricing || rzpAmount === null || rzpAmount === pending.pricing.total)) {
         planPatch.pendingChange = null;
@@ -1211,7 +1210,7 @@ async function processEvent(eventId: string, payload: RazorpayWebhookPayload): P
         if (after.pricing?.redemptionId && after.pricing.discount > 0) await markRedemptionCycleBilled(after.pricing.redemptionId);
         const invoice = await issueInvoice(companyId, entity, { id: payment.id, amount: payment.amount, currency: payment.currency }, after);
         await ledgerPayment(companyId, entity, { id: payment.id, amount: payment.amount, currency: payment.currency.toUpperCase(), method: payment.method ?? null }, after, invoice);
-        // A limited coupon that has now run out (or an add-on change) → next cycle at the new price. The daily cron retries a failure.
+        // A limited coupon that has now run out → next cycle at the new price. The daily cron retries a failure.
         await repriceSubscription(companyId, "system").catch((err) => console.error(`[billing] reprice after charge failed for ${companyId}`, err));
       }
       return done(charged ? "charged" : "synced");
@@ -1289,7 +1288,7 @@ export async function runDunningSweep(now: Date = new Date()): Promise<DunningSu
         await releaseUnused(companyId, sub.checkout.pricing.redemptionId, "checkout_abandoned", sub.provider?.subscriptionId ? (sub.pricing?.redemptionId ?? null) : null);
         await updateCompanySubscription(companyId, { checkout: null });
       }
-      // Retry of the after-charge re-price (coupon ran out / add-ons changed) if it failed then.
+      // Retry of the after-charge re-price (coupon ran out) if it failed then.
       if (sub.status === "active" && hasLiveSubscription(sub) && sub.pricing?.couponId && !sub.pendingChange) {
         await repriceSubscription(companyId, "system");
       }

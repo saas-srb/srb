@@ -248,7 +248,7 @@ async function run(db: import("mongodb").Db) {
 
   await check("general settings have sensible defaults", async () => {
     const s = await settings.getPlatformSettings();
-    assert.equal(s.platformName, "Demo Company");
+    assert.equal(s.platformName, "SRB AI"); // the platform's own Console setting: its own name by design
     assert.equal(s.defaultTimezone, "Asia/Kolkata");
     assert.equal(s.defaultLocale, "en-IN");
     assert.equal(s.maintenanceBanner, "");

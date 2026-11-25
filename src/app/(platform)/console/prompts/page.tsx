@@ -23,7 +23,7 @@ export default async function PlatformPromptsPage() {
       <PlatformPageHeader
         title="AI prompts"
         description="Every instruction the system gives to an AI model. Change the wording here and it applies to every company within seconds, with a history you can go back to. Anything you haven't changed uses the built-in text."
-        crumbs={[{ label: "Administration" }]}
+        crumbs={[{ label: "Messages & content" }]}
       />
       <p className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
         Every change is a new numbered version. Nothing is ever removed: you can go back to any version, or to the built-in text, at any time, and going back is itself a new version. Not listed here because they are not wording: the shapes of the data models must answer in, the field labels filled into prompts, the fixed replies a screen shows by itself, and text each company writes for its own chatbot or bots (the starting text for those is listed).

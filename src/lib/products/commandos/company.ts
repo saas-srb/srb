@@ -30,7 +30,7 @@ export interface CompanyUsage {
   storageMb: UsageMeter;
 }
 
-/** This company's seats, AI tokens this month and storage against its effective limits (plan + add-ons). */
+/** This company's seats, AI tokens this month and storage against its effective limits (plan and overrides). */
 export async function getCompanyUsage(): Promise<CompanyUsage> {
   const [e, seats, ai, bytes] = await Promise.all([getEntitlements(), countSeatsUsed(), getUsage("ai_tokens"), storageUsedBytes()]);
   return {

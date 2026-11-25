@@ -14,14 +14,15 @@ import { saveServerKeysAction } from "./actions";
 
 const SOURCE_LABEL = { db: "saved here", env: "from the server environment", none: "not set" } as const;
 
-/** One card per area (AI, voice, push, storage, upload safety). Blank = keep what is saved; "Remove" clears it. */
 /** 32 random bytes, URL-safe (the browser's own generator; nothing is sent anywhere until Save). */
 function randomSecret(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-export default function ServerKeysForm({ view, canManage }: { view: ConfigView; canManage: boolean }) {
+export default function ServerKeysForm({ view, canManage, keys }: { view: ConfigView; canManage: boolean; keys: string[] }) {
+  // Only this card's fields are shown and sent: every key is edited in exactly one panel.
+  const sections = CONFIG_SECTIONS.map((s) => ({ ...s, fields: s.fields.filter((f) => keys.includes(f.key)) })).filter((s) => s.fields.length > 0);
   const router = useRouter();
   const [values, setValues] = useState<Record<string, string>>(() => Object.fromEntries(Object.values(view.fields).map((f) => [f.key, f.value])));
   const [cleared, setCleared] = useState<Record<string, boolean>>({});
@@ -32,7 +33,7 @@ export default function ServerKeysForm({ view, canManage }: { view: ConfigView; 
   const save = () =>
     start(async () => {
       const input: Record<string, string | { clear: true }> = {};
-      for (const section of CONFIG_SECTIONS)
+      for (const section of sections)
         for (const f of section.fields) {
           if (cleared[f.key]) input[f.key] = { clear: true };
           else if (f.secret) input[f.key] = values[f.key] ?? "";
@@ -58,13 +59,13 @@ export default function ServerKeysForm({ view, canManage }: { view: ConfigView; 
           <TriangleAlert className="mt-0.5 size-4 shrink-0" /> PLATFORM_ENCRYPTION_KEY isn&apos;t set on the server, so secret keys can&apos;t be saved until it is.
         </p>
       )}
-      {CONFIG_SECTIONS.map((section) => (
+      {sections.map((section) => (
         <GlassCard key={section.id} interactive={false}>
           <CardHeader>
             <CardTitle className="text-base">{section.title}</CardTitle>
             <CardDescription>{section.description}</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
+          <CardContent className="grid gap-4">
             {section.fields.map((f) => {
               const fv = view.fields[f.key];
               return (
@@ -76,7 +77,7 @@ export default function ServerKeysForm({ view, canManage }: { view: ConfigView; 
                     value={cleared[f.key] ? "" : (values[f.key] ?? "")}
                     disabled={!canManage || cleared[f.key]}
                     onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
-                    placeholder={f.secret && fv.saved ? `Saved — ends in ${fv.last4}. Leave blank to keep.` : f.placeholder}
+                    placeholder={f.secret && fv.saved ? `${fv.last4 ? `Saved — ends in ${fv.last4}` : "Saved"}. Leave blank to keep.` : f.placeholder}
                     autoComplete={f.secret ? "new-password" : "off"}
                     spellCheck={false}
                     className={f.secret ? "" : "font-mono"}

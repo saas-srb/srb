@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CheckCircle2, History, Loader2, Pencil, Plus, Send, Trash2, XCircle, Zap } from "lucide-react";
+import { CheckCircle2, History, Loader2, Pencil, Plus, Send, Trash2, MinusCircle, XCircle, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,8 @@ import { EVENT_TYPES, eventFields, eventLabel } from "@/lib/platform/events/cata
 import { ACTION_TYPES, CONDITION_OPS, MAX_ACTIONS_PER_WORKFLOW, MAX_CONDITIONS_PER_WORKFLOW, type WorkflowAction, type WorkflowCondition, type WorkflowInput, type WorkflowRunView, type WorkflowView } from "@/lib/platform/workflows/shared";
 import { WORKFLOW_TEMPLATES } from "@/lib/platform/workflows/templates";
 import type { WorkflowVersionView } from "@/lib/platform/workflows/versions";
+import Link from "next/link";
+import { WHATSAPP_NEEDS_SENDER } from "@/lib/platform/messaging/sender-copy";
 import {
   addTemplateAction,
   automationRunsAction,
@@ -64,6 +66,7 @@ function Editor({
   onChange,
   onSave,
   onCancel,
+  whatsAppReady,
 }: {
   value: WorkflowInput;
   editing: WorkflowView | null;
@@ -74,6 +77,8 @@ function Editor({
   onChange: (v: WorkflowInput) => void;
   onSave: () => void;
   onCancel: () => void;
+  /** The company has its own WhatsApp sender. */
+  whatsAppReady: boolean;
 }) {
   const fields = eventFields(value.trigger);
   const tokens = fields.map((f) => `{{${f.key}}}`).join("  ");
@@ -190,7 +195,13 @@ function Editor({
               <>
                 <Input aria-label={`Action ${i + 1} phone number`} value={a.to} maxLength={40} onChange={(e) => setAction(i, { ...a, to: e.target.value })} placeholder="+91 98765 43210 or {{phone}}" />
                 <Textarea aria-label={`Action ${i + 1} message`} value={a.body} maxLength={1000} rows={3} onChange={(e) => setAction(i, { ...a, body: e.target.value })} placeholder="Message" />
-                <p className="text-xs text-muted-foreground">Sent from your own Twilio / WhatsApp Business account — connect it in Settings → Integrations.</p>
+                {whatsAppReady ? (
+                  <p className="text-xs text-muted-foreground">Sent from your own Twilio / WhatsApp Business account.</p>
+                ) : (
+                  <p className="rounded-lg bg-muted px-3 py-2 text-xs text-foreground" data-whatsapp-needs-sender>
+                    {WHATSAPP_NEEDS_SENDER}. Until then this step is skipped and recorded in the history. <Link className="font-medium underline" href="/commandos/settings/integrations?open=twilio">Open Integrations</Link>
+                  </p>
+                )}
               </>
             )}
 
@@ -235,12 +246,12 @@ function Editor({
 }
 
 /** Settings → Automations: templates, the company's automations, the editor and each one's run history. */
-export default function AutomationsManager({ initial, roles, people, max }: { initial: WorkflowView[]; roles: Option[]; people: { id: string; email: string }[]; max: number }) {
+export default function AutomationsManager({ initial, roles, people, max, whatsAppReady = true }: { initial: WorkflowView[]; roles: Option[]; people: { id: string; email: string }[]; max: number; whatsAppReady?: boolean }) {
   const [workflows, setWorkflows] = useState(initial);
   const [draft, setDraft] = useState<WorkflowInput | null>(null);
   const [editing, setEditing] = useState<WorkflowView | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  const [notice, setNotice] = useState<{ tone: "ok" | "error" | "neutral"; text: string } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [history, setHistory] = useState<{ id: string; runs: WorkflowRunView[]; versions: WorkflowVersionView[] } | null>(null);
   const [confirmRestore, setConfirmRestore] = useState<string | null>(null);
@@ -257,7 +268,7 @@ export default function AutomationsManager({ initial, roles, people, max }: { in
         const res = await fn();
         if (res.ok) {
           setWorkflows(res.workflows);
-          if (res.message) setNotice({ tone: "ok", text: res.message });
+          if (res.message) setNotice({ tone: res.neutral ? "neutral" : "ok", text: res.message });
           opts.after?.();
         } else if (opts.form) setFormError(res.error);
         else setNotice({ tone: "error", text: res.error });
@@ -315,7 +326,7 @@ export default function AutomationsManager({ initial, roles, people, max }: { in
 
       <div aria-live="polite">
         {notice && (
-          <p id="automation-notice" role={notice.tone === "error" ? "alert" : "status"} className={cn("rounded-lg px-3 py-2 text-sm break-words", notice.tone === "error" ? "bg-destructive/10 text-destructive" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400")}>
+          <p id="automation-notice" role={notice.tone === "error" ? "alert" : "status"} className={cn("rounded-lg px-3 py-2 text-sm break-words", notice.tone === "error" ? "bg-destructive/10 text-destructive" : notice.tone === "neutral" ? "bg-muted text-foreground" : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400")}>
             {notice.text}
           </p>
         )}
@@ -339,6 +350,7 @@ export default function AutomationsManager({ initial, roles, people, max }: { in
             editing={editing}
             roles={roles}
             people={people}
+            whatsAppReady={whatsAppReady}
             busy={busy === "save"}
             error={formError}
             onChange={setDraft}
@@ -367,6 +379,11 @@ export default function AutomationsManager({ initial, roles, people, max }: { in
                     ) : wf.lastRun.status === "success" ? (
                       <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
                         <CheckCircle2 className="size-3" /> Last run succeeded · {formatDateTime(wf.lastRun.at)}
+                      </span>
+                    ) : wf.lastRun.status === "skipped" ? (
+                      <span className="inline-flex items-start gap-1 text-muted-foreground">
+                        <MinusCircle className="mt-0.5 size-3 shrink-0" /> Last run: not sent · {formatDateTime(wf.lastRun.at)}
+                        {wf.lastRun.error ? ` · ${wf.lastRun.error}` : ""}
                       </span>
                     ) : (
                       <span className="inline-flex items-start gap-1 text-destructive">
@@ -429,8 +446,8 @@ export default function AutomationsManager({ initial, roles, people, max }: { in
                       {history.runs.map((r) => (
                         <li key={r.id} className="flex flex-col gap-0.5 text-xs sm:flex-row sm:gap-3" data-run={r.status}>
                           <span className="shrink-0 text-muted-foreground">{formatDateTime(r.at)}</span>
-                          <span className={cn("shrink-0 font-medium", r.status === "success" ? "text-emerald-700 dark:text-emerald-400" : "text-destructive")}>
-                            {r.status === "success" ? "Succeeded" : "Failed"}
+                          <span className={cn("shrink-0 font-medium", r.status === "success" ? "text-emerald-700 dark:text-emerald-400" : r.status === "skipped" ? "text-muted-foreground" : "text-destructive")}>
+                            {r.status === "success" ? "Succeeded" : r.status === "skipped" ? "Not sent" : "Failed"}
                             {r.test ? " (test)" : ""}
                           </span>
                           <span className="min-w-0 break-words text-muted-foreground">

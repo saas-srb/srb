@@ -5,7 +5,7 @@ import { alertEmails, listJobStatus, schedulerMode } from "@/lib/cron/status";
 import { listPanels } from "@/lib/platform/panels/store";
 import JobsTable from "./JobsTable";
 
-export const metadata: Metadata = { title: "Cron jobs (scheduled jobs)" };
+export const metadata: Metadata = { title: "Scheduled jobs" };
 export const dynamic = "force-dynamic";
 
 export default async function ScheduledJobsPage() {
@@ -14,9 +14,9 @@ export default async function ScheduledJobsPage() {
   return (
     <div className="space-y-6 p-1">
       <PlatformPageHeader
-        title="Cron jobs"
+        title="Scheduled jobs"
         description="Every job the platform runs on a schedule: what it does, when it runs (UTC), whether it ran when it was due and what it did last time. Pause a job, change its schedule, run it now and choose who is emailed when one fails. Each run is recorded for 30 days."
-        crumbs={[{ label: "Administration" }]}
+        crumbs={[{ label: "System" }]}
       />
       <JobsTable alerts={alerts} jobs={jobs} products={Object.fromEntries(panels.map((p) => [p.key, p.shortName || p.name]))} mode={await schedulerMode()} canRun={can(user, "settings.manage")} />
     </div>

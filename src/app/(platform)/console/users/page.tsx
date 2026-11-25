@@ -24,7 +24,7 @@ export default async function PlatformUsersPage({ searchParams }: { searchParams
 
   return (
     <div className="space-y-6 p-1">
-      <PlatformPageHeader title="Platform users & roles" description="Who from your team can use the Platform Console, and what each role is allowed to do." crumbs={[{ label: "Administration" }]} />
+      <PlatformPageHeader title="Platform users & roles" description="Who from your team can use the Platform Console, and what each role is allowed to do." crumbs={[{ label: "Team & security" }]} />
       <PanelListFilters>
 <UsersAndRoles
         initialTab={tab === "roles" ? "roles" : "users"}

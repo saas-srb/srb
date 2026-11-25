@@ -512,9 +512,6 @@ export const PANEL_ROUTES: Record<string, { path: string; name: string }[]> = {
   ],
   platform: [
     { path: "/console", name: "Dashboard" },
-    { path: "/console/addons", name: "Add-ons" },
-    { path: "/console/addons/[id]", name: "Add-on" },
-    { path: "/console/addons/new", name: "New add-on" },
     { path: "/console/ai-usage", name: "AI token history" },
     { path: "/console/ai-usage/[companyId]", name: "AI token history" },
     { path: "/console/audit", name: "Audit log" },

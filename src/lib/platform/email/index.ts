@@ -1,5 +1,6 @@
 import "server-only";
 import { senderForTenant } from "@/lib/platform/white-label";
+import { platformSendgrid, platformSmtp } from "@/lib/platform/email/platform-accounts";
 import { emailBlockReason } from "@/lib/platform/billing/enforce";
 import { recordUsage } from "@/lib/platform/billing/usage";
 import { createConsoleEmailProvider } from "@/lib/platform/email/console";
@@ -50,9 +51,41 @@ async function workspaceEmail(): Promise<{ provider: EmailProvider; from: string
   return null;
 }
 
+type Account = { provider: EmailProvider; from: string };
+
+/**
+ * The platform's sending accounts, in order: its Resend account, then its SMTP account, then its SendGrid account (Console → Integrations). The
+ * console choice made on purpose in the Console is the only account (nothing is sent); with no account at all it is the console printer.
+ */
+async function platformAccounts(): Promise<Account[]> {
+  const cfg = await resolveEmailConfig();
+  const chosen: Account = { provider: providerFor(cfg), from: cfg.from };
+  if (cfg.explicit && cfg.provider !== "resend") return [chosen];
+  const out: Account[] = (cfg.provider === "resend" && cfg.resendApiKey) || cfg.explicit ? [chosen] : [];
+  const smtp = await platformSmtp().catch(() => null);
+  if (smtp) out.push({ provider: createSmtpEmailProvider(smtp.values), from: smtp.from });
+  const sendgrid = await platformSendgrid().catch(() => null);
+  if (sendgrid) out.push({ provider: createSendgridEmailProvider(sendgrid.apiKey), from: sendgrid.from });
+  return out.length ? out : [chosen];
+}
+
+/** The platform's first sending account (the one every message tries first). */
+export async function platformEmail(): Promise<Account> {
+  return (await platformAccounts())[0];
+}
+
+/** One attempt: a provider that throws (network, timeout) counts as a failed send, like one that answers with an error. */
+async function attempt(provider: EmailProvider, message: EmailMessage): Promise<EmailResult> {
+  try {
+    return await provider.send(message);
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
 /** The platform's default sender, e.g. `SelfRun AI <no-reply@selfrunbusiness.ai>`. */
 export async function defaultFrom(): Promise<string> {
-  return (await resolveEmailConfig()).from;
+  return (await platformEmail()).from;
 }
 
 /**
@@ -105,20 +138,31 @@ async function deliver(input: Omit<EmailMessage, "from"> & { from?: string }): P
     // A company's own monthly email allowance (never applied to the platform's own mail, which has no company, nor to a company's own account).
     const blocked = own ? null : await emailBlockReason().catch(() => null);
     if (blocked) return { ok: false, error: blocked };
-    const cfg = own ? null : await resolveEmailConfig();
-    const provider = own ? own.provider : providerFor(cfg!);
+    const accounts = own ? null : await platformAccounts();
+    const cfg = accounts?.[0] ?? null;
+    const provider = own ? own.provider : cfg!.provider;
     // A company's own verified address wins; otherwise the platform's sender (replies still go to the company's reply-to when it set one).
     const mine = message.from || own || provider.id !== "resend" ? null : await companySenderForSending();
     const replyTo = message.replyTo ?? mine?.replyTo ?? (own ? undefined : await companyReplyTo());
     // The platform's default sender is shown to a customer under the customer's own brand name, never the platform's.
     const platformSender = cfg ? await senderForTenant(cfg.from) : null;
-    let result = await provider.send({ ...message, from: message.from ?? own?.from ?? mine?.from ?? platformSender!, ...(replyTo ? { replyTo } : {}) });
+    let used = provider;
+    let result = await attempt(provider, { ...message, from: message.from ?? own?.from ?? mine?.from ?? platformSender!, ...(replyTo ? { replyTo } : {}) });
     // The provider no longer accepts the company's domain (DNS changed, domain removed): send from the platform's sender now and mark it for a re-check.
     if (!result.ok && mine && /domain|verif|from/i.test(result.error)) {
       await markSenderFailing();
-      result = await provider.send({ ...message, from: platformSender!, ...(replyTo ? { replyTo } : {}) });
+      result = await attempt(provider, { ...message, from: platformSender!, ...(replyTo ? { replyTo } : {}) });
     }
-    if (!result.ok) console.error(`[email:${provider.id}] send failed`, result.error);
+    // A PLATFORM account failed: try the next configured platform account once, from that account's own verified sender. A company's own
+    // account is never retried through ours (`accounts` is null for it). A timeout can mean the first account did accept the message.
+    const next = accounts?.[1];
+    if (!result.ok && next) {
+      console.warn(`[email] platform ${provider.id} account failed, trying the platform ${next.provider.id} account once: ${result.error}`);
+      used = next.provider;
+      result = await attempt(next.provider, { ...message, from: message.from ?? (await senderForTenant(next.from)), ...(replyTo ? { replyTo } : {}) });
+      if (result.ok) console.warn(`[email] delivered through the platform ${next.provider.id} account`);
+    }
+    if (!result.ok) console.error(`[email:${used.id}] send failed`, result.error);
     else if (!own) await recordUsage("emails", 1, new Date(), { source: "Email sent", detail: `${String(message.subject ?? "").slice(0, 120)}${message.to ? ` → ${emailDomain(message.to)}` : ""}` }).catch(() => {});
     return result;
   } catch (err) {

@@ -151,7 +151,7 @@ async function grantTopup(input: { companyId: string; pack: TopupPack; order: Or
     const amount = settings.tax.pricesIncludeTax ? payment.amount : order.net;
     invoice = await issueSaasInvoice({
       companyId,
-      lines: [{ kind: "addon", refId: pack.id, label: `${formatUnits(pack.service, pack.units)} (top-up, valid 12 months)`, amount }],
+      lines: [{ kind: "topup", refId: pack.id, label: `${formatUnits(pack.service, pack.units)} (top-up, valid 12 months)`, amount }],
       paymentRef: payment.id,
       paidAt: now,
       actorId: "system",

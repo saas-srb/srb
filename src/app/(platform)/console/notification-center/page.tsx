@@ -17,7 +17,7 @@ export default async function PlatformNotificationCenterPage() {
       <PlatformPageHeader
         title="Notification center"
         description="Every email, in-app and push notification the platform can send, across all companies. Switch a channel off here and it stops for every company; each company can still turn channels off for itself in its own Notification center. Security and billing emails cannot be turned off."
-        crumbs={[{ label: "Administration" }]}
+        crumbs={[{ label: "Messages & content" }]}
       />
       <NotificationControls events={events} totals={totals} controls={controls} products={Object.fromEntries(panels.map((p) => [p.key, p.shortName || p.name]))} canEdit={can(user, "settings.manage")} />
     </div>

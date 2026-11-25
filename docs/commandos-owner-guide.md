@@ -37,3 +37,12 @@ Data migrations run first as a dry run that only reports; apply them once on a t
 
 ## Not verified
 These screens were checked by automated tests and dev-harness screenshots, not clicked through by a person in a real browser.
+
+## Platform defaults (platform staff only)
+Console, Integrations has one card for every outside service. What you save there is used by every company that has not connected its own account; a company's own account always wins and is never changed from the Console. Open a card to see how many companies use the default, change it, and press Test connection. Cards marked "Company only" (payments, social apps, Gemini) cannot have a shared default. Platform billing keys are under Console, Payments.
+
+Console, Product settings sets the default of product settings (work schedule, payment limits, AI limits and so on). Tick "Set a platform default", save, and every company that has not saved its own value follows it; the card shows how many do. In a company, each product's settings screen lists these settings as "Using included default" or "Using your own", with "Reset to default". Companies that were already using a product have their saved values kept as their own, so a new default reaches them only after they reset. Company identity, bank accounts, keys, registrations and statutory rates can never be set here.
+
+WhatsApp: a company's own messages need its own WhatsApp sender (Twilio or WhatsApp Business). The platform's Twilio WhatsApp sender is never used for them. A company without one sees "Add your WhatsApp sender to send this" and the history shows the message as not sent.
+
+Included email can be Resend, SMTP or SendGrid (the first one set up, in that order). Emails go from the platform's verified address under the company's name. If a platform email account fails, the next one you have set up is tried once.

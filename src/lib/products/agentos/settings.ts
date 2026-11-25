@@ -1,5 +1,6 @@
 import { getPrompt } from "@/lib/prompts/store";
 import "server-only";
+import { resolveSettings, settingsPatch } from "@/lib/platform/defaults/product/company";
 import { getDb } from "@/lib/mongodb";
 import { COLLECTIONS, updateStamp, str } from "@/lib/products/agentos/db";
 import { DEFAULT_MODELS, type ModelPrice } from "@/lib/products/agentos/constants";
@@ -28,8 +29,11 @@ export const DEFAULT_SETTINGS = { models: DEFAULT_MODELS, defaultModel: DEFAULT_
 export async function getSettings(): Promise<AibotsSettings> {
   const db = await getDb();
   const doc = await db.collection<AibotsSettings>(COLLECTIONS.settings).findOne({ _id: ID });
-  const merged = { _id: ID, ...DEFAULT_SETTINGS, updatedAt: new Date(0), updatedBy: null, ...(doc ?? {}) };
+  const stored = { _id: ID, ...DEFAULT_SETTINGS, updatedAt: new Date(0), updatedBy: null, ...(doc ?? {}) };
+  const merged = await resolveSettings("agentos", COLLECTIONS.settings, stored, doc);
   if (!merged.models?.length) merged.models = DEFAULT_MODELS;
+  // A default model the company removed from its own list falls back to its first one.
+  if (!merged.models.some((m) => m.id === merged.defaultModel)) merged.defaultModel = merged.models[0].id;
   // Left empty, a company uses the platform's general-assistant prompt (Platform Console → AI prompts).
   if (!merged.generalInstructions?.trim()) merged.generalInstructions = await getPrompt("agentos.general.default");
   return merged;
@@ -68,18 +72,13 @@ export async function saveSettings(
   const maxOutputTokens = Math.min(Math.max(Math.round(Number(input.maxOutputTokens) || 0), 256), 32000);
   const dailyMessageLimit = Math.min(Math.max(Math.round(Number(input.dailyMessageLimit) || 0), 0), 10000);
   const db = await getDb();
-  await db.collection<AibotsSettings>(COLLECTIONS.settings).updateOne(
-    { _id: ID },
-    {
-      $set: {
+  const before = await db.collection<AibotsSettings>(COLLECTIONS.settings).findOne({ _id: ID });
+  const set = await settingsPatch("agentos", COLLECTIONS.settings, before, {
         models,
         defaultModel: seen.has(defaultModel) ? defaultModel : models[0].id,
         maxOutputTokens,
         dailyMessageLimit,
         generalInstructions: str(input.generalInstructions, 20000) || (await getPrompt("agentos.general.default")),
-        ...updateStamp(actorId),
-      },
-    },
-    { upsert: true }
-  );
+  }, DEFAULT_SETTINGS);
+  await db.collection<AibotsSettings>(COLLECTIONS.settings).updateOne({ _id: ID }, { $set: { ...set, ...updateStamp(actorId) } }, { upsert: true });
 }

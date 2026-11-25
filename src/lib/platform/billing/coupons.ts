@@ -66,7 +66,7 @@ export function normalizeCouponCode(code: string): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Paise taken off `subtotal` (plan + add-ons, pre-tax).
+ * Paise taken off `subtotal` (the plan price, pre-tax).
  * Percent: `round(subtotal × percent / 100)` to the nearest paisa (half up).
  * Fixed: the coupon amount, capped at the subtotal. Never negative, never > subtotal.
  */

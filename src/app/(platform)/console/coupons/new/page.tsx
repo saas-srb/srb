@@ -12,7 +12,7 @@ export default async function NewCouponPage() {
   const [plans, settings] = await Promise.all([listPlans(), getBillingSettings()]);
   return (
     <div className="space-y-6 p-1">
-      <PlatformPageHeader title="New coupon" crumbs={[{ label: "Billing" }, { label: "Coupons & discounts", href: "/console/coupons" }]} />
+      <PlatformPageHeader title="New coupon" crumbs={[{ label: "Plans & pricing" }, { label: "Coupons & discounts", href: "/console/coupons" }]} />
       <CouponForm coupon={null} plans={plans.map((p) => ({ id: p._id, name: p.name }))} currency={settings.billing.currency} />
     </div>
   );

@@ -1,4 +1,5 @@
 import "server-only";
+import { resolveSettings, settingsPatch } from "@/lib/platform/defaults/product/company";
 import { getDb } from "@/lib/mongodb";
 import { updateStamp } from "@/lib/products/cohort-ai/db";
 import {
@@ -78,17 +79,16 @@ const DEFAULTS: Omit<TmsSettings, "_id" | "updatedAt" | "updatedBy"> = {
   institute: DEFAULT_INSTITUTE,
 };
 
+/** Nothing is written by reading: a default-able field the company never saved follows the platform's default, else the code default. */
 export async function getTmsSettings(): Promise<TmsSettings> {
   const db = await getDb();
-  const collection = db.collection<TmsSettings>(TMS_SETTINGS_COLLECTION);
-  const existing = await collection.findOne({ _id: TMS_SETTINGS_ID });
+  const doc = await db.collection<TmsSettings>(TMS_SETTINGS_COLLECTION).findOne({ _id: TMS_SETTINGS_ID });
   const base = await defaultInstituteIdentity();
-  if (existing) return { ...DEFAULTS, ...existing, institute: await withIdentity({ ...base, ...existing.institute, name: existing.institute?.name || base.name }) };
-
-  const doc: TmsSettings = { _id: TMS_SETTINGS_ID, ...DEFAULTS, institute: base, updatedAt: new Date(), updatedBy: null };
-  await collection.updateOne({ _id: TMS_SETTINGS_ID }, { $setOnInsert: doc }, { upsert: true });
-  return { ...doc, institute: await withIdentity(doc.institute) };
+  const merged = { ...codeDefaults(), ...(doc ?? {}), institute: await withIdentity({ ...base, ...doc?.institute, name: doc?.institute?.name || base.name }) };
+  return resolveSettings("cohort-ai", TMS_SETTINGS_COLLECTION, merged, doc);
 }
+
+const codeDefaults = (): TmsSettings => ({ _id: TMS_SETTINGS_ID, ...DEFAULTS, updatedAt: new Date(0), updatedBy: null });
 
 export interface TmsSettingsInput {
   technologySuggestions: string[];
@@ -141,10 +141,8 @@ export function normalizeSettingsInput(input: Record<string, unknown>): TmsSetti
 export async function updateTmsSettings(data: TmsSettingsInput, actorId: string): Promise<TmsSettings> {
   const db = await getDb();
   const collection = db.collection<TmsSettings>(TMS_SETTINGS_COLLECTION);
-  const result = await collection.findOneAndUpdate(
-    { _id: TMS_SETTINGS_ID },
-    { $set: { ...data, ...updateStamp(actorId) } },
-    { upsert: true, returnDocument: "after" }
-  );
-  return { ...DEFAULTS, ...(result as TmsSettings) };
+  const before = await collection.findOne({ _id: TMS_SETTINGS_ID });
+  const set = await settingsPatch("cohort-ai", TMS_SETTINGS_COLLECTION, before, data, codeDefaults());
+  await collection.updateOne({ _id: TMS_SETTINGS_ID }, { $set: { ...set, ...updateStamp(actorId) } }, { upsert: true });
+  return getTmsSettings();
 }

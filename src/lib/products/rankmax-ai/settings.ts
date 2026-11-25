@@ -1,4 +1,5 @@
 import "server-only";
+import { resolveSettings, settingsPatch } from "@/lib/platform/defaults/product/company";
 import { connectionValues } from "@/lib/platform/connections/resolve";
 import { siteUrl } from "@/lib/seo";
 import { isPlatformOwnerContext } from "@/lib/platform/tenancy/context";
@@ -125,14 +126,15 @@ function withDefaults(doc: Partial<SeoSettings> | null, d: SeoSettings): SeoSett
 export async function getSettings(): Promise<SeoSettings> {
   const col = await seoCollection<SeoSettings>(COLLECTIONS.settings);
   const [doc, defaults] = await Promise.all([col.findOne({ _id: "global" }), defaultSettings()]);
-  return withDefaults(doc, defaults);
+  return resolveSettings("rankmax-ai", COLLECTIONS.settings, withDefaults(doc, defaults), doc);
 }
 
 export async function saveSettings(next: SeoSettings, actorId: string): Promise<void> {
   const col = await seoCollection<SeoSettings>(COLLECTIONS.settings);
   const { _id: _ignored, ...rest } = next;
   void _ignored;
-  await col.updateOne({ _id: "global" }, { $set: { ...rest, updatedAt: new Date(), updatedBy: actorId } }, { upsert: true });
+  const set = await settingsPatch("rankmax-ai", COLLECTIONS.settings, await col.findOne({ _id: "global" }), rest, await defaultSettings());
+  await col.updateOne({ _id: "global" }, { $set: { ...set, updatedAt: new Date(), updatedBy: actorId } }, { upsert: true });
 }
 
 /** Records an integration's sync outcome without touching anything else. */

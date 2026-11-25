@@ -19,7 +19,7 @@ export default async function PlatformLegalPage() {
       <PlatformPageHeader
         title="Legal & compliance"
         description="Who the public policies say you are: operator, registered office, Grievance Officer and courts. The Terms, Privacy Policy, Refund Policy, Data Processing Addendum and Grievance Redressal page are written for India from these details. A field left empty is left out of the pages; nothing is made up."
-        crumbs={[{ label: "Administration" }]}
+        crumbs={[{ label: "Legal & statutory" }]}
       />
       <div className={`rounded-lg border p-4 text-sm ${missingRequired.length ? "border-amber-500/40 bg-amber-500/10" : "border-emerald-500/40 bg-emerald-500/10"}`}>
         {missingRequired.length ? (

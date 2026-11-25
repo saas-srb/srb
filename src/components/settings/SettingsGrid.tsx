@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
 import SettingsCard from "@/components/settings/SettingsCard";
-import { SETTINGS_STATUSES, STATUS_WORDS, filterCards, groupCards, type SettingsCardData, type SettingsCategory, type SettingsFilter } from "@/components/settings/model";
+import { SETTINGS_STATUSES, STATUS_WORDS, filterCards, groupCards, type SettingsCardData, type SettingsCategory, type SettingsFilter, type SettingsStatus } from "@/components/settings/model";
 
 const field = "h-10 rounded-xl border border-input bg-background px-3 text-sm";
 
 /** The Search & Filters card: by name, by status and by category. A plain GET form, so it works without scripts and the result can be linked to. */
-export function SettingsFilters({ action, filter, categories, searchPlaceholder }: { action: string; filter: SettingsFilter; categories: SettingsCategory[]; searchPlaceholder: string }) {
+export function SettingsFilters({ action, filter, categories, searchPlaceholder, statuses = SETTINGS_STATUSES }: { action: string; filter: SettingsFilter; categories: SettingsCategory[]; searchPlaceholder: string; statuses?: SettingsStatus[] }) {
   const active = Boolean(filter.q || filter.status || filter.category);
   return (
     <form method="get" action={action} role="search" data-settings-filters className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
@@ -20,7 +20,7 @@ export function SettingsFilters({ action, filter, categories, searchPlaceholder 
           <span className="sr-only">Status</span>
           <select name="status" defaultValue={filter.status} className={`${field} w-full`}>
             <option value="">All statuses</option>
-            {SETTINGS_STATUSES.map((s) => <option key={s} value={s}>{STATUS_WORDS[s]}</option>)}
+            {statuses.map((s) => <option key={s} value={s}>{STATUS_WORDS[s]}</option>)}
           </select>
         </label>
         <label className="block">

@@ -52,6 +52,7 @@ export const workspaceEvents = {
   domain: async (host: string, what: "verified" | "failed" | "removed" | "primary", detail?: string) =>
     tell(await admins(), what === "verified" ? `Domain verified: ${host}` : what === "failed" ? `Domain needs attention: ${host}` : what === "primary" ? `Primary domain is now ${host}` : `Domain removed: ${host}`, short(detail, 160) || (what === "verified" ? "Your site is reachable on it." : "Check the DNS records on the Domains page."), "/commandos/settings/domains"),
   automationFailed: async (name: string, id: string, detail: string) => tell(await admins(), `Automation failed: ${short(name, 50)}`, short(detail, 160), "/commandos/settings/automations"),
+  automationSkipped: async (name: string, id: string, detail: string) => tell(await admins(), `Message not sent by automation: ${short(name, 50)}`, short(detail, 160), "/commandos/settings/integrations?open=twilio", `automation-skipped:${id}`),
   billing: async (type: string, planName: string | null) => {
     const m: Record<string, [string, string]> = {
       activated: [`Subscription active${planName ? `: ${planName}` : ""}`, "Thank you — your plan is now active."],

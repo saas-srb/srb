@@ -1,4 +1,5 @@
 import "server-only";
+import { resolveSettings, settingsPatch } from "@/lib/platform/defaults/product/company";
 import { getDb } from "@/lib/mongodb";
 import { updateStamp } from "@/lib/products/sprintos/db";
 import { DEFAULT_PROJECT_CATEGORIES, DEFAULT_CURRENCY, SUPPORTED_CURRENCIES } from "@/lib/products/sprintos/constants";
@@ -34,16 +35,14 @@ const DEFAULTS: Omit<PmsSettings, "_id" | "updatedAt" | "updatedBy"> = {
   defaultCurrency: DEFAULT_CURRENCY,
 };
 
+/** Nothing is written by reading: a field the company never saved follows the platform's default, else the code default. */
 export async function getPmsSettings(): Promise<PmsSettings> {
   const db = await getDb();
-  const collection = db.collection<PmsSettings>(PMS_SETTINGS_COLLECTION);
-  const existing = await collection.findOne({ _id: PMS_SETTINGS_ID });
-  if (existing) return { ...DEFAULTS, ...existing };
-
-  const doc: PmsSettings = { _id: PMS_SETTINGS_ID, ...DEFAULTS, updatedAt: new Date(), updatedBy: null };
-  await collection.updateOne({ _id: PMS_SETTINGS_ID }, { $setOnInsert: doc }, { upsert: true });
-  return doc;
+  const doc = await db.collection<PmsSettings>(PMS_SETTINGS_COLLECTION).findOne({ _id: PMS_SETTINGS_ID });
+  return resolveSettings("sprintos", PMS_SETTINGS_COLLECTION, { ...codeDefaults(), ...(doc ?? {}) }, doc);
 }
+
+const codeDefaults = (): PmsSettings => ({ _id: PMS_SETTINGS_ID, ...DEFAULTS, updatedAt: new Date(0), updatedBy: null });
 
 export interface PmsSettingsInput {
   categories: string[];
@@ -73,10 +72,8 @@ export function normalizeSettingsInput(input: Record<string, unknown>): PmsSetti
 export async function updatePmsSettings(data: PmsSettingsInput, actorId: string): Promise<PmsSettings> {
   const db = await getDb();
   const collection = db.collection<PmsSettings>(PMS_SETTINGS_COLLECTION);
-  const result = await collection.findOneAndUpdate(
-    { _id: PMS_SETTINGS_ID },
-    { $set: { ...data, ...updateStamp(actorId) } },
-    { upsert: true, returnDocument: "after" }
-  );
-  return { ...DEFAULTS, ...(result as PmsSettings) };
+  const before = await collection.findOne({ _id: PMS_SETTINGS_ID });
+  const set = await settingsPatch("sprintos", PMS_SETTINGS_COLLECTION, before, data, codeDefaults());
+  await collection.updateOne({ _id: PMS_SETTINGS_ID }, { $set: { ...set, ...updateStamp(actorId) } }, { upsert: true });
+  return getPmsSettings();
 }

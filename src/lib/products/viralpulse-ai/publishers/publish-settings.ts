@@ -1,4 +1,5 @@
 import "server-only";
+import { resolveSettings, settingsPatch } from "@/lib/platform/defaults/product/company";
 import { COLLECTIONS, smmsCollection, updateStamp } from "@/lib/products/viralpulse-ai/db";
 import { DEFAULT_TIMEZONE, isValidTimezone } from "./schedule";
 
@@ -21,12 +22,12 @@ type Doc = Partial<PublishSettings> & { _id: string };
 export async function getPublishSettings(): Promise<PublishSettings> {
   const col = await smmsCollection<Doc>(COLLECTIONS.settings);
   const d = await col.findOne({ _id: "publishing" });
-  return {
+  return resolveSettings("viralpulse-ai", "smms_settings:publishing", {
     timezone: d?.timezone && isValidTimezone(d.timezone) ? d.timezone : DEFAULT_PUBLISH_SETTINGS.timezone,
     gbpEnabled: d?.gbpEnabled === true,
     aiDisclosureOff: d?.aiDisclosureOff === true,
     batchCap: Math.min(Math.max(Math.round(d?.batchCap ?? DEFAULT_PUBLISH_SETTINGS.batchCap), 1), 50),
-  };
+  }, d);
 }
 
 export async function savePublishSettings(patch: Partial<PublishSettings>, actorId: string): Promise<PublishSettings> {
@@ -39,6 +40,7 @@ export async function savePublishSettings(patch: Partial<PublishSettings>, actor
   if (patch.gbpEnabled !== undefined) set.gbpEnabled = patch.gbpEnabled === true;
   if (patch.aiDisclosureOff !== undefined) set.aiDisclosureOff = patch.aiDisclosureOff === true;
   if (patch.batchCap !== undefined) set.batchCap = Math.min(Math.max(Math.round(patch.batchCap), 1), 50);
-  await col.updateOne({ _id: "publishing" }, { $set: { ...set, ...updateStamp(actorId) } as never }, { upsert: true });
+  const changes = await settingsPatch("viralpulse-ai", "smms_settings:publishing", await col.findOne({ _id: "publishing" }), set, DEFAULT_PUBLISH_SETTINGS);
+  await col.updateOne({ _id: "publishing" }, { $set: { ...changes, ...updateStamp(actorId) } as never }, { upsert: true });
   return getPublishSettings();
 }

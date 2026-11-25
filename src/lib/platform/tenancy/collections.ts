@@ -21,7 +21,6 @@ export const GLOBAL_COLLECTIONS = new Set<string>([
   "subscription_events",
   "billing_coupons",
   "billing_coupon_redemptions",
-  "billing_addons",
   // Platform administration
   "platform_audit_log",
   "status_incidents", // the public status page's incident record (platform-wide)

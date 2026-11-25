@@ -34,7 +34,7 @@ function done<T extends { ok: boolean }>(res: T): T {
   return res;
 }
 
-/** Price summary for the plan picker — priced only through quoteCheckout (plan, coupon, add-ons) + GST settings. */
+/** Price summary for the plan picker — priced only through quoteCheckout (plan, coupon) + GST settings. */
 export async function quoteAction(planId: string, interval: BillingInterval, couponCode: string | null): Promise<{ ok: true; summary: PriceSummary } | { ok: false; error: string }> {
   const { companyId } = await requireOwner();
   const res = await priceSubscription({ companyId, planId: String(planId ?? ""), interval, couponCode: couponCode ? String(couponCode).slice(0, 64) : null });

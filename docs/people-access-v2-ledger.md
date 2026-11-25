@@ -87,3 +87,15 @@ The Ask AI / agent engine (`src/lib/ai/agent/`) decides which kinds of record an
 - White label: see `docs/white-label.md` and `test:white-label` (12 checks). Product names are plain, "Using SRB" wording is "Included default", default email sender shows the company name, Playbook/ViralPulse metadata is neutral.
 - `test:access-sweep` (P8-D): static, over 1624 pages/routes/actions of the 16 products (1410 guarded by a catalogue feature, 214 open with a stated reason); runtime fake sessions (Director, no access, designation only, Read only, Read & Write, lowest old role) through `can` and the Workspace menu.
 - Numbering: concurrent issue is atomic and unique with no hole (`pb_counters`: `$inc` plus a released list). The test expectation that the winner is number 21 was wrong; fixed to "winner plus the next five use exactly 21..26"; 50 consecutive runs on throwaway databases passed.
+
+## 2026-11-25: platform defaults
+Started and tracked in `docs/platform-defaults.md` (resume from its Build order, step 1). No runtime change.
+
+## 2026-11-25: platform defaults step 1
+Done; resume at step 2 of `docs/platform-defaults.md`.
+
+## 2026-11-25: platform defaults step 2
+Done; resume at step 3 of `docs/platform-defaults.md`.
+
+## 2026-11-25: platform defaults complete
+New platform permissions `defaults.read` / `defaults.manage` (Console, Product settings). Company "Reset to default" uses the Workspace guard `company.products`. No product access rule changed.

@@ -288,7 +288,7 @@ export interface IssueSaasInvoiceInput {
   companyId: string;
   /**
    * What was charged for: the `Quote` from `quoteCheckout` (its lines — plan,
-   * add-ons, discounts — become the invoice lines, at the quote's GST rate).
+   * discounts — become the invoice lines, at the quote's GST rate).
    * Give `quote` OR `lines`.
    */
   quote?: Quote | null;

@@ -1,3 +1,4 @@
+import ProductDefaults from "@/components/settings/ProductDefaults";
 import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { redirect } from "next/navigation";
@@ -24,6 +25,7 @@ export default async function SpendiqSettingsScreen() {
         description={<>Company identity for purchase orders and invoices, requisition approval thresholds and default currency.</>}
       />
       <PrmsSettingsForm settings={JSON.parse(JSON.stringify(settings))} />
+      <ProductDefaults product="spendiq" />
     </div>
   );
 }

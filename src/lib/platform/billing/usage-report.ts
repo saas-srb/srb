@@ -8,7 +8,7 @@ import type { SubscriptionStatus } from "@/lib/platform/billing/types";
 
 /**
  * Platform Console "Usage & limits": per company, what it uses against its
- * effective limits (plan + add-ons). Reads the raw platform database with
+ * effective limits. Reads the raw platform database with
  * explicit `companyId` filters — registry-level counters only, never a
  * company's business data.
  */
@@ -75,7 +75,7 @@ export async function listCompanyUsage(period = usagePeriod()): Promise<CompanyU
   const storage = new Map(storageRows.map((r) => [r.companyId, r.total]));
 
   const rows: CompanyUsageRow[] = [];
-  // Entitlements read a subscription + plan (+ add-ons) each; bounded concurrency.
+  // Entitlements read a subscription + plan each; bounded concurrency.
   for (let i = 0; i < companies.length; i += 20) {
     const batch = companies.slice(i, i + 20);
     const ents = await Promise.all(batch.map((c) => entitlementsFor(String(c._id))));

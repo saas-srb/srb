@@ -116,7 +116,7 @@ export interface PriceSummary {
   planName: string;
   interval: BillingInterval;
   currency: string;
-  lines: { kind: "plan" | "addon" | "discount"; label: string; amount: number }[];
+  lines: { kind: "plan" | "topup" | "discount"; label: string; amount: number }[];
   subtotal: number;
   discount: number;
   net: number;

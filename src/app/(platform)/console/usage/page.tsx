@@ -22,7 +22,7 @@ export default async function PlatformUsagePage() {
     <div className="space-y-6 p-1">
       <PlatformPageHeader
         title="Usage & limits"
-        description={`Seats, AI tokens (${period}) and storage per company against its plan and add-ons. "Near" = ${Math.round(NEAR_LIMIT_RATIO * 100)}% or more of a limit.`}
+        description={`Seats, AI tokens (${period}) and storage per company against its plan. "Near" = ${Math.round(NEAR_LIMIT_RATIO * 100)}% or more of a limit.`}
       />
       <KpiGrid cols={4}>
         <KpiCard label="Companies" value={rows.length} icon={<Building2 className="size-4" />} />

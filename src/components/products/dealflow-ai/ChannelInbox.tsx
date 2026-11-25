@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { sendLeadMessageAction } from "@/app/(products)/dealflow-ai/(protected)/leads/actions";
 import type { ChannelLead, ChannelStatus } from "@/lib/dealflow-ai/channels";
+import { WHATSAPP_NEEDS_SENDER } from "@/lib/platform/messaging/sender-copy";
 import CallWithAI from "@/components/products/agentos/calls/CallWithAI";
 import { DealflowCallUnavailable } from "@/components/products/dealflow-ai/DealflowCallButton";
 import { buildThreadSummary, threadContextLine } from "@/lib/products/agentos/chat-call";
@@ -36,6 +37,8 @@ interface Line {
   subject?: string;
   at: string;
   failed?: string;
+  /** Recorded but never attempted (no sender): shown neutrally. */
+  skipped?: string;
 }
 
 async function fetchThread(mode: InboxMode, leadId: string): Promise<Line[]> {
@@ -48,7 +51,7 @@ async function fetchThread(mode: InboxMode, leadId: string): Promise<Line[]> {
   const res = await fetch(`/api/dealflow-ai/channels/${mode}?leadId=${encodeURIComponent(leadId)}`);
   const data = await res.json();
   if (!data.ok) throw new Error(data.error || "Could not load this thread.");
-  return (data.messages as { id: string; body: string; subject: string; createdAt: string; status: string; error: string }[]).map((m) => ({ id: m.id, mine: true, body: m.body, subject: m.subject, at: m.createdAt, failed: m.status === "failed" ? m.error || "Not delivered" : undefined }));
+  return (data.messages as { id: string; body: string; subject: string; createdAt: string; status: string; error: string }[]).map((m) => ({ id: m.id, mine: true, body: m.body, subject: m.subject, at: m.createdAt, failed: m.status === "failed" ? m.error || "Not delivered" : undefined, skipped: m.status === "skipped" ? m.error : undefined }));
 }
 
 /**
@@ -170,13 +173,13 @@ export default function ChannelInbox({
   }
 
   if (blocked) {
-    const what = mode === "email" ? "an email account (SMTP, Resend or SendGrid)" : "a WhatsApp account (Twilio or WhatsApp Business Cloud API)";
+    const what = mode === "email" ? "an email account (SMTP, Resend or SendGrid)" : "your own WhatsApp sender (Twilio or WhatsApp Business Cloud API)";
     return (
       <div className="flex h-full items-center justify-center p-6">
         <div className="max-w-md rounded-2xl border border-border/60 bg-card p-8 text-center shadow-sm">
           <span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary"><Icon className="size-6" /></span>
-          <h2 className="mt-4 text-lg font-black text-foreground">{mode === "email" ? "Email isn't connected" : "WhatsApp isn't connected"}</h2>
-          <p className="mt-1.5 text-sm text-muted-foreground">Connect {what} to message leads from here. Nothing is sent until you do.</p>
+          <h2 className="mt-4 text-lg font-black text-foreground">{mode === "email" ? "Email isn't connected" : WHATSAPP_NEEDS_SENDER}</h2>
+          <p className="mt-1.5 text-sm text-muted-foreground">{mode === "email" ? "Connect" : "Add"} {what} to message leads from here. Nothing is sent until you do.</p>
           <Link href={settingsHref} className="mt-5 inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:bg-primary/90">Open Settings → Integrations</Link>
         </div>
       </div>
@@ -273,6 +276,7 @@ export default function ChannelInbox({
                         <p className="whitespace-pre-wrap">{m.body}</p>
                         <div className={cn("mt-1 text-right text-[10px]", m.mine ? "text-primary-foreground/75" : "text-muted-foreground")}>{new Date(m.at).toLocaleString([], { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</div>
                       </div>
+                      {m.skipped && <span className="mt-1 text-[10px] text-muted-foreground">Not sent: {m.skipped}</span>}
                       {m.failed && <span className="mt-1 flex items-center gap-1 text-[10px] text-destructive"><AlertCircle className="size-3" />Not delivered: {m.failed}</span>}
                     </div>
                   ))

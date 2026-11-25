@@ -25,7 +25,7 @@ export default async function PlatformSettingsPage() {
 
   return (
     <div className="space-y-6 p-1">
-      <PlatformPageHeader title="Platform settings" description="Sign-up, platform identity, defaults for new companies, the maintenance banner and reserved addresses." crumbs={[{ label: "Administration" }]} />
+      <PlatformPageHeader title="Platform settings" description="Sign-up, platform identity, defaults for new companies, the maintenance banner and reserved addresses." crumbs={[{ label: "Platform setup" }]} />
       <GlassCard interactive={false}>
         <CardHeader>
           <CardTitle className="text-base">Who can create a company</CardTitle>

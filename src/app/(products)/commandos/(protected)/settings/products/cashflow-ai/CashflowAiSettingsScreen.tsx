@@ -1,3 +1,4 @@
+import ProductDefaults from "@/components/settings/ProductDefaults";
 import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
@@ -98,6 +99,7 @@ export default async function CashflowAiSettingsScreen() {
           </GlassCard>
         </>
       )}
+      <ProductDefaults product="cashflow-ai" />
     </div>
   );
 }

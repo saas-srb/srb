@@ -1,3 +1,4 @@
+import ProductDefaults from "@/components/settings/ProductDefaults";
 import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { redirect } from "next/navigation";
@@ -187,6 +188,7 @@ export default async function ViralpulseSettingsScreen({
           </SectionCard>
         </TabsContent>
       </Tabs>
+      <ProductDefaults product="viralpulse-ai" />
     </div>
   );
 }

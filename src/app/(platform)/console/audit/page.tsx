@@ -23,7 +23,7 @@ export default async function PlatformAuditPage({ searchParams }: { searchParams
 
   return (
     <div className="space-y-6 p-1">
-      <PlatformPageHeader title="Audit log" description="Every change made in the Platform Console and every billing event that changed a company's access." crumbs={[{ label: "Administration" }]} />
+      <PlatformPageHeader title="Audit log" description="Every change made in the Platform Console and every billing event that changed a company's access." crumbs={[{ label: "Team & security" }]} />
       <AuditLogGrid
         rows={list.rows.map((r) => ({ ...r, at: r.at.toISOString() }))}
         total={list.total}

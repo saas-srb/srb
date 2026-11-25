@@ -4,7 +4,7 @@ import { getDb } from "@/lib/mongodb";
 import { assertWritable } from "@/lib/platform/billing/enforce";
 import type { EventType } from "@/lib/platform/events/catalog";
 import { deleteWorkflowVersions, recordWorkflowVersion } from "@/lib/platform/workflows/versions";
-import { MAX_WORKFLOWS_PER_COMPANY, validateWorkflow, type WorkflowAction, type WorkflowCondition, type WorkflowRunView, type WorkflowView } from "@/lib/platform/workflows/shared";
+import { MAX_WORKFLOWS_PER_COMPANY, validateWorkflow, type WorkflowAction, type WorkflowCondition, type WorkflowRunStatus, type WorkflowRunView, type WorkflowView } from "@/lib/platform/workflows/shared";
 
 /**
  * Company automations: Trigger (an event type) → Conditions (all must match)
@@ -25,7 +25,7 @@ export interface WorkflowDoc {
   conditions: WorkflowCondition[];
   actions: WorkflowAction[];
   secret: string;
-  lastRun: { status: "success" | "failed"; at: Date; error: string | null } | null;
+  lastRun: { status: WorkflowRunStatus; at: Date; error: string | null } | null;
   createdBy: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -37,9 +37,9 @@ export interface WorkflowRunDoc {
   eventId: string | null;
   eventType: string;
   label: string | null;
-  status: "success" | "failed";
+  status: WorkflowRunStatus;
   error: string | null;
-  results: { action: string; ok: boolean; detail: string }[];
+  results: { action: string; ok: boolean; detail: string; skipped?: true }[];
   test: boolean;
   at: Date;
 }

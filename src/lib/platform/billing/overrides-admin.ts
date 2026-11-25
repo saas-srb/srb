@@ -23,7 +23,7 @@ export interface LimitRow {
   unit: string;
   /** What the plan gives (`null` = unlimited). */
   plan: number | null;
-  /** What the company has right now, after add-ons and overrides. */
+  /** What the company has right now, after overrides. */
   effective: number | null;
   /** Used so far (this month for monthly limits). */
   used: number | null;

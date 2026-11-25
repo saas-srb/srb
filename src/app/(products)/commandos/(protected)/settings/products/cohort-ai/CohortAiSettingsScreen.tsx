@@ -1,3 +1,4 @@
+import ProductDefaults from "@/components/settings/ProductDefaults";
 import { requireWorkspaceAccess } from "@/lib/products/commandos/access";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import { redirect } from "next/navigation";
@@ -24,6 +25,7 @@ export default async function CohortAiSettingsScreen() {
         description={<>Track suggestions, currency, certificate numbering and institute identity.</>}
       />
       <TmsSettingsForm settings={settings} />
+      <ProductDefaults product="cohort-ai" />
     </div>
   );
 }

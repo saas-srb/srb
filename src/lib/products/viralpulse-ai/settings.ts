@@ -1,4 +1,5 @@
 import "server-only";
+import { resolveSettings, settingsPatch } from "@/lib/platform/defaults/product/company";
 import { getDb } from "@/lib/mongodb";
 import { COLLECTIONS, str, strList, updateStamp } from "@/lib/products/viralpulse-ai/db";
 import { DEFAULT_MODELS } from "@/lib/products/agentos/constants";
@@ -102,14 +103,14 @@ export const DEFAULT_AI: AiSettings = {
 export async function getSettings(): Promise<SmmsSettings> {
   const db = await getDb();
   const doc = await db.collection<SmmsSettings>(COLLECTIONS.settings).findOne({ _id: ID });
-  return {
+  return resolveSettings("viralpulse-ai", COLLECTIONS.settings, {
     _id: ID,
     brand: { ...DEFAULT_BRAND, ...(doc?.brand ?? {}) },
     ai: { ...DEFAULT_AI, ...(doc?.ai ?? {}), models: mergeModels(doc?.ai?.models) },
     linkedinVersion: doc?.linkedinVersion,
     updatedAt: doc?.updatedAt ?? new Date(0),
     updatedBy: doc?.updatedBy ?? null,
-  };
+  }, doc);
 }
 
 /** The saved price list plus any default model it lacks (so newly added models are never costed at 0). */
@@ -167,7 +168,9 @@ export async function saveAi(input: Record<string, unknown>, actorId: string): P
     ...(input.imagePrices !== undefined ? { imagePrices: cleanImagePrices(input.imagePrices) } : {}),
   };
   const db = await getDb();
-  await db.collection<SmmsSettings>(COLLECTIONS.settings).updateOne({ _id: ID }, { $set: { ai, ...updateStamp(actorId) } }, { upsert: true });
+  const col = db.collection<SmmsSettings>(COLLECTIONS.settings);
+  const set = await settingsPatch("viralpulse-ai", COLLECTIONS.settings, await col.findOne({ _id: ID }), { ai }, { ai: DEFAULT_AI });
+  await col.updateOne({ _id: ID }, { $set: { ...set, ...updateStamp(actorId) } }, { upsert: true });
   return ai;
 }
 
