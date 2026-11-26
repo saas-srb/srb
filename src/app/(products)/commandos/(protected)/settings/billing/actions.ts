@@ -1,5 +1,7 @@
 "use server";
 
+import { appUrlForCompany } from "@/lib/platform/tenancy/site-url";
+import { requestOrigin } from "@/lib/platform/request";
 import { isDirector } from "@/lib/access/director";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -100,9 +102,14 @@ export async function previewProductsAction(products: string[]) {
   return previewProducts(companyId, (Array.isArray(products) ? products : []).slice(0, 40).map(String));
 }
 
-export async function changeProductsAction(products: string[]): Promise<ChangeProductsResult> {
+export async function changeProductsAction(products: string[]): Promise<ChangeProductsResult & { redirectTo?: string }> {
   const { companyId, userId } = await requireOwner();
+  const { host } = await requestOrigin();
+  const before = await appUrlForCompany(companyId, host);
   const res = await changeCompanyProducts(companyId, (Array.isArray(products) ? products : []).slice(0, 40).map(String), userId);
-  if (res.ok) revalidatePath("/commandos", "layout");
-  return res;
+  if (!res.ok) return res;
+  revalidatePath("/commandos", "layout");
+  // Adding or removing the website moves the sign-in page to another address.
+  const after = await appUrlForCompany(companyId, host);
+  return after === before || res.checkout ? res : { ...res, redirectTo: `${after}/commandos/login` };
 }

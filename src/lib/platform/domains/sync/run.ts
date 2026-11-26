@@ -267,12 +267,13 @@ export async function retryHostSync(rawHost: string, actorId: string): Promise<{
   const candidates = [host, `${first.replace(/-app$/, "")}.${rest.join(".")}`, host.replace(/^app\./, ""), host.replace(/^app\./, "www.")];
   const d = await db.collection<import("@/lib/platform/tenancy/companies").CompanyDomain>("company_domains").findOne({ _id: { $in: candidates } });
   if (!d) return { ok: false, error: "No company owns that address." };
-  const company = await db.collection<import("@/lib/platform/tenancy/companies").Company>(COMPANIES_COLLECTION).findOne({ _id: d.companyId }, { projection: { _id: 1, slug: 1 } });
+  const company = await db.collection<import("@/lib/platform/tenancy/companies").Company>(COMPANIES_COLLECTION).findOne({ _id: d.companyId }, { projection: { _id: 1, slug: 1, products: 1, website: 1, isPlatformOwner: 1 } });
   if (!company) return { ok: false, error: "That address' company no longer exists." };
   const root = platformRootDomain();
   const { buildTargets, syncHost } = await import("@/lib/platform/domains/sync/engine");
   const { APP_SLUG_SUFFIX, isPlatformHost } = await import("@/lib/platform/tenancy/companies");
-  const target = buildTargets(company, [d], { root, appSuffix: APP_SLUG_SUFFIX, isPlatformHost }).find((t) => t.host === host);
+  const { hasSeparateAppHost } = await import("@/lib/platform/products/selection");
+  const target = buildTargets({ _id: company._id, slug: company.slug, singleHost: !hasSeparateAppHost(company) }, [d], { root, appSuffix: APP_SLUG_SUFFIX, isPlatformHost }).find((t) => t.host === host);
   if (!target) return { ok: false, error: "That address isn't one the platform manages." };
   const prev = previousVercelConfigFrom(doc);
   const counts = emptyCounts();

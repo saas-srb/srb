@@ -11,7 +11,7 @@ import { clientPromise, getPlatformDb } from "@/lib/platform/tenancy/platform-db
 import { listPlans } from "@/lib/platform/billing/plans";
 import { updateCompanySubscription } from "@/lib/platform/billing/subscription";
 import { runAsCompany } from "@/lib/platform/tenancy/context";
-import { companyAppSubdomain } from "@/lib/platform/tenancy/provisioning";
+import { companyAppSubdomain, companySubdomain } from "@/lib/platform/tenancy/provisioning";
 import { requireModule } from "@/lib/platform/billing/enforce";
 import { unavailablePanelKeys } from "@/lib/platform/panels/store";
 import { setCompanyProducts } from "@/lib/platform/products/company-products";
@@ -105,7 +105,8 @@ async function main() {
   checks++;
 
   const call = async (slug: string, path: string, method = "GET") => {
-    const host = companyAppSubdomain(slug);
+    // A company without a website has one address; "everything" has two.
+    const host = slug === "everything" ? companyAppSubdomain(slug) : companySubdomain(slug);
     const res = await proxy(new NextRequest(`http://${host}${path}`, { method, headers: { host, origin: `http://${host}`, "sec-fetch-site": "same-origin", "sec-fetch-mode": method === "GET" ? "navigate" : "cors", accept: "text/html", "accept-language": "en-IN", "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/126.0 Safari/537.36" } }));
     return { status: res.status, location: res.headers.get("location") ?? "", rewrite: res.headers.get("x-middleware-rewrite") ?? "" };
   };

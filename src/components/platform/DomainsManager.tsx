@@ -161,7 +161,7 @@ function SslPill({ domain }: { domain: CompanyDomainView }) {
 }
 
 /** Settings → Domains: the workspace's automatic address plus the company's own domains. */
-export default function DomainsManager({ initial, maxCustom, actions }: { initial: CompanyDomainView[]; maxCustom: number; actions: DomainsManagerActions }) {
+export default function DomainsManager({ initial, maxCustom, actions, single = false }: { initial: CompanyDomainView[]; maxCustom: number; actions: DomainsManagerActions; single?: boolean }) {
   const [domains, setDomains] = useState(initial);
   const [host, setHost] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
@@ -198,7 +198,7 @@ export default function DomainsManager({ initial, maxCustom, actions }: { initia
 
   return (
     <div className="space-y-6">
-      <DomainsGuide domains={domains} />
+      <DomainsGuide domains={domains} single={single} />
       <form
         className="space-y-2"
         onSubmit={(e) => {

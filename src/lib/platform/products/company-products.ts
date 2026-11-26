@@ -2,8 +2,10 @@ import "server-only";
 import { runAsCompany } from "@/lib/platform/tenancy/context";
 import { recordPlatformAudit } from "@/lib/platform/audit";
 import { getPlatformDb } from "@/lib/platform/tenancy/platform-db";
-import { COMPANIES_COLLECTION, getCompany, type Company } from "@/lib/platform/tenancy/companies";
-import { ALL_PRODUCTS_VALUE, ownedModules, parseSelection, resolveWebsite, sitesEnabled, type CompanyWebsite } from "@/lib/platform/products/selection";
+import { attachAtProvider, companyAppSubdomain } from "@/lib/platform/tenancy/provisioning";
+import { forgetCompanySiteUrls } from "@/lib/platform/tenancy/site-url";
+import { COMPANIES_COLLECTION, forgetCompanyRouting, getCompany, type Company } from "@/lib/platform/tenancy/companies";
+import { ALL_PRODUCTS_VALUE, hasSeparateAppHost, ownedModules, parseSelection, resolveWebsite, sitesEnabled, type CompanyWebsite } from "@/lib/platform/products/selection";
 import { forgetCompanyAvailability } from "@/lib/platform/products/availability";
 
 export type SetProductsResult = { ok: true } | { ok: false; error: string };
@@ -33,6 +35,12 @@ export async function setCompanyProducts(
   const db = await getPlatformDb();
   await db.collection<Company>(COMPANIES_COLLECTION).updateOne({ _id: companyId }, { $set: { products: selection, website, updatedAt: new Date() } });
   forgetCompanyAvailability(companyId);
+  // The website choice decides the company's addresses (one, or website + app): routing and links follow at once.
+  forgetCompanyRouting();
+  forgetCompanySiteUrls();
+  if (!hasSeparateAppHost(company) && hasSeparateAppHost({ products: selection, website })) {
+    await attachAtProvider(companyAppSubdomain(company.slug)).catch((err) => console.error("[products] attaching the app address failed", err));
+  }
   // A website switched on gets the starter pages it is missing (existing pages are never touched).
   const had = sitesEnabled(company.products, company.website, ownedModules(company.products));
   if (!had && sitesEnabled(selection, website, ownedModules(selection))) {

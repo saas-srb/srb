@@ -117,3 +117,12 @@ export function sitesEnabled(selection: ProductSelection | null | undefined, web
   if (selection?.mode === "selected") return true;
   return (website?.mode ?? "platform") === "platform";
 }
+
+/**
+ * Whether a company has TWO addresses: its website on `<name>.<domain>` and the app on `<name>-app.<domain>`. A company
+ * whose website we don't run has ONE address, `<name>.<domain>`, and the app is served there (no `-app` / `app.` host).
+ * The same goes for its own domains.
+ */
+export function hasSeparateAppHost(company: { products?: ProductSelection | null; website?: CompanyWebsite | null; isPlatformOwner?: boolean }): boolean {
+  return company.isPlatformOwner === true || sitesEnabled(company.products, company.website, ownedModules(company.products));
+}

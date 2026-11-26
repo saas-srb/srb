@@ -7,6 +7,7 @@ import { getPlatformDb } from "@/lib/platform/tenancy/platform-db";
 import { currentCompanyId } from "@/lib/platform/tenancy/context";
 import { COMPANY_DOMAINS_COLLECTION, getCompany, type CompanyDomain } from "@/lib/platform/tenancy/companies";
 import { companyAppBaseUrl, companyBaseUrl, companySubdomain, platformRootDomain } from "@/lib/platform/tenancy/provisioning";
+import { hasSeparateAppHost } from "@/lib/platform/products/selection";
 import { saasAppOrigin } from "@/lib/platform/saas/hosts";
 import { loadIntegrationsDoc } from "@/lib/platform/integrations/store";
 
@@ -107,6 +108,7 @@ export async function companySiteHost(): Promise<string> {
 /**
  * Where the current company's PRODUCTS live (Workspace, HRMS, Platform Console, …), as an origin without a trailing slash:
  * `app.<primary custom domain>` when it has one, else `<slug>-app.<root>`; the platform operator's is `app.<SaaS host>`.
+ * A company without a website here has one address, so it is the primary custom domain itself, else `<slug>.<root>`.
  * The public website (`siteUrlForCompany`) never serves products.
  */
 export async function appUrlForCompany(companyId: string, hostHint: string | null = null): Promise<string> {
@@ -120,6 +122,6 @@ export async function appUrlForCompany(companyId: string, hostHint: string | nul
     .sort({ verifiedAt: 1, _id: 1 })
     .limit(1)
     .next();
-  if (primary && !primary._id.endsWith(".localhost")) return `https://app.${primary._id.replace(/^www\./, "")}`;
-  return companyAppBaseUrl(company.slug, hostHint);
+  if (primary && !primary._id.endsWith(".localhost")) return hasSeparateAppHost(company) ? `https://app.${primary._id.replace(/^www\./, "")}` : `https://${primary._id}`;
+  return companyAppBaseUrl(company, hostHint);
 }

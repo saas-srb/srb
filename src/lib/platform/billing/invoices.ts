@@ -264,9 +264,9 @@ function describeLine(line: QuoteLine, period: { start: Date; end: Date } | null
   return line.label;
 }
 
-async function emailInvoice(inv: SaasInvoice, slug: string): Promise<void> {
+async function emailInvoice(inv: SaasInvoice, company: Parameters<typeof companyAppBaseUrl>[0]): Promise<void> {
   if (!inv.buyer.email || !inv.number || inv.status !== "paid") return;
-  const url = `${companyAppBaseUrl(slug)}/commandos/settings/billing/invoices`;
+  const url = `${companyAppBaseUrl(company)}/commandos/settings/billing/invoices`;
   const period = inv.periodStart && inv.periodEnd ? ` (${formatInvoiceDate(inv.periodStart)} to ${formatInvoiceDate(inv.periodEnd)})` : "";
   const { html, text } = renderEmail({
     brand: inv.seller.name,
@@ -455,7 +455,7 @@ export async function issueSaasInvoice(input: IssueSaasInvoiceInput): Promise<Sa
     companyId: numbered.companyId,
     details: { number, total: numbered.total, status: numbered.status, paymentRef: numbered.paymentRef },
   });
-  if (company) await emailInvoice(numbered, company.slug).catch((err) => console.error("[saas-invoices] email failed", err));
+  if (company) await emailInvoice(numbered, company).catch((err) => console.error("[saas-invoices] email failed", err));
   await platformEvents.invoice("issued", numbered.number ?? null, (company as { name?: string } | null)?.name ?? numbered.companyId, Number((numbered as { total?: number }).total ?? 0), numbered._id);
   return ref(numbered);
 }
@@ -482,7 +482,7 @@ export async function markSaasInvoicePaid(id: string, opts: { paymentRef?: strin
   if (!updated) return { ok: false, error: "This invoice changed meanwhile — reload and try again." };
   await recordPlatformAudit({ actorId: opts.actorId, action: "invoice.mark_paid", target: { type: "saas_invoice", id: inv._id }, companyId: inv.companyId, details: { number: inv.number, paymentRef, from: "unpaid", to: "paid" } });
   const company = await getCompany(inv.companyId);
-  if (company) await emailInvoice(updated, company.slug).catch((err) => console.error("[saas-invoices] email failed", err));
+  if (company) await emailInvoice(updated, company).catch((err) => console.error("[saas-invoices] email failed", err));
   return { ok: true };
 }
 

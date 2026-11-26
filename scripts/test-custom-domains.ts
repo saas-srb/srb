@@ -106,9 +106,9 @@ async function run(db: import("mongodb").Db) {
     assert.match(d?.verificationToken ?? "", /^[0-9a-f]{32}$/);
     assert.equal((d as unknown as { provider?: { id: string; attached: boolean } }).provider?.id, "manual");
     const view = res.domains.find((x) => x.host === "www.alpha-shop.com")!;
-    assert.deepEqual(view.records.map((r) => r.type), ["TXT", "CNAME"]);
-    assert.equal(view.records[0].name, "_selfrun-verify.www.alpha-shop.com");
-    assert.equal(view.records[0].value, `demo-verify=${d?.verificationToken}`);
+    assert.deepEqual(view.records.map((r) => r.type), ["TXT", "CNAME", "CNAME"]); // proof, website, app.<domain>
+    assert.equal(view.records[0].name, "_domain-verify.www.alpha-shop.com");
+    assert.equal(view.records[0].value, `domain-verify=${d?.verificationToken}`);
     assert.equal(view.records[1].value, "cname.vercel-dns.com");
   });
   await check("apex domains get the A record fallback", async () => {
@@ -159,7 +159,7 @@ async function run(db: import("mongodb").Db) {
     assert.equal(view.records[0].state, "missing");
   });
   await check("a TXT record with the wrong value is reported as a mismatch", async () => {
-    const res = await asA(() => verifyCustomDomain("www.alpha-shop.com", txtFor("www.alpha-shop.com", "demo-verify=nope")));
+    const res = await asA(() => verifyCustomDomain("www.alpha-shop.com", txtFor("www.alpha-shop.com", "domain-verify=nope")));
     assert.equal(res.ok, false);
     assert.match(!res.ok ? res.error : "", /doesn't match/);
     const view = (await asA(() => listCompanyDomains())).find((x) => x.host === "www.alpha-shop.com")!;
@@ -171,19 +171,19 @@ async function run(db: import("mongodb").Db) {
     assert.match(!res.ok ? res.error : "", /ETIMEOUT/);
   });
   await check("another company can't verify it", async () => {
-    const res = await asB(() => verifyCustomDomain("www.alpha-shop.com", txtFor("www.alpha-shop.com", `demo-verify=${"x"}`)));
+    const res = await asB(() => verifyCustomDomain("www.alpha-shop.com", txtFor("www.alpha-shop.com", `domain-verify=${"x"}`)));
     assert.equal(res.ok, false);
   });
   await check("the right TXT record (split into chunks) verifies it and it routes", async () => {
     const host = "www.alpha-shop.com";
-    const res = await asA(async () => verifyCustomDomain(host, txtFor(host, `demo-verify=${await token(host)}`)));
+    const res = await asA(async () => verifyCustomDomain(host, txtFor(host, `domain-verify=${await token(host)}`)));
     assert.ok(res.ok, !res.ok ? res.error : "");
     const d = await domains.findOne({ _id: host });
     assert.equal(d?.status, "verified");
     assert.equal(await resolveCompanyIdByHost(host), A);
     // The TXT record no longer needs showing; manual hosting → SSL managed by the platform.
     const view = res.domains.find((x) => x.host === host)!;
-    assert.equal(view.records.length, 0);
+    assert.deepEqual(view.records.map((r) => r.name), ["app"], "only the app. address record is left to publish");
     assert.equal(view.hosting.ssl, "manual");
   });
 
@@ -237,7 +237,7 @@ async function run(db: import("mongodb").Db) {
   console.log("Daily re-check");
   await check("recheckPendingDomains verifies domains whose TXT record appeared", async () => {
     const host = "www.beta-shop.com";
-    const expected = `demo-verify=${await token(host)}`;
+    const expected = `domain-verify=${await token(host)}`;
     const results = await recheckPendingDomains(async (name) => (name === `${VERIFY_LABEL}.${host}` ? [[expected]] : Promise.reject(Object.assign(new Error("none"), { code: "ENODATA" }))));
     const b = results.find((r) => r.companyId === B);
     assert.ok(b?.ok);
@@ -285,7 +285,7 @@ async function run(db: import("mongodb").Db) {
       const view = res.domains.find((x) => x.host === "contested.com")!;
       assert.deepEqual(
         view.records.map((r) => `${r.type} ${r.name}`),
-        ["TXT _selfrun-verify.contested.com", "TXT _vercel.contested.com", "A @"],
+        ["TXT _domain-verify.contested.com", "TXT _vercel.contested.com", "A @", "CNAME app"],
       );
       assert.equal((await asA(() => verifyCustomDomain("contested.com", notFound))).ok, false);
     });
@@ -297,7 +297,7 @@ async function run(db: import("mongodb").Db) {
       const view = res.domains.find((x) => x.host === "contested.com")!;
       // Ownership done, DNS still pointing elsewhere: SSL waits, only the routing record remains.
       assert.equal(view.hosting.ssl, "pending");
-      assert.deepEqual(view.records.map((r) => r.type), ["A"]);
+      assert.deepEqual(view.records.map((r) => r.type), ["A", "CNAME"]); // the domain and app.<domain>
     });
     await check("removing detaches the host at the provider", async () => {
       assert.ok((await asA(() => removeCustomDomain("contested.com"))).ok);

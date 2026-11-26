@@ -16,7 +16,7 @@ type Checkout = { key: string; subscriptionId: string; name: string; description
 
 export interface ProductsCardActions {
   preview: (products: string[]) => Promise<{ ok: true; summary: PriceSummary | null; when: "now" | "renewal" } | { ok: false; error: string }>;
-  change: (products: string[]) => Promise<{ ok: true; message: string; checkout?: Checkout } | { ok: false; error: string }>;
+  change: (products: string[]) => Promise<{ ok: true; message: string; checkout?: Checkout; redirectTo?: string } | { ok: false; error: string }>;
   confirm: (response: RazorpayHandlerResponse) => Promise<{ ok: true; message?: string } | { ok: false; error: string }>;
 }
 
@@ -93,7 +93,8 @@ export default function ProductsCard({ choices, current, next, held, maxProducts
       }
       toast.success(res.message);
       setPreview(null);
-      router.refresh();
+      if (res.redirectTo) window.location.assign(res.redirectTo); // the sign-in address moved
+      else router.refresh();
     });
 
   return (
@@ -101,7 +102,7 @@ export default function ProductsCard({ choices, current, next, held, maxProducts
       <CardHeader>
         <CardTitle className="text-base">Your products</CardTitle>
         <CardDescription>
-          CommandOS and Huddle come with every workspace. {maxProducts ? `Your plan includes ${maxProducts === 1 ? "one product" : `${maxProducts} products`}.` : "Pick some products, or take them all."}
+          CommandOS and Huddle come with every workspace. Adding or removing the website (SiteCraft) moves your sign-in address. {maxProducts ? `Your plan includes ${maxProducts === 1 ? "one product" : `${maxProducts} products`}.` : "Pick some products, or take them all."}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">

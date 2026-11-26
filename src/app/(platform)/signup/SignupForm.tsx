@@ -1,5 +1,5 @@
 "use client";
-import { ALL_PRODUCTS_VALUE, SITES_MODULE } from "@/lib/platform/products/selection";
+import { ALL_PRODUCTS_VALUE, SITES_MODULE, billableCount, parseSelection } from "@/lib/platform/products/selection";
 
 import { startTransition, useActionState, useEffect, useId, useState } from "react";
 import { motion } from "framer-motion";
@@ -50,11 +50,16 @@ function StepHead({ n, title, note }: { n: number; title: string; note: string }
 }
 type SlugCheck = { for: string; state: "idle" | "checking" | "ok" | "bad"; message: string | null };
 
-export default function SignupForm({ rootDomain, approval = false, selectedPlan = null, products, initialProduct = "", allNote = null, oneNote = null }: { rootDomain: string; approval?: boolean; selectedPlan?: SelectedPlan | null; products: { value: string; label: string }[]; initialProduct?: string; allNote?: string | null; oneNote?: string | null }) {
-  const [product, setProduct] = useState(initialProduct);
+export default function SignupForm({ rootDomain, approval = false, selectedPlan = null, products, initialProduct = "", allNote = null, oneNote = null }: { rootDomain: string; approval?: boolean; selectedPlan?: SelectedPlan | null; products: MultiOption[]; initialProduct?: string; allNote?: string | null; oneNote?: string | null }) {
+  const [picked, setPicked] = useState<string[]>(initialProduct ? [initialProduct] : []);
+  // "All products" stands alone: picking it clears the others, picking a product clears it.
+  const pickProducts = (next: string[]) => setPicked(next.includes(ALL_PRODUCTS_VALUE) && !picked.includes(ALL_PRODUCTS_VALUE) ? [ALL_PRODUCTS_VALUE] : next.length > 1 ? next.filter((v) => v !== ALL_PRODUCTS_VALUE) : next);
+  const allPicked = picked.includes(ALL_PRODUCTS_VALUE);
+  // More than one paid product starts a paid plan's trial; one stays on the free plan.
+  const several = allPicked || (billableCount(parseSelection(picked)) ?? 0) > 1;
   const [websiteMode, setWebsiteMode] = useState("platform");
-  // Whether a website is written for them: SiteCraft, or all products with "make my website".
-  const makesWebsite = product === SITES_MODULE || (product === ALL_PRODUCTS_VALUE && websiteMode === "platform");
+  // Whether we make their website (SiteCraft, or all products with "make my website"): then it gets its own address beside the app's.
+  const makesWebsite = picked.includes(SITES_MODULE) || (allPicked && websiteMode === "platform");
   const [state, formAction] = useActionState(startSignupAction, initialState);
   // Two phases: the server validates first (`checking`), and only then the creation starts and the progress replaces the form (`creating`).
   const [checking, setChecking] = useState(false);
@@ -231,24 +236,35 @@ export default function SignupForm({ rootDomain, approval = false, selectedPlan 
               {current.state === "checking" && <Loader2 className="size-3 animate-spin" />}
               {current.state === "ok" && !errors.slug && <Check className="size-3 text-emerald-600" />}
               {slugMessage && <X className="size-3" />}
-              <span className={slugMessage ? "" : "text-muted-foreground"}>{slugMessage ?? (current.state === "ok" ? "Available" : "Your team signs in here. You can add your own domain later.")}</span>
+              <span className={slugMessage ? "" : "text-muted-foreground"}>{slugMessage ?? (current.state === "ok" ? "Available" : "You can add your own domain later.")}</span>
             </p>
+            {slug && !slugMessage && (
+              <p className="mt-1 break-all text-xs text-muted-foreground" aria-live="polite">
+                {makesWebsite ? <>Website: <b className="text-foreground">{slug}.{rootDomain}</b> · Your team signs in at <b className="text-foreground">{slug}-app.{rootDomain}</b></> : <>Your team signs in at <b className="text-foreground">{slug}.{rootDomain}</b></>}
+              </p>
+            )}
           </div>
 
           <div>
             <label htmlFor={ids.product} className="sr-label">What do you want to use?</label>
-            <select id={ids.product} name="product" required value={product} onChange={(e) => setProduct(e.target.value)} className="sr-input w-full" style={{ ...inputStyle, ...(errors.product ? bad : null) }} aria-invalid={!!errors.product || undefined} aria-describedby={`${ids.product}-note`}>
-              <option value="" disabled>Choose a product</option>
-              <option value={ALL_PRODUCTS_VALUE}>All products</option>
-              {products.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-            </select>
-            <p id={`${ids.product}-note`} className="mt-1.5 text-xs text-muted-foreground" aria-live="polite">
-              {(product === ALL_PRODUCTS_VALUE ? allNote : product ? oneNote : null) ?? "CommandOS and Huddle come with every workspace. You can change your products later."}
+            <SearchMultiSelect
+              id={ids.product}
+              name="product"
+              options={[{ value: ALL_PRODUCTS_VALUE, label: "All products", description: "Every product in one workspace" }, ...products]}
+              values={picked}
+              onChange={pickProducts}
+              placeholder="Choose one or more products"
+              searchPlaceholder="Search products"
+              title="Products"
+              invalid={!!errors.product}
+            />
+            <p className="mt-1.5 text-xs text-muted-foreground" aria-live="polite">
+              {(several ? allNote : picked.length ? oneNote : null) ?? "CommandOS and Huddle come with every workspace. You can change your products later."}
             </p>
             {fieldError(errors.product)}
           </div>
 
-          {product === ALL_PRODUCTS_VALUE && (
+          {allPicked && (
             <div>
               <label htmlFor={ids.site} className="sr-label">Do you need a website?</label>
               <select id={ids.site} name="websiteMode" value={websiteMode} onChange={(e) => setWebsiteMode(e.target.value)} className="sr-input w-full" style={inputStyle}>

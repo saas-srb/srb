@@ -7,9 +7,11 @@ import { getCompany } from "@/lib/platform/tenancy/companies";
 import { setCompanyProducts } from "@/lib/platform/products/company-products";
 import { ALL_PRODUCTS_VALUE } from "@/lib/platform/products/selection";
 import { hiddenProducts } from "@/lib/platform/products/visible";
+import { requestOrigin } from "@/lib/platform/request";
+import { appUrlForCompany } from "@/lib/platform/tenancy/site-url";
 import { addOpening, setOpeningOpen } from "@/lib/products/talentos/openings";
 
-type Result = { ok: boolean; error?: string };
+type Result = { ok: boolean; error?: string; /** Set when the sign-in address moved. */ redirectTo?: string };
 const PATH = "/commandos/settings/website";
 
 /** Switches the website with us on or off, or records the address of the company's own website. Products are not changed here. */
@@ -22,11 +24,14 @@ export async function saveWebsiteAction(input: { mode: string; externalUrl?: str
   const externalUrl = String(input.externalUrl ?? "").trim() || undefined;
   if (mode === "external" && !externalUrl) return { ok: false, error: "Enter your website's address." };
   const products = !company.products || company.products.mode === "all" ? ALL_PRODUCTS_VALUE : company.products.keys;
+  const { host } = await requestOrigin();
+  const before = await appUrlForCompany(companyId, host);
   const saved = await setCompanyProducts(companyId, { products, website: mode === "external" ? { mode, externalUrl } : { mode } }, { id: user.id, reason: "Website setting" });
   if (!saved.ok) return saved;
   revalidatePath(PATH);
   revalidatePath("/commandos");
-  return { ok: true };
+  const after = await appUrlForCompany(companyId, host);
+  return after === before ? { ok: true } : { ok: true, redirectTo: `${after}/commandos/login` };
 }
 
 /** Openings are kept here only while the website's own job listings aren't used. */

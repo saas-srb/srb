@@ -1,4 +1,5 @@
 import "server-only";
+import { hasSeparateAppHost } from "@/lib/platform/products/selection";
 import { getPlatformDb } from "@/lib/platform/tenancy/platform-db";
 import { runAsCompany } from "@/lib/platform/tenancy/context";
 import { COMPANIES_COLLECTION, COMPANY_DOMAINS_COLLECTION, forgetCompanyRouting, normalizeHost, type Company, type CompanyDomain } from "@/lib/platform/tenancy/companies";
@@ -60,14 +61,14 @@ export async function listAllDomains(query: DomainListQuery = {}): Promise<Domai
   const companyIds = [...new Set(docs.map((d) => d.companyId))];
   const companies = await db
     .collection<Company>(COMPANIES_COLLECTION)
-    .find({ _id: { $in: companyIds } }, { projection: { name: 1, slug: 1, status: 1 } })
+    .find({ _id: { $in: companyIds } }, { projection: { name: 1, slug: 1, status: 1, products: 1, website: 1, isPlatformOwner: 1 } })
     .toArray();
   const byId = new Map(companies.map((c) => [c._id, c]));
 
   const all: PlatformDomainRow[] = docs.map((d) => {
     const c = byId.get(d.companyId);
     return {
-      ...toView(d),
+      ...toView(d, c ? !hasSeparateAppHost(c) : false),
       companyId: d.companyId,
       companyName: c?.name ?? "(deleted company)",
       companySlug: c?.slug ?? "",
@@ -109,13 +110,13 @@ export async function listAllDomains(query: DomainListQuery = {}): Promise<Domai
 export async function listDomainsForCompany(companyId: string): Promise<PlatformDomainRow[]> {
   const db = await getPlatformDb();
   const [company, docs] = await Promise.all([
-    db.collection<Company>(COMPANIES_COLLECTION).findOne({ _id: companyId }, { projection: { name: 1, slug: 1, status: 1 } }),
+    db.collection<Company>(COMPANIES_COLLECTION).findOne({ _id: companyId }, { projection: { name: 1, slug: 1, status: 1, products: 1, website: 1, isPlatformOwner: 1 } }),
     db.collection<CompanyDomain>(COMPANY_DOMAINS_COLLECTION).find({ companyId }).toArray(),
   ]);
   const rank = (d: CompanyDomain) => (d.kind === "subdomain" ? 0 : d.isPrimary ? 1 : 2);
   docs.sort((a, b) => rank(a) - rank(b) || a.createdAt.getTime() - b.createdAt.getTime());
   return docs.map((d) => ({
-    ...toView(d),
+    ...toView(d, company ? !hasSeparateAppHost(company) : false),
     companyId,
     companyName: company?.name ?? "(deleted company)",
     companySlug: company?.slug ?? "",

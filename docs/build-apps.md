@@ -59,7 +59,7 @@ the app is built for it:
 | Where the app opens | How you build it |
 | --- | --- |
 | The platform's own app, `https://app.selfrunbusiness.com` | No option. This is the default. Change it with `SELFRUN_APP_ORIGIN` |
-| A company's app, such as `https://acme-app.selfrunbusiness.com` or `https://app.acme.com` | Add `--origin <address>` (or `--address acme`). The app takes that company's name and icon |
+| A company's app, such as `https://acme-app.selfrunbusiness.com` or `https://app.acme.com` (a company without a website here: `https://acme.selfrunbusiness.com` or its own domain) | Add `--origin <address>` (or `--address acme`). The app takes that company's name and icon |
 | Your local dev app, `http://app.localhost:3000` | Add `--origin http://app.localhost:3000` (the dev server must be running) |
 
 Add `--generic` (desktop only) for the one app that asks "Connect your workspace" on first start.

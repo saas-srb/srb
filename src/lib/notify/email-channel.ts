@@ -70,7 +70,7 @@ export async function emailToUsers(actor: PushActor, userIds: string[], message:
     const [people, prefs, company] = await Promise.all([recipientsOf(actor, ids), getPreferencesMany(actor, ids), getCompany(companyId)]);
     if (!company) return 0;
     const { DEFAULT_PREFERENCES } = await import("@/lib/push/categories");
-    const base = companyAppBaseUrl(company.slug, null);
+    const base = companyAppBaseUrl(company, null);
     const home = actor === "portal" ? "/clientos/notifications" : "/commandos/notifications";
     const settings = actor === "portal" ? "/clientos/notifications/settings" : "/commandos/notifications/settings";
     const link = `${base}${safeEmailPath(message.url, home)}`;

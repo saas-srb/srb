@@ -75,7 +75,7 @@ async function ownerEmail(companyId: string): Promise<string | null> {
   return owner?.email ?? null;
 }
 
-const billingUrl = (slug: string) => `${companyAppBaseUrl(slug)}/commandos/settings/billing`;
+const billingUrl = (company: Parameters<typeof companyAppBaseUrl>[0]) => `${companyAppBaseUrl(company)}/commandos/settings/billing`;
 const plural = (n: number) => `${n} day${n === 1 ? "" : "s"}`;
 const brandOf = (s: PlatformBillingSettings) => s.seller.tradeName || s.seller.legalName || "Our team";
 
@@ -89,7 +89,7 @@ function reminderEmail(brand: string, company: CompanyDoc, planName: string, day
         `The free trial of ${planName} for ${company.name} ends in ${plural(daysLeft)}.`,
         "Choose a plan before then to keep everything running without interruption. Nothing is deleted when a trial ends, and choosing a plan brings everything straight back.",
       ],
-      action: { label: "Choose a plan", url: billingUrl(company.slug) },
+      action: { label: "Choose a plan", url: billingUrl(company) },
     }),
   };
 }
@@ -105,7 +105,7 @@ function graceEmail(brand: string, company: CompanyDoc, graceEndsAt: Date, now: 
         `The free trial for ${company.name} has ended. Everything keeps working for ${plural(days)} more while you choose a plan.`,
         "After that the workspace becomes read-only: everyone can still sign in and see their data, but nothing new can be created until a plan is chosen.",
       ],
-      action: { label: "Choose a plan", url: billingUrl(company.slug) },
+      action: { label: "Choose a plan", url: billingUrl(company) },
     }),
   };
 }
@@ -120,7 +120,7 @@ function suspendedEmail(brand: string, company: CompanyDoc) {
         `The free trial for ${company.name} has ended, so the workspace is now read-only: everyone can still sign in and see their data, but nothing new can be created.`,
         "Your data is safe. Choose a plan to continue right where you left off.",
       ],
-      action: { label: "Choose a plan", url: billingUrl(company.slug) },
+      action: { label: "Choose a plan", url: billingUrl(company) },
     }),
   };
 }

@@ -6,7 +6,12 @@ How the platform is put together: hosts, tenants, products and the pieces that m
 
 ## The two sides of every company
 
-Every company, including the platform operator, has two hosts:
+A company whose website we host (SiteCraft & Sites, and every company created before products could be chosen), including the platform
+operator, has two hosts (below). A company **without** a website here has **one** host, `<slug>.<root>` or its own domain, which serves the
+app; no `-app` / `app.` host is created, and old `-app` / `app.` links forward to the main address (`hasSeparateAppHost` in
+`lib/platform/products/selection.ts` is the one rule). On that one host website paths lead to the hosted forms or the company's own website.
+
+The two hosts:
 
 | Side | SelfRun Business | A customer on an automatic address | A customer with its own domain |
 | --- | --- | --- | --- |

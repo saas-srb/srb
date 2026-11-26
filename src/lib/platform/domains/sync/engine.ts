@@ -274,7 +274,7 @@ export async function syncDomains(deps: EngineDeps, opts: EngineOptions): Promis
  * `domains` are the company's `company_domains` documents.
  */
 export function buildTargets(
-  company: { _id: string; slug: string },
+  company: { _id: string; slug: string; /** One address for everything: no app hosts. */ singleHost?: boolean },
   domains: { _id: string; kind?: "subdomain" | "custom"; provider?: Partial<{ attached: boolean; verified: boolean; dnsConfigured: boolean; challenged: boolean; syncStatus: "ok" | "owned_elsewhere" | "failed" }>; appProvider?: Partial<{ attached: boolean; verified: boolean; dnsConfigured: boolean; challenged: boolean; syncStatus: "ok" | "owned_elsewhere" | "failed" }> }[],
   ctx: { root: string; appSuffix: string; isPlatformHost: (host: string) => boolean },
 ): SyncTarget[] {
@@ -294,12 +294,12 @@ export function buildTargets(
     const [label, ...rest] = d._id.split(".");
     const has = domains.includes(d);
     add({ host: d._id, companyId: company._id, kind: "subdomain", docId: has ? d._id : null, field: "provider", stored: stored(d.provider) });
-    add({ host: `${label}${ctx.appSuffix}.${rest.join(".")}`, companyId: company._id, kind: "subdomain-app", docId: has ? d._id : null, field: "appProvider", stored: stored(d.appProvider) });
+    if (!company.singleHost) add({ host: `${label}${ctx.appSuffix}.${rest.join(".")}`, companyId: company._id, kind: "subdomain-app", docId: has ? d._id : null, field: "appProvider", stored: stored(d.appProvider) });
   }
   const customs = domains.filter((x) => !subs.includes(x));
   for (const d of customs) {
     add({ host: d._id, companyId: company._id, kind: "custom", docId: d._id, field: "provider", stored: stored(d.provider) });
-    add({ host: `app.${d._id.replace(/^www\./, "")}`, companyId: company._id, kind: "custom-app", docId: d._id, field: "appProvider", stored: stored(d.appProvider) });
+    if (!company.singleHost) add({ host: `app.${d._id.replace(/^www\./, "")}`, companyId: company._id, kind: "custom-app", docId: d._id, field: "appProvider", stored: stored(d.appProvider) });
   }
   // The website is served with or without "www." (routing treats them as one domain): attach the counterpart too, unless the company defines it itself.
   for (const d of customs) {

@@ -254,8 +254,9 @@ Baaki: browser me checkout jaanch (public plan cards me one product ka daam P7 m
 
 **D14 (26 Nov):** signup me "All products" bina paid plan chune ho to sabse saste paid plan ka free trial (card nahi); ek product ho to Free plan.
 
-- `/signup`: **What do you want to use?** dropdown (All products + har bikne wala product; CommandOS aur ClientOS nahi). Website sawaal sirf All par: hamari website / apni (address) / nahi
-- SiteCraft chunne par website banti hai; kisi aur akele product par website step aata hi nahi
+- `/signup`: **What do you want to use?** multi-select (All products akela, ya ek se zyada products; DataBrain kisi data wale product ke saath; CommandOS aur ClientOS nahi). Website sawaal sirf All par: hamari website / apni (address) / nahi
+- Chune hue products me SiteCraft ho to website banti hai, warna website step aata hi nahi
+- Ek se zyada paid product = paid plan ka free trial (D14); pehli screen CommandOS
 - Signup ke baad pehli screen chuna hua product; welcome email aur approval queue me products dikhte hain; band product se signup nahi
 - `/signup?product=<slug>` preselect; product pages ke signup button yahi link dete hain
 - Plan cards aur pricing page par one product ka daam (jab Console me bhara ho) aur Free = "One product"
@@ -263,6 +264,15 @@ Baaki: browser me checkout jaanch (public plan cards me one product ka daam P7 m
 - Fix (purana bug): AI na chalne par bani starter website ke service pages publish nahi hote the
 - Tests: `npm run test:signup-products`, `test:signup-plan`, `test:email-verification`
 - Baaki: browser me signup form ki jaanch; Terms ki badli line ek baar khud padh lein
+
+**D15 (26 Nov): domain.** Website hamare yahan ho to do address (`naam.domain` website, `naam-app.domain` app). Website na ho to **ek hi** address `naam.domain`, aur poora app usi par; `-app` banta hi nahi.
+
+- Apna custom domain: ek address wali company me app seedha us domain par (`app.<domain>` ke DNS record nahi mangte)
+- Hosting (Vercel) par bhi sirf zaroori domain jodte hain; email, invoice, signup ke link sahi address par
+- Website baad me jodne / hatane par address badalta hai: purane `-app` link naye par forward hote hain, aur sabko dobara sign in karna padta hai
+- Purani companies me kuch nahi badla (do address)
+- Console se sirf override dekar SiteCraft kholne par doosra address nahi banta; Console ke **Products and website** se product jodiye
+- Baaki: live domain / Vercel aur installed app par browser jaanch
 
 ## 10. Aage ke liye note
 

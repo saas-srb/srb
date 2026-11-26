@@ -2,6 +2,7 @@ import { withTransport } from "@/lib/security/transport";
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { getCurrentPortalUser } from "@/lib/portal-auth";
+import { resolveHostInfo } from "@/lib/platform/tenancy/companies";
 import { counterpartHost } from "@/lib/platform/tenancy/surfaces";
 
 /**
@@ -14,7 +15,7 @@ async function handleGET() {
   const h = await headers();
   const host = h.get("host");
   const proto = h.get("x-forwarded-proto")?.split(",")[0].trim() || (host?.startsWith("localhost") || host?.includes(".localhost") ? "http" : "https");
-  const app = counterpartHost(host, "site");
+  const app = (await resolveHostInfo(host))?.single ? host : counterpartHost(host, "site");
   return NextResponse.json(
     { signedIn: Boolean(user), firstName: user ? user.displayName.split(" ")[0] : null, companyLoginUrl: app ? `${proto}://${app}/commandos/login` : null },
     { headers: { "Cache-Control": "no-store" } }

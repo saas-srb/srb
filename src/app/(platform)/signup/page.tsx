@@ -1,7 +1,7 @@
 import { listPanels } from "@/lib/platform/panels/store";
 import { getDefaultPlan } from "@/lib/platform/billing/plans";
 import { productKeyFromSlug } from "@/lib/platform/saas/product-routes";
-import { ALL_PRODUCTS_VALUE, SELLABLE_PRODUCTS, offerName } from "@/lib/platform/products/selection";
+import { ALL_PRODUCTS_VALUE, NEEDS_ONE_OF, SELLABLE_PRODUCTS, offerName } from "@/lib/platform/products/selection";
 import "@/app/(platform)/saas/saas.css";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -49,11 +49,17 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
   const picked = await resolveSignupPlan(sp.plan, sp.interval).catch(() => null);
   const [registry, trial] = await Promise.all([listPanels(), allProductsTrialPlan().catch(() => null)]);
   const free = (await getDefaultPlan().catch(() => null))?.lifetimeFree === true;
-  const products = SELLABLE_PRODUCTS.filter((k) => registry.find((p) => p.key === k)?.active !== false).map((k) => ({ value: k as string, label: offerName(k, registry.find((p) => p.key === k)?.name ?? k) }));
+  const onSale = (k: string) => registry.find((p) => p.key === k)?.active !== false;
+  const nameOf = (k: string) => registry.find((p) => p.key === k)?.name ?? k;
+  const products = [
+    ...SELLABLE_PRODUCTS.filter(onSale).map((k) => ({ value: k as string, label: offerName(k, nameOf(k)) })),
+    // Products that only work beside another one (DataBrain): offered with that rule written under them.
+    ...Object.entries(NEEDS_ONE_OF).filter(([k]) => onSale(k)).map(([k, needs]) => ({ value: k, label: nameOf(k), description: `Choose it with ${needs.filter(onSale).map(nameOf).join(", ")}` })),
+  ];
   // A product page links here as /signup?product=<its address>.
   const wantedKey = sp.product === ALL_PRODUCTS_VALUE ? ALL_PRODUCTS_VALUE : productKeyFromSlug(String(sp.product ?? "")) ?? "";
   const initialProduct = wantedKey === ALL_PRODUCTS_VALUE || products.some((p) => p.value === wantedKey) ? wantedKey : "";
-  const allNote = free && trial ? `All products starts a ${trialLabel(trial.trialDays)} free trial of the ${trial.name} plan (no card needed). After the trial it is ${formatMoney(trial.price, trial.currency)} per month, excl. taxes.` : null;
+  const allNote = free && trial ? `More than one product starts a ${trialLabel(trial.trialDays)} free trial of the ${trial.name} plan (no card needed). After the trial it is ${formatMoney(trial.price, trial.currency)} per month, excl. taxes.` : null;
   const oneNote = free ? "One product starts on the Free plan. Add more any time." : null;
   const selectedPlan = picked ? { id: picked.planId, name: picked.name, interval: picked.interval, trial: trialLabel(picked.trialDays), priceLabel: `${formatMoney(picked.price, picked.currency)} per ${picked.interval === "yearly" ? "year" : "month"}, excl. taxes` } : null;
 
@@ -75,7 +81,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
               <h1 className="sr-h1 mt-6">
                 The business that <span className="bg-gradient-to-r from-primary to-brand-accent bg-clip-text text-transparent">runs itself.</span>
               </h1>
-              <p className="sr-lead mt-5 max-w-xl">Create your workspace in a few seconds. Start with the product you need, or take them all.</p>
+              <p className="sr-lead mt-5 max-w-xl">Create your workspace in a few seconds. Start with the products you need, or take them all.</p>
 
               <ul className="mt-9 grid gap-3 sm:grid-cols-2">
                 {POINTS.map((p) => (

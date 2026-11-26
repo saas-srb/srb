@@ -1,4 +1,5 @@
 import "server-only";
+import { hasSeparateAppHost } from "@/lib/platform/products/selection";
 import { getPlatformDb } from "@/lib/platform/tenancy/platform-db";
 import { APP_SLUG_SUFFIX, COMPANIES_COLLECTION, COMPANY_DOMAINS_COLLECTION, isPlatformHost, type Company, type CompanyDomain } from "@/lib/platform/tenancy/companies";
 import { buildTargets } from "@/lib/platform/domains/sync/engine";
@@ -54,7 +55,7 @@ export function createMongoSyncStore(runId: string, dryRun: boolean, root: strin
       const db = await getPlatformDb();
       const companies = await db
         .collection<Company>(COMPANIES_COLLECTION)
-        .find(cursor ? { _id: { $gt: cursor } } : {}, { projection: { _id: 1, slug: 1 } })
+        .find(cursor ? { _id: { $gt: cursor } } : {}, { projection: { _id: 1, slug: 1, products: 1, website: 1, isPlatformOwner: 1 } })
         .sort({ _id: 1 })
         .limit(size)
         .toArray();
@@ -65,7 +66,7 @@ export function createMongoSyncStore(runId: string, dryRun: boolean, root: strin
         .toArray();
       const out = companies.map((c) => ({
         companyId: c._id,
-        targets: buildTargets(c, docs.filter((d) => d.companyId === c._id), { root, appSuffix: APP_SLUG_SUFFIX, isPlatformHost }),
+        targets: buildTargets({ _id: c._id, slug: c.slug, singleHost: !hasSeparateAppHost(c) }, docs.filter((d) => d.companyId === c._id), { root, appSuffix: APP_SLUG_SUFFIX, isPlatformHost }),
       }));
       return { companies: out, next: companies.length < size ? null : companies[companies.length - 1]._id };
     },
@@ -131,7 +132,9 @@ const PAGE = 2000;
 /** Counts and the problem list, from what is stored on `company_domains` (reads only). The app host of every automatic address counts as a host too. */
 export async function summarizeHosts(problemLimit = 500): Promise<{ summary: HostSummary; problems: HostProblem[] }> {
   const db = await getPlatformDb();
-  const names = new Map((await db.collection<Company>(COMPANIES_COLLECTION).find({}, { projection: { _id: 1, name: 1 } }).toArray()).map((c) => [c._id, c.name]));
+  const all = await db.collection<Company>(COMPANIES_COLLECTION).find({}, { projection: { _id: 1, name: 1, products: 1, website: 1, isPlatformOwner: 1 } }).toArray();
+  const names = new Map(all.map((c) => [c._id, c.name]));
+  const singles = new Set(all.filter((c) => !hasSeparateAppHost(c)).map((c) => c._id));
   const summary: HostSummary = { totalHosts: 0, attached: 0, verified: 0, sslActive: 0, needsDns: 0, ownedElsewhere: 0, failed: 0 };
   const problems: HostProblem[] = [];
   let after: string | null = null;
@@ -148,7 +151,7 @@ export async function summarizeHosts(problemLimit = 500): Promise<{ summary: Hos
         [d._id, d.provider],
         [d.kind === "subdomain" ? (() => { const [l, ...r] = d._id.split("."); return `${l}${APP_SLUG_SUFFIX}.${r.join(".")}`; })() : `app.${d._id.replace(/^www\./, "")}`, d.appProvider],
       ];
-      for (const [host, p] of hosts) {
+      for (const [host, p] of singles.has(d.companyId) ? hosts.slice(0, 1) : hosts) {
         summary.totalHosts++;
         if (p?.attached) summary.attached++;
         if (p?.verified) summary.verified++;

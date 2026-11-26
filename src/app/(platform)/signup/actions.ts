@@ -37,7 +37,7 @@ function signupInput(formData: FormData) {
     name: field("name").trim() || nameFromEmail(email),
     email,
     password: field("password"),
-    product: field("product"),
+    product: formData.getAll("product").map(String),
     websiteMode: field("websiteMode"),
     websiteUrl: field("websiteUrl"),
     businessCategories: formData.getAll("businessCategory").map(String),

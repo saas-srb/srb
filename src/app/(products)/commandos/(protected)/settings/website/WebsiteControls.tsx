@@ -12,7 +12,7 @@ import { addOpeningAction, saveWebsiteAction, setOpeningOpenAction } from "./act
 function useRun() {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const run = (fn: () => Promise<{ ok: boolean; error?: string }>, done: string, after?: () => void) =>
+  const run = (fn: () => Promise<{ ok: boolean; error?: string; redirectTo?: string }>, done: string, after?: () => void) =>
     start(async () => {
       const r = await fn().catch(() => ({ ok: false, error: "Could not save. Try again." }));
       if (!r.ok) {
@@ -20,6 +20,10 @@ function useRun() {
         return;
       }
       toast.success(done);
+      if ("redirectTo" in r && r.redirectTo) {
+        window.location.assign(r.redirectTo); // the sign-in address moved
+        return;
+      }
       after?.();
       router.refresh();
     });

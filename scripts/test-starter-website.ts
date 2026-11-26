@@ -26,18 +26,19 @@ async function main() {
       const page = await getPageByPath(path);
       assert.ok(page?.live, `${path} published`);
       const text = JSON.stringify(page.live);
-      assert.ok(!/demo/i.test(text), `${path} mentions Demo Company`);
+      assert.ok(!/demo company/i.test(text), `${path} mentions Demo Company: ${text.match(/.{0,100}demo company.{0,60}/i)?.[0]}`);
     }
     assert.ok(JSON.stringify((await getPageByPath("/"))!.live).includes("Initech Labs"), "home uses the company name");
     const info = await getSiteInfoForEdit();
     assert.equal(info.brand.namePrimary, "Initech Labs");
     assert.equal(info.contact.email, "", "no contact guessed");
-    assert.ok(!/demo/i.test(JSON.stringify({ ...info, text: undefined })), "site identity mentions Demo Company");
+    const identity = JSON.stringify({ ...info, text: undefined });
+    assert.ok(!/demo company/i.test(identity), `site identity mentions Demo Company: ${identity.match(/.{0,80}demo.{0,80}/i)?.[0]}`);
     assert.ok(!/demo/i.test(Object.values(info.text).join(" ")), "text values mention Demo Company");
     assert.equal((await listNavItems()).filter((n) => !n.parentId).length, 2, "two top-level menus");
     // Idempotent: a second run creates nothing new.
     const again = await publishStarterWebsite();
-    assert.deepEqual(again, { pagesCreated: [], navigation: false, footer: false, siteInfo: false, contactForm: false });
+    assert.deepEqual(again, { pack: again.pack, theme: null, pagesCreated: [], navigation: false, footer: false, siteInfo: false, contactForm: false });
     // Profile contact fills the blank contact block once.
     await syncSiteContact({ email: "hello@initech.test", phone: "+91 98765 43210" });
     const synced = await getSiteInfoForEdit();

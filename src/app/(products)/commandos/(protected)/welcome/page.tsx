@@ -4,7 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, Globe, PartyPopper } from "lucide-react";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
-import CompanyAddresses from "@/components/hub/CompanyAddresses";
+import CompanyAddresses, { hasOneAddress } from "@/components/hub/CompanyAddresses";
 import { Button } from "@/components/ui/button";
 import { getCurrentHubUser } from "@/lib/hub-auth";
 import { getCompanyBrand } from "@/lib/platform/branding";
@@ -12,12 +12,12 @@ import { ONBOARDING_PATH } from "@/lib/platform/onboarding/gate";
 
 export const metadata: Metadata = { title: "Welcome", robots: { index: false, follow: false } };
 
-/** The first screen after registration: the company's two addresses, clearly, then on to setup. */
+/** The first screen after registration: the company's address(es), clearly, then on to setup. */
 export default async function WelcomePage() {
   const user = await getCurrentHubUser();
   if (!user) redirect("/commandos/login");
   await requireWorkspaceAccess("company.setup"); // Director-only item: anyone else sees the locked page inside this shell
-  const brand = await getCompanyBrand();
+  const [brand, one] = await Promise.all([getCompanyBrand(), hasOneAddress()]);
 
   return (
     <div className="min-h-screen bg-muted/70 px-4 py-10 dark:bg-background">
@@ -25,7 +25,7 @@ export default async function WelcomePage() {
         <PanelPageHeader
           leading={<span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary"><PartyPopper className="size-6" /></span>}
           title={<>Welcome, {brand.name} is ready</>}
-          description={<>Your company has two addresses. Check them here and save them: one for your public website, one for you and your team to sign in.</>}
+          description={one ? <>Save your address: you and your team sign in here.</> : <>Your company has two addresses. Check them here and save them: one for your public website, one for you and your team to sign in.</>}
         />
         <CompanyAddresses />
         <div className="flex flex-col gap-3 rounded-2xl border border-border/50 bg-card p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">

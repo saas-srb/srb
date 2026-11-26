@@ -90,6 +90,7 @@ Open a product URL on the website address and you are sent to the app address au
 | --- | --- | --- |
 | SelfRun Business (you) | `selfrunbusiness.com` and `www.selfrunbusiness.com` (product website, `/signup`, `/login`) | `app.selfrunbusiness.com` (Platform Console for your staff) |
 | A customer on an automatic address | `acme.selfrunbusiness.com` | `acme-app.selfrunbusiness.com` |
+| A customer without a website here (one address) | none (website links lead to forms) | `acme.selfrunbusiness.com` |
 | A customer with its own domain | `acme.com` | `app.acme.com` |
 | Any other address | "No workspace here" | |
 
@@ -712,7 +713,7 @@ Tick these before you tell customers the platform is open.
 
 - [ ] The website opens on `https://www.selfrunbusiness.com` with a padlock, and `/signup` works
 - [ ] `https://app.selfrunbusiness.com/workspace/login` lets your staff in, and `/console` opens
-- [ ] A test company can sign up, receive the confirmation email and land on its own `<slug>-app` address
+- [ ] A test company can sign up, receive the confirmation email and land on its own address: `<slug>-app` with a website, `<slug>` without one
 - [ ] `https://<slug>.selfrunbusiness.com` shows only the website; `<slug>-app` shows only the products
 - [ ] Two test companies cannot see each other's data
 - [ ] Plans and prices are set in the Platform Console; sign-up mode is what you want (open, approval or closed)

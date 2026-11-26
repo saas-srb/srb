@@ -384,14 +384,14 @@ type NoticeKind = "payment_failed" | "grace" | "suspended" | "trial_ended" | "ca
 /** Billing emails to the company's billing contact (or first Director). Never throws. */
 async function notify(companyId: string, kind: NoticeKind): Promise<void> {
   try {
-    const company = await (await companies()).findOne({ _id: companyId }, { projection: { name: 1, slug: 1, subscription: 1 } });
+    const company = await (await companies()).findOne({ _id: companyId }, { projection: { name: 1, slug: 1, subscription: 1, products: 1, website: 1, isPlatformOwner: 1 } });
     if (!company) return;
     const sub = company.subscription ?? null;
     const to = await billingRecipient(companyId, sub);
     if (!to) return;
     const plan = sub ? await getPlan(sub.planId) : null;
     const planName = plan?.name ?? "your plan";
-    const url = `${companyAppBaseUrl(company.slug)}/commandos/settings/billing`;
+    const url = `${companyAppBaseUrl(company)}/commandos/settings/billing`;
     const copy: Record<NoticeKind, { subject: string; heading: string; paragraphs: string[]; label: string }> = {
       payment_failed: {
         subject: `Payment failed for ${company.name}`,

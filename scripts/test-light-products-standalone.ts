@@ -11,7 +11,7 @@ import { clientPromise, getPlatformDb } from "@/lib/platform/tenancy/platform-db
 import { runAsCompany } from "@/lib/platform/tenancy/context";
 import { listPlans } from "@/lib/platform/billing/plans";
 import { updateCompanySubscription } from "@/lib/platform/billing/subscription";
-import { companyAppSubdomain } from "@/lib/platform/tenancy/provisioning";
+import { companySubdomain } from "@/lib/platform/tenancy/provisioning";
 import { setCompanyProducts } from "@/lib/platform/products/company-products";
 import { unavailablePanelKeys } from "@/lib/platform/panels/store";
 import { hrefAvailable } from "@/lib/platform/products/routes";
@@ -53,7 +53,7 @@ async function main() {
     return id;
   };
   const call = async (slug: string, path: string) => {
-    const host = companyAppSubdomain(slug);
+    const host = companySubdomain(slug); // no website with us: one address
     const res = await proxy(new NextRequest(`http://${host}${path}`, { headers: { host, "sec-fetch-mode": "navigate", accept: "text/html", "accept-language": "en-IN", "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/126.0 Safari/537.36" } }));
     const rewrite = res.headers.get("x-middleware-rewrite") ?? "";
     return !res.headers.get("location")?.includes("/upgrade") && !rewrite.includes("/product-unavailable") && res.status < 400;

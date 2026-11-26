@@ -154,7 +154,7 @@ async function run() {
   await check("SEO settings defaults: owner keeps its own, others audit their own site with nothing scheduled", async () => {
     const owner = await as("owner", getSettings);
     assert.equal(owner.siteOrigin, siteUrl);
-    assert.equal(owner.integrations.gsc.property, "sc-domain:example.com");
+    assert.equal(owner.integrations.gsc.property, ""); // nothing hardcoded: the operator connects its own
     assert.equal(owner.schedule.auditFrequency, "weekly");
     const acme = await as("acme", getSettings);
     assert.equal(acme.siteOrigin, "https://acme.example.com");

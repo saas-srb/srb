@@ -64,7 +64,8 @@ async function main() {
     return { status: res.status, location: res.headers.get("location") ?? "", csp: res.headers.get("content-security-policy") ?? "", rewrite: res.headers.get("x-middleware-rewrite") ?? "" };
   };
   const site = companySubdomain("nosite");
-  ok((await call(site, "/")).location.endsWith("/forms"), "no website: home → forms");
+  ok((await call(site, "/")).location.endsWith("/commandos"), "no website: the one address opens the app");
+  ok((await call(site, "/about")).location.endsWith("/forms"), "marketing pages → forms");
   ok((await call(site, "/careers/apply")).location.endsWith("/forms/careers"), "careers → form");
   const form = await call(site, "/forms/careers");
   ok(form.status === 200 && !form.rewrite.includes("unavailable"), `TalentOS company has the careers form ${JSON.stringify(form)}`);
@@ -73,11 +74,12 @@ async function main() {
   ok(/frame-ancestors 'self';/.test(form.csp), "no own website: nobody else may frame");
 
   const ext = companySubdomain("ownsite");
-  eq((await call(ext, "/")).location, "https://acme.example/", "home → their website");
+  eq((await call(ext, "/about")).location, "https://acme.example/", "website pages → their website");
   ok(/frame-ancestors 'self' https:\/\/acme\.example;/.test((await call(ext, "/forms/enquiry")).csp), "their website may embed the forms");
   ok(!(await call(ext, "/pay/token")).location, "payment links keep working");
   ok(!(await call(companySubdomain("withsite"), "/")).location, "a website we run is served as before");
-  ok(!(await call(companyAppSubdomain("nosite"), "/commandos")).location.includes("/forms"), "the app address is untouched");
+  ok((await call(companyAppSubdomain("nosite"), "/commandos")).location.endsWith(`//${site}/commandos`), "an -app link forwards to the one address");
+  ok(!(await call(site, "/commandos")).location, "the app is served there");
 
   // --- openings by hand, for the careers form -------------------------------------------
   await runAsCompany(plain.companyId, async () => {

@@ -41,7 +41,7 @@ export default async function WebsiteSettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Your website</CardTitle>
-            <CardDescription>{canHost ? "Payment links, certificate checks and signing links work whatever you choose." : "A website run here comes with SiteCraft AI & Sites. You can link your own website."}</CardDescription>
+            <CardDescription>{canHost ? "Payment links, certificate checks and signing links work whatever you choose. With a website here, your team signs in at a separate app address; without one, everything is on one address. Changing this moves the sign-in page, and everyone signs in again there." : "A website run here comes with SiteCraft AI & Sites. You can link your own website."}</CardDescription>
           </CardHeader>
           <CardContent>
             <WebsiteChoice mode={mode} externalUrl={own} canHost={canHost} />

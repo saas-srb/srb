@@ -272,7 +272,7 @@ const COMPANY: NavItemDef[] = [
   company("designations", "/commandos/settings/organization/designations", "users", "Designations", "Job titles and seniority levels for your company's positions."),
   { ...company("users", "/commandos/users", "users", "People & access", "Everyone who can sign in: where they work, their status (active, on leave, left the company …), which products and features they can use, and seats used.", "People & access"), allow: may(P.users) },
   company("app", "/commandos/settings/apps", "smartphone", "Apps & downloads", "Your company's own apps for phones and Windows, macOS and Linux computers: settings, and a Generate button and download link for each app.", "Apps"),
-  company("addresses", "/commandos/addresses", "website", "Default domain", "The default addresses we give your company: your public website and the app where your team signs in to the Workspace and every product, ready to copy and share.", "Default domain"),
+  company("addresses", "/commandos/addresses", "website", "Default domain", "The default address we give your company (and your website's, if it has one here)", "Default domain"),
   company("website", "/commandos/settings/website", "website", "Website & public forms", "Run your website here or use your own, share or embed the enquiry and careers forms, and list your job openings.", "Website"),
   company("domains", "/commandos/settings/domains", "globe", "Custom domains", "Your workspace address and your own custom domains, with automatic SSL.", "Domains"),
   company("billing", "/commandos/settings/billing", "card", "Plan & billing", "Your plan, payments, coupon codes and GST billing details."),

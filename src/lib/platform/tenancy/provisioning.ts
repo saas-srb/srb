@@ -1,5 +1,5 @@
 import "server-only";
-import { ownedModules, resolveWebsite, sitesEnabled, type CompanyWebsite, type ProductSelection } from "@/lib/platform/products/selection";
+import { hasSeparateAppHost, ownedModules, resolveWebsite, sitesEnabled, type CompanyWebsite, type ProductSelection } from "@/lib/platform/products/selection";
 import type { BusinessSelection } from "@/lib/platform/business-taxonomy";
 import { cachedIntegrationsDoc } from "@/lib/platform/integrations/store";
 import { randomUUID } from "node:crypto";
@@ -69,9 +69,15 @@ export function companyBaseUrl(slug: string, hostHint?: string | null): string {
   return baseUrlFor(slug, hostHint);
 }
 
-/** Absolute base URL of a company's App host (`<slug>-app.<root>`): where Workspace and every other product live. */
-export function companyAppBaseUrl(slug: string, hostHint?: string | null): string {
-  return baseUrlFor(`${slug}${APP_SLUG_SUFFIX}`, hostHint);
+/** What decides a company's addresses. */
+export type AddressedCompany = { slug: string; products?: ProductSelection; website?: CompanyWebsite; isPlatformOwner?: boolean };
+
+/**
+ * Absolute base URL of where a company's Workspace and products live: `<slug>-app.<root>` beside its website, or its one
+ * address `<slug>.<root>` when we don't run a website for it.
+ */
+export function companyAppBaseUrl(company: AddressedCompany, hostHint?: string | null): string {
+  return baseUrlFor(hasSeparateAppHost(company) ? `${company.slug}${APP_SLUG_SUFFIX}` : company.slug, hostHint);
 }
 
 function baseUrlFor(label: string, hostHint?: string | null): string {
@@ -189,8 +195,8 @@ export async function createCompanyWithOwner(input: NewCompany): Promise<Provisi
     { $setOnInsert: { companyId: company._id, status: "verified", verificationToken: randomUUID(), isPrimary: true, kind: "subdomain", createdAt: now, verifiedAt: now } },
     { upsert: true },
   );
-  // Its app host (`<slug>-app.<root>`) is derived from the slug and needs no record of its own, only the provider attach.
-  const [hostingError, appHostingError] = await Promise.all([attachAtProvider(host), attachAtProvider(companyAppSubdomain(input.slug))]);
+  // With a website there is a second, app host (`<slug>-app.<root>`): derived from the slug, no record of its own, only the provider attach.
+  const [hostingError, appHostingError] = await Promise.all([attachAtProvider(host), hasSeparateAppHost(company) ? attachAtProvider(companyAppSubdomain(input.slug)) : null]);
   forgetCompanyRouting();
 
   // Every new company starts on a free trial of the default plan. Non-fatal.

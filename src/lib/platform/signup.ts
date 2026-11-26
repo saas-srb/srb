@@ -1,6 +1,6 @@
 import { listPanels, panelNameMap } from "@/lib/platform/panels/store";
 import { getDefaultPlan } from "@/lib/platform/billing/plans";
-import { offerName, parseSelection, resolveWebsite, type CompanyWebsite, type ProductSelection } from "@/lib/platform/products/selection";
+import { billableCount, offerName, parseSelection, resolveWebsite, type CompanyWebsite, type ProductSelection } from "@/lib/platform/products/selection";
 import { productAppPath } from "@/lib/platform/saas/product-routes";
 import { passwordPolicyError } from "@/lib/security/password";
 import { platformEvents } from "@/lib/notify/triggers/platform";
@@ -118,8 +118,8 @@ export interface SignupInput {
   businessCategories: string[];
   businessSubCategories: string[];
   acceptTerms: boolean;
-  /** What to start with: a product key, or "all". Missing (older callers) = every product. */
-  product?: string;
+  /** What to start with: product keys, or "all". Missing (older callers) = every product. */
+  product?: string | string[];
   /** With "All products": a website from us, their own, or none. */
   websiteMode?: string;
   websiteUrl?: string;
@@ -138,9 +138,9 @@ function chosenProducts(input: SignupInput): { products?: ProductSelection; webs
   return { products, website: resolveWebsite(products, products.mode === "all" ? wanted : undefined) };
 }
 
-/** Where a new owner lands first: the product they came for (CommandOS when they took them all). */
+/** Where a new owner lands first: the one product they came for, else CommandOS. */
 function firstScreen(products: ProductSelection | undefined): string {
-  return products?.mode === "selected" && products.keys.length ? productAppPath(products.keys[0]) : "/commandos";
+  return products?.mode === "selected" && products.keys.length === 1 ? productAppPath(products.keys[0]) : "/commandos";
 }
 
 /** A product the platform has switched off can't be bought. */
@@ -162,7 +162,10 @@ export function validateSignup(input: SignupInput): SignupFieldErrors {
   const business = resolveBusiness(input.businessCategories, input.businessSubCategories);
   if (!business.ok) Object.assign(errors, business.errors);
   if (input.product !== undefined) {
-    if (!parseSelection(input.product)) errors.product = "Choose a product, or All products.";
+    if (!parseSelection(input.product)) {
+      const picked = [input.product].flat().filter(Boolean);
+      errors.product = picked.includes("intelligence") ? "DataBrain works on your records: choose it together with CashFlow, TalentOS, SprintOS, DealFlow or SpendIQ." : "Choose one or more products, or All products.";
+    }
     if (input.websiteMode === "external" && !/^https?:\/\/[^\s/]+\.[^\s]+$/i.test(input.websiteUrl?.trim() ?? "")) errors.websiteUrl = "Enter your website's full address, e.g. https://example.com";
   }
   if (!input.acceptTerms) errors.acceptTerms = "Accept the terms to continue.";
@@ -257,8 +260,11 @@ export async function startSignup(input: SignupInput, ctx: { hostHint: string | 
   const business = (resolveBusiness(input.businessCategories, input.businessSubCategories) as { ok: true; value: BusinessSelection }).value;
   const chosen = chosenProducts(input);
   if (await productOffSale(chosen.products)) return { ok: false, errors: { product: "That product isn't available right now. Choose another." } };
-  // "All products" without a picked plan starts a paid plan's free trial: the free plan holds one product.
-  const picked = (await resolveSignupPlan(input.planId, input.interval)) ?? (chosen.products?.mode === "all" && (await getDefaultPlan())?.lifetimeFree ? await allProductsTrialPlan() : null);
+  // More than the free plan holds (one product), without a picked plan, starts a paid plan's free trial.
+  const free = await getDefaultPlan();
+  const count = billableCount(chosen.products);
+  const beyondFree = Boolean(free?.lifetimeFree) && Boolean(chosen.products) && (count === null || count > (free?.maxProducts ?? 1));
+  const picked = (await resolveSignupPlan(input.planId, input.interval)) ?? (beyondFree ? await allProductsTrialPlan() : null);
   const plan = picked ? { id: picked.planId, interval: picked.interval } : undefined;
   const passwordHash = hashPassword(input.password);
   const companyName = input.companyName.trim();
@@ -291,15 +297,15 @@ export async function startSignup(input: SignupInput, ctx: { hostHint: string | 
   // "Address just taken" (two sign-ups racing for it) belongs on the address field.
   if (!created.ok) return { ok: false, errors: /address/i.test(created.error) ? { slug: created.error } : { form: created.error } };
 
-  const base = companyAppBaseUrl(input.slug, ctx.hostHint);
+  const base = companyAppBaseUrl({ slug: input.slug, ...chosen }, ctx.hostHint);
   await sendOwnerVerification(created, base);
   return { ok: true, kind: "created", redirectTo: await issueHandoff(created, base, firstScreen(chosen.products)) };
 }
 
-export async function describePendingSignup(token: string): Promise<{ companyName: string; slug: string; email: string } | null> {
+export async function describePendingSignup(token: string): Promise<{ companyName: string; slug: string; email: string; products?: ProductSelection; website?: CompanyWebsite } | null> {
   const { pending } = await collections();
   const doc = await pending.findOne({ tokenHash: sha256(token), status: "pending", expiresAt: { $gt: new Date() } });
-  return doc ? { companyName: doc.companyName, slug: doc.slug, email: doc.email } : null;
+  return doc ? { companyName: doc.companyName, slug: doc.slug, email: doc.email, products: doc.products, website: doc.website } : null;
 }
 
 export type ConfirmResult = { ok: true; redirectTo: string } | { ok: true; awaitingApproval: true } | { ok: false; error: string };
@@ -330,7 +336,7 @@ export async function confirmSignup(token: string, ctx: { hostHint: string | nul
     return { ok: false, error: created.error };
   }
 
-  const base = companyAppBaseUrl(doc.slug, ctx.hostHint);
+  const base = companyAppBaseUrl(doc, ctx.hostHint);
   void sendWorkspaceReadyEmail(doc, base);
   await platformEvents.companyCreated(doc.companyName, doc.email, created.companyId);
 
@@ -421,7 +427,7 @@ export async function approveSignup(id: string, ctx: { hostHint: string | null }
     await pending.insertOne(doc);
     return { ok: false, error: created.error };
   }
-  const base = companyAppBaseUrl(doc.slug, ctx.hostHint);
+  const base = companyAppBaseUrl(doc, ctx.hostHint);
   await sendOwnerVerification(created, base);
   const sent = await sendWorkspaceReadyEmail(doc, base, true);
   await platformEvents.companyCreated(doc.companyName, doc.email, created.companyId);

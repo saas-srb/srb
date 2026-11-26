@@ -35,8 +35,8 @@ export async function resolveSignupPlan(planId: unknown, interval: unknown): Pro
 }
 
 /**
- * The paid plan whose free trial starts when someone signs up for "All products" without picking a plan (the free plan
- * holds one product): the cheapest plan on sale that allows every product. Null when there is none.
+ * The paid plan whose free trial starts when someone signs up for more than one product (or "All products") without
+ * picking a plan (the free plan holds one product): the cheapest plan on sale that allows every product. Null when there is none.
  */
 export async function allProductsTrialPlan(): Promise<SignupPlan | null> {
   const plans = (await listPlans({ activeOnly: true }).catch(() => [])).filter((p) => !p.lifetimeFree && !p.contactSales && !p.maxProducts);

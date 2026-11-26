@@ -6,6 +6,7 @@ import { APP_SLUG_SUFFIX, isPlatformHost, normalizeHost, type HostSurface } from
  *  - the SITE (`<slug>.<root>` or its own domain, e.g. `acme.com`): only the public website;
  *  - the APP (`<slug>-app.<root>`, `app.<its own domain>`, or `app.<SaaS host>` for the platform operator): the products.
  * A page that belongs to the other side is redirected there, so every link keeps working from either host.
+ * A company whose website we don't run has ONE host (`<slug>.<root>` or its domain) that serves the app (`hasSeparateAppHost`).
  */
 
 /** First path segments that are products (pages, not APIs): reachable only on an app host. */
@@ -47,8 +48,10 @@ export function isSharedPath(pathname: string): boolean {
 }
 
 /** What to do with a page request given the side of the company its host serves; null = serve it here. */
-export function surfaceRedirect(surface: HostSurface, pathname: string): "to-app" | "to-site" | "app-home" | null {
+export function surfaceRedirect(surface: HostSurface, pathname: string, single = false): "to-app" | "to-site" | "app-home" | null {
   if (isSharedPath(pathname)) return null;
+  // A company with one address has no other side to send anyone to.
+  if (single) return pathname === "/" ? "app-home" : null;
   if (surface === "site") return isPanelPath(pathname) ? "to-app" : null;
   if (pathname === "/") return "app-home";
   return isPanelPath(pathname) ? null : "to-site";

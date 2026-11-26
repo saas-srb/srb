@@ -13,7 +13,7 @@ import { isMaintenanceOn, isPublicSitePath } from "@/lib/products/sitecraft-ai/m
 import { getCompany, resolveCompanyIdByHost, resolveHostInfo, resolveSuspendedHost, normalizeHost, type HostInfo } from "@/lib/platform/tenancy/companies";
 import { gateApi, gatePage, hardenApiResponse, isAssetPath } from "@/lib/security/gate";
 import { gateSessionBinding } from "@/lib/security/session-bind";
-import { counterpartHost, surfaceRedirect } from "@/lib/platform/tenancy/surfaces";
+import { counterpartHost, isPanelPath, isSharedPath, surfaceRedirect } from "@/lib/platform/tenancy/surfaces";
 import { listPanels, unavailablePanelKeys } from "@/lib/platform/panels/store";
 import { isSaasAppHost, isSaasHost } from "@/lib/platform/saas/hosts";
 import { getEffectiveMaintenance } from "@/lib/platform/maintenance-state";
@@ -245,7 +245,8 @@ export async function proxy(request: NextRequest) {
   const companyId = info?.companyId;
 
   // Page views: scanner traps, scripted scrapers and floods (crawlers are kept off the signed-in products altogether).
-  const appSurface = info ? info.surface === "app" : isSaasAppHost(normalizeHost(hostHeader0) ?? "");
+  // On a one-address company the public pages (payments, forms, verification) are not "signed-in work".
+  const appSurface = info ? info.surface === "app" && !(info.single && isSharedPath(request.nextUrl.pathname)) : isSaasAppHost(normalizeHost(hostHeader0) ?? "");
   const pageBlocked = await gatePage(request, appSurface);
   if (pageBlocked) return pageBlocked;
   const copiedSession = await gateSessionBinding(request, false);
@@ -253,8 +254,15 @@ export async function proxy(request: NextRequest) {
 
   // A company's website and its products live on different hosts: a page of the other side is sent to its own host
   // (so a link to /commandos from the website, or to / from a product, still lands somewhere right).
+  // Old `-app` / `app.` links of a company that now has one address.
+  if (info?.retired) {
+    const hostHeader = request.headers.get("host");
+    const main = counterpartHost(hostHeader, "app");
+    const proto = request.headers.get("x-forwarded-proto")?.split(",")[0].trim() || request.nextUrl.protocol.replace(":", "");
+    if (main) return NextResponse.redirect(new URL(`${request.nextUrl.pathname}${request.nextUrl.search}`, `${proto}://${main}`), 307);
+  }
   if (info) {
-    const action = surfaceRedirect(info.surface, request.nextUrl.pathname);
+    const action = surfaceRedirect(info.surface, request.nextUrl.pathname, info.single);
     if (action) {
       // Built from the Host header, not `request.url`, which can carry the server's own hostname.
       const hostHeader = request.headers.get("host");
@@ -268,9 +276,11 @@ export async function proxy(request: NextRequest) {
   }
 
   // A company whose website we don't run: its site address serves only the working public pages (see `products/website.ts`).
-  if (companyId && info?.surface === "site" && !isSaasHost(request.headers.get("host"))) {
+  // On a one-address company the same applies to every page that isn't a product.
+  const websitePage = info?.single ? !isPanelPath(request.nextUrl.pathname) : info?.surface === "site";
+  if (companyId && websitePage && !isSaasHost(request.headers.get("host"))) {
     try {
-      if ((await lockedModuleKeys(companyId)).has("website")) {
+      if (info?.single || (await lockedModuleKeys(companyId)).has("website")) {
         const own = (await getCompany(companyId))?.website?.externalUrl ?? null;
         const target = websitelessTarget(request.nextUrl.pathname, own);
         if (target && target !== request.nextUrl.pathname) return NextResponse.redirect(new URL(target, request.url), 307);

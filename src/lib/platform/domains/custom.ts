@@ -1,12 +1,13 @@
 import { workspaceEvents } from "@/lib/notify/triggers/workspace";
 import "server-only";
+import { hasSeparateAppHost } from "@/lib/platform/products/selection";
 import { domainBlockReason } from "@/lib/platform/billing/enforce";
 import { randomBytes } from "node:crypto";
 import { resolveTxt } from "node:dns/promises";
 import { domainToASCII } from "node:url";
 import { getPlatformDb } from "@/lib/platform/tenancy/platform-db";
 import { currentCompanyId, forEachCompany } from "@/lib/platform/tenancy/context";
-import { COMPANY_DOMAINS_COLLECTION, forgetCompanyRouting, isPlatformHost, normalizeHost, type CompanyDomain } from "@/lib/platform/tenancy/companies";
+import { COMPANY_DOMAINS_COLLECTION, forgetCompanyRouting, getCompany, isPlatformHost, normalizeHost, type CompanyDomain } from "@/lib/platform/tenancy/companies";
 import { syncAtProvider } from "@/lib/platform/tenancy/provisioning";
 import { activeDomainProvider } from "@/lib/platform/domains";
 import { routingRecord } from "@/lib/platform/domains/vercel";
@@ -81,11 +82,19 @@ export function appHostOf(host: string): string {
   return `app.${host.replace(/^www\./, "")}`;
 }
 
+/** A company with one address has no `app.<domain>`: its domain serves the app itself. */
+export async function isSingleHost(companyId: string): Promise<boolean> {
+  const company = await getCompany(companyId);
+  return company ? !hasSeparateAppHost(company) : false;
+}
+
 /**
  * Attaches / re-checks the app host `app.<domain>` at the hosting provider and keeps its state on the domain's own document
  * (it has no document of its own), so the Domains page can show its ownership challenge and routing records next to the website's.
  */
 async function syncAppHost(domainHost: string, op: "add" | "status" | "verify") {
+  const owner = await (await domainsCollection()).findOne({ _id: domainHost }, { projection: { companyId: 1 } });
+  if (owner && (await isSingleHost(owner.companyId))) return null;
   return syncAtProvider(appHostOf(domainHost), op, { docId: domainHost, field: "appProvider" });
 }
 
@@ -102,7 +111,7 @@ function sameRecord(a: DnsRecord, b: DnsRecord): boolean {
 }
 
 /** The client-safe view of one domain record (also used by the Platform Console overview). */
-export function toView(d: CompanyDomain): CompanyDomainView {
+export function toView(d: CompanyDomain, single = false): CompanyDomainView {
   const kind = d.kind ?? "custom";
   const p = d.provider;
   const localOnly = d._id.endsWith(".localhost");
@@ -123,7 +132,7 @@ export function toView(d: CompanyDomain): CompanyDomainView {
   // The app host `app.<domain>` is a second host at the hosting provider: it can demand its own ownership proof and needs its own
   // routing record. Its records are listed with the website's so everything is published in one go.
   let app: CompanyDomainView["app"] = null;
-  if (kind === "custom" && !localOnly) {
+  if (kind === "custom" && !localOnly && !single) {
     const ap = d.appProvider;
     const appHost = appHostOf(d._id);
     const add = (r: DnsRecord, state: RecordState) => {
@@ -154,7 +163,7 @@ export function toView(d: CompanyDomain): CompanyDomainView {
     for (const e of [...(d.dnsLog ?? [])].sort((a, b) => b.seenAt.getTime() - a.seenAt.getTime())) remember(e.host, e, e.seenAt);
     remember(d._id, verificationRecord(d), null);
     remember(d._id, routingRecord(d._id), null);
-    remember(appHostOf(d._id), { ...routingRecord(appHostOf(d._id)), reason: "Serves your products (Workspace and the rest)" }, null);
+    if (!single) remember(appHostOf(d._id), { ...routingRecord(appHostOf(d._id)), reason: "Serves your products (Workspace and the rest)" }, null);
   }
 
   let ssl: CompanyDomainView["hosting"]["ssl"];
@@ -185,11 +194,12 @@ export async function listCompanyDomains(): Promise<CompanyDomainView[]> {
   const companyId = await currentCompanyId();
   const domains = await domainsCollection();
   let rows = await domains.find({ companyId }).toArray();
+  const single = await isSingleHost(companyId);
   // A verified domain's app host (`app.<domain>`) is attached and checked at the hosting provider on its own: whenever it has never
   // been looked at, or is still waiting (ownership proof, DNS), fetch its state now so the records to publish are listed without
   // anyone having to press a button. Throttled, so reopening the page doesn't hammer the provider.
   const stale = rows.filter((d) => {
-    if (d.kind !== "custom" || d.status !== "verified" || d._id.endsWith(".localhost")) return false;
+    if (single || d.kind !== "custom" || d.status !== "verified" || d._id.endsWith(".localhost")) return false;
     const ap = d.appProvider;
     if (!ap) return true;
     if (ap.id === "manual" || ap.id === "wildcard" || (ap.attached && ap.verified && ap.dnsConfigured)) return false;
@@ -201,7 +211,7 @@ export async function listCompanyDomains(): Promise<CompanyDomainView[]> {
   }
   const rank = (d: CompanyDomain) => (d.kind === "subdomain" ? 0 : d.isPrimary ? 1 : 2);
   rows.sort((a, b) => rank(a) - rank(b) || a.createdAt.getTime() - b.createdAt.getTime());
-  return rows.map(toView);
+  return rows.map((d) => toView(d, single));
 }
 
 async function ok(message?: string): Promise<DomainActionResult> {

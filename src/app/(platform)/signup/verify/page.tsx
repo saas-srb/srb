@@ -30,7 +30,7 @@ export default async function VerifySignupPage({ searchParams }: { searchParams:
                 <CardDescription>
                   Email confirmed for <strong className="text-foreground">{pending.email}</strong>. Your website will be at{" "}
                   <strong className="text-foreground">{companyBaseUrl(pending.slug).replace(/^https?:\/\//, "")}</strong> and your products at{" "}
-                  <strong className="text-foreground">{companyAppBaseUrl(pending.slug).replace(/^https?:\/\//, "")}</strong>.
+                  <strong className="text-foreground">{companyAppBaseUrl(pending).replace(/^https?:\/\//, "")}</strong>.
                 </CardDescription>
               </CardHeader>
               <CardContent>

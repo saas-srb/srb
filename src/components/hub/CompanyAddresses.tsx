@@ -1,10 +1,27 @@
 import AddressCard from "@/components/hub/AddressCard";
 import { companySiteUrl, appUrlForCompany } from "@/lib/platform/tenancy/site-url";
+import { isSingleHost } from "@/lib/platform/domains/custom";
 import { currentCompanyId } from "@/lib/platform/tenancy/context";
 
-/** The company's website address and app address side by side (server component: reads the live domain settings). */
+/** Whether this company has one address for everything (no website with us). */
+export async function hasOneAddress(): Promise<boolean> {
+  return isSingleHost(await currentCompanyId());
+}
+
+/** The company's website address and app address side by side, or its one address (server component: reads the live domain settings). */
 export default async function CompanyAddresses({ focus }: { focus?: "website" | "app" }) {
   const [site, app] = await Promise.all([companySiteUrl(), currentCompanyId().then((id) => appUrlForCompany(id))]);
+  if (await hasOneAddress()) {
+    return (
+      <AddressCard
+        kind="app"
+        caption="Your workspace"
+        title="Your address"
+        url={app}
+        hint="You and your team sign in here to the Workspace and your products. Your public forms and payment links use this address too."
+      />
+    );
+  }
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <AddressCard

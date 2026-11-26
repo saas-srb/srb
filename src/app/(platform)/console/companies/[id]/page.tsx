@@ -56,7 +56,7 @@ export default async function ConsoleCompanyPage({ params }: { params: Promise<{
   const domains = await listDomainsForCompany(company.id);
   const { host } = await requestOrigin();
   const base = companyBaseUrl(company.slug, host);
-  const appBase = company.isPlatformOwner ? saasAppOrigin(host) : companyAppBaseUrl(company.slug, host);
+  const appBase = company.isPlatformOwner ? saasAppOrigin(host) : companyAppBaseUrl((await getCompany(company.id))!, host);
   const { onboarding: ob } = company;
   const trial = company.isPlatformOwner ? null : await getTrialOverview(company.id);
   const reactivations = company.isPlatformOwner ? [] : await listRequests(company.id).catch(() => []);
@@ -76,9 +76,11 @@ export default async function ConsoleCompanyPage({ params }: { params: Promise<{
               <a href={base} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-foreground">
                 {base.replace(/^https?:\/\//, "")} <ExternalLink className="size-3" />
               </a>
-              <a href={appBase} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-foreground">
-                Products: {appBase.replace(/^https?:\/\//, "")} <ExternalLink className="size-3" />
-              </a>
+              {appBase !== base && (
+                <a href={appBase} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-foreground">
+                  Products: {appBase.replace(/^https?:\/\//, "")} <ExternalLink className="size-3" />
+                </a>
+              )}
               <StatusBadge status={company.status} isPlatformOwner={company.isPlatformOwner} />
             </span>
           }

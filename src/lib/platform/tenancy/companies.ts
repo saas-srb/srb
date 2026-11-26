@@ -1,3 +1,4 @@
+import { hasSeparateAppHost } from "@/lib/platform/products/selection";
 import { getPlatformDb } from "@/lib/platform/tenancy/platform-db";
 import type { CompanyWebsite, ProductSelection } from "@/lib/platform/products/selection";
 import type { BusinessSelection } from "@/lib/platform/business-taxonomy";
@@ -169,6 +170,10 @@ export type HostSurface = "site" | "app";
 export interface HostInfo {
   companyId: string;
   surface: HostSurface;
+  /** The company has one address for everything (no website with us). */
+  single?: boolean;
+  /** A `-app` / `app.` address of a one-address company: pages move to the main address. */
+  retired?: boolean;
 }
 
 interface RoutingCache {
@@ -221,7 +226,11 @@ async function lookupHost(host: string): Promise<HostInfo | null> {
 
   const db = await getPlatformDb();
   const companies = db.collection<Company>(COMPANIES_COLLECTION);
-  const activeId = async (companyId: string) => (await companies.findOne({ _id: companyId, status: "active" }, { projection: { _id: 1 } }))?._id ?? null;
+  const projection = { _id: 1, products: 1, website: 1, isPlatformOwner: 1 } as const;
+  const activeCompany = (companyId: string) => companies.findOne({ _id: companyId, status: "active" }, { projection });
+  /** `appAlias` = the host asked for is the separate app address. */
+  const infoFor = (c: Company, appAlias: boolean): HostInfo =>
+    hasSeparateAppHost(c) ? { companyId: c._id, surface: appAlias ? "app" : "site" } : { companyId: c._id, surface: "app", single: true, ...(appAlias ? { retired: true } : {}) };
 
   // A company's own verified domain wins over the generic platform hosts, so a customer can be served on a domain that
   // used to be the platform's (a deployment's production URL) without any special case. `app.<its domain>` is the same
@@ -237,13 +246,13 @@ async function lookupHost(host: string): Promise<HostInfo | null> {
     .toArray();
   const direct = domain.find((d) => d._id === host || d._id === bare || d._id === wwwHost);
   if (direct) {
-    const id = await activeId(direct.companyId);
-    return id ? { companyId: id, surface: "site" } : null;
+    const company = await activeCompany(direct.companyId);
+    return company ? infoFor(company, false) : null;
   }
   const viaApp = appBase ? domain[0] : undefined;
   if (viaApp) {
-    const id = await activeId(viaApp.companyId);
-    return id ? { companyId: id, surface: "app" } : null;
+    const company = await activeCompany(viaApp.companyId);
+    return company ? infoFor(company, true) : null;
   }
 
   if (platformHosts().has(host) || platformHosts().has(bare)) {
@@ -258,8 +267,8 @@ async function lookupHost(host: string): Promise<HostInfo | null> {
     const isApp = label.endsWith(APP_SLUG_SUFFIX);
     const slug = isApp ? label.slice(0, -APP_SLUG_SUFFIX.length) : label;
     if (!slug || RESERVED_SLUGS.has(slug)) continue;
-    const company = await companies.findOne({ slug, status: "active" }, { projection: { _id: 1 } });
-    if (company) return { companyId: company._id, surface: isApp ? "app" : "site" };
+    const company = await companies.findOne({ slug, status: "active" }, { projection });
+    if (company) return infoFor(company, isApp);
   }
   return null;
 }

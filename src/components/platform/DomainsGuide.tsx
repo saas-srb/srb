@@ -8,10 +8,11 @@ import type { CompanyDomainView } from "@/lib/platform/domains/types";
  * The step-by-step guide on Settings → Domains for connecting a company's own domain. It follows the company's real progress:
  * each step shows done / current / to do from the domains list, and the examples use the company's own domain once it added one.
  */
-export default function DomainsGuide({ domains }: { domains: CompanyDomainView[] }) {
+/** `single` = the company has one address for everything, so there is no `app.` host. */
+export default function DomainsGuide({ domains, single = false }: { domains: CompanyDomainView[]; single?: boolean }) {
   const custom = domains.filter((d) => d.kind === "custom");
   const first = custom[0];
-  const example = first ? first.host : "www.yourcompany.com";
+  const example = first ? first.host : single ? "app.yourcompany.com" : "www.yourcompany.com";
   const root = example.replace(/^www\./, "");
   const appHost = `app.${root}`;
 
@@ -27,7 +28,7 @@ export default function DomainsGuide({ domains }: { domains: CompanyDomainView[]
       title: "Add your domain below",
       body: (
         <>
-          Type the address you want for your website into <strong>Add a domain</strong> and press <em>Add domain</em>. Use <code className="rounded bg-muted px-1">{example}</code> (with <code className="rounded bg-muted px-1">www</code>). Write only the domain: no <code className="rounded bg-muted px-1">https://</code>, no slashes. You do <strong>not</strong> add the <code className="rounded bg-muted px-1">app.</code> address; it is created for you.
+          Type the address you want {single ? "for your workspace" : "for your website"} into <strong>Add a domain</strong> and press <em>Add domain</em>. Use <code className="rounded bg-muted px-1">{example}</code> . Write only the domain: no <code className="rounded bg-muted px-1">https://</code>, no slashes.{!single && <> You do <strong>not</strong> add the <code className="rounded bg-muted px-1">app.</code> address; it is created for you.</>}
         </>
       ),
     },
@@ -41,9 +42,13 @@ export default function DomainsGuide({ domains }: { domains: CompanyDomainView[]
               <thead className="bg-muted/50 text-muted-foreground"><tr><th className="px-3 py-2 font-medium">What it does</th><th className="px-3 py-2 font-medium">Type</th><th className="px-3 py-2 font-medium">Name / Host</th><th className="px-3 py-2 font-medium">Value</th></tr></thead>
               <tbody className="divide-y">
                 <tr><td className="px-3 py-2">Proves you own the domain</td><td className="px-3 py-2 font-mono">TXT</td><td className="px-3 py-2 font-mono">_domain-verify.{example}</td><td className="px-3 py-2">shown in the list</td></tr>
-                <tr><td className="px-3 py-2">Shows your website at <strong>{example}</strong></td><td className="px-3 py-2 font-mono">CNAME</td><td className="px-3 py-2 font-mono">{example.startsWith("www.") ? "www" : example}</td><td className="px-3 py-2">shown in the list</td></tr>
-                <tr><td className="px-3 py-2">Shows your products at <strong>{appHost}</strong></td><td className="px-3 py-2 font-mono">CNAME</td><td className="px-3 py-2 font-mono">app</td><td className="px-3 py-2">shown in the list</td></tr>
-                <tr><td className="px-3 py-2">Lets the hosting provider serve <strong>{appHost}</strong> (shown only when it asks for it)</td><td className="px-3 py-2 font-mono">TXT</td><td className="px-3 py-2 font-mono">_vercel</td><td className="px-3 py-2">shown in the list</td></tr>
+                <tr><td className="px-3 py-2">Shows your {single ? "workspace" : "website"} at <strong>{example}</strong></td><td className="px-3 py-2 font-mono">CNAME</td><td className="px-3 py-2 font-mono">{example.startsWith("www.") || example.startsWith("app.") ? example.split(".")[0] : example}</td><td className="px-3 py-2">shown in the list</td></tr>
+                {!single && (
+                  <>
+                    <tr><td className="px-3 py-2">Shows your products at <strong>{appHost}</strong></td><td className="px-3 py-2 font-mono">CNAME</td><td className="px-3 py-2 font-mono">app</td><td className="px-3 py-2">shown in the list</td></tr>
+                    <tr><td className="px-3 py-2">Lets the hosting provider serve <strong>{appHost}</strong> (shown only when it asks for it)</td><td className="px-3 py-2 font-mono">TXT</td><td className="px-3 py-2 font-mono">_vercel</td><td className="px-3 py-2">shown in the list</td></tr>
+                  </>
+                )}
               </tbody>
             </table>
           </div>
@@ -52,7 +57,7 @@ export default function DomainsGuide({ domains }: { domains: CompanyDomainView[]
             <li>If a record with the same name already exists (an old <code className="rounded bg-muted px-1">www</code> or <code className="rounded bg-muted px-1">app</code> record), replace it. Leave your email records (MX, SPF, DKIM) alone.</li>
             <li>Cloudflare: set the orange cloud to <strong>DNS only</strong> (grey) for these records until the domain is verified.</li>
             <li>Do <strong>not</strong> change your domain&apos;s nameservers.</li>
-            <li>Publish <strong>every</strong> record in the list, including the ones for <code className="rounded bg-muted px-1">{appHost}</code>, in one go. Nothing has to be done in the hosting dashboard: after the records are in, <em>Check now</em> (and the daily automatic check) verifies everything, including the app address, by itself.</li>
+            <li>Publish <strong>every</strong> record in the list{!single && <>, including the ones for <code className="rounded bg-muted px-1">{appHost}</code></>}, in one go. Nothing has to be done in the hosting dashboard: after the records are in, <em>Check now</em> (and the daily automatic check) verifies everything by itself.</li>
           </ul>
         </>
       ),
@@ -67,7 +72,7 @@ export default function DomainsGuide({ domains }: { domains: CompanyDomainView[]
     },
     {
       title: "Make it your primary address",
-      body: <>Press <strong>Make primary</strong>. Your website links, sitemap, emails and certificates will then use it. Your original workspace address keeps working too.</>,
+      body: <>Press <strong>Make primary</strong>. Your links, emails and certificates will then use it. Your original workspace address keeps working too.</>,
     },
   ];
 
@@ -85,8 +90,8 @@ export default function DomainsGuide({ domains }: { domains: CompanyDomainView[]
       </summary>
       <div className="space-y-5 border-t p-4">
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="flex items-start gap-3 rounded-lg border bg-background/60 p-3"><Globe className="mt-0.5 size-4 shrink-0 text-primary" /><p className="text-sm"><strong className="break-all">https://{example}</strong><span className="block text-xs text-muted-foreground">Your public website</span></p></div>
-          <div className="flex items-start gap-3 rounded-lg border bg-background/60 p-3"><LayoutDashboard className="mt-0.5 size-4 shrink-0 text-primary" /><p className="text-sm"><strong className="break-all">https://{appHost}</strong><span className="block text-xs text-muted-foreground">Your workspace and products, where your team signs in. Created automatically.</span></p></div>
+          <div className="flex items-start gap-3 rounded-lg border bg-background/60 p-3"><Globe className="mt-0.5 size-4 shrink-0 text-primary" /><p className="text-sm"><strong className="break-all">https://{example}</strong><span className="block text-xs text-muted-foreground">{single ? "Your workspace and products, where your team signs in." : "Your public website"}</span></p></div>
+          {!single && <div className="flex items-start gap-3 rounded-lg border bg-background/60 p-3"><LayoutDashboard className="mt-0.5 size-4 shrink-0 text-primary" /><p className="text-sm"><strong className="break-all">https://{appHost}</strong><span className="block text-xs text-muted-foreground">Your workspace and products, where your team signs in. Created automatically.</span></p></div>}
         </div>
 
         <ol className="space-y-4">

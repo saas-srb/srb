@@ -3,7 +3,7 @@
  * certificate checks, signing, the hosted forms, portal sign-in) stay; everything of the marketing site leads to the
  * company's own website or to the hosted forms. Pure.
  */
-const KEPT = new Set(["forms", "pay", "verify", "sign", "meeting", "vcard", "brochure", "login", "register", "clientos", "evaliq", "agentos-public", "api", "product-unavailable", "workspace-not-found", "company-suspended", "maintenance", "console-maintenance", "offline-shell", "platform-maintenance"]);
+const KEPT = new Set(["forms", "pay", "verify", "sign", "meeting", "vcard", "brochure", "login", "register", "clientos", "evaliq", "agentos-public", "api", "product-unavailable", "workspace-not-found", "company-suspended", "maintenance", "console-maintenance", "offline-shell", "platform-maintenance", "pwa", "icon", "apple-icon"]);
 
 /** Where an old website address leads instead; null = serve it. `externalUrl` = the company's own website, if it gave one. */
 export function websitelessTarget(pathname: string, externalUrl: string | null): string | null {
