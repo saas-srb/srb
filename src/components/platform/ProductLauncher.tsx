@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Grid2X2, Search, X, List, LayoutGrid, ChevronRight } from "lucide-react";
-import type { PanelMeta } from "@/lib/platform/panels/types";
+import { Grid2X2, Search, X, List, LayoutGrid, ExternalLink, Plus } from "lucide-react";
+import { NOT_LISTED_PRODUCTS, type PanelMeta } from "@/lib/platform/panels/types";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import ProductLogo from "@/components/products/ProductLogo";
 import { cn } from "@/lib/utils";
@@ -32,6 +32,12 @@ export const PRODUCT_SHORT_DESCRIPTIONS: Record<string, string> = {
   website: "Public Company Website, Custom Domain Hosting & SSL",
 };
 
+const matches = (product: PanelMeta, q: string) => `${product.name} ${product.shortName} ${PRODUCT_SHORT_DESCRIPTIONS[product.key] || product.description || ""}`.toLocaleLowerCase().includes(q);
+
+/**
+ * The product switcher of every top bar. It lists only the products this company can open (what it has not bought is not
+ * shown as a dead row; one link leads to adding products).
+ */
 export default function ProductLauncher({
   currentPanel,
   products: panelList,
@@ -43,20 +49,29 @@ export default function ProductLauncher({
   const [open, setOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
 
-  const products = useMemo(
-    () => [...panelList].sort((a, b) => a.order - b.order || a.name.localeCompare(b.name)),
+  const listed = useMemo(
+    () => panelList.filter((p) => !NOT_LISTED_PRODUCTS.has(p.key)).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name)),
     [panelList]
   );
+  const mine = useMemo(() => listed.filter((p) => p.available), [listed]);
+  const q = query.trim().toLocaleLowerCase();
+  const filtered = useMemo(() => (q ? mine.filter((p) => matches(p, q)) : mine), [mine, q]);
+  // Products the company could still add. Not offered inside the client portal, whose users don't buy anything.
+  const canAdd = currentPanel !== "portal" && listed.length > mine.length;
+  const close = () => setOpen(false);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLocaleLowerCase();
-    return q
-      ? products.filter((product) => {
-          const desc = PRODUCT_SHORT_DESCRIPTIONS[product.key] || product.description || "";
-          return `${product.name} ${product.shortName} ${desc}`.toLocaleLowerCase().includes(q);
-        })
-      : products;
-  }, [products, query]);
+  const toggle = (mode: "list" | "grid", label: string, Icon: typeof List) => (
+    <button
+      type="button"
+      onClick={() => setViewMode(mode)}
+      title={label}
+      aria-label={label}
+      aria-pressed={viewMode === mode}
+      className={cn("flex size-8 items-center justify-center rounded-lg transition-colors", viewMode === mode ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground")}
+    >
+      <Icon className="size-4" />
+    </button>
+  );
 
   return (
     <Sheet
@@ -78,226 +93,99 @@ export default function ProductLauncher({
           </button>
         }
       />
-      <SheetContent
-        side="right"
-        className="w-[min(30rem,calc(100vw-1rem))] gap-0 overflow-hidden border-border/70 p-0 sm:max-w-md"
-      >
-        <SheetHeader className="border-b border-border/60 px-5 py-4 pr-14">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <SheetTitle className="text-base font-semibold">All products</SheetTitle>
-              <SheetDescription className="mt-0.5 text-xs">
-                Switch to another product in your workspace.
-              </SheetDescription>
-            </div>
-          </div>
+      <SheetContent side="right" className="flex w-[min(30rem,calc(100vw-1rem))] flex-col gap-0 overflow-hidden border-border/70 p-0 sm:max-w-md">
+        <SheetHeader className="gap-1 border-b border-border/60 px-5 py-4 pr-14">
+          <SheetTitle className="flex items-center gap-2 text-base font-semibold">
+            All products
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-primary">{mine.length}</span>
+          </SheetTitle>
+          <SheetDescription className="text-xs">Switch to another product in your workspace.</SheetDescription>
         </SheetHeader>
 
-        {/* Search bar + View Mode Toggle */}
-        <div className="flex items-center gap-2 border-b border-border/50 p-3">
-          <label className="flex h-9 flex-1 items-center gap-2 rounded-xl border border-border/60 bg-background px-3 text-muted-foreground focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10">
+        <div className="flex items-center gap-2 px-4 py-3">
+          <label className="flex h-10 flex-1 items-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 text-muted-foreground transition-colors focus-within:border-primary/50 focus-within:bg-background focus-within:ring-2 focus-within:ring-primary/15">
             <Search className="size-4 shrink-0" aria-hidden="true" />
             <input
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Find product (e.g. CRM, Payroll, SEO...)"
+              placeholder="Search products, e.g. CRM or payroll"
               aria-label="Find a product"
-              className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
             />
             {query && (
-              <button
-                type="button"
-                onClick={() => setQuery("")}
-                aria-label="Clear search"
-                className="rounded p-0.5 hover:bg-muted"
-              >
+              <button type="button" onClick={() => setQuery("")} aria-label="Clear search" className="rounded-md p-1 hover:bg-muted hover:text-foreground">
                 <X className="size-3.5" />
               </button>
             )}
           </label>
-
-          <div className="flex items-center rounded-xl border border-border/60 bg-muted/40 p-0.5">
-            <button
-              type="button"
-              onClick={() => setViewMode("list")}
-              title="List view with descriptions"
-              className={cn(
-                "flex size-7 items-center justify-center rounded-lg transition-colors",
-                viewMode === "list"
-                  ? "bg-background text-foreground shadow-xs font-semibold"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <List className="size-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("grid")}
-              title="Grid view"
-              className={cn(
-                "flex size-7 items-center justify-center rounded-lg transition-colors",
-                viewMode === "grid"
-                  ? "bg-background text-foreground shadow-xs font-semibold"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <LayoutGrid className="size-4" />
-            </button>
+          <div className="flex items-center gap-0.5 rounded-xl border border-border/60 bg-muted/40 p-1">
+            {toggle("list", "List view", List)}
+            {toggle("grid", "Grid view", LayoutGrid)}
           </div>
         </div>
 
-        {/* Product Listing */}
-        {viewMode === "list" ? (
-          /* ─── List View (Full row with Logo, Name & Short Description) ─── */
-          <div className="flex-1 divide-y divide-border/30 overflow-y-auto p-2">
-            {filtered.map((product) => {
-              const isCurrent = product.key === currentPanel;
-              const shortDesc =
-                PRODUCT_SHORT_DESCRIPTIONS[product.key] || product.description || "Workspace product";
-
-              const content = (
-                <>
-                  <span className="relative flex size-11 shrink-0 items-center justify-center transition-transform group-hover:scale-105">
-                    <ProductLogo productKey={product.key} size={42} className="drop-shadow-sm" />
-                    {isCurrent && (
-                      <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
-                    )}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-foreground transition-colors group-hover:text-primary">
-                        {product.shortName || product.name}
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+          {filtered.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border/70 px-4 py-10 text-center">
+              <Search className="mx-auto mb-2 size-5 text-muted-foreground" aria-hidden />
+              <p className="text-sm font-medium text-foreground">No product of yours matches &ldquo;{query}&rdquo;</p>
+              <button type="button" onClick={() => setQuery("")} className="mt-2 text-xs font-semibold text-primary hover:underline">Show all products</button>
+            </div>
+          ) : (
+            <ul className={viewMode === "list" ? "space-y-1.5" : "grid grid-cols-2 gap-2 sm:grid-cols-3"}>
+              {filtered.map((product) => {
+                const isCurrent = product.key === currentPanel;
+                const name = product.shortName || product.name;
+                const description = PRODUCT_SHORT_DESCRIPTIONS[product.key] || product.description || "Workspace product";
+                const list = viewMode === "list";
+                return (
+                  <li key={product.key} className="group relative">
+                    <Link
+                      href={product.route}
+                      onClick={close}
+                      aria-current={isCurrent ? "page" : undefined}
+                      title={list ? undefined : description}
+                      className={cn(
+                        "flex h-full rounded-2xl border outline-none transition-all focus-visible:ring-2 focus-visible:ring-primary/50",
+                        list ? "items-center gap-3 py-2.5 pr-12 pl-2.5" : "flex-col items-center gap-2 px-2 py-3.5 text-center",
+                        isCurrent ? "border-primary/40 bg-primary/10" : "border-border/50 bg-card/60 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm"
+                      )}
+                    >
+                      <ProductLogo productKey={product.key} size={list ? 40 : 44} className="shrink-0 transition-transform group-hover:scale-105" />
+                      <span className={cn("min-w-0", list ? "flex-1" : "w-full")}>
+                        <span className={cn("flex items-center gap-2", !list && "flex-col gap-1")}>
+                          <span className={cn("truncate font-semibold text-foreground", list ? "text-sm" : "w-full text-xs")}>{name}</span>
+                          {isCurrent && <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">Current</span>}
+                        </span>
+                        {list && <span className="mt-0.5 line-clamp-2 block text-xs leading-snug text-muted-foreground">{description}</span>}
                       </span>
-                      {isCurrent ? (
-                        <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                          Current
-                        </span>
-                      ) : !product.available ? (
-                        <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                          Unavailable
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1 leading-normal">
-                      {shortDesc}
-                    </p>
-                  </div>
-                </>
-              );
-
-              const className = cn(
-                "group flex items-center rounded-xl transition-all text-left",
-                isCurrent ? "bg-primary/10 border border-primary/20" : "hover:bg-muted/60",
-                !product.available ? "cursor-not-allowed opacity-45" : "cursor-pointer"
-              );
-
-              return product.available ? (
-                <div key={product.key} className={className}>
-                  <Link
-                    href={product.route}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`${product.name} (opens in a new tab)`}
-                    className="flex min-w-0 flex-1 items-center gap-3 p-2.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                    onClick={() => setOpen(false)}
-                  >
-                    {content}
-                  </Link>
-                  <Link
-                    href={product.route}
-                    aria-label={`Open ${product.name} in this tab`}
-                    className="flex size-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground/50 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                    onClick={() => setOpen(false)}
-                  >
-                    <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
-                  </Link>
-                </div>
-              ) : (
-                <div
-                  key={product.key}
-                  aria-label={`${product.name} is unavailable`}
-                  aria-disabled="true"
-                  className={className}
-                >
-                  {content}
-                </div>
-              );
-            })}
-
-            {filtered.length === 0 && (
-              <p className="py-12 text-center text-sm text-muted-foreground">
-                No products match &ldquo;{query}&rdquo;.
-              </p>
-            )}
-          </div>
-        ) : (
-          /* ─── Grid View (Cards with Logo, Name & 2-line Description) ─── */
-          <div className="grid flex-1 grid-cols-2 content-start gap-2 overflow-y-auto p-3">
-            {filtered.map((product) => {
-              const isCurrent = product.key === currentPanel;
-              const shortDesc =
-                PRODUCT_SHORT_DESCRIPTIONS[product.key] || product.description || "Workspace product";
-
-              const content = (
-                <>
-                  <span className="relative mb-2 flex size-12 items-center justify-center transition duration-200 group-hover:-translate-y-0.5 group-hover:scale-105">
-                    <ProductLogo productKey={product.key} size={46} className="drop-shadow-md" />
-                    {isCurrent && (
-                      <span className="absolute top-0 right-0 size-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
+                    </Link>
+                    {list && (
+                      <a
+                        href={product.route}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={close}
+                        aria-label={`Open ${name} in a new tab`}
+                        title="Open in a new tab"
+                        className="absolute top-1/2 right-2 flex size-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                      >
+                        <ExternalLink className="size-4" />
+                      </a>
                     )}
-                  </span>
-                  <span className="w-full truncate text-xs font-semibold text-foreground transition-colors group-hover:text-primary">
-                    {product.shortName || product.name}
-                  </span>
-                  {isCurrent ? (
-                    <span className="mt-0.5 text-[9px] font-semibold text-primary">Current</span>
-                  ) : !product.available ? (
-                    <span className="mt-0.5 text-[9px] font-medium text-muted-foreground">Unavailable</span>
-                  ) : null}
-                  <p className="mt-1 w-full text-[10px] leading-tight text-muted-foreground line-clamp-2">
-                    {shortDesc}
-                  </p>
-                </>
-              );
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
 
-              const className = cn(
-                "group relative flex flex-col items-center justify-start rounded-2xl border p-3 text-center transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                isCurrent
-                  ? "border-primary/40 bg-primary/5 shadow-xs"
-                  : "border-border/60 bg-card hover:border-primary/30 hover:bg-muted/50 hover:shadow-xs",
-                !product.available ? "cursor-not-allowed opacity-45" : "cursor-pointer"
-              );
-
-              return product.available ? (
-                <Link
-                  key={product.key}
-                  href={product.route}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={product.name}
-                  className={className}
-                  onClick={() => setOpen(false)}
-                >
-                  {content}
-                </Link>
-              ) : (
-                <div
-                  key={product.key}
-                  aria-label={`${product.name} is unavailable`}
-                  aria-disabled="true"
-                  className={className}
-                >
-                  {content}
-                </div>
-              );
-            })}
-
-            {filtered.length === 0 && (
-              <p className="col-span-2 py-12 text-center text-sm text-muted-foreground">
-                No products match &ldquo;{query}&rdquo;.
-              </p>
-            )}
+        {canAdd && (
+          <div className="border-t border-border/60 p-3">
+            <Link href="/commandos/settings/billing" onClick={close} className="flex h-10 items-center justify-center gap-2 rounded-xl border border-dashed border-primary/40 text-sm font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+              <Plus className="size-4" aria-hidden /> Add more products
+            </Link>
           </div>
         )}
       </SheetContent>

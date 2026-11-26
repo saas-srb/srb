@@ -45,7 +45,6 @@ export default async function Footer({}: { host?: string }) {
     ] },
   ];
   const explore = [
-    { href: "/pricing", label: "Pricing" },
     { href: "/faqs", label: "FAQs" },
     { href: "/blog", label: "Blog" },
     { href: "/about", label: "About Us" },
@@ -57,7 +56,6 @@ export default async function Footer({}: { host?: string }) {
     { label: "All products", href: "/products" },
     { label: "Live demo", href: "/demo" },
     { label: "Our vision", href: "/vision" },
-    { label: "Roadmap", href: "/roadmap" },
     { label: "Success stories", href: "/success-stories" },
   ];
   return (

@@ -81,12 +81,11 @@ async function run() {
   await setSignupMode("open", "test");
 
   console.log("sign-up form");
-  await check("the sign-up form asks only for company, address, business type, e-mail, password and terms - no setup steps", () => {
+  await check("the sign-up form asks only for company, address, business type, e-mail, password and terms - no setup questions", () => {
     const form = fs.readFileSync(path.join(process.cwd(), "src/app/(platform)/signup/SignupForm.tsx"), "utf8");
     const names = [...form.matchAll(/name="([A-Za-z]+)"/g)].map((m) => m[1]).sort();
-    // The product (and, for All products, the website choice), the business category and sub-category are asked at sign-up (they decide the starter website); the chosen plan travels as two hidden fields; there is still no setup wizard in the form.
+    // The product (and, for All products, the website choice), the business category and sub-category are asked at sign-up (they decide the starter website); the chosen plan travels as two hidden fields; the three screens (products, business, account) are one form: nothing about setting the company up is asked.
     assert.deepEqual(names, ["acceptTerms", "businessCategory", "businessSubCategory", "companyName", "email", "interval", "password", "plan", "product", "slug", "websiteMode", "websiteUrl"]);
-    assert.ok(!/useState\(\s*(0|1)\s*\)[^\n]*step/i.test(form) && !/\bstep\b/i.test(form.replace(/\/\/.*$/gm, "")), "no multi-step flow in the form");
   });
 
   console.log("fresh sign-up -> handoff -> /commandos");

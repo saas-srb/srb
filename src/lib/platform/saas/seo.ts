@@ -18,7 +18,6 @@ const PAGES: [string, number, "daily" | "weekly" | "monthly" | "yearly"][] = [
   ["/gallery", 0.7, "monthly"],
   ["/blog", 0.8, "weekly"],
   ["/vision", 0.6, "monthly"],
-  ["/roadmap", 0.6, "monthly"],
   ["/about", 0.6, "monthly"],
   ["/success-stories", 0.6, "monthly"],
   ["/demo", 0.7, "monthly"],

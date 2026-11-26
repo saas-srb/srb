@@ -54,6 +54,7 @@ import type { CommandCenterStats } from "@/lib/products/commandos/command-center
 import { formatCurrency } from "@/lib/utils";
 import { productAnalyticsPath } from "@/lib/platform/saas/product-routes";
 import ProductLogo from "@/components/products/ProductLogo";
+import { NOT_LISTED_PRODUCTS } from "@/lib/platform/panels/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Product status grid config
@@ -438,7 +439,7 @@ export function PanelPerformanceMatrix({
     : PANEL_GRID.map((p) => ({ ...p, description: PRODUCT_CARD_DESCRIPTIONS[p.key] ?? "", analyticsHref: p.analyticsHref as string | null }));
   const grid = base
     .map((p) => ({ ...p, label: names?.[p.key] ?? p.label }))
-    .filter((p) => !unavailable?.includes(p.key))
+    .filter((p) => !unavailable?.includes(p.key) && !NOT_LISTED_PRODUCTS.has(p.key))
     .filter((p) => !panels || panels.includes(p.key))
     .filter((p) => !q || p.label.toLowerCase().includes(q) || p.key.includes(q));
   return (

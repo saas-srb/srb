@@ -1,6 +1,6 @@
 import { listPanels, panelNameMap } from "@/lib/platform/panels/store";
 import { getDefaultPlan } from "@/lib/platform/billing/plans";
-import { billableCount, offerName, parseSelection, resolveWebsite, type CompanyWebsite, type ProductSelection } from "@/lib/platform/products/selection";
+import { billableCount, parseSelection, resolveWebsite, type CompanyWebsite, type ProductSelection } from "@/lib/platform/products/selection";
 import { productAppPath } from "@/lib/platform/saas/product-routes";
 import { passwordPolicyError } from "@/lib/security/password";
 import { platformEvents } from "@/lib/notify/triggers/platform";
@@ -163,8 +163,7 @@ export function validateSignup(input: SignupInput): SignupFieldErrors {
   if (!business.ok) Object.assign(errors, business.errors);
   if (input.product !== undefined) {
     if (!parseSelection(input.product)) {
-      const picked = [input.product].flat().filter(Boolean);
-      errors.product = picked.includes("intelligence") ? "DataBrain works on your records: choose it together with CashFlow, TalentOS, SprintOS, DealFlow or SpendIQ." : "Choose one or more products, or All products.";
+      errors.product = "Choose one or more products, or All products.";
     }
     if (input.websiteMode === "external" && !/^https?:\/\/[^\s/]+\.[^\s]+$/i.test(input.websiteUrl?.trim() ?? "")) errors.websiteUrl = "Enter your website's full address, e.g. https://example.com";
   }
@@ -348,7 +347,7 @@ async function productLine(products: ProductSelection | undefined): Promise<stri
   if (!products) return [];
   if (products.mode === "all") return ["Your products: all of them."];
   const name = await panelNameMap();
-  return [`Your products: ${products.keys.map((k) => offerName(k, name(k))).join(", ")}. You can add more any time in Settings → Billing.`];
+  return [`Your products: ${products.keys.map((k) => name(k)).join(", ")}. You can add more any time in Settings → Billing.`];
 }
 
 async function sendWorkspaceReadyEmail(doc: PendingSignup, base: string, approved = false) {
@@ -391,7 +390,7 @@ export async function listAwaitingApproval(): Promise<AwaitingApproval[]> {
     .toArray();
   const name = await panelNameMap();
   const words = (d: PendingSignup) => {
-    const list = !d.products || d.products.mode === "all" ? "All products" : d.products.keys.map((k) => offerName(k, name(k))).join(", ");
+    const list = !d.products || d.products.mode === "all" ? "All products" : d.products.keys.map((k) => name(k)).join(", ");
     const site = d.website?.mode === "external" ? ` · own website ${d.website.externalUrl}` : d.website?.mode === "none" ? " · no website" : "";
     return `${list}${site}`;
   };

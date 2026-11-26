@@ -419,7 +419,7 @@ export const PANEL_DETAIL: Record<string, PanelDetail> = {
       { title: "Follow", text: "Status, replies and notifications on every request." },
     ],
     connects: [
-      { panel: "workspace", text: "Help from every product's header." },
+      { panel: "workspace", text: "Help from the CommandOS sidebar." },
       { panel: "aibots", text: "AI answers grounded in your own content." },
     ],
   },

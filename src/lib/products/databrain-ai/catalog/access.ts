@@ -46,8 +46,24 @@ export async function intelAreas(user: IntelAccessUser): Promise<Set<IntelArea>>
     if (holdsLegacy(user, "spendiq", "prms.canManageProcurement", "prms.canManageFinance")) out.add("procurement");
     if (holdsLegacy(user, "spendiq", "prms.canManageExpenses")) out.add("expenses");
   }
+  // The other products: only the people who see that whole product (its administrators or its company-wide view).
+  const moduleOn = (m: string) => (entitlements.modules === null || entitlements.modules.has(m)) && (!enabled || enabled.has(m));
+  for (const [area, module, product, permission] of PRODUCT_AREAS) if (moduleOn(module) && holdsLegacy(user, product, permission)) out.add(area);
   return out;
 }
+
+/** [area, module, product, the capability that shows everything in it]. */
+const PRODUCT_AREAS: readonly [IntelArea, string, string, string][] = [
+  ["training", "tms", "cohort-ai", "tms.canManageStudents"],
+  ["assessments", "ots", "evaliq", "ots.VIEW_REPORTS"],
+  ["playbooks", "sop", "playbook-ai", "sop.MANAGE_PERMISSIONS"],
+  ["contracts", "lpms", "contractflow-ai", "lpms.VIEW_AUDIT"],
+  ["vault", "dlms", "cybervault", "dlms.MANAGE_DOCUMENTS"],
+  ["website", "cms", "sitecraft-ai", "cms.VIEW"],
+  ["seo", "seo", "rankmax-ai", "seo.VIEW"],
+  ["social", "smms", "viralpulse-ai", "smms.VIEW_ANALYTICS"],
+  ["calls", "aibots", "agentos", "aibots.VOICE_CALL_MANAGE"],
+];
 
 /**
  * What the user may see of an entity: null = nothing; "all" = every non-sensitive field;

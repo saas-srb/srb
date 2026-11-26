@@ -46,6 +46,16 @@ ResolveIQ (help desk) CommandOS ki tarah sabko milta hai.
 
 **D12 (26 Nov):** ClientOS ke wo pages jinse kisi product ke log sign in karte hain, us product ke saath khulte hain: **EvalIQ → tests aur exam**, **Cohort AI → training wale pages** (dono ke saath account pages). Baaki ClientOS sirf All products me.
 
+**D16 (26 Nov, D1, D6, D9, D11 aur upar wali dropdown list ki jagah):**
+
+- Dropdown: All products, DealFlow, ViralPulse, SiteCraft AI & Sites, TalentOS, Cohort AI, EvalIQ, CashFlow, SprintOS, SpendIQ, Playbook, ContractFlow, CyberVault, AgentOS, Huddle
+- Har workspace ke saath: **CommandOS, DataBrain, ResolveIQ**
+- **SiteCraft ke saath: Sites (website), RankMax, ClientOS** (alag se nahi bikte, ginti me nahi)
+- **Huddle sirf chunne par**, aur baaki products ki tarah paid
+- ClientOS ka page jis product ka record dikhata hai wo product bhi chahiye: invoices → CashFlow; milestones, meetings → SprintOS; projects → SprintOS ya Cohort AI; messages → DealFlow; application, interviews → TalentOS ya DealFlow; training pages → Cohort AI; tests → EvalIQ ya Cohort AI
+- **DataBrain** ab Cohort AI, EvalIQ, Playbook, ContractFlow, CyberVault (sirf naam, category, expiry), SiteCraft, RankMax, ViralPulse aur AgentOS ke data par bhi jawab deta hai; sirf us product ko poora dekhne wale log. Passwords, files, phone number, transcript aur chat kabhi nahi. Huddle akela ho to DataBrain saaf batata hai ki padhne ko kuch nahi
+- Plan me product list ho to bhi Huddle aur DataBrain us list se band nahi hote
+
 ## 4. Design
 
 **Ek hi jagah faisla.** Naya field `company.products`:
@@ -273,6 +283,15 @@ Baaki: browser me checkout jaanch (public plan cards me one product ka daam P7 m
 - Purani companies me kuch nahi badla (do address)
 - Console se sirf override dekar SiteCraft kholne par doosra address nahi banta; Console ke **Products and website** se product jodiye
 - Baaki: live domain / Vercel aur installed app par browser jaanch
+
+**Apna subdomain (26 Nov).** Jis company ki website pehle se chal rahi hai wo naya domain liye bina apne domain ka subdomain (`app.company.co.in`) jod sakti hai.
+
+- Settings → Domains: address kis liye hai: *website aur team sign-in*, ya *sirf team sign-in* (website hamare yahan na ho to hamesha yahi)
+- Sirf apne do DNS record (TXT, CNAME); baaki website aur email waise hi
+- Unki bahar chal rahi website wala address (root / www) add hi nahi hota; website na batane wali company se root domain par pehle poochha jata hai
+- Doosri company ka address koi nahi le sakta; ek address hatane se doosra nahi tootta
+- `.co.in` jaise domain par ab sahi DNS record (pehle galat tha)
+- Tests: `npm run test:subdomains`. Baaki: asli domain aur Vercel par browser jaanch
 
 ## 10. Aage ke liye note
 

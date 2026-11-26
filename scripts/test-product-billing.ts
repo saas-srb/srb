@@ -95,10 +95,11 @@ async function main() {
   eq(billableCount({ mode: "all" }), null, "all");
   eq(billableCount(sel("hrms")), 1, "one");
   eq(billableCount(sel("messenger")), 1, "Huddle alone is the product bought");
-  eq(billableCount(sel("hrms", "messenger")), 1, "Huddle comes free beside another");
+  eq(billableCount(sel("hrms", "messenger")), 2, "Huddle is paid like any product");
+  eq(billableCount(sel("cms", "seo", "portal")), 1, "what SiteCraft brings is free");
   eq(billableCount(sel("lpms")), 1, "ContractFlow");
   eq(billableCount(sel("lpms", "sop")), 1, "its Playbook is free");
-  eq(billableCount(sel("hrms", "fms", "intelligence")), 3, "companions count");
+  eq(billableCount(sel("hrms", "fms", "intelligence")), 2, "DataBrain comes free");
 
   // --- plan prices ------------------------------------------------------------------------
   const g = (await getPlan("growth"))!;

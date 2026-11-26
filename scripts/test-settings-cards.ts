@@ -123,7 +123,7 @@ console.log("plain-language copy");
 const FIRST_BAD = /^(the|your|a|an|this|it|all|every|one)\b/i;
 const sentenceOk = (s: string) => s.length <= 80 && s.endsWith(".") && !FIRST_BAD.test(s) && /^[A-Z]/.test(s) && !/[;—]/.test(s) && (s.match(/\./g) ?? []).length === 1;
 T("every Integrations card has one short sentence that starts with a verb", () => {
-  const keys = [...CONNECTION_PROVIDERS.filter((p) => !HIDDEN_FROM_COMPANIES.includes(p.key)).map((p) => p.key), "ai-chatbot", "webhooks", "dealflow-sync"];
+  const keys = [...CONNECTION_PROVIDERS.filter((p) => !HIDDEN_FROM_COMPANIES.includes(p.key)).map((p) => p.key), "ai-chatbot", "webhooks", "dealflow-sync", "sender-email"];
   for (const k of keys) { assert.ok(CARD_COPY[k], `${k} has card copy`); assert.ok(sentenceOk(CARD_COPY[k]), `${k}: ${CARD_COPY[k]}`); }
   assert.equal(new Set(Object.values(CARD_COPY)).size, Object.values(CARD_COPY).length, "no two cards say the same thing");
   const jargon = /\b(API|OAuth|SMTP|VAPID|webhook secret|HMAC|PKCE|DNS|token)\b/;

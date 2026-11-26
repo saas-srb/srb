@@ -1,5 +1,5 @@
 /**
- * Structure of the SRB AI product website: navigation, feature groups, roadmap and legal copy.
+ * Structure of the SRB AI product website: navigation, feature groups and legal copy.
  * Everything is drawn from what the product really does (see `content.ts`); where the product has no genuine data yet
  * (releases, posts, customer stories) the list is empty and the page shows its structure with an honest empty state.
  */
@@ -67,16 +67,6 @@ export const FLOWS: Flow[] = [
   { id: "leave", area: "SRB TalentOS", trigger: "A leave request is filed", condition: "Needs approval", action: ["Notify the manager", "Track the approval"] },
   { id: "invoice", area: "SRB CashFlow AI", trigger: "An invoice goes overdue", condition: "Past the reminder date", action: ["Send a payment reminder", "Notify finance"] },
   { id: "task", area: "SRB SprintOS", trigger: "A task is assigned or overdue", condition: "Always", action: ["Notify the assignee"] },
-];
-
-export type RoadmapStatus = "Completed" | "In Progress" | "Planned" | "Future";
-export interface RoadmapItem {
-  title: string;
-  body: string;
-  status: RoadmapStatus;
-}
-/** Only genuine roadmap information: items the product itself marks as upcoming. */
-export const ROADMAP: RoadmapItem[] = [
 ];
 
 export interface ChangelogEntry {

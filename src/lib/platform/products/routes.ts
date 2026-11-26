@@ -10,6 +10,8 @@ export interface ProductRule {
   modules: ModuleKey[];
   /** A screen that shows another product's records inside a product needs that product as well. */
   also?: ModuleKey;
+  /** A second "any of" list that must be met too (ClientOS job pages: the portal, and a product that has applicants). */
+  either?: ModuleKey[];
   /** `external` = opened by people outside the company (customers, candidates, guests): they see "not available", never the upgrade page. */
   audience: "staff" | "external";
 }
@@ -42,6 +44,8 @@ const PREFIXES: [string, ModuleKey[], ProductRule["audience"]][] = [
   ["/commandos/careers", ["hrms", "lms"], "staff"],
   ["/commandos/chatbot", ["cms", "aibots"], "staff"],
   ["/commandos/portal", ["portal"], "staff"],
+  ["/commandos/teamchat", ["messenger"], "staff"],
+  ["/api/commandos/teamchat", ["messenger"], "staff"],
   ["/api/commandos/crm/leads", ["lms"], "staff"],
   ["/api/commandos/crm/clients", ["lms", "pms", "fms"], "staff"],
   ["/api/commandos/pms", ["pms"], "staff"],
@@ -69,26 +73,35 @@ const COMBINED: [string, ModuleKey, ModuleKey][] = [
 ];
 
 /**
- * ClientOS is sold only with All products, but the people a product serves sign in through it: a company with EvalIQ
- * keeps the candidates' test pages, one with Cohort AI the students' learning pages, both with the account pages.
+ * ClientOS comes with SiteCraft (and All products), and the people other products serve sign in through it: EvalIQ keeps
+ * the candidates' test pages, Cohort AI the students' learning pages, both with the account pages. A ClientOS page that
+ * shows a product's records needs that product.
  */
 const PORTAL_ACCOUNT = ["journey", "documents", "profile", "notifications", "change-password", "login", "forgot-password", "register", "join"].map((p) => `/clientos/${p}`).concat("/api/clientos/session", "/api/clientos/download");
-const PORTAL_TESTS = ["/clientos/tests", "/clientos/exam"];
-const PORTAL_LEARNING = ["program", "schedule", "assignments", "attendance", "certificates", "payments", "projects"].map((p) => `/clientos/${p}`);
+type PortalPage = [paths: string[], rule: Omit<ProductRule, "audience">];
+const PORTAL_PAGES: PortalPage[] = [
+  [["/clientos/tests", "/clientos/exam"], { modules: ["ots", "tms"] }],
+  [["program", "schedule", "assignments", "attendance", "certificates", "payments"].map((p) => `/clientos/${p}`), { modules: ["tms"] }],
+  [["/clientos/projects"], { modules: ["portal", "tms"], either: ["pms", "tms"] }],
+  // Meetings here are the project's dates; messages are answered in DealFlow.
+  [["/clientos/milestones", "/clientos/meetings"], { modules: ["portal"], also: "pms" }],
+  [["/clientos/messages", "/api/clientos/messages"], { modules: ["portal"], also: "lms" }],
+  [["/clientos/invoices", "/api/clientos/invoices"], { modules: ["portal"], also: "fms" }],
+  [["/clientos/application", "/clientos/interviews"], { modules: ["portal"], either: ["hrms", "lms"] }],
+];
 
-function portalModules(pathname: string): ModuleKey[] | null {
+function portalRule(pathname: string): Omit<ProductRule, "audience"> | null {
   const any = (list: string[]) => list.some((p) => under(pathname, p));
-  if (pathname === "/clientos" || any(PORTAL_ACCOUNT)) return ["portal", "tms", "ots"];
-  if (any(PORTAL_TESTS)) return ["portal", "ots", "tms"];
-  return any(PORTAL_LEARNING) ? ["portal", "tms"] : null;
+  if (pathname === "/clientos" || any(PORTAL_ACCOUNT)) return { modules: ["portal", "tms", "ots"] };
+  return PORTAL_PAGES.find(([paths]) => any(paths))?.[1] ?? null;
 }
 
 const under = (path: string, prefix: string) => path === prefix || path.startsWith(`${prefix}/`);
 
 export function productRuleFor(pathname: string): ProductRule | null {
   if (MACHINE_PATH.test(pathname)) return null;
-  const portal = portalModules(pathname);
-  if (portal) return { modules: portal, audience: "external" };
+  const portal = portalRule(pathname);
+  if (portal) return { ...portal, audience: "external" };
   const combined = COMBINED.find(([prefix]) => under(pathname, prefix));
   if (combined) return { modules: [combined[1]], also: combined[2], audience: "staff" };
   let best: (typeof PREFIXES)[number] | null = null;
@@ -113,6 +126,7 @@ export function ruleAllows(rule: ProductRule, modules: ReadonlySet<string> | nul
 export function missingModule(rule: ProductRule, modules: ReadonlySet<string> | null): ModuleKey | null {
   if (modules === null) return null;
   if (!rule.modules.some((m) => modules.has(m))) return rule.modules[0];
+  if (rule.either && !rule.either.some((m) => modules.has(m))) return rule.either[0];
   return rule.also && !modules.has(rule.also) ? rule.also : null;
 }
 
@@ -124,7 +138,7 @@ export function lockedModules(modules: ReadonlySet<string> | null): Set<string> 
 /** Whether a link may be shown: it needs no product, or one of its products is available (`unavailable` = registry keys the company can't use). */
 export function hrefAvailable(href: string, unavailable: ReadonlySet<string>): boolean {
   const rule = productRuleFor(href.split(/[?#]/)[0]);
-  return !rule || (rule.modules.some((m) => !unavailable.has(m)) && !(rule.also && unavailable.has(rule.also)));
+  return !rule || (rule.modules.some((m) => !unavailable.has(m)) && !(rule.also && unavailable.has(rule.also)) && (!rule.either || rule.either.some((m) => !unavailable.has(m))));
 }
 
 /** Another product's screen → the same records inside a product that can stand in for it: [their path, our path, keeps the record id]. */

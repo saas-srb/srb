@@ -56,6 +56,12 @@ export interface PanelMeta {
   available: boolean;
 }
 
+/**
+ * Not listed in "All products" or on the dashboard: they aren't products a person switches to. ResolveIQ is the help link
+ * in the sidebar, ClientOS is for the company's clients and applicants, Sites is the public website itself.
+ */
+export const NOT_LISTED_PRODUCTS: ReadonlySet<string> = new Set(["portal", "support", "website"]);
+
 /** Remove the platform brand when a product name is shown inside a customer's white-label workspace. */
 export function whiteLabelProductName(name: string): string {
   return name.replace(/\b(?:SelfRun|SRB)(?:\s+AI)?\b/gi, "").replace(/\s{2,}/g, " ").trim();
@@ -140,7 +146,7 @@ export const DEFAULT_PANELS: PanelRecord[] = [
   P("fms", "CashFlow AI", "CashFlow", "Autonomous invoicing, accounting, payment links, bank reconciliation and ledger", "finance", 40),
   P("prms", "SpendIQ", "SpendIQ", "Autonomous procurement, purchase orders, vendor bills, asset registry and expenses", "cart", 50),
   P("tms", "Cohort AI", "Cohort AI", "Interactive training programs, batch scheduling, student curriculum and certificates", "training", 60),
-  P("messenger", "Huddle AI", "Huddle", "Context-aware team chat channels, direct messaging, voice meetings and company calls", "chat", 70, true),
+  P("messenger", "Huddle AI", "Huddle", "Context-aware team chat channels, direct messaging, voice meetings and company calls", "chat", 70),
   P("sop", "Playbook AI", "Playbook", "Digital standard operating procedures, policy versioning and staff compliance", "book", 80),
   P("lpms", "ContractFlow AI", "ContractFlow", "A register of agreements and policy documents with approval history; signing and a signed-document vault are being built", "file", 90),
   P("dlms", "CyberVault", "CyberVault", "Zero-trust encrypted credential vault, sensitive document lockers and expiry alerts", "vault", 100),

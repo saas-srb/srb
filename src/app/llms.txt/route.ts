@@ -54,7 +54,6 @@ export async function GET() {
     `- Product gallery: ${origin}/gallery`,
     `- Blog and guides: ${origin}/blog`,
     `- Product vision: ${origin}/vision`,
-    `- Product roadmap: ${origin}/roadmap`,
     `- Customer stories and workflows: ${origin}/success-stories`,
     `- About: ${origin}/about`,
     `- Request a demo: ${origin}/demo`,

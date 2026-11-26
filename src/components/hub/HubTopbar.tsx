@@ -1,7 +1,6 @@
 "use client";
 
 import { PanelHeading, ProductLauncherForPanel } from "@/components/platform/PanelsProvider";
-import HelpLauncher from "@/components/support/HelpLauncher";
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
 import type { NavSection } from "@/lib/products/commandos/nav";
@@ -22,7 +21,6 @@ export default function HubTopbar({ email, nav, unread = 0 }: { email: string; n
       </div>
       <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
         <ProductLauncherForPanel panel="workspace" />
-        <HelpLauncher />
         <button
           type="button"
           onClick={() => setAiOpen(!aiOpen)}

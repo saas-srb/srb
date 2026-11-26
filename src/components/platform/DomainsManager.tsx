@@ -8,9 +8,13 @@ import { Button } from "@/components/ui/button";
 import { cn, formatDateTime } from "@/lib/utils";
 import type { CompanyDomainView, DomainActionResult, RecordState } from "@/lib/platform/domains/types";
 import DomainsGuide from "@/components/platform/DomainsGuide";
+import { isWebsiteAddress, relativeName, zoneOf } from "@/lib/platform/domains/zone";
+
+/** The typed address as a bare host, for the hints under the field (the server does the real check). */
+const typedHost = (raw: string) => raw.trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split(/[/?#:]/)[0].replace(/\.$/, "");
 
 export interface DomainsManagerActions {
-  add: (host: string) => Promise<DomainActionResult>;
+  add: (host: string, use: "website" | "app") => Promise<DomainActionResult>;
   verify: (host: string) => Promise<DomainActionResult>;
   makePrimary: (host: string) => Promise<DomainActionResult>;
   remove: (host: string) => Promise<DomainActionResult>;
@@ -62,6 +66,12 @@ function CopyValue({ value, label }: { value: string; label: string }) {
   );
 }
 
+/** What to type in the Name box when the DNS panel adds the domain itself. */
+function ShortName({ name, host }: { name: string; host: string }) {
+  const short = relativeName(name, zoneOf(host));
+  return short === name ? null : <p className="mt-1 text-[11px] text-muted-foreground">In your DNS panel type <code className="font-mono font-semibold">{short}</code></p>;
+}
+
 function DnsRecords({ domain }: { domain: CompanyDomainView }) {
   if (domain.records.length === 0) return null;
   return (
@@ -85,6 +95,7 @@ function DnsRecords({ domain }: { domain: CompanyDomainView }) {
                 <dt className="font-medium text-muted-foreground sm:order-2">Name</dt>
                 <dd className="min-w-0 sm:order-5">
                   <CopyValue value={r.name} label={`${r.type} record name`} />
+                  <ShortName name={r.name} host={domain.host} />
                 </dd>
                 <dt className="font-medium text-muted-foreground sm:order-3">Value</dt>
                 <dd className="min-w-0 sm:order-6">
@@ -164,6 +175,9 @@ function SslPill({ domain }: { domain: CompanyDomainView }) {
 export default function DomainsManager({ initial, maxCustom, actions, single = false }: { initial: CompanyDomainView[]; maxCustom: number; actions: DomainsManagerActions; single?: boolean }) {
   const [domains, setDomains] = useState(initial);
   const [host, setHost] = useState("");
+  const [use, setUse] = useState<"website" | "app">("website");
+  // Asked once before a one-address workspace takes over the address a website usually lives on.
+  const [confirmedHost, setConfirmedHost] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [busy, setBusy] = useState<{ host: string; op: Op } | null>(null);
@@ -172,6 +186,9 @@ export default function DomainsManager({ initial, maxCustom, actions, single = f
   const [, startRow] = useTransition();
   const customCount = domains.filter((d) => d.kind === "custom").length;
   const atLimit = customCount >= maxCustom;
+  const candidate = typedHost(host);
+  const takesWebsiteAddress = single && candidate.includes(".") && isWebsiteAddress(candidate);
+  const needsConfirm = takesWebsiteAddress && confirmedHost !== candidate;
 
   function apply(res: DomainActionResult) {
     if (res.ok) {
@@ -198,16 +215,16 @@ export default function DomainsManager({ initial, maxCustom, actions, single = f
 
   return (
     <div className="space-y-6">
-      <DomainsGuide domains={domains} single={single} />
       <form
         className="space-y-2"
         onSubmit={(e) => {
           e.preventDefault();
+          if (needsConfirm) return;
           setAddError(null);
           setNotice(null);
           startAdd(async () => {
             try {
-              const res = await actions.add(host);
+              const res = await actions.add(host, single ? "app" : use);
               if (res.ok) {
                 setHost("");
                 apply(res);
@@ -218,14 +235,28 @@ export default function DomainsManager({ initial, maxCustom, actions, single = f
           });
         }}
       >
-        <Label htmlFor="domain-host">Add a domain</Label>
+        {!single && (
+          <fieldset className="grid gap-2 pb-1 sm:grid-cols-2">
+            <legend className="mb-1.5 text-sm font-medium">What is the address for?</legend>
+            {[
+              { value: "website" as const, title: "Website and team sign-in", text: "Your website shows on this domain; your team signs in at app.<domain>." },
+              { value: "app" as const, title: "Team sign-in only", text: "A subdomain like team.yourcompany.com opens the workspace. Nothing else on your domain changes." },
+            ].map((c) => (
+              <label key={c.value} className="flex cursor-pointer items-start gap-2.5 rounded-lg border bg-background/60 p-3 text-sm has-checked:border-primary has-checked:bg-primary/5">
+                <input type="radio" name="domain-use" className="mt-1" checked={use === c.value} onChange={() => setUse(c.value)} />
+                <span><span className="block font-semibold">{c.title}</span><span className="block text-xs text-muted-foreground">{c.text}</span></span>
+              </label>
+            ))}
+          </fieldset>
+        )}
+        <Label htmlFor="domain-host">Add a domain or subdomain</Label>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Input
             id="domain-host"
             name="domain"
             value={host}
             onChange={(e) => setHost(e.target.value)}
-            placeholder="www.yourcompany.com"
+            placeholder={single ? "e.g. app.yourcompany.com or yourcompany.com" : use === "app" ? "e.g. app.yourcompany.com or team.yourcompany.com" : "e.g. yourcompany.com or www.yourcompany.com"}
             autoComplete="off"
             autoCapitalize="none"
             spellCheck={false}
@@ -236,13 +267,49 @@ export default function DomainsManager({ initial, maxCustom, actions, single = f
             aria-describedby="domain-host-help"
             className="sm:flex-1"
           />
-          <Button type="submit" disabled={adding || atLimit || !host.trim()}>
+          <Button type="submit" disabled={adding || atLimit || !host.trim() || needsConfirm}>
             {adding ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />} Add domain
           </Button>
         </div>
-        <p id="domain-host-help" className="text-xs text-muted-foreground">
-          {atLimit ? `You've connected the maximum of ${maxCustom} custom domains. Remove one to add another.` : "A domain you own, such as www.yourcompany.com. Your products are set up for you at app.yourcompany.com. You'll verify the domain with a DNS record next (see the steps above)."}
-        </p>
+        <div id="domain-host-help" className="space-y-1.5 text-xs text-muted-foreground">
+          {atLimit ? (
+            <p>You&apos;ve connected the maximum of {maxCustom} custom domains. Remove one to add another.</p>
+          ) : (
+            <>
+              <ul className="space-y-1">
+                {(single
+                  ? [
+                      ["app.yourcompany.com", "You already have a website: your workspace opens on this subdomain, and the website stays as it is."],
+                      ["yourcompany.com", "You have no website: your workspace opens on your main domain."],
+                    ]
+                  : use === "app"
+                    ? [
+                        ["app.yourcompany.com", "Your team signs in here."],
+                        ["team.yourcompany.co.in", "Any subdomain name works, and so does .co.in or .in."],
+                      ]
+                    : [
+                        ["yourcompany.com", "Your website shows here, and your team signs in at app.yourcompany.com."],
+                        ["www.yourcompany.com", "The same, with www."],
+                      ]
+                ).map(([example, meaning]) => (
+                  <li key={example}>
+                    <code className="rounded bg-muted px-1.5 py-0.5 font-mono font-semibold text-foreground">{example}</code> {meaning}
+                  </li>
+                ))}
+              </ul>
+              <p>Type only the address, without https:// or a slash. You&apos;ll verify it with a DNS record next (see the steps below).</p>
+            </>
+          )}
+        </div>
+        {needsConfirm && (
+          <div role="alert" className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+            <p><strong className="break-all">{candidate}</strong> is usually where a business website lives. Connecting it opens this workspace there, so a website on it would stop showing. To keep your website, add a subdomain such as <strong>app.{zoneOf(candidate)}</strong>.</p>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" onClick={() => setHost(`app.${zoneOf(candidate)}`)}>Use app.{zoneOf(candidate)}</Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => setConfirmedHost(candidate)}>I have no website there, continue</Button>
+            </div>
+          </div>
+        )}
         {addError && (
           <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {addError}
@@ -275,7 +342,7 @@ export default function DomainsManager({ initial, maxCustom, actions, single = f
                       <Pill tone="amber"><CircleDashed className="size-3" /> Pending verification</Pill>
                     )}
                     {d.isPrimary && <Pill tone="blue"><Star className="size-3" /> Primary</Pill>}
-                    <Pill tone="muted">{d.kind === "subdomain" ? "Workspace address" : "Custom domain"}</Pill>
+                    <Pill tone="muted">{d.kind === "subdomain" ? "Workspace address" : d.appOnly ? "Team sign-in address" : "Custom domain"}</Pill>
                     {d.status === "verified" && <SslPill domain={d} />}
                     {d.app && <AppPill app={d.app} />}
                   </div>
@@ -292,7 +359,7 @@ export default function DomainsManager({ initial, maxCustom, actions, single = f
                       {rowBusy === "verify" ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />} Check now
                     </Button>
                   )}
-                  {d.status === "verified" && !d.isPrimary && (
+                  {d.status === "verified" && !d.isPrimary && !d.appOnly && (
                     <Button type="button" variant="outline" size="sm" disabled={busy !== null} onClick={() => run(d.host, "primary")} aria-label={`Make ${d.host} primary`}>
                       {rowBusy === "primary" ? <Loader2 className="size-3.5 animate-spin" /> : <Star className="size-3.5" />} Make primary
                     </Button>
@@ -340,6 +407,8 @@ export default function DomainsManager({ initial, maxCustom, actions, single = f
           <p className="mx-auto max-w-md text-xs text-muted-foreground">Your workspace already works on the address above. Add your own domain so people can reach your workspace and website there too.</p>
         </div>
       )}
+
+      <DomainsGuide domains={domains} single={single} />
     </div>
   );
 }

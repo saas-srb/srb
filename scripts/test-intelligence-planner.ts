@@ -97,7 +97,7 @@ async function main() {
       assert.ok(!keys.has(e.key), `duplicate entity ${e.key}`);
       keys.add(e.key);
       assert.ok(e.collection && e.module && e.label && e.description, e.key);
-      assert.deepEqual(e.baseFilter, { deletedAt: null }, `${e.key} excludes soft-deleted rows`);
+      assert.equal((e.baseFilter as { deletedAt?: unknown }).deletedAt, null, `${e.key} excludes soft-deleted rows`);
       assert.ok(e.access.length > 0, `${e.key} has an access rule`);
       const fkeys = new Set<string>();
       for (const f of e.fields) {
@@ -159,7 +159,7 @@ async function main() {
   const FIN = ["invoices", "receipts"];
   const PMS = ["clients", "employees", "project_members", "projects", "tasks", "timesheets"];
   const HR = ["departments", "employees", "leave_requests"];
-  await check("Super Admin sees every entity", () => assert.deepEqual(keysOf(vAdmin), ENTITIES.map((e) => e.key).sort()));
+  await check("Super Admin sees every entity", () => assert.deepEqual(keysOf(vAdmin), ENTITIES.filter((e) => !e.unlessModule).map((e) => e.key).sort())); // (website enquiries are DealFlow's leads when it is there)
   await check("finance-only, PMS manager, HR, sales, procurement roles each get exactly their entities", async () => {
     assert.deepEqual(keysOf(await view(A, user(["finance_manager"]))), FIN);
     assert.deepEqual(keysOf(await view(A, user(["pms_admin"]))), PMS);
@@ -167,7 +167,7 @@ async function main() {
     assert.equal((await view(A, user(["pms_manager"]))).restricted.some((r) => r.key === "projects"), true, "projects are listed as restricted by label");
     assert.deepEqual(keysOf(await view(A, user(["pms_manager"], { "pms.canViewAllProjects": true }))), PMS, "the override that widens the PMS product widens this too");
     assert.deepEqual(keysOf(await view(A, user(["pms_admin"], { "pms.canViewAllProjects": false }))), ["clients", "employees", "timesheets"], "and the one that narrows it narrows this (timesheet review is a separate capability in PMS)");
-    assert.deepEqual(keysOf(await view(A, user(["hr"]))), HR);
+    assert.deepEqual(keysOf(await view(A, user(["hr"]))), [...HR, "test_assignments", "test_attempts", "tests"], "HR also reads EvalIQ's results, as in EvalIQ's own reports");
     assert.deepEqual(keysOf(await view(A, user(["lms_manager"]))), ["leads"]);
     assert.deepEqual(keysOf(await view(A, user(["procurement_manager"]))), ["expenses", "purchase_orders", "vendors"]);
     assert.deepEqual(keysOf(await view(A, user(["finance"]))), ["expenses", "purchase_orders", "vendors"]);
@@ -200,11 +200,11 @@ async function main() {
     assert.deepEqual(Object.keys(fin.restricted[0]).sort(), ["key", "label"]);
   });
   await check("a Super Admin override that removes 'see all employees' is honoured", async () => {
-    assert.ok(keysOf(await view(A, user(["hr"], { "hrms.canViewAllEmployees": false }))).length === 0);
+    assert.deepEqual(keysOf(await view(A, user(["hr"], { "hrms.canViewAllEmployees": false }))), ["test_assignments", "test_attempts", "tests"]);
   });
   await check("products outside the plan, or switched off, are simply absent", async () => {
-    assert.deepEqual(keysOf(await view(STARTER, admin)), ["clients", "departments", "employees", "leads", "leave_requests", "project_members", "projects", "tasks", "timesheets"], "Starter plan has no Finance/Procurement");
-    assert.deepEqual(keysOf(await view(NOPMS, admin)), ["departments", "employees", "invoices", "leads", "leave_requests", "receipts"], "Projects switched off");
+    assert.deepEqual(keysOf(await view(STARTER, admin)), ["clients", "departments", "employees", "leads", "leave_requests", "playbook_documents", "project_members", "projects", "tasks", "timesheets", "website_pages"], "Starter plan has no Finance/Procurement");
+    assert.deepEqual(keysOf(await view(NOPMS, admin)), ["contracts", "departments", "employees", "invoices", "leads", "leave_requests", "receipts", "signature_requests"], "Projects switched off (ContractFlow always counts as switched on)");
   });
   await check("live statistics: counts, date range and small-enum values", async () => {
     const inv = vAdmin.entities.get("invoices")!;

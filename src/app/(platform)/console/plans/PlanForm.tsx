@@ -199,14 +199,14 @@ export default function PlanForm({
         </p>
       </Section>
 
-      <Section title="Products" description={`Always included: ${coreLabels ?? STATIC_CORE}.`}>
+      <Section title="Products" description={`Always included: ${coreLabels ?? STATIC_CORE}. A product list here never removes DataBrain or Huddle; which of them a company has is its own product choice.`}>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" id="plan-all-modules" className={checkbox} checked={values.allModules} onChange={(e) => set("allModules", e.target.checked)} />
           Every product (including products added later)
         </label>
         {!values.allModules && (
           <div role="group" aria-label="Included products" aria-describedby={errors.modules ? "plan-modules-error" : undefined} className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {(panels ?? STATIC_SELECTABLE).map((m) => (
+            {(panels ?? STATIC_SELECTABLE).filter((m) => m.key !== "messenger" && m.key !== "intelligence").map((m) => (
               <label key={m.key} className="flex items-start gap-2 rounded-lg border border-border p-2 text-sm">
                 <input type="checkbox" name="module" value={m.key} className={cn(checkbox, "mt-0.5")} checked={values.modules.includes(m.key)} onChange={(e) => toggleList("modules", m.key, e.target.checked)} />
                 <span className="min-w-0">

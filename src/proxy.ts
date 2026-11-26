@@ -107,7 +107,7 @@ async function panelGate(request: NextRequest, companyId: string | null | undefi
  *  - while the subscription is suspended or canceled (read-only) nothing can be created, changed or deleted in a product.
  * Sign-in and password pages stay open in read-only mode. Fails open on a lookup error (each product still checks itself).
  */
-const PLAN_PANELS = new Set(["hrms", "pms", "lms", "fms", "prms", "tms", "ots", "sop", "lpms", "dlms", "cms", "seo", "smms", "aibots", "intelligence", "portal"]);
+const PLAN_PANELS = new Set(["hrms", "pms", "lms", "fms", "prms", "tms", "ots", "sop", "lpms", "dlms", "cms", "seo", "smms", "aibots", "intelligence", "portal", "messenger"]);
 const OPEN_IN_READ_ONLY = /\/(login|logout|signin|change-password|forgot-password|reset-password|verify-email|handoff)(\/|$)/i;
 const entCache = new Map<string, { at: number; ent: Entitlements }>();
 
@@ -146,6 +146,9 @@ async function planGate(request: NextRequest, companyId: string | null | undefin
   }
   return null;
 }
+
+/** Removed pages of the product website → where their old address leads now. */
+const REMOVED_SAAS_PAGES: Record<string, string> = { "/login": "/", "/roadmap": "/products" };
 
 /** A kind of PDF the platform switched off (Platform Console → Documents & PDFs) answers 403 for every company. Fails open on a lookup error. */
 async function pdfGate(request: NextRequest): Promise<NextResponse | null> {
@@ -215,6 +218,11 @@ export async function proxy(request: NextRequest) {
     return hardened;
   }
 
+  // Pages the product website no longer has (people sign in at their own workspace address; there is no roadmap page):
+  // old links and search results lead somewhere useful.
+  const gone = isSaasHost(request.headers.get("host")) ? REMOVED_SAAS_PAGES[request.nextUrl.pathname.replace(/\/+$/, "")] : undefined;
+  if (gone) return NextResponse.redirect(new URL(gone, request.url), 308);
+
   // The SaaS product's own website: its public pages live under /saas and need no company.
   if (isSaasHost(request.headers.get("host")) && isSaasPagePath(request.nextUrl.pathname)) {
     const url = request.nextUrl.clone();
@@ -270,7 +278,8 @@ export async function proxy(request: NextRequest) {
       const to = (host: string, path: string) => NextResponse.redirect(new URL(path, `${proto}://${host}`));
       // The product's own app host (SelfRun) opens on the Platform Console; every company's app host opens on its Workspace.
       if (action === "app-home" && hostHeader) return to(hostHeader, isSaasAppHost(hostHeader) ? "/console" : "/commandos");
-      const target = action === "app-home" ? null : counterpartHost(hostHeader, action === "to-app" ? "site" : "app");
+      const port = hostHeader?.match(/:\d+$/)?.[0] ?? "";
+      const target = action === "app-home" ? null : action === "to-site" && info.websiteHost ? `${info.websiteHost}${port}` : counterpartHost(hostHeader, action === "to-app" ? "site" : "app");
       if (target) return to(target, `${request.nextUrl.pathname}${request.nextUrl.search}`);
     }
   }

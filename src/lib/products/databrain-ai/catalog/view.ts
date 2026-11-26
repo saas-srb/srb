@@ -63,6 +63,7 @@ export async function buildCatalogView(user: IntelAccessUser): Promise<CatalogVi
   const restricted: { key: string; label: string }[] = [];
   for (const def of ENTITIES) {
     if (!moduleOn(def.module)) continue; // the company doesn't have this product: the entity simply does not exist for it
+    if (def.unlessModule && moduleOn(def.unlessModule)) continue;
     const granted = grantedFields(def, areas);
     if (!granted) {
       restricted.push({ key: def.key, label: def.label });

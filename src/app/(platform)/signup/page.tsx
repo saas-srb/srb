@@ -1,19 +1,16 @@
 import { listPanels } from "@/lib/platform/panels/store";
 import { getDefaultPlan } from "@/lib/platform/billing/plans";
 import { productKeyFromSlug } from "@/lib/platform/saas/product-routes";
-import { ALL_PRODUCTS_VALUE, NEEDS_ONE_OF, SELLABLE_PRODUCTS, offerName } from "@/lib/platform/products/selection";
+import { ALL_PRODUCTS_VALUE, PRODUCT_CHOICE, SELLABLE_PRODUCTS } from "@/lib/platform/products/selection";
 import "@/app/(platform)/saas/saas.css";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Globe, Layers, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { isPlatformOwnerContext } from "@/lib/platform/tenancy/context";
 import { getSignupMode } from "@/lib/platform/settings";
 import { platformRootDomain } from "@/lib/platform/tenancy/provisioning";
 import SrRoot from "@/components/platform/saas/SrRoot";
-import Header from "@/components/platform/saas/Header";
-import Footer from "@/components/platform/saas/Footer";
-import Interactions from "@/components/platform/saas/Interactions";
-import { OfferTopBar } from "@/components/platform/saas/OfferChrome";
+import Link from "next/link";
+import Logo from "@/components/platform/saas/Logo";
 import SignupForm from "./SignupForm";
 import { allProductsTrialPlan, resolveSignupPlan } from "@/lib/platform/billing/signup-plan";
 import { trialLabel } from "@/lib/platform/billing/signup-plan-rule";
@@ -27,19 +24,6 @@ export const metadata: Metadata = {
   description: "Create your SRB AI workspace and run sales, HR, finance, projects and your website from one AI-powered platform. Free to start, no card needed.",
 };
 
-const POINTS = [
-  { icon: Layers, t: "Every part of your business", x: "Customers, staff, money, projects, buying and training in one software." },
-  { icon: Sparkles, t: "AI that helps", x: "Ask questions about your own records, and let automations handle the routine." },
-  { icon: Globe, t: "Your own workspace", x: "Your own address, and a website if you want one." },
-  { icon: Users, t: "Your team, your rules", x: "Invite your team and give each person only the access they need." },
-];
-
-const STEPS = [
-  { t: "Create your workspace", x: "A few seconds. No card needed." },
-  { t: "Set up your business", x: "A short guided setup: your details, departments and team." },
-  { t: "Invite your team", x: "Give each person a role, and start working." },
-];
-
 export default async function SignupPage({ searchParams }: { searchParams: Promise<{ plan?: string; interval?: string; product?: string }> }) {
   // Sign-up belongs to the platform's own site, not to a company's workspace.
   if (!(await isPlatformOwnerContext())) notFound();
@@ -51,11 +35,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
   const free = (await getDefaultPlan().catch(() => null))?.lifetimeFree === true;
   const onSale = (k: string) => registry.find((p) => p.key === k)?.active !== false;
   const nameOf = (k: string) => registry.find((p) => p.key === k)?.name ?? k;
-  const products = [
-    ...SELLABLE_PRODUCTS.filter(onSale).map((k) => ({ value: k as string, label: offerName(k, nameOf(k)) })),
-    // Products that only work beside another one (DataBrain): offered with that rule written under them.
-    ...Object.entries(NEEDS_ONE_OF).filter(([k]) => onSale(k)).map(([k, needs]) => ({ value: k, label: nameOf(k), description: `Choose it with ${needs.filter(onSale).map(nameOf).join(", ")}` })),
-  ];
+  const products = SELLABLE_PRODUCTS.filter(onSale).map((k) => ({ value: k as string, label: nameOf(k), ...PRODUCT_CHOICE[k] }));
   // A product page links here as /signup?product=<its address>.
   const wantedKey = sp.product === ALL_PRODUCTS_VALUE ? ALL_PRODUCTS_VALUE : productKeyFromSlug(String(sp.product ?? "")) ?? "";
   const initialProduct = wantedKey === ALL_PRODUCTS_VALUE || products.some((p) => p.value === wantedKey) ? wantedKey : "";
@@ -65,65 +45,15 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
 
   return (
     <SrRoot>
-      <Interactions />
-      <OfferTopBar />
-      <Header />
-      <main>
-        <section className="relative overflow-hidden">
-          <div className="sr-blobs" aria-hidden>
-            <span className="-left-[10%] -top-[10%] h-[45vw] w-[45vw] bg-primary/15 blur-[120px]" />
-            <span className="right-[0%] top-[25%] h-[35vw] w-[35vw] bg-brand-accent/15 blur-[110px]" style={{ animationDelay: "-4s" }} />
-          </div>
-          <div className="sr-grid-bg" aria-hidden />
-          <div className="sr-container relative grid items-start gap-14 py-14 sm:py-20 lg:grid-cols-[1.05fr_520px] lg:gap-20">
-            <div>
-              <p className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/80 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-primary shadow-sm backdrop-blur">{selectedPlan ? `${selectedPlan.name} plan · ${selectedPlan.trial} free trial · No card needed` : "Free to start · No card needed"}</p>
-              <h1 className="sr-h1 mt-6">
-                The business that <span className="bg-gradient-to-r from-primary to-brand-accent bg-clip-text text-transparent">runs itself.</span>
-              </h1>
-              <p className="sr-lead mt-5 max-w-xl">Create your workspace in a few seconds. Start with the products you need, or take them all.</p>
-
-              <ul className="mt-9 grid gap-3 sm:grid-cols-2">
-                {POINTS.map((p) => (
-                  <li key={p.t} className="group rounded-2xl border border-border/60 bg-background/80 p-4 shadow-sm backdrop-blur transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10">
-                    <span className="sr-icon mb-3 h-11 w-11 rounded-xl transition-transform group-hover:scale-110"><p.icon className="h-5 w-5" /></span>
-                    <p className="font-black leading-snug">{p.t}</p>
-                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{p.x}</p>
-                  </li>
-                ))}
-              </ul>
-
-              <div className="mt-9 max-w-xl">
-                <p className="mb-4 text-xs font-black uppercase tracking-[0.18em] text-primary">How it works</p>
-                <ol className="relative space-y-4">
-                  <span className="absolute bottom-3 left-[17px] top-3 w-px bg-gradient-to-b from-primary/60 to-border" aria-hidden />
-                  {STEPS.map((st, i) => (
-                    <li key={st.t} className="relative flex gap-4">
-                      <span className="sr-circle relative z-10 h-9 w-9 flex-none text-sm font-black ring-4 ring-background">{i + 1}</span>
-                      <span className="pt-0.5"><span className="block font-black leading-snug">{st.t}</span><span className="block text-sm text-muted-foreground">{st.x}</span></span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-
-              <p className="mt-8 flex items-center gap-2 text-sm text-muted-foreground"><ShieldCheck className="h-4 w-4 text-primary" />Your data is kept separate from every other business&apos;s.</p>
-            </div>
-
-            <div className="relative">
-              <div className="pointer-events-none absolute -inset-6 -z-10 rounded-[3rem] bg-gradient-to-br from-primary/20 via-transparent to-brand-accent/20 blur-2xl" aria-hidden />
-              <div className="rounded-[2rem] border border-border/70 bg-background p-6 shadow-[0_40px_100px_-30px] shadow-primary/30 sm:p-9">
-                {mode === "closed" ? (
-                  <p className="py-10 text-center text-muted-foreground">New sign-ups are paused right now. Please check back soon.</p>
-                ) : (
-                  <SignupForm rootDomain={platformRootDomain()} approval={mode === "approval"} selectedPlan={selectedPlan} products={products} initialProduct={initialProduct} allNote={selectedPlan ? null : allNote} oneNote={selectedPlan ? null : oneNote} />
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-
-      </main>
-      <Footer />
+      {mode === "closed" ? (
+        <main className="flex min-h-dvh flex-col items-center justify-center gap-4 px-6 text-center">
+          <Logo />
+          <p className="text-muted-foreground">New sign-ups are paused right now. Please check back soon.</p>
+          <Link href="/" className="font-bold text-primary hover:underline">Back to the home page</Link>
+        </main>
+      ) : (
+        <SignupForm rootDomain={platformRootDomain()} approval={mode === "approval"} selectedPlan={selectedPlan} products={products} initialProduct={initialProduct} allNote={selectedPlan ? null : allNote} oneNote={selectedPlan ? null : oneNote} />
+      )}
     </SrRoot>
   );
 }

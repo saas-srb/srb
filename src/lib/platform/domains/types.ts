@@ -50,6 +50,8 @@ export interface DnsHistoryEntry extends DnsRecord {
 export interface CompanyDomainView {
   host: string;
   kind: "subdomain" | "custom";
+  /** Team sign-in only, beside a website we run: never the primary (website) domain. */
+  appOnly: boolean;
   status: "pending" | "verified";
   isPrimary: boolean;
   /** Added from Settings → Domains (the automatic and operator-attached addresses aren't). */

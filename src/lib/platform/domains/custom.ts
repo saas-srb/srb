@@ -1,5 +1,6 @@
 import { workspaceEvents } from "@/lib/notify/triggers/workspace";
 import "server-only";
+import { isDomainEnding, zoneOf } from "@/lib/platform/domains/zone";
 import { hasSeparateAppHost } from "@/lib/platform/products/selection";
 import { domainBlockReason } from "@/lib/platform/billing/enforce";
 import { randomBytes } from "node:crypto";
@@ -51,7 +52,7 @@ const TLD_RE = /^(?:[a-z]{2,63}|xn--[a-z0-9-]{1,59})$/;
  * Turns what the owner typed (`https://Shop.Acme.com/`, `münchen.de`) into a
  * bare ASCII hostname, or explains why it can't be one of their domains.
  */
-export function parseCustomDomain(raw: string): { ok: true; host: string } | { ok: false; error: string } {
+export function parseCustomDomain(raw: string, use: DomainUse = "website"): { ok: true; host: string } | { ok: false; error: string } {
   const trimmed = String(raw ?? "").trim();
   if (!trimmed) return { ok: false, error: "Enter a domain, like www.yourcompany.com." };
   // Internationalised names are stored in their ASCII (punycode) form, as DNS sees them.
@@ -67,10 +68,22 @@ export function parseCustomDomain(raw: string): { ok: true; host: string } | { o
   if (labels.length < 2) return { ok: false, error: "Enter a full domain including its ending, like yourcompany.com." };
   if (!labels.every((l) => LABEL_RE.test(l))) return { ok: false, error: "That doesn't look like a domain name." };
   if (!TLD_RE.test(labels[labels.length - 1])) return { ok: false, error: "That domain ending isn't valid." };
-  if (labels[0] === "app") return { ok: false, error: "Add your main domain (like yourcompany.com). The app. address for your products is set up for you." };
+  if (isDomainEnding(host)) return { ok: false, error: "Enter your own domain, like yourcompany.co.in." };
+  if (use === "website" && labels[0] === "app") return { ok: false, error: "Add your main domain (like yourcompany.com): the app. address for your products is set up for you. To use only this address for team sign-in, choose \"Team sign-in only\"." };
   if (isPlatformHost(host)) return { ok: false, error: "Platform addresses can't be added. Your workspace address is already connected." };
   return { ok: true, host };
 }
+
+/** `website` = our website on it (and the app on `app.<it>`); `app` = team sign-in on exactly this address. */
+export type DomainUse = "website" | "app";
+
+const hostOfUrl = (url: string | undefined): string | null => {
+  try {
+    return url ? new URL(url).hostname.toLowerCase() : null;
+  } catch {
+    return null;
+  }
+};
 
 /** The same site with / without `www.` — routing treats them as one (see `lookupHost`). */
 function wwwCounterpart(host: string): string {
@@ -93,8 +106,11 @@ export async function isSingleHost(companyId: string): Promise<boolean> {
  * (it has no document of its own), so the Domains page can show its ownership challenge and routing records next to the website's.
  */
 async function syncAppHost(domainHost: string, op: "add" | "status" | "verify") {
-  const owner = await (await domainsCollection()).findOne({ _id: domainHost }, { projection: { companyId: 1 } });
-  if (owner && (await isSingleHost(owner.companyId))) return null;
+  const domains = await domainsCollection();
+  const owner = await domains.findOne({ _id: domainHost }, { projection: { companyId: 1, use: 1 } });
+  if (owner && (owner.use === "app" || (await isSingleHost(owner.companyId)))) return null;
+  // `app.<domain>` added as an address of its own is attached and checked as that address.
+  if (await domains.findOne({ _id: appHostOf(domainHost) }, { projection: { _id: 1 } })) return null;
   return syncAtProvider(appHostOf(domainHost), op, { docId: domainHost, field: "appProvider" });
 }
 
@@ -113,6 +129,8 @@ function sameRecord(a: DnsRecord, b: DnsRecord): boolean {
 /** The client-safe view of one domain record (also used by the Platform Console overview). */
 export function toView(d: CompanyDomain, single = false): CompanyDomainView {
   const kind = d.kind ?? "custom";
+  // No `app.` host for a one-address company, or for an address that is itself only for sign-in.
+  const noApp = single || d.use === "app";
   const p = d.provider;
   const localOnly = d._id.endsWith(".localhost");
   const records: CompanyDomainView["records"] = [];
@@ -132,7 +150,7 @@ export function toView(d: CompanyDomain, single = false): CompanyDomainView {
   // The app host `app.<domain>` is a second host at the hosting provider: it can demand its own ownership proof and needs its own
   // routing record. Its records are listed with the website's so everything is published in one go.
   let app: CompanyDomainView["app"] = null;
-  if (kind === "custom" && !localOnly && !single) {
+  if (kind === "custom" && !localOnly && !noApp) {
     const ap = d.appProvider;
     const appHost = appHostOf(d._id);
     const add = (r: DnsRecord, state: RecordState) => {
@@ -163,7 +181,7 @@ export function toView(d: CompanyDomain, single = false): CompanyDomainView {
     for (const e of [...(d.dnsLog ?? [])].sort((a, b) => b.seenAt.getTime() - a.seenAt.getTime())) remember(e.host, e, e.seenAt);
     remember(d._id, verificationRecord(d), null);
     remember(d._id, routingRecord(d._id), null);
-    if (!single) remember(appHostOf(d._id), { ...routingRecord(appHostOf(d._id)), reason: "Serves your products (Workspace and the rest)" }, null);
+    if (!noApp) remember(appHostOf(d._id), { ...routingRecord(appHostOf(d._id)), reason: "Serves your products (Workspace and the rest)" }, null);
   }
 
   let ssl: CompanyDomainView["hosting"]["ssl"];
@@ -175,6 +193,7 @@ export function toView(d: CompanyDomain, single = false): CompanyDomainView {
   return {
     host: d._id,
     kind,
+    appOnly: d.use === "app" && !single,
     status: d.status,
     isPrimary: d.isPrimary,
     removable: d.kind === "custom" && !isPlatformHost(d._id),
@@ -199,7 +218,7 @@ export async function listCompanyDomains(): Promise<CompanyDomainView[]> {
   // been looked at, or is still waiting (ownership proof, DNS), fetch its state now so the records to publish are listed without
   // anyone having to press a button. Throttled, so reopening the page doesn't hammer the provider.
   const stale = rows.filter((d) => {
-    if (single || d.kind !== "custom" || d.status !== "verified" || d._id.endsWith(".localhost")) return false;
+    if (single || d.use === "app" || d.kind !== "custom" || d.status !== "verified" || d._id.endsWith(".localhost")) return false;
     const ap = d.appProvider;
     if (!ap) return true;
     if (ap.id === "manual" || ap.id === "wildcard" || (ap.attached && ap.verified && ap.dnsConfigured)) return false;
@@ -220,12 +239,30 @@ async function ok(message?: string): Promise<DomainActionResult> {
 
 // ─── Add ────────────────────────────────────────────────────────────────────
 
-export async function addCustomDomain(raw: string): Promise<DomainActionResult> {
-  const parsed = parseCustomDomain(raw);
+export async function addCustomDomain(raw: string, wanted: DomainUse = "website"): Promise<DomainActionResult> {
+  const companyId = await currentCompanyId();
+  const company = await getCompany(companyId);
+  // Without a website here every address is a sign-in address (and stays one if a website is added later).
+  const use: DomainUse = company && !hasSeparateAppHost(company) ? "app" : wanted === "app" ? "app" : "website";
+  const parsed = parseCustomDomain(raw, use);
   if (!parsed.ok) return parsed;
   const { host } = parsed;
-  const companyId = await currentCompanyId();
   const domains = await domainsCollection();
+
+  // Pointing the address of a website that runs elsewhere at us would take that website down.
+  const theirs = company?.website?.mode === "external" ? hostOfUrl(company.website.externalUrl) : null;
+  if (use === "app" && theirs && (host === theirs || host === wwwCounterpart(theirs))) {
+    return { ok: false, error: `${host} is your website's address. Use a subdomain for the workspace instead, like app.${zoneOf(theirs)}: your website keeps working as it is.` };
+  }
+  // A website domain of another business already serves its workspace at app.<domain>; and the reverse.
+  const bare = host.replace(/^www\./, "");
+  if (bare.startsWith("app.")) {
+    const parent = bare.slice(4);
+    if (await domains.findOne({ _id: { $in: [parent, `www.${parent}`] }, companyId: { $ne: companyId }, status: "verified", use: { $ne: "app" } })) return { ok: false, error: TAKEN };
+  }
+  if (use === "website" && (await domains.findOne({ _id: appHostOf(host), companyId: { $ne: companyId }, status: "verified" }))) {
+    return { ok: false, error: `${appHostOf(host)} is connected to another workspace, so this domain can't be used for a website here. Contact support if both are yours.` };
+  }
 
   const staleBefore = new Date(Date.now() - STALE_CLAIM_MS);
   const isStaleClaim = (d: CompanyDomain) => d.companyId !== companyId && d.status === "pending" && d.kind === "custom" && d.createdAt < staleBefore;
@@ -248,7 +285,7 @@ export async function addCustomDomain(raw: string): Promise<DomainActionResult> 
 
   const now = new Date();
   try {
-    await domains.insertOne({ _id: host, companyId, status: "pending", verificationToken: randomBytes(16).toString("hex"), isPrimary: false, kind: "custom", createdAt: now, verifiedAt: null });
+    await domains.insertOne({ _id: host, companyId, status: "pending", verificationToken: randomBytes(16).toString("hex"), isPrimary: false, kind: "custom", ...(use === "app" ? { use } : {}), createdAt: now, verifiedAt: null });
   } catch (err) {
     if ((err as { code?: number }).code === 11000) return { ok: false, error: TAKEN };
     throw err;
@@ -332,6 +369,7 @@ export async function setPrimaryDomain(raw: string): Promise<DomainActionResult>
   const d = host ? await domains.findOne({ _id: host, companyId }) : null;
   if (!d) return { ok: false, error: "That domain isn't connected to this workspace." };
   if (d.status !== "verified") return { ok: false, error: "Verify the domain before making it primary." };
+  if (d.use === "app" && !(await isSingleHost(companyId))) return { ok: false, error: `${d._id} is your team sign-in address and is used as soon as it is verified. A primary domain is for your website.` };
   await domains.updateOne({ _id: d._id, companyId }, { $set: { isPrimary: true } });
   await domains.updateMany({ companyId, _id: { $ne: d._id }, isPrimary: true }, { $set: { isPrimary: false } });
   // The primary domain is the company's public site URL (sitemap, canonical, links) — apply it now.
@@ -353,7 +391,7 @@ export async function removeCustomDomain(raw: string): Promise<DomainActionResul
   if (d.isPrimary) {
     // Fall back to the automatic address (or, lacking one, the oldest verified domain).
     const fallback =
-      (await domains.findOne({ companyId, kind: "subdomain" })) ?? (await domains.find({ companyId, status: "verified" }).sort({ createdAt: 1 }).limit(1).next());
+      (await domains.findOne({ companyId, kind: "subdomain" })) ?? (await domains.find({ companyId, status: "verified", use: { $ne: "app" } }).sort({ createdAt: 1 }).limit(1).next());
     if (fallback) await domains.updateOne({ _id: fallback._id, companyId }, { $set: { isPrimary: true } });
   }
   forgetCompanyRouting();
@@ -361,7 +399,14 @@ export async function removeCustomDomain(raw: string): Promise<DomainActionResul
 
   try {
     const provider = await activeDomainProvider();
-    for (const h of [d._id, appHostOf(d._id)]) {
+    // Detach only what no other address still needs: `app.<domain>` can be an address of its own, or belong to the www / bare twin.
+    const hosts = [d._id];
+    const appHost = appHostOf(d._id);
+    const needed = await domains.findOne({ _id: { $in: [appHost, wwwCounterpart(d._id)] } }, { projection: { _id: 1 } });
+    if (d.use !== "app" && !needed) hosts.push(appHost);
+    const servesParent = d._id.startsWith("app.") && (await domains.findOne({ _id: { $in: [d._id.slice(4), `www.${d._id.slice(4)}`] }, use: { $ne: "app" } }, { projection: { _id: 1 } }));
+    if (servesParent) hosts.shift();
+    for (const h of hosts) {
       const detached = await provider.remove(h);
       if (!detached.ok) console.error(`[domains] detaching ${h} failed`, detached.error);
     }
@@ -382,7 +427,7 @@ export async function recheckPendingDomains(resolver: TxtResolver = resolveTxt) 
   return forEachCompany(async (companyId) => {
     const domains = await domainsCollection();
     const due = await domains
-      .find({ companyId, kind: "custom", $or: [{ status: "pending" }, { "provider.dnsConfigured": { $ne: true } }, { "appProvider.dnsConfigured": { $ne: true } }, { "appProvider.verified": { $ne: true } }] }, { projection: { _id: 1, status: 1 } })
+      .find({ companyId, kind: "custom", $or: [{ status: "pending" }, { "provider.dnsConfigured": { $ne: true } }, { use: { $ne: "app" }, $or: [{ "appProvider.dnsConfigured": { $ne: true } }, { "appProvider.verified": { $ne: true } }] }] }, { projection: { _id: 1, status: 1 } })
       .toArray();
     let verified = 0;
     for (const d of due) {

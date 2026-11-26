@@ -1,3 +1,4 @@
+import { relativeName } from "@/lib/platform/domains/zone";
 import type { DnsRecord, DomainProvider, DomainResult, DomainStatus } from "@/lib/platform/domains/types";
 
 /**
@@ -48,10 +49,10 @@ interface ProjectDomain {
 
 /** DNS the owner must publish so traffic reaches Vercel: apex → A record, subdomain → CNAME. */
 export function routingRecord(host: string): DnsRecord {
-  const labels = host.split(".");
-  return labels.length <= 2
-    ? { type: "A", name: "@", value: "76.76.21.21", reason: "Points the domain at the hosting platform" }
-    : { type: "CNAME", name: labels.slice(0, -2).join("."), value: "cname.vercel-dns.com", reason: "Points the domain at the hosting platform" };
+  const name = relativeName(host);
+  return name === "@"
+    ? { type: "A", name, value: "76.76.21.21", reason: "Points the domain at the hosting platform" }
+    : { type: "CNAME", name, value: "cname.vercel-dns.com", reason: "Points the domain at the hosting platform" };
 }
 
 async function dnsConfigured(cfg: VercelConfig | null, host: string): Promise<boolean> {

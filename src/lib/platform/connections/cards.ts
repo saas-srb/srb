@@ -29,7 +29,7 @@ export const CARD_CATEGORIES: CardCategory[] = [
   { key: "webhooks", title: "Webhooks and automations", description: "Send a webhook, email or notice when something happens." },
   { key: "leads", title: "Leads and applications", description: "Where your leads and job applications come from." },
   { key: "storage", title: "File storage", description: "Where uploaded files, documents and backups are kept." },
-  { key: "domains", title: "Domains", description: "Your own web address and the address your emails come from." },
+  { key: "domains", title: "Domains", description: "Your own web address." },
 ];
 
 /** Which card category a provider belongs to. */

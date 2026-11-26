@@ -19,7 +19,7 @@ import { resolvePermission, type RoleContext } from "@/lib/permission-overrides"
 import type { AccessSubject } from "@/lib/access/can";
 import { holdsLegacy, holdsProduct } from "@/lib/access/holds";
 
-export type NavSectionKey = "dashboard" | "panels" | "analytics" | "manage" | "company" | "insight" | "account" | "platform";
+export type NavSectionKey = "dashboard" | "panels" | "analytics" | "manage" | "company" | "insight" | "support" | "account" | "platform";
 
 export type NavIcon =
   | "smartphone"
@@ -300,8 +300,8 @@ const COMPANY: NavItemDef[] = [
 export const NAV_ITEMS: NavItemDef[] = [
   { key: "dashboard", section: "dashboard", label: "Dashboard", href: "/commandos", icon: "dashboard", allow: anyone },
   ...PANELS,
-  // Help & Support is the platform's own service for every company: no role gate and no plan module.
-  { key: "panel.support", section: "panels", label: "Help & Support", href: "/resolveiq", icon: "help", panel: "support", allow: anyone },
+  // ResolveIQ (help and support) is the platform's own service for every company: no role gate and no plan module. It sits in the sidebar.
+  { key: "panel.support", section: "support", label: "ResolveIQ", href: "/resolveiq", icon: "help", panel: "support", allow: anyone },
   // The external portal and the company's public website are products in the registry too, so they are listed like the rest.
   { key: "panel.portal", section: "panels", label: "Client & Student Portal", href: "/clientos", icon: "globe", module: "portal", allow: (u: RoleContext) => superAdmin(u) || resolvePermission(u, "portal.isPortalAdmin", () => u.roles.includes("portal_admin")) },
   { key: "panel.website", section: "panels", label: "Public Website", href: "/", icon: "website", panel: "website", external: true, allow: anyone },
@@ -334,6 +334,7 @@ export const NAV_SECTIONS: { key: NavSectionKey; label: string; href?: string; /
   { key: "manage", label: "Management", sidebar: false },
   { key: "company", label: "Company", href: "/commandos/settings" },
   { key: "insight", label: "Engagement & Insights" },
+  { key: "support", label: "Help & support" },
   { key: "account", label: "Account", sidebar: false },
   { key: "platform", label: "Platform" },
 ];
@@ -431,9 +432,9 @@ export function resolveNav(ctx: NavContext): ResolvedNav {
       .map(({ item: i, locked }) => {
         // Product tiles and analytics entries take their name / description from the Product Registry.
         const meta = ctx.panels?.[i.module ?? i.panel ?? ""];
-        const named = meta && i.section === "panels" ? meta.name : meta && i.section === "analytics" ? `${meta.name} Analytics` : null;
+        const named = meta && (i.section === "panels" || i.section === "support") ? meta.name : meta && i.section === "analytics" ? `${meta.name} Analytics` : null;
         const label = named ?? i.label;
-        const description = meta && i.section === "panels" ? meta.description : (i.description ?? null);
+        const description = meta && (i.section === "panels" || i.section === "support") ? meta.description : (i.description ?? null);
         return { key: i.key, label, title: named ?? i.title ?? i.label, description, href: locked ? lockedHref(i.key) : i.href, icon: i.icon, group: (i.group && !ctx.unavailablePanels?.has(GROUP_PANEL[i.group] ?? "") && ctx.panels?.[GROUP_PANEL[i.group] ?? ""]?.name) || i.group || null, external: locked ? false : Boolean(i.external), locked, inSidebar: i.inSidebar !== false };
       }),
   })).filter((s) => s.items.length > 0);

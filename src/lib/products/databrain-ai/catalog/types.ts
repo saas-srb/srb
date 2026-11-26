@@ -13,8 +13,10 @@ export interface EnumValue {
   label: string;
 }
 
-/** The access areas a grant can name: the cross-product areas of `platform/access.ts` plus two Procurement areas. */
-export type IntelArea = "leads" | "clients" | "projects" | "tasks" | "invoices" | "employees" | "leave" | "procurement" | "expenses" | "timesheets";
+/** The access areas a grant can name: the cross-product areas of `platform/access.ts` plus one or two per other product (`access.ts`). */
+export type IntelArea =
+  | "leads" | "clients" | "projects" | "tasks" | "invoices" | "employees" | "leave" | "procurement" | "expenses" | "timesheets"
+  | "training" | "assessments" | "playbooks" | "contracts" | "vault" | "website" | "seo" | "social" | "calls";
 
 export interface FieldDef {
   key: string;
@@ -64,6 +66,8 @@ export interface EntityDef {
   collection: string;
   /** Product/module key (`onboarding/catalog.ts` MODULES): the entity exists only for companies whose plan includes and has enabled it. */
   module: string;
+  /** Not offered while the company has this product: it already shows the same records. */
+  unlessModule?: string;
   /** Always applied first: excludes soft-deleted rows. */
   baseFilter: Record<string, unknown>;
   fields: readonly FieldDef[];

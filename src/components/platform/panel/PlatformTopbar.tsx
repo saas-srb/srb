@@ -1,7 +1,6 @@
 "use client";
 
 import { PanelHeading } from "@/components/platform/PanelsProvider";
-import HelpLauncher from "@/components/support/HelpLauncher";
 import { useState } from "react";
 import Link from "next/link";
 import { Menu, Sparkles } from "lucide-react";
@@ -38,7 +37,6 @@ export default function PlatformTopbar({ flags }: { flags: PlatformNavFlags; ema
       </Sheet>
       <PanelHeading panel="platform" fallbackTitle="Platform Console" fallbackDescription="Every company, plan and setting of the SaaS platform" />
       <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
-        <HelpLauncher />
         <button
           type="button"
           onClick={() => setAiOpen(!aiOpen)}

@@ -190,7 +190,7 @@ export const STEPS: StepDef[] = [
   },
   {
     id: "branding:sender", group: "branding", title: "Send emails from your own address", description: "Use an address like hello@yourbusiness.com.", why: "Customers trust emails that come from your name.", tier: "optional", minutes: 8,
-    href: "/commandos/settings/domains#sender-email", feature: "company.email", needs: ["sender"], covers: ["nav:company.email"],
+    href: "/commandos/settings/integrations?open=sender-email", feature: "company.email", needs: ["sender"], covers: ["nav:company.email"],
     check: (f) => (f.sender!.status === "verified" ? done("Your sender address is verified.") : f.sender!.status === "pending" ? partial("Waiting for DNS.") : f.sender!.status === "failed" ? partial("Verification failed. Check the records.", 0.25) : todo("Included default's address.")),
   },
   {

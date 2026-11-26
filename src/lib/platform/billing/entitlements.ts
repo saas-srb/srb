@@ -15,6 +15,8 @@ import type { Entitlements } from "@/lib/platform/billing/types";
 
 const UNLIMITED = UNLIMITED_LIMITS;
 const CORE = MODULES.filter((m) => m.core).map((m) => m.key);
+/** A plan's product list never takes these away (plans saved while Huddle was built in don't name it). Whether a company has it is its own product choice. */
+const PLAN_ALWAYS = ["messenger", "intelligence"];
 
 /**
  * What the current company may use right now — the single question every
@@ -41,7 +43,7 @@ export async function entitlementsFor(companyId: string): Promise<Entitlements> 
   const plan = await getPlan(sub.planId);
   const company = await getCompany(companyId);
   // Products in the plan, narrowed to the ones the company owns.
-  const planModules = !plan || plan.modules === "all" ? null : new Set<string>([...CORE, ...plan.modules]);
+  const planModules = !plan || plan.modules === "all" ? null : new Set<string>([...CORE, ...PLAN_ALWAYS, ...plan.modules]);
   const availableModules = restrictToOwned(planModules, ownedModules(company?.products));
   // Then what the platform admin unlocked or locked for this company alone.
   const modules = applyModuleOverrides(availableModules, sub.overrides, now, MODULES.map((m) => m.key), CORE);

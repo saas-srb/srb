@@ -11,6 +11,12 @@ operator, has two hosts (below). A company **without** a website here has **one*
 app; no `-app` / `app.` host is created, and old `-app` / `app.` links forward to the main address (`hasSeparateAppHost` in
 `lib/platform/products/selection.ts` is the one rule). On that one host website paths lead to the hosted forms or the company's own website.
 
+A company may also connect a **subdomain** of a domain it already uses (`app.acme.co.in`, `team.acme.com`). Settings → Domains asks what a
+new address is for: *website and team sign-in* (website on it, app on `app.<it>`) or *team sign-in only* (`use: "app"`: the app on exactly
+that host, no `app.` / `www.` twin, used for links as soon as it is verified). A company without a website here only has the second kind, and
+the address of its external website can never be added. DNS records are worked out against the registered domain
+(`lib/platform/domains/zone.ts`, `.co.in` included).
+
 The two hosts:
 
 | Side | SelfRun Business | A customer on an automatic address | A customer with its own domain |

@@ -25,6 +25,9 @@ async function col() {
   return (await getPlatformDb()).collection<PanelRecord & { _id: string }>(PANELS_COLLECTION);
 }
 
+/** Registry rows saved while these were built in: Huddle is now a product a company chooses. */
+const NO_LONGER_CORE = new Set(["messenger"]);
+
 /** Every product in display order. Until the registry has been seeded, the built-in defaults stand in. */
 export async function listPanels(): Promise<PanelRecord[]> {
   if (cache && Date.now() - cache.at < TTL_MS) return cache.rows;
@@ -55,7 +58,7 @@ export async function listPanels(): Promise<PanelRecord[]> {
       await Promise.all(updates);
     }
   }
-  const rows = (docs.length ? docs.filter((d) => !(d as { deleted?: boolean }).deleted).map(({ _id, ...r }) => { const key = r.key ?? _id; return { ...r, key, route: r.route === `/${key}` ? `/${productSlugFor(key)}` : r.route, aliases: r.aliases ?? defaultAliases(key), connections: r.connections ?? defaultConnections(key) }; }) : DEFAULT_PANELS)
+  const rows = (docs.length ? docs.filter((d) => !(d as { deleted?: boolean }).deleted).map(({ _id, ...r }) => { const key = r.key ?? _id; return { ...r, key, core: r.core && !NO_LONGER_CORE.has(key), route: r.route === `/${key}` ? `/${productSlugFor(key)}` : r.route, aliases: r.aliases ?? defaultAliases(key), connections: r.connections ?? defaultConnections(key) }; }) : DEFAULT_PANELS)
     .filter((p) => !PLATFORM_ONLY_KEYS.includes(p.key))
     .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
   cache = { at: Date.now(), rows };

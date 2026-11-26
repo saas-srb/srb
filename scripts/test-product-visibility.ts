@@ -55,7 +55,7 @@ async function main() {
       const nav = resolveNav(await loadNavContext({ id: String(userId), roles: ["super_admin"], permissionOverrides: null }));
       const items = nav.sections.flatMap((s) => s.items);
       assert.deepEqual(items.filter((i) => bad(i.href)).map((i) => i.href), [], `${product}: menu links into another product`);
-      assert.deepEqual(items.filter((i) => i.key.startsWith("product.") && i.key !== `product.${product}` && i.key !== "product.messenger" && !(INCLUDED_WITH[product] ?? []).some((k) => i.key === `product.${k}`)).map((i) => i.key), [], `${product}: only its own product tile`);
+      assert.deepEqual(items.filter((i) => i.key.startsWith("product.") && i.key !== `product.${product}` && i.key !== "product.intelligence" && !(INCLUDED_WITH[product] ?? []).some((k) => i.key === `product.${k}`)).map((i) => i.key), [], `${product}: only its own product tile`);
       const names = new Map((await listPanels()).map((p) => [p.key, p.name]));
       const forbidden = [...hidden].filter((k) => k !== "website").map((k) => names.get(k)).filter(Boolean) as string[];
       assert.deepEqual(items.filter((i) => forbidden.includes(i.group ?? "") || forbidden.includes(i.label)).map((i) => `${i.group} / ${i.label}`), [], `${product}: menu names another product`);

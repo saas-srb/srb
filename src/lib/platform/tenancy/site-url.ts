@@ -51,7 +51,8 @@ async function resolveSiteUrl(companyId: string, hostHint: string | null): Promi
   const db = await getPlatformDb();
   const primary = await db
     .collection<CompanyDomain>(COMPANY_DOMAINS_COLLECTION)
-    .find({ companyId, status: "verified", isPrimary: true })
+    // An app-only address never serves the website of a company whose website we run.
+    .find({ companyId, status: "verified", isPrimary: true, ...(hasSeparateAppHost(company) ? { use: { $ne: "app" as const } } : {}) })
     .sort({ verifiedAt: 1, _id: 1 })
     .limit(1)
     .next();
@@ -116,12 +117,18 @@ export async function appUrlForCompany(companyId: string, hostHint: string | nul
   if (!company) throw new Error(`Unknown company ${companyId}`);
   if (company.isPlatformOwner) return saasAppOrigin(hostHint);
   const db = await getPlatformDb();
-  const primary = await db
-    .collection<CompanyDomain>(COMPANY_DOMAINS_COLLECTION)
-    .find({ companyId, status: "verified", isPrimary: true, kind: "custom" })
+  const separate = hasSeparateAppHost(company);
+  const domains = db.collection<CompanyDomain>(COMPANY_DOMAINS_COLLECTION);
+  // Beside a website, an address added for team sign-in is used as soon as it is verified.
+  if (separate) {
+    const own = await domains.find({ companyId, status: "verified", kind: "custom", use: "app" }).sort({ verifiedAt: -1, _id: 1 }).limit(1).next();
+    if (own && !own._id.endsWith(".localhost")) return `https://${own._id}`;
+  }
+  const primary = await domains
+    .find({ companyId, status: "verified", isPrimary: true, kind: "custom", ...(separate ? { use: { $ne: "app" as const } } : {}) })
     .sort({ verifiedAt: 1, _id: 1 })
     .limit(1)
     .next();
-  if (primary && !primary._id.endsWith(".localhost")) return hasSeparateAppHost(company) ? `https://app.${primary._id.replace(/^www\./, "")}` : `https://${primary._id}`;
+  if (primary && !primary._id.endsWith(".localhost")) return separate ? `https://app.${primary._id.replace(/^www\./, "")}` : `https://${primary._id}`;
   return companyAppBaseUrl(company, hostHint);
 }

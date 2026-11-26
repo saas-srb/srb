@@ -9,7 +9,7 @@ import { CardContent, CardDescription, CardHeader, CardTitle } from "@/component
 import GlassCard from "@/components/products/dealflow-ai/GlassCard";
 import { openSubscriptionCheckout, type RazorpayHandlerResponse } from "@/components/platform/billing/razorpay-checkout";
 import { formatMoney } from "@/lib/platform/billing/types";
-import { parseSelection, ownedModules, NEEDS_ONE_OF, INCLUDED_WITH } from "@/lib/platform/products/selection";
+import { parseSelection, ownedModules, ALWAYS_INCLUDED_TEXT, INCLUDED_WITH, PRODUCT_CHOICE } from "@/lib/platform/products/selection";
 import type { PriceSummary } from "@/lib/platform/billing/billing-details";
 
 type Checkout = { key: string; subscriptionId: string; name: string; description: string; prefill: { name: string; email: string } };
@@ -52,11 +52,7 @@ export default function ProductsCard({ choices, current, next, held, maxProducts
     setPreview(null);
     setError(null);
   }
-  const toggle = (key: string, on: boolean) => {
-    const keys = on ? [...picked, key] : picked.filter((k) => k !== key);
-    // A product that only comes beside another leaves with it.
-    pick(false, keys.filter((k) => !NEEDS_ONE_OF[k as keyof typeof NEEDS_ONE_OF] || NEEDS_ONE_OF[k as keyof typeof NEEDS_ONE_OF]!.some((n) => keys.includes(n))));
-  };
+  const toggle = (key: string, on: boolean) => pick(false, on ? [...picked, key] : picked.filter((k) => k !== key));
 
   const run = (fn: () => Promise<void>) =>
     start(async () => {
@@ -102,7 +98,7 @@ export default function ProductsCard({ choices, current, next, held, maxProducts
       <CardHeader>
         <CardTitle className="text-base">Your products</CardTitle>
         <CardDescription>
-          CommandOS and Huddle come with every workspace. Adding or removing the website (SiteCraft) moves your sign-in address. {maxProducts ? `Your plan includes ${maxProducts === 1 ? "one product" : `${maxProducts} products`}.` : "Pick some products, or take them all."}
+          {ALWAYS_INCLUDED_TEXT} Adding or removing the website (SiteCraft) moves your sign-in address. {maxProducts ? `Your plan includes ${maxProducts === 1 ? "one product" : `${maxProducts} products`}.` : "Pick some products, or take them all."}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -118,16 +114,14 @@ export default function ProductsCard({ choices, current, next, held, maxProducts
         <fieldset disabled={all} className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           <legend className="sr-only">Products</legend>
           {choices.map((c) => {
-            const needs = NEEDS_ONE_OF[c.key as keyof typeof NEEDS_ONE_OF];
             const bundledBy = picked.find((k) => INCLUDED_WITH[k as keyof typeof INCLUDED_WITH]?.includes(c.key as never));
-            const unavailable = Boolean(needs && !needs.some((n) => picked.includes(n)));
             return (
               <label key={c.key} className="flex items-start gap-2 rounded-xl border border-border/60 p-3 text-sm has-checked:border-primary has-checked:bg-primary/5 has-disabled:opacity-60">
-                <input type="checkbox" className="mt-1" disabled={unavailable} checked={all || picked.includes(c.key) || Boolean(owned?.has(c.key) && bundledBy)} onChange={(e) => toggle(c.key, e.target.checked)} />
+                <input type="checkbox" className="mt-1" checked={all || picked.includes(c.key) || Boolean(owned?.has(c.key) && bundledBy)} onChange={(e) => toggle(c.key, e.target.checked)} />
                 <span>
                   <span className="block font-medium">{c.name}</span>
                   <span className="block text-xs text-muted-foreground">
-                    {unavailable ? "Add a product with data first." : bundledBy ? "Comes with your selection." : held.includes(c.key) ? "Just added: can be removed after one bill." : c.description}
+                    {bundledBy ? "Comes with your selection." : held.includes(c.key) ? "Just added: can be removed after one bill." : (PRODUCT_CHOICE[c.key as keyof typeof PRODUCT_CHOICE]?.description ?? c.description)}
                   </span>
                 </span>
               </label>

@@ -1,4 +1,5 @@
 import { hiddenProducts } from "@/lib/platform/products/visible";
+import ProductLink from "@/components/platform/ProductLink";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -93,9 +94,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </Link>
           )}
           {messengerSlug && (
-            <Link href={`/huddle-ai/projects/${messengerSlug}`} className="text-sm font-medium text-primary hover:underline">
+            <ProductLink href={`/huddle-ai/projects/${messengerSlug}`} fallback={null} className="text-sm font-medium text-primary hover:underline">
               Team channel →
-            </Link>
+            </ProductLink>
           )}
           {canManage && <ProjectActions projectId={id} projectName={project.name} />}
         </div></>}

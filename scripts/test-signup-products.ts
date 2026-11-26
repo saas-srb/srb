@@ -80,15 +80,17 @@ async function main() {
 
   // --- several products ----------------------------------------------------------------
   const two = await signUp("twoof", { product: ["hrms", "fms", "intelligence"] });
-  eq(two.company.products?.mode === "selected" && [...two.company.products.keys].sort(), ["fms", "hrms", "intelligence"], "every product picked, DataBrain beside them");
+  eq(two.company.products?.mode === "selected" && [...two.company.products.keys].sort(), ["fms", "hrms"], "every product picked; DataBrain comes anyway");
   eq([two.sub.status, two.next], ["trialing", "/commandos"], "more than one product: paid trial, CommandOS");
   const free2 = await signUp("freepair", { product: ["hrms", "messenger"] });
-  eq(free2.sub.planId, "free", "Huddle beside one product stays free");
+  eq(free2.sub.status, "trialing", "Huddle counts as a second product");
   const withSite = await signUp("sitepair", { product: ["hrms", "cms"] });
   ok(withSite.company.website?.mode === "platform" && withSite.pages > 0, "website picked among several: written");
   ok(validateSignup(form("rules", { product: [] })).product, "nothing picked");
   ok(validateSignup(form("rules", { product: ["all", "hrms"] })).product, "All stands alone");
-  ok(/DataBrain/.test(validateSignup(form("rules", { product: ["intelligence"] })).product ?? ""), "DataBrain says what it needs");
+  ok(validateSignup(form("rules", { product: ["intelligence"] })).product, "DataBrain is not a choice");
+  eq(signupProductHref("intelligence"), "/signup", "it comes with anything");
+  eq(signupProductHref("seo"), signupProductHref("cms"), "RankMax comes with SiteCraft");
 
   // --- all products --------------------------------------------------------------------
   const trial = (await allProductsTrialPlan())!;
@@ -157,7 +159,7 @@ async function main() {
 
   // --- links from product pages ----------------------------------------------------------
   ok(/^\/signup\?product=./.test(signupProductHref("hrms")), "product page preselects");
-  eq(signupProductHref("portal"), "/signup?product=all", "ClientOS means All");
+  eq(signupProductHref("portal"), signupProductHref("cms"), "ClientOS comes with SiteCraft");
   eq(signupProductHref("workspace"), "/signup", "CommandOS: no preselect");
 
   console.log = log;

@@ -57,7 +57,7 @@ async function main() {
   await open(both, ["/dealflow-ai/voice-calls", "/agentos"], ["/clientos"]);
 
   const agents = await company("agentsonly", "aibots");
-  const hidden = await open(agents, ["/agentos", "/agentos/calls", "/huddle-ai"], ["/dealflow-ai", "/talentos", "/sprintos"]);
+  const hidden = await open(agents, ["/agentos", "/agentos/calls", "/databrain-ai"], ["/dealflow-ai", "/talentos", "/sprintos", "/huddle-ai"]);
   ok(localHref("/dealflow-ai/leads/x", hidden) === null && localHref("/agentos/chats/x", hidden) === "/agentos/chats/x", "a call links back only to screens it has");
 
   const school = await company("trainingonly", "tms");
@@ -71,6 +71,10 @@ async function main() {
 
   const chat = await company("chatonly", "messenger");
   await open(chat, ["/huddle-ai", "/huddle-ai/channels", "/commandos", "/commandos/users", "/resolveiq"], ["/dealflow-ai", "/talentos", "/sprintos", "/cashflow-ai", "/clientos", "/agentos"]);
+
+  const web = await company("webonly", "cms");
+  const webHidden = await open(web, ["/sitecraft-ai", "/rankmax-ai", "/clientos", "/clientos/profile", "/clientos/documents", "/commandos/portal/users", "/databrain-ai"], ["/clientos/invoices", "/clientos/milestones", "/clientos/messages", "/clientos/program", "/clientos/tests", "/clientos/application", "/clientos/projects", "/dealflow-ai", "/huddle-ai"]);
+  ok(hrefAvailable("/clientos/wallet", webHidden), "the wallet is the portal's own");
 
   console.log(`final products standalone: all ${checks} checks passed`);
 }

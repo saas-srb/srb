@@ -1,3 +1,4 @@
+import { isWebsiteAddress } from "@/lib/platform/domains/zone";
 import type { DomainStatus } from "@/lib/platform/domains/types";
 import { emptyCounts, type HostWrite, type SyncAction, type SyncCounts, type SyncStore, type SyncTarget, type VercelDomainsApi } from "@/lib/platform/domains/sync/types";
 
@@ -275,7 +276,7 @@ export async function syncDomains(deps: EngineDeps, opts: EngineOptions): Promis
  */
 export function buildTargets(
   company: { _id: string; slug: string; /** One address for everything: no app hosts. */ singleHost?: boolean },
-  domains: { _id: string; kind?: "subdomain" | "custom"; provider?: Partial<{ attached: boolean; verified: boolean; dnsConfigured: boolean; challenged: boolean; syncStatus: "ok" | "owned_elsewhere" | "failed" }>; appProvider?: Partial<{ attached: boolean; verified: boolean; dnsConfigured: boolean; challenged: boolean; syncStatus: "ok" | "owned_elsewhere" | "failed" }> }[],
+  domains: { _id: string; kind?: "subdomain" | "custom"; use?: "app"; provider?: Partial<{ attached: boolean; verified: boolean; dnsConfigured: boolean; challenged: boolean; syncStatus: "ok" | "owned_elsewhere" | "failed" }>; appProvider?: Partial<{ attached: boolean; verified: boolean; dnsConfigured: boolean; challenged: boolean; syncStatus: "ok" | "owned_elsewhere" | "failed" }> }[],
   ctx: { root: string; appSuffix: string; isPlatformHost: (host: string) => boolean },
 ): SyncTarget[] {
   const out: SyncTarget[] = [];
@@ -299,10 +300,13 @@ export function buildTargets(
   const customs = domains.filter((x) => !subs.includes(x));
   for (const d of customs) {
     add({ host: d._id, companyId: company._id, kind: "custom", docId: d._id, field: "provider", stored: stored(d.provider) });
-    if (!company.singleHost) add({ host: `app.${d._id.replace(/^www\./, "")}`, companyId: company._id, kind: "custom-app", docId: d._id, field: "appProvider", stored: stored(d.appProvider) });
+    // `app.<domain>` only beside a website domain, and not when it is an address of its own.
+    if (!company.singleHost && d.use !== "app" && !customs.some((x) => x._id === `app.${d._id.replace(/^www\./, "")}`)) add({ host: `app.${d._id.replace(/^www\./, "")}`, companyId: company._id, kind: "custom-app", docId: d._id, field: "appProvider", stored: stored(d.appProvider) });
   }
   // The website is served with or without "www." (routing treats them as one domain): attach the counterpart too, unless the company defines it itself.
   for (const d of customs) {
+    // Only a domain and its `www.` go together: a subdomain (app.acme.com) or a sign-in address has no twin.
+    if (d.use === "app" || !isWebsiteAddress(d._id)) continue;
     const alt = d._id.startsWith("www.") ? d._id.slice(4) : `www.${d._id}`;
     if (alt.includes(".") && !customs.some((x) => x._id === alt)) add({ host: alt, companyId: company._id, kind: "custom-alt", docId: null, field: "provider", stored: null });
   }

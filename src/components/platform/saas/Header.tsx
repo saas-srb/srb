@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { BookOpen, Bot, Home, Layers, LogIn, Mail, Menu, Newspaper, Sparkles, Tag, Users, X, type LucideIcon } from "lucide-react";
+import { BookOpen, Bot, Home, Layers, Mail, Menu, Newspaper, Sparkles, Tag, Users, X, type LucideIcon } from "lucide-react";
 import Logo from "@/components/platform/saas/Logo";
 import { NAV_LINKS } from "@/lib/platform/saas/site";
 import ThemeToggle from "@/components/platform/saas/ThemeToggle";
@@ -89,9 +89,6 @@ export default function Header() {
 
           <span className="mx-1.5 h-6 w-px bg-border" aria-hidden />
           <ThemeToggle />
-          <Link href="/login" className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2.5 text-sm font-semibold text-foreground transition-colors hover:text-primary">
-            <LogIn className="h-4 w-4 opacity-70" aria-hidden />Log in
-          </Link>
           <Link href="/signup" className="group inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background transition-all hover:scale-105 active:scale-95">
             <Sparkles className="h-4 w-4" /> Get started free
           </Link>
@@ -169,10 +166,7 @@ export default function Header() {
               </span>
             </Link>
 
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <Link href="/login" onClick={() => setDrawerOn(null)} className="inline-flex items-center justify-center gap-2 rounded-full border border-border/50 bg-muted/30 py-3 text-center text-sm font-bold">
-                <LogIn className="h-4 w-4 opacity-70" />Log in
-              </Link>
+            <div className="mt-6 grid gap-3">
               <Link href="/signup" onClick={() => setDrawerOn(null)} className="inline-flex items-center justify-center gap-2 rounded-full bg-foreground py-3 text-center text-sm font-bold text-background">
                 <Sparkles className="h-4 w-4" />Get started free
               </Link>

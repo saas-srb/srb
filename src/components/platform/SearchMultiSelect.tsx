@@ -39,7 +39,7 @@ export interface MultiOption {
  */
 export default function SearchMultiSelect({
   name, options, values, onChange, placeholder, searchPlaceholder = "Search…", emptyText = "Nothing matches your search.", disabled, invalid, id,
-  max, customPrefix, cleanCustom, title, customLabel = "option", customExample = "", searchExtras,
+  max, customPrefix, cleanCustom, title, customLabel = "option", customExample = "", searchExtras, fullDescriptions = false, maxChips = 4, triggerClassName,
 }: {
   name: string;
   options: MultiOption[];
@@ -63,6 +63,12 @@ export default function SearchMultiSelect({
   customLabel?: string;
   /** An example shown in the "add your own" form, e.g. "Flat broker". */
   customExample?: string;
+  /** How many choices show as chips in the field before "+N more". */
+  maxChips?: number;
+  /** Extra classes for the field itself (size and shape on a page with larger inputs). */
+  triggerClassName?: string;
+  /** Show every description in full (the default keeps a long list compact at two lines). */
+  fullDescriptions?: boolean;
   /** Direct matches shown above the list while searching, e.g. business types found inside other categories. */
   searchExtras?: (query: string) => SearchExtra[];
 }) {
@@ -245,11 +251,12 @@ export default function SearchMultiSelect({
         className={cn(
           "flex min-h-9 w-full cursor-pointer flex-wrap items-center gap-1 rounded-md border border-input bg-transparent px-2 py-1.5 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30",
           invalid && "border-destructive",
-          disabled && "cursor-not-allowed opacity-50"
+          disabled && "cursor-not-allowed opacity-50",
+          triggerClassName
         )}
       >
         {values.length === 0 && <span className="px-1 text-muted-foreground">{placeholder}</span>}
-        {values.slice(0, 4).map((v) => (
+        {values.slice(0, maxChips).map((v) => (
           <span key={v} className="inline-flex max-w-full items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-foreground">
             <span className="truncate">{nameOf(v)}</span>
             <button type="button" aria-label={`Remove ${nameOf(v)}`} onClick={(e) => { e.stopPropagation(); toggle(v); }} className="rounded hover:text-destructive">
@@ -257,7 +264,7 @@ export default function SearchMultiSelect({
             </button>
           </span>
         ))}
-        {values.length > 4 && <span className="px-1 text-xs text-muted-foreground">+{values.length - 4} more</span>}
+        {values.length > maxChips && <span className="px-1 text-xs text-muted-foreground">+{values.length - maxChips} more</span>}
         <ChevronDown className="ml-auto size-4 shrink-0 text-muted-foreground" />
       </div>
 
@@ -267,8 +274,8 @@ export default function SearchMultiSelect({
           ref={panel}
           id={`${id ?? auto}-list`}
           className={cn(
-            "flex flex-col overflow-hidden bg-popover text-popover-foreground",
-            phone ? "fixed inset-x-0 z-[100]" : "fixed z-[100] rounded-lg border border-border shadow-2xl"
+            "flex flex-col overflow-hidden bg-background text-foreground",
+            phone ? "fixed inset-x-0 z-[100]" : "fixed z-[100] rounded-[14px] border border-border/70 shadow-2xl shadow-primary/10"
           )}
           style={phone ? { top: view?.top ?? 0, height: view?.h ?? "100dvh" } : anchor ? { left: anchor.left, width: anchor.width, top: anchor.top, bottom: anchor.bottom, maxHeight: anchor.maxH } : { visibility: "hidden" }}
           role={phone ? "dialog" : "listbox"}
@@ -408,7 +415,7 @@ export default function SearchMultiSelect({
               return (
                 <div key={group || "all"}>
                   {group && (
-                    <div className="sticky top-0 z-10 flex items-center justify-between bg-popover/95 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur">
+                    <div className="sticky top-0 z-10 flex items-center justify-between bg-background/95 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur">
                       <span className="truncate">{group}</span>
                       <button type="button" onClick={() => setGroup(items, !all)} className="shrink-0 normal-case text-primary hover:underline">{all ? "None" : "All"}</button>
                     </div>
@@ -426,15 +433,15 @@ export default function SearchMultiSelect({
                         onClick={() => toggle(o.value)}
                         onMouseEnter={() => setActive(idx)}
                         disabled={!on && atMax}
-                        className={cn("flex w-full items-start gap-3 px-3 text-left hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-40", on && "bg-primary/[0.06]", idx === active && "bg-muted/80 ring-1 ring-inset ring-primary/40", phone ? "py-3 text-base" : "gap-2 py-1.5 text-sm")}
+                        className={cn("mx-1.5 flex w-[calc(100%-0.75rem)] items-start gap-3 rounded-xl px-2.5 text-left transition-colors hover:bg-primary/[0.06] disabled:cursor-not-allowed disabled:opacity-40", on && "bg-primary/10", idx === active && "ring-1 ring-inset ring-primary/40", phone ? "py-3 text-base" : "gap-2.5 py-2 text-sm")}
                       >
-                        <span className={cn("mt-0.5 flex shrink-0 items-center justify-center rounded border", phone ? "size-5" : "size-4", on ? "border-primary bg-primary text-primary-foreground" : "border-input")}>
+                        <span className={cn("mt-px flex shrink-0 items-center justify-center rounded-md border transition-colors", phone ? "size-5" : "size-[18px]", on ? "border-primary bg-primary text-primary-foreground" : "border-input bg-background")}>
                           {on && <Check className="size-3" />}
                         </span>
                         <span className="min-w-0">
                           <span className="font-bold text-foreground"><Highlight text={o.label} q={q} /></span>
                           {o.description && !(q && !o.label.toLowerCase().includes(q) && o.keywords?.some((k) => k.toLowerCase().includes(q))) && (
-                            <span className="line-clamp-2 block text-xs font-normal leading-snug text-muted-foreground">{o.description}</span>
+                            <span className={cn("block text-xs font-normal leading-snug text-muted-foreground", !fullDescriptions && "line-clamp-2")}>{o.description}</span>
                           )}
                           {q && !o.label.toLowerCase().includes(q) && o.keywords?.find((k) => k.toLowerCase().includes(q)) && (
                             <span className="block truncate text-xs text-muted-foreground">includes: {o.keywords.filter((k) => k.toLowerCase().includes(q)).slice(0, 3).join(", ")}</span>

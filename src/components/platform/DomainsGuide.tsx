@@ -3,6 +3,7 @@
 import { Check, CheckCircle2, Circle, Globe, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CompanyDomainView } from "@/lib/platform/domains/types";
+import { isWebsiteAddress, relativeName, zoneOf } from "@/lib/platform/domains/zone";
 
 /**
  * The step-by-step guide on Settings → Domains for connecting a company's own domain. It follows the company's real progress:
@@ -13,22 +14,26 @@ export default function DomainsGuide({ domains, single = false }: { domains: Com
   const custom = domains.filter((d) => d.kind === "custom");
   const first = custom[0];
   const example = first ? first.host : single ? "app.yourcompany.com" : "www.yourcompany.com";
-  const root = example.replace(/^www\./, "");
-  const appHost = `app.${root}`;
+  // An address only for sign-in (every address of a one-address company) has no separate app host.
+  if (first?.appOnly) single = true;
+  const appHost = `app.${example.replace(/^www\./, "")}`;
+  const short = relativeName(example);
 
   const added = custom.length > 0;
   const verified = custom.some((d) => d.status === "verified");
   const live = custom.some((d) => d.status === "verified" && d.hosting.ssl === "active");
   const primary = custom.some((d) => d.isPrimary);
-  const flags = [added, verified, verified, live, primary];
+  // A sign-in address is in use once verified: there is no website domain to make primary beside it.
+  const usable = primary || custom.some((d) => d.appOnly && d.status === "verified");
+  const flags = [added, verified, verified, live, usable];
   const current = flags.findIndex((f) => !f);
 
   const steps: { title: string; body: React.ReactNode }[] = [
     {
-      title: "Add your domain below",
+      title: "Add your domain or subdomain above",
       body: (
         <>
-          Type the address you want {single ? "for your workspace" : "for your website"} into <strong>Add a domain</strong> and press <em>Add domain</em>. Use <code className="rounded bg-muted px-1">{example}</code> . Write only the domain: no <code className="rounded bg-muted px-1">https://</code>, no slashes.{!single && <> You do <strong>not</strong> add the <code className="rounded bg-muted px-1">app.</code> address; it is created for you.</>}
+          Type the address you want {single ? "for your workspace" : "for your website"} into <strong>Add a domain</strong> and press <em>Add domain</em>. Use <code className="rounded bg-muted px-1">{example}</code>. Already have a website? Use a subdomain (like <code className="rounded bg-muted px-1">app.{zoneOf(example)}</code>) for the workspace: your website and email stay exactly as they are. Write only the address: no <code className="rounded bg-muted px-1">https://</code>, no slashes.{!single && <> You do <strong>not</strong> add the <code className="rounded bg-muted px-1">app.</code> address; it is created for you.</>}
         </>
       ),
     },
@@ -41,11 +46,11 @@ export default function DomainsGuide({ domains, single = false }: { domains: Com
             <table className="w-full text-left text-xs">
               <thead className="bg-muted/50 text-muted-foreground"><tr><th className="px-3 py-2 font-medium">What it does</th><th className="px-3 py-2 font-medium">Type</th><th className="px-3 py-2 font-medium">Name / Host</th><th className="px-3 py-2 font-medium">Value</th></tr></thead>
               <tbody className="divide-y">
-                <tr><td className="px-3 py-2">Proves you own the domain</td><td className="px-3 py-2 font-mono">TXT</td><td className="px-3 py-2 font-mono">_domain-verify.{example}</td><td className="px-3 py-2">shown in the list</td></tr>
-                <tr><td className="px-3 py-2">Shows your {single ? "workspace" : "website"} at <strong>{example}</strong></td><td className="px-3 py-2 font-mono">CNAME</td><td className="px-3 py-2 font-mono">{example.startsWith("www.") || example.startsWith("app.") ? example.split(".")[0] : example}</td><td className="px-3 py-2">shown in the list</td></tr>
+                <tr><td className="px-3 py-2">Proves you own the domain</td><td className="px-3 py-2 font-mono">TXT</td><td className="px-3 py-2 font-mono">{short === "@" ? "_domain-verify" : `_domain-verify.${short}`}</td><td className="px-3 py-2">shown in the list</td></tr>
+                <tr><td className="px-3 py-2">Shows your {single ? "workspace" : "website"} at <strong>{example}</strong></td><td className="px-3 py-2 font-mono">{short === "@" ? "A" : "CNAME"}</td><td className="px-3 py-2 font-mono">{short}</td><td className="px-3 py-2">shown in the list</td></tr>
                 {!single && (
                   <>
-                    <tr><td className="px-3 py-2">Shows your products at <strong>{appHost}</strong></td><td className="px-3 py-2 font-mono">CNAME</td><td className="px-3 py-2 font-mono">app</td><td className="px-3 py-2">shown in the list</td></tr>
+                    <tr><td className="px-3 py-2">Shows your products at <strong>{appHost}</strong></td><td className="px-3 py-2 font-mono">CNAME</td><td className="px-3 py-2 font-mono">{relativeName(appHost)}</td><td className="px-3 py-2">shown in the list</td></tr>
                     <tr><td className="px-3 py-2">Lets the hosting provider serve <strong>{appHost}</strong> (shown only when it asks for it)</td><td className="px-3 py-2 font-mono">TXT</td><td className="px-3 py-2 font-mono">_vercel</td><td className="px-3 py-2">shown in the list</td></tr>
                   </>
                 )}
@@ -53,10 +58,11 @@ export default function DomainsGuide({ domains, single = false }: { domains: Com
             </table>
           </div>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
-            <li>In the <em>Name / Host</em> box most providers want only the first part (<code className="rounded bg-muted px-1">www</code>, <code className="rounded bg-muted px-1">app</code>, <code className="rounded bg-muted px-1">_domain-verify.www</code>), not the whole domain. The provider adds the rest.</li>
-            <li>If a record with the same name already exists (an old <code className="rounded bg-muted px-1">www</code> or <code className="rounded bg-muted px-1">app</code> record), replace it. Leave your email records (MX, SPF, DKIM) alone.</li>
+            <li>In the <em>Name / Host</em> box most providers want only the first part (<code className="rounded bg-muted px-1">{short === "@" ? "_domain-verify" : short}</code>), not the whole domain. The provider adds the rest.</li>
+            <li>If a record with exactly the same name already exists, replace it only if nothing of yours still uses that name; otherwise choose another subdomain. Leave your email records (MX, SPF, DKIM) alone.</li>
             <li>Cloudflare: set the orange cloud to <strong>DNS only</strong> (grey) for these records until the domain is verified.</li>
             <li>Do <strong>not</strong> change your domain&apos;s nameservers.</li>
+            <li>Add only the records listed: do not delete or change your other records.</li>
             <li>Publish <strong>every</strong> record in the list{!single && <>, including the ones for <code className="rounded bg-muted px-1">{appHost}</code></>}, in one go. Nothing has to be done in the hosting dashboard: after the records are in, <em>Check now</em> (and the daily automatic check) verifies everything by itself.</li>
           </ul>
         </>
@@ -71,19 +77,21 @@ export default function DomainsGuide({ domains, single = false }: { domains: Com
       body: <>Once verified, a secure certificate (the padlock, <code className="rounded bg-muted px-1">https</code>) is issued automatically. The badge changes from <em>SSL waiting for DNS</em> to <strong>SSL active</strong>, usually within a few minutes.</>,
     },
     {
-      title: "Make it your primary address",
-      body: <>Press <strong>Make primary</strong>. Your links, emails and certificates will then use it. Your original workspace address keeps working too.</>,
+      title: first?.appOnly ? "Sign in on it" : "Make it your primary address",
+      body: first?.appOnly
+        ? <>Open <strong className="break-all">https://{example}</strong> and sign in. Links in emails use it as soon as it is verified. Your original workspace address keeps working too.</>
+        : <>Press <strong>Make primary</strong>. Your links, emails and certificates will then use it. Your original workspace address keeps working too.</>,
     },
   ];
 
-  const open = !(verified && primary);
+  const open = !(verified && usable);
   return (
     <details open={open} className="group rounded-xl border bg-muted/20">
       <summary className="flex cursor-pointer list-none items-center gap-3 p-4">
         <Globe className="size-5 shrink-0 text-primary" />
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold">How to connect your own domain</span>
-          <span className="block text-xs text-muted-foreground">{primary ? "Your domain is connected. This guide is here if you need it." : "Five short steps. This list follows your progress."}</span>
+          <span className="block text-xs text-muted-foreground">{usable ? "Your domain is connected. This guide is here if you need it." : "Five short steps. This list follows your progress."}</span>
         </span>
         <span className="text-xs text-muted-foreground group-open:hidden">Show</span>
         <span className="hidden text-xs text-muted-foreground group-open:inline">Hide</span>
@@ -116,8 +124,12 @@ export default function DomainsGuide({ domains, single = false }: { domains: Com
           <p className="flex items-center gap-2 font-medium"><CheckCircle2 className="size-4 text-emerald-600" /> Before you start</p>
           <ul className="list-disc space-y-1 pl-5 text-xs text-muted-foreground">
             <li>You need access to the domain&apos;s DNS settings (your domain provider, or whoever manages it for you).</li>
-            <li>If <code className="rounded bg-muted px-1">{root}</code> already shows another website, that site stops showing as soon as the new records are live, and visitors see this one instead. Do this at a quiet time.</li>
-            <li>The plain <code className="rounded bg-muted px-1">{root}</code> (without www) works too once you connect <code className="rounded bg-muted px-1">{example}</code>. For the cleanest result, set your provider to forward <code className="rounded bg-muted px-1">{root}</code> to <code className="rounded bg-muted px-1">{example}</code>, or add the A record shown in the list.</li>
+            {isWebsiteAddress(example) && (
+              <li>If <code className="rounded bg-muted px-1">{example}</code> already shows another website, that site stops showing as soon as the new records are live, and visitors see this one instead. Do this at a quiet time.</li>
+            )}
+            {example.startsWith("www.") && (
+              <li>The plain <code className="rounded bg-muted px-1">{zoneOf(example)}</code> (without www) works too once you connect <code className="rounded bg-muted px-1">{example}</code>. For the cleanest result, set your provider to forward <code className="rounded bg-muted px-1">{zoneOf(example)}</code> to <code className="rounded bg-muted px-1">{example}</code>, or add the A record shown in the list.</li>
+            )}
             <li>One domain can belong to one workspace only. If it says the domain is already in use, it is connected to another workspace.</li>
           </ul>
         </div>
@@ -127,7 +139,7 @@ export default function DomainsGuide({ domains, single = false }: { domains: Com
           <ul className="space-y-1.5 text-xs text-muted-foreground">
             <li><strong className="text-foreground">&ldquo;Not found yet&rdquo;</strong>: the record isn&apos;t visible yet. Wait 10 to 30 minutes and press Check now. Check the Name box (see the tips in step 2).</li>
             <li><strong className="text-foreground">&ldquo;Wrong value&rdquo;</strong>: the record exists with a different value. Edit it to match the one in the list, with no extra spaces or quotes.</li>
-            <li><strong className="text-foreground">&ldquo;SSL waiting for DNS&rdquo;</strong>: the website and <code className="rounded bg-muted px-1">app</code> CNAME records aren&apos;t pointing here yet, or an orange-cloud proxy is on. Fix the record and press Check now.</li>
+            <li><strong className="text-foreground">&ldquo;SSL waiting for DNS&rdquo;</strong>: the routing records aren&apos;t pointing here yet, or an orange-cloud proxy is on. Fix the record and press Check now.</li>
             <li><strong className="text-foreground">The address shows &ldquo;No workspace here&rdquo;</strong>: the domain isn&apos;t verified yet, or it was removed. Verify it first.</li>
           </ul>
         </div>

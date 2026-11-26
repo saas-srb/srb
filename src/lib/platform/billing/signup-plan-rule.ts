@@ -1,4 +1,4 @@
-import { ALL_PRODUCTS_VALUE, SELLABLE_PRODUCTS } from "@/lib/platform/products/selection";
+import { ALL_PRODUCTS_VALUE, INCLUDED_PRODUCTS, INCLUDED_WITH, SELLABLE_PRODUCTS } from "@/lib/platform/products/selection";
 import { productSlugFor } from "@/lib/platform/saas/product-routes";
 
 /** Choosing a plan on the pricing page and carrying it through sign-up (pure: used by the pricing cards, the sign-up form and the server). */
@@ -29,9 +29,12 @@ export function trialLabel(days: number): string {
   return `${days} days`;
 }
 
-/** The sign-up link of a product page: that product already chosen (one that is only sold with the rest chooses "All products"). */
+/** The sign-up link of a product page: that product already chosen (one that comes with another chooses that one). */
 export function signupProductHref(moduleKey: string): string {
-  if (moduleKey === "workspace" || moduleKey === "admin") return "/signup";
-  const alone = (SELLABLE_PRODUCTS as readonly string[]).includes(moduleKey);
-  return `/signup?product=${alone ? productSlugFor(moduleKey) : ALL_PRODUCTS_VALUE}`;
+  if ((INCLUDED_PRODUCTS as readonly string[]).includes(moduleKey) || moduleKey === "support") return "/signup";
+  const wanted = moduleKey === "website" ? "cms" : moduleKey;
+  const sold = (SELLABLE_PRODUCTS as readonly string[]).includes(wanted)
+    ? wanted
+    : Object.entries(INCLUDED_WITH).find(([, brings]) => (brings as readonly string[]).includes(wanted))?.[0];
+  return `/signup?product=${sold ? productSlugFor(sold) : ALL_PRODUCTS_VALUE}`;
 }

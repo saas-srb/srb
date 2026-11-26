@@ -19,6 +19,26 @@ import { LEAVE_REQUEST_STATUSES } from "@/lib/products/talentos/leave-status";
 import { LEAD_SOURCE_META } from "@/lib/lead-management/types";
 import { INVOICE_STATUSES, PAYMENT_METHODS } from "@/lib/products/cashflow-ai/constants";
 import { EXPENSE_STATUSES, PO_STATUSES, VENDOR_CATEGORIES, VENDOR_STATUSES } from "@/lib/products/spendiq/constants";
+import { PROGRAMS_COLLECTION } from "@/lib/products/cohort-ai/programs";
+import { STUDENTS_COLLECTION } from "@/lib/products/cohort-ai/students";
+import { BATCHES_COLLECTION } from "@/lib/products/cohort-ai/batches";
+import { ENROLLMENTS_COLLECTION } from "@/lib/products/cohort-ai/enrollments";
+import { BATCH_STATUSES, PROGRAM_CATEGORIES, PROGRAM_STATUSES, STUDENT_STATUSES, TRAINING_MODES } from "@/lib/products/cohort-ai/constants";
+import { COLLECTIONS as ASSESSMENT_COLLECTIONS } from "@/lib/products/evaliq/db";
+import { ASSIGNMENT_STATUSES, ATTEMPT_STATUSES, TEST_STATUSES } from "@/lib/products/evaliq/constants";
+import { PB_COLLECTIONS } from "@/lib/products/playbook-ai/pb-collections";
+import { DOC_STATUSES, DOC_STATUS_META } from "@/lib/products/playbook-ai/status";
+import { CF_COLLECTIONS } from "@/lib/products/contractflow-ai/cf-collections";
+import { CLONE_STATUSES } from "@/lib/products/contractflow-ai/clone-types";
+import { REQUEST_STATUSES } from "@/lib/products/contractflow-ai/sign-types";
+import { COLLECTIONS as VAULT_COLLECTIONS } from "@/lib/products/cybervault/db";
+import { STATUSES as VAULT_STATUSES } from "@/lib/products/cybervault/constants";
+import { COLLECTIONS as SITE_COLLECTIONS } from "@/lib/products/sitecraft-ai/db";
+import { COLLECTIONS as SEO_COLLECTIONS } from "@/lib/products/rankmax-ai/db";
+import { ISSUE_STATUSES, SEVERITIES } from "@/lib/products/rankmax-ai/checks";
+import { COLLECTIONS as SOCIAL_COLLECTIONS } from "@/lib/products/viralpulse-ai/db";
+import { CONTENT_STATUSES } from "@/lib/products/viralpulse-ai/constants";
+import { CALL_COLLECTIONS, CALL_STATUSES } from "@/lib/products/agentos/calls/types";
 import type { EntityDef, EntityInput, EnumValue, FieldDef, FieldInput } from "@/lib/products/databrain-ai/catalog/types";
 
 /**
@@ -88,6 +108,8 @@ const day = (key: string, label: string, o: Partial<FieldInput> = {}): FieldInpu
 const secret = (key: string, label: string, type: FieldInput["type"] = "string", o: Partial<FieldInput> = {}): FieldInput => ({ key, label, type, sensitive: true, filterable: false, groupable: false, aggregatable: false, ...o });
 
 const lit = (v: string) => ({ $literal: v });
+/** "partially_signed" → "Partially signed". */
+const words = (v: string) => (v.charAt(0).toUpperCase() + v.slice(1)).replace(/_/g, " ");
 const OPEN_INVOICE = ["sent", "partially_paid", "overdue"];
 const balanceExpr = { $round: [{ $subtract: [{ $ifNull: ["$totalAmount", 0] }, { $add: [{ $ifNull: ["$amountPaid", 0] }, { $ifNull: ["$amountCredited", 0] }] }] }, 2] };
 
@@ -475,6 +497,216 @@ export const ENTITIES: readonly EntityDef[] = [
       date("issuedAt", "Issued at"),
       date("createdAt", "Created"),
     ],
+  }),
+
+  // ── Training (Cohort AI) ───────────────────────────────────────────────────
+  entity({
+    key: "training_programs",
+    label: "Training programs",
+    description: "Courses the company runs. fees = the program's standard fee.",
+    collection: PROGRAMS_COLLECTION,
+    module: "tms",
+    dateField: "createdAt",
+    access: [{ area: "training" }],
+    relations: [],
+    fields: [str("programCode", "Program code"), str("name", "Program name"), en("category", "Category", PROGRAM_CATEGORIES), en("status", "Status", PROGRAM_STATUSES), money("fees", "Fees"), num("durationWeeks", "Duration in weeks"), date("createdAt", "Created")],
+  }),
+  entity({
+    key: "students",
+    label: "Students",
+    description: "Trainees and students. Contact and guardian details are not available.",
+    collection: STUDENTS_COLLECTION,
+    module: "tms",
+    dateField: "createdAt",
+    access: [{ area: "training" }],
+    relations: [],
+    fields: [str("studentCode", "Student code"), str("fullName", "Student name"), en("status", "Status", STUDENT_STATUSES), date("createdAt", "Registered"), secret("email", "Email"), secret("mobile", "Mobile"), secret("address", "Address"), secret("notes", "Notes")],
+  }),
+  entity({
+    key: "batches",
+    label: "Batches",
+    description: "Scheduled groups of a program.",
+    collection: BATCHES_COLLECTION,
+    module: "tms",
+    dateField: "startDate",
+    access: [{ area: "training" }],
+    relations: [{ key: "program", to: "training_programs", localField: "programId", foreignField: "_id", label: "Program" }],
+    fields: [str("batchCode", "Batch code"), str("name", "Batch name"), id("programId", "Program id"), en("status", "Status", BATCH_STATUSES), en("mode", "Mode", TRAINING_MODES), num("capacity", "Seats"), day("startDate", "Starts"), day("endDate", "Ends")],
+  }),
+  entity({
+    key: "enrollments",
+    label: "Enrollments",
+    description: "A student's place in a batch, with progress (percent).",
+    collection: ENROLLMENTS_COLLECTION,
+    module: "tms",
+    dateField: "enrolledOn",
+    access: [{ area: "training" }],
+    relations: [
+      { key: "student", to: "students", localField: "studentId", foreignField: "_id", label: "Student" },
+      { key: "batch", to: "batches", localField: "batchId", foreignField: "_id", label: "Batch" },
+      { key: "program", to: "training_programs", localField: "programId", foreignField: "_id", label: "Program" },
+    ],
+    fields: [id("studentId", "Student id"), id("batchId", "Batch id"), id("programId", "Program id"), en("status", "Status", STUDENT_STATUSES), num("progressPercent", "Progress percent"), day("enrolledOn", "Enrolled on")],
+  }),
+
+  // ── Assessments (EvalIQ) ───────────────────────────────────────────────────
+  entity({
+    key: "tests",
+    label: "Tests",
+    description: "Assessments that can be given to people. Questions and answers are not available.",
+    collection: ASSESSMENT_COLLECTIONS.tests,
+    module: "ots",
+    dateField: "createdAt",
+    access: [{ area: "assessments" }],
+    relations: [],
+    fields: [str("code", "Test code"), str("name", "Test name"), str("subject", "Subject"), str("difficulty", "Difficulty", { liveValues: true }), en("status", "Status", TEST_STATUSES.filter((x) => x.value !== "active")), date("publishedAt", "Published on"), date("createdAt", "Created")],
+  }),
+  entity({
+    key: "test_attempts",
+    label: "Test attempts",
+    description: "One person's sitting of a test. score = percentage; passed = met the pass mark. Only evaluated attempts have a score.",
+    collection: ASSESSMENT_COLLECTIONS.attempts,
+    module: "ots",
+    dateField: "startedAt",
+    access: [{ area: "assessments" }],
+    relations: [
+      { key: "test", to: "tests", localField: "testId", foreignField: "_id", label: "Test" },
+      { key: "assignment", to: "test_assignments", localField: "assignmentId", foreignField: "_id", label: "Assignment" },
+    ],
+    fields: [id("testId", "Test id"), id("assignmentId", "Assignment id"), str("testName", "Test name"), en("status", "Status", ATTEMPT_STATUSES), num("score", "Score percent", { path: "result.percentage" }), bool("passed", "Passed", { path: "result.passed" }), num("violations", "Rule violations"), date("startedAt", "Started"), date("submittedAt", "Submitted")],
+  }),
+
+  entity({
+    key: "test_assignments",
+    label: "Test assignments",
+    description: "A test given to one person (their name as shown on the assignment), with where it stands.",
+    collection: ASSESSMENT_COLLECTIONS.assignments,
+    module: "ots",
+    dateField: "createdAt",
+    access: [{ area: "assessments" }],
+    relations: [{ key: "test", to: "tests", localField: "testId", foreignField: "_id", label: "Test" }],
+    fields: [str("candidateLabel", "Person"), id("testId", "Test id"), en("status", "Status", ASSIGNMENT_STATUSES), date("createdAt", "Assigned on")],
+  }),
+
+  // ── Playbook and ContractFlow ──────────────────────────────────────────────
+  entity({
+    key: "playbook_documents",
+    label: "Playbook documents",
+    description: "Policies, procedures and other documents written in Playbook. Their text is not available.",
+    collection: PB_COLLECTIONS.documents,
+    module: "sop",
+    dateField: "createdAt",
+    access: [{ area: "playbooks" }],
+    relations: [],
+    fields: [str("title", "Title"), str("docNumber", "Document number"), en("status", "Status", DOC_STATUSES.map((v) => ({ value: v, label: DOC_STATUS_META[v].label }))), date("issuedAt", "Issued on"), date("createdAt", "Created"), date("updatedAt", "Last changed")],
+  }),
+  entity({
+    key: "contracts",
+    label: "Contracts",
+    description: "Agreements prepared in ContractFlow. signed = every party has signed. Their text is not available.",
+    collection: CF_COLLECTIONS.documents,
+    module: "lpms",
+    dateField: "createdAt",
+    access: [{ area: "contracts" }],
+    relations: [],
+    fields: [str("title", "Title"), en("status", "Status", CLONE_STATUSES.map((v) => ({ value: v, label: words(v) }))), num("signatureCount", "Signatures received"), date("lockedAt", "Locked for signing"), date("createdAt", "Created"), date("updatedAt", "Last changed")],
+  }),
+  entity({
+    key: "signature_requests",
+    label: "Signature requests",
+    description: "Requests to sign a contract. Open = sent or in_progress.",
+    collection: CF_COLLECTIONS.requests,
+    module: "lpms",
+    dateField: "createdAt",
+    access: [{ area: "contracts" }],
+    relations: [{ key: "contract", to: "contracts", localField: "cloneId", foreignField: "_id", label: "Contract" }],
+    fields: [id("cloneId", "Contract id"), str("title", "Title"), en("status", "Status", REQUEST_STATUSES.map((v) => ({ value: v, label: words(v) }))), date("expiresAt", "Expires"), date("createdAt", "Sent on")],
+  }),
+
+  // ── CyberVault (names and dates only: never passwords, notes, links or files) ──
+  entity({
+    key: "vault_documents",
+    label: "Vault documents",
+    description: "Documents kept in CyberVault: name, category and expiry date only. Files, passwords and notes are never available.",
+    collection: VAULT_COLLECTIONS.documents,
+    module: "dlms",
+    dateField: "createdAt",
+    access: [{ area: "vault" }],
+    relations: [],
+    fields: [str("name", "Document name"), str("category", "Category", { liveValues: true }), en("status", "Status", VAULT_STATUSES.map((v) => ({ value: v, label: words(v) }))), day("expiryDate", "Expiry date"), date("createdAt", "Added"), secret("description", "Description"), secret("notes", "Notes")],
+  }),
+
+  // ── Website (SiteCraft) and search (RankMax) ───────────────────────────────
+  entity({
+    key: "website_pages",
+    label: "Website pages",
+    description: "Pages of the company's website.",
+    collection: SITE_COLLECTIONS.pages,
+    module: "cms",
+    dateField: "createdAt",
+    access: [{ area: "website" }],
+    relations: [],
+    fields: [str("title", "Page title"), str("path", "Address"), en("status", "Status", ["draft", "published", "archived"].map((v) => ({ value: v, label: words(v) }))), date("publishedAt", "Published on"), date("createdAt", "Created")],
+  }),
+  entity({
+    key: "website_enquiries",
+    label: "Website enquiries",
+    description: "People who sent an enquiry through the website. Names only: no emails, phones or messages.",
+    collection: LEAD_RECORDS_COLLECTION,
+    module: "cms",
+    // With DealFlow the same records are its leads.
+    unlessModule: "lms",
+    dateField: "createdAt",
+    access: [{ area: "website" }],
+    relations: [],
+    fields: [str("code", "Enquiry code"), str("name", "Name"), str("type", "Type", { liveValues: true }), en("source", "Source", Object.entries(LEAD_SOURCE_META).map(([value, m]) => ({ value, label: m.label }))), date("createdAt", "Received"), secret("email", "Email"), secret("phone", "Phone"), secret("message", "Message")],
+  }),
+  entity({
+    key: "seo_issues",
+    label: "SEO issues",
+    description: "Problems found on the website by search audits. Open = open or in_progress.",
+    collection: SEO_COLLECTIONS.issues,
+    module: "seo",
+    dateField: "firstSeenAt",
+    access: [{ area: "seo" }],
+    relations: [],
+    fields: [str("title", "Issue"), en("severity", "Severity", SEVERITIES.map((v) => ({ value: v, label: words(v) }))), en("status", "Status", ISSUE_STATUSES.map((v) => ({ value: v, label: words(v) }))), str("category", "Category", { liveValues: true }), str("path", "Page"), date("firstSeenAt", "First seen"), date("resolvedAt", "Resolved on")],
+  }),
+  entity({
+    key: "seo_keywords",
+    label: "Search keywords",
+    description: "Keywords being tracked. currentPosition 1 is the top result; smaller is better; null = not ranking.",
+    collection: SEO_COLLECTIONS.keywords,
+    module: "seo",
+    dateField: "createdAt",
+    access: [{ area: "seo" }],
+    relations: [],
+    fields: [str("keyword", "Keyword"), num("currentPosition", "Current position"), num("previousPosition", "Previous position"), num("targetPosition", "Target position"), num("volume", "Monthly searches"), str("priority", "Priority", { liveValues: true }), str("status", "Status", { liveValues: true }), date("lastCheckedAt", "Last checked"), date("createdAt", "Added")],
+  }),
+
+  // ── Social (ViralPulse) and calls (AgentOS) ───────────────────────────────
+  entity({
+    key: "social_posts",
+    label: "Social posts",
+    description: "Posts prepared in ViralPulse.",
+    collection: SOCIAL_COLLECTIONS.posts,
+    module: "smms",
+    dateField: "createdAt",
+    access: [{ area: "social" }],
+    relations: [],
+    fields: [str("title", "Title"), en("status", "Status", CONTENT_STATUSES.map((v) => ({ value: v, label: words(v) }))), str("contentType", "Content type", { liveValues: true }), date("scheduledAt", "Scheduled for"), date("publishedAt", "Published on"), date("createdAt", "Created")],
+  }),
+  entity({
+    key: "calls",
+    label: "AI calls",
+    description: "Phone and web calls handled by AI agents. durationSecs = talk time in seconds. Numbers, transcripts and recordings are not available.",
+    collection: CALL_COLLECTIONS.calls,
+    module: "aibots",
+    dateField: "anchorAt",
+    baseFilter: { ...NOT_DELETED, testMode: { $ne: true } },
+    access: [{ area: "calls" }],
+    relations: [],
+    fields: [en("direction", "Direction", ["outbound", "inbound", "web", "web_public"].map((v) => ({ value: v, label: words(v) }))), en("status", "Status", CALL_STATUSES.map((v) => ({ value: v, label: words(v) }))), str("outcome", "Outcome", { liveValues: true }), str("purpose", "Purpose", { liveValues: true }), num("durationSecs", "Duration in seconds"), date("anchorAt", "Call time"), secret("phone", "Phone number"), secret("transcript", "Transcript"), secret("summary", "Summary")],
   }),
 ];
 

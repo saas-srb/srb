@@ -253,7 +253,7 @@ export default function ChatWorkspace({ conversationId, title, initialMessages, 
                   ))}
                 </div>
               ) : (
-                <p className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">No company data is available to your account yet, so there is nothing to ask about. Ask your administrator for access to the products you need.</p>
+                <p className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">There is nothing to ask about yet. DataBrain answers from the records of your products (sales, staff, money, projects, training, tests, documents, website, social posts and calls) that your role lets you see in full. Chat messages, passwords and files are never read. Ask your Director for access, or add a product in Plan & billing.</p>
               )}
             </div>
           ) : (

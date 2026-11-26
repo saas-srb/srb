@@ -328,7 +328,7 @@ export default async function VisionPage() {
           <Head id="next" title="Where it goes from here." lead="We keep improving what people use every day. We announce something only when it is ready to be described clearly." />
           <div className="grid gap-5 md:grid-cols-3">
             {[
-              { t: "See what is available now", x: "The roadmap page lists everything the software offers today, taken from the live product.", href: "/roadmap", c: "Open the roadmap" },
+              { t: "See what is available now", x: "The products page lists everything the software offers today, taken from the live product.", href: "/products", c: "View all products" },
               { t: "Tell us what to build next", x: "Tell us which job you want made easier. Real customer needs decide what we work on.", href: "/contact", c: "Share feedback" },
               { t: "Try it with your own business", x: "Start free, switch on the products you need and see it work on your own data.", href: "/signup", c: "Get started free" },
             ].map((c, i) => (
@@ -354,7 +354,7 @@ export default async function VisionPage() {
         extra={[
           { q: "What is the SRB vision?", a: "Every business should be able to run on one intelligent software that handles the routine work, so its people can focus on customers, creativity and growth. In practice that means one software with a product for every job, automation you can trust, AI that stays within each person's access, and your own brand on everything." },
           { q: "Is the vision already built, or is it a plan?", a: `The products on this page are live today, and you can take one or all of them. We describe the product as it is now and do not present ideas as commitments.` },
-          { q: "Will you publish release dates?", a: "No. We announce something only when it is ready to be described clearly. The roadmap page lists what the software offers today." },
+          { q: "Will you publish release dates?", a: "No. We announce something only when it is ready to be described clearly. The products page lists what the software offers today." },
         ]}
       />
     </>

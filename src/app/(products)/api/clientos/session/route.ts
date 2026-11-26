@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { getCurrentPortalUser } from "@/lib/portal-auth";
 import { resolveHostInfo } from "@/lib/platform/tenancy/companies";
-import { counterpartHost } from "@/lib/platform/tenancy/surfaces";
+import { appUrlForCompany } from "@/lib/platform/tenancy/site-url";
 
 /**
  * Lightweight "is a portal user signed in?" for the public header. Returns only a first name — nothing sensitive — and where
@@ -14,10 +14,10 @@ async function handleGET() {
   const user = await getCurrentPortalUser();
   const h = await headers();
   const host = h.get("host");
-  const proto = h.get("x-forwarded-proto")?.split(",")[0].trim() || (host?.startsWith("localhost") || host?.includes(".localhost") ? "http" : "https");
-  const app = (await resolveHostInfo(host))?.single ? host : counterpartHost(host, "site");
+  const info = await resolveHostInfo(host);
+  const app = info ? await appUrlForCompany(info.companyId, host) : null;
   return NextResponse.json(
-    { signedIn: Boolean(user), firstName: user ? user.displayName.split(" ")[0] : null, companyLoginUrl: app ? `${proto}://${app}/commandos/login` : null },
+    { signedIn: Boolean(user), firstName: user ? user.displayName.split(" ")[0] : null, companyLoginUrl: app ? `${app}/commandos/login` : null },
     { headers: { "Cache-Control": "no-store" } }
   );
 }

@@ -22,28 +22,27 @@ function eq<T>(a: T, b: T, msg: string) {
   checks++;
 }
 const sorted = (s: ReadonlySet<string> | null) => (s === null ? null : [...s].sort());
-const BASE = ["admin", "messenger", "workspace"];
+const BASE = ["admin", "intelligence", "workspace"];
 
 async function main() {
   const db = await getPlatformDb();
   if (!/test/.test(db.databaseName)) throw new Error(`Refusing to run against "${db.databaseName}"`);
 
   // --- rules -----------------------------------------------------------------
-  eq(SELLABLE_PRODUCTS.length, MODULES.length - 4, "every product but CommandOS (two keys), ClientOS and DataBrain can be picked");
-  ok(!SELLABLE_PRODUCTS.includes("workspace") && !SELLABLE_PRODUCTS.includes("admin") && !SELLABLE_PRODUCTS.includes("portal"), "CommandOS and ClientOS are not offered");
-  ok(SELLABLE_PRODUCTS.includes("messenger") && SELLABLE_PRODUCTS.includes("cms"), "Huddle and SiteCraft are offered");
+  eq([...SELLABLE_PRODUCTS], ["lms", "smms", "cms", "hrms", "tms", "ots", "fms", "pms", "prms", "sop", "lpms", "dlms", "aibots", "messenger"], "the sign-up list, in order");
+  eq(SELLABLE_PRODUCTS.length, MODULES.length - 5, "everything but CommandOS (two keys), DataBrain, RankMax and ClientOS");
   eq(parseSelection("all"), { mode: "all" }, "all products");
   eq(parseSelection("hrms"), { mode: "selected", keys: ["hrms"] }, "one product");
-  eq(parseSelection(["fms", "hrms", "fms"]), { mode: "selected", keys: ["hrms", "fms"] }, "several, de-duplicated in catalogue order");
-  for (const bad of ["", "portal", "workspace", "admin", "website", "nope"]) eq(parseSelection(bad), null, `"${bad}" can't be bought`);
-  eq(parseSelection("intelligence"), null, "DataBrain is not bought alone");
-  eq(parseSelection(["intelligence", "sop"]), null, "nor beside a product without data it reads");
-  eq(parseSelection(["intelligence", "hrms"]), { mode: "selected", keys: ["hrms", "intelligence"] }, "beside a data product it is");
-  ok(ownedModules({ mode: "selected", keys: ["hrms", "intelligence"] })!.has("intelligence"), "and then owned");
-  ok(!ownedModules({ mode: "selected", keys: ["intelligence"] })!.has("intelligence"), "not without data");
+  eq(parseSelection(["fms", "hrms", "fms"]), { mode: "selected", keys: ["hrms", "fms"] }, "several, de-duplicated in offer order");
+  for (const bad of ["", "portal", "seo", "workspace", "admin", "intelligence", "website", "nope"]) eq(parseSelection(bad), null, `"${bad}" can't be bought by itself`);
+  eq(parseSelection(["hrms", "intelligence"]), { mode: "selected", keys: ["hrms"] }, "what everyone gets is not stored");
+  eq(parseSelection(["cms", "seo", "portal"]), { mode: "selected", keys: ["cms"] }, "nor what comes with SiteCraft");
+  eq(parseSelection(["hrms", "portal"]), null, "ClientOS doesn't come with TalentOS");
   eq(parseSelection(["all", "hrms"]), null, "all plus a product is refused");
-  eq(parseSelection(["hrms", "portal"]), null, "ClientOS can't be added beside a product");
 
+  eq(sorted(ownedModules({ mode: "selected", keys: ["cms"] })), sorted(new Set([...BASE, "cms", "seo", "portal"])), "SiteCraft brings RankMax and ClientOS");
+  ok(!ownedModules({ mode: "selected", keys: ["hrms"] })!.has("messenger"), "Huddle only when chosen");
+  ok(ownedModules({ mode: "selected", keys: ["seo"] })!.has("seo"), "a stored key keeps counting even if no longer sold alone");
   eq(sorted(ownedModules({ mode: "selected", keys: ["lpms"] })), sorted(new Set([...BASE, "lpms", "sop"])), "ContractFlow comes with Playbook");
   ok(!ownedModules({ mode: "selected", keys: ["sop"] })!.has("lpms"), "Playbook alone does not bring ContractFlow");
   eq(ownedModules(undefined), null, "no record = everything (existing companies)");

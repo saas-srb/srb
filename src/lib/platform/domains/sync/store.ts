@@ -62,7 +62,7 @@ export function createMongoSyncStore(runId: string, dryRun: boolean, root: strin
       if (!companies.length) return { companies: [], next: null };
       const docs = await db
         .collection<CompanyDomain>(COMPANY_DOMAINS_COLLECTION)
-        .find({ companyId: { $in: companies.map((c) => c._id) } }, { projection: { _id: 1, companyId: 1, kind: 1, provider: 1, appProvider: 1 } })
+        .find({ companyId: { $in: companies.map((c) => c._id) } }, { projection: { _id: 1, companyId: 1, kind: 1, use: 1, provider: 1, appProvider: 1 } })
         .toArray();
       const out = companies.map((c) => ({
         companyId: c._id,
@@ -141,7 +141,7 @@ export async function summarizeHosts(problemLimit = 500): Promise<{ summary: Hos
   for (;;) {
     const docs: CompanyDomain[] = await db
       .collection<CompanyDomain>(COMPANY_DOMAINS_COLLECTION)
-      .find(after ? { _id: { $gt: after } } : {}, { projection: { _id: 1, companyId: 1, kind: 1, provider: 1, appProvider: 1 } })
+      .find(after ? { _id: { $gt: after } } : {}, { projection: { _id: 1, companyId: 1, kind: 1, use: 1, provider: 1, appProvider: 1 } })
       .sort({ _id: 1 })
       .limit(PAGE)
       .toArray();
@@ -151,7 +151,7 @@ export async function summarizeHosts(problemLimit = 500): Promise<{ summary: Hos
         [d._id, d.provider],
         [d.kind === "subdomain" ? (() => { const [l, ...r] = d._id.split("."); return `${l}${APP_SLUG_SUFFIX}.${r.join(".")}`; })() : `app.${d._id.replace(/^www\./, "")}`, d.appProvider],
       ];
-      for (const [host, p] of singles.has(d.companyId) ? hosts.slice(0, 1) : hosts) {
+      for (const [host, p] of singles.has(d.companyId) || d.use === "app" ? hosts.slice(0, 1) : hosts) {
         summary.totalHosts++;
         if (p?.attached) summary.attached++;
         if (p?.verified) summary.verified++;

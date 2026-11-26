@@ -36,8 +36,12 @@ function sidebarOf(c: NavContext): { heading: string; items: string[] }[] {
   return out;
 }
 
-/** The file a Workspace address is served from, or null. */
+/** The file a Workspace address (or the ResolveIQ link in its sidebar) is served from, or null. */
 function routeFile(href: string): string | null {
+  if (href === "/resolveiq") {
+    const f = "src/app/(products)/resolveiq/(protected)/page.tsx";
+    return existsSync(f) ? f : null;
+  }
   const path = href.split("?")[0].split("#")[0].replace(/^\/commandos\/?/, "");
   for (const base of [`${APP}/(protected)`, APP]) {
     const f = join(base, path, "page.tsx");
@@ -57,6 +61,7 @@ function routeFile(href: string): string | null {
     { heading: "System default", items: ["Notification center", "AI prompts", "Scheduled jobs", "Documents & PDFs"] },
     { heading: "Security & Logs", items: ["Backups & data", "Import data", "Audit log", "Security"] },
     { heading: "Engagement & Insights", items: ["Push notifications", "Dashboard", "Analytics"] },
+    { heading: "Help & support", items: ["ResolveIQ"] },
   ];
   await T("the Director's sidebar is exactly the target: headings, items and order", () => {
     assert.deepEqual(sidebarOf(ctx(["super_admin"])), EXPECTED);
@@ -74,7 +79,7 @@ function routeFile(href: string): string | null {
       for (const i of g.items) { const n = full.indexOf(i, pos + 1); assert.ok(n > pos, `${i} follows the Director's order under ${g.heading}`); pos = n; }
     }
     assert.ok(!flatPartial.includes("Integrations") && !flatPartial.includes("Plan & billing"), "company settings are the Director's");
-    assert.deepEqual(sidebarOf(ctx([])), [{ heading: "", items: ["Dashboard"] }]);
+    assert.deepEqual(sidebarOf(ctx([])), [{ heading: "", items: ["Dashboard"] }, { heading: "Help & support", items: ["ResolveIQ"] }]);
   });
   await T("no duplicate heading anywhere, and no 'Connections & automation', 'Conversation AI', 'Sender email' or 'Add a person' in the sidebar", () => {
     const sb = sidebarOf(ctx(["super_admin"]));
@@ -100,7 +105,7 @@ function routeFile(href: string): string | null {
     assert.ok(NAV_KEYS.includes("manage.chatbot"));
   });
   await T("the section order, and the products, management and analytics sections stay out of the sidebar by design", () => {
-    assert.deepEqual(NAV_SECTIONS.filter((s) => s.sidebar !== false).map((s) => s.key), ["dashboard", "company", "insight", "platform"]);
+    assert.deepEqual(NAV_SECTIONS.filter((s) => s.sidebar !== false).map((s) => s.key), ["dashboard", "company", "insight", "support", "platform"]);
     assert.deepEqual(NAV_SECTIONS.filter((s) => s.sidebar === false).map((s) => s.key), ["panels", "analytics", "manage", "account"]);
   });
   await T("every key a page or action checks exists in the navigation (a missing key would lock Directors out)", () => {
@@ -124,7 +129,7 @@ function routeFile(href: string): string | null {
   await T("redirects open the right panel and keep the extra query (page, search)", () => {
     assert.equal(movedTarget("/commandos/chatbot/conversations", { page: "2", search: "refund" }), "/commandos/settings/integrations?open=ai-chatbot&tab=conversations&page=2&search=refund");
     assert.equal(movedTarget("/commandos/chatbot/voice"), "/commandos/analytics#ai-voice");
-    assert.equal(movedTarget("/commandos/settings/email"), "/commandos/settings/domains#sender-email");
+    assert.equal(movedTarget("/commandos/settings/email"), "/commandos/settings/integrations?open=sender-email");
     assert.equal(movedTarget("/commandos/settings/products/talentos", { tab: "payroll" }), "/commandos/settings/products?open=talentos&tab=payroll");
     assert.equal(movedTarget("/commandos/nothing"), null);
   });
@@ -201,12 +206,13 @@ function routeFile(href: string): string | null {
     }
   });
 
-  console.log("sender email inside Custom domains (static)");
-  await T("the Custom domains page has the sender email section with the three steps, and the old page only redirects", () => {
-    const d = read(`${APP}/(protected)/settings/domains/page.tsx`);
-    assert.match(d, /id="sender-email"/);
-    assert.match(d, /Send emails from your own address/);
-    assert.match(d, /SRB&apos;s address/);
+  console.log("sender email inside Integrations (static)");
+  await T("Integrations has the Sender email card (Director only) with the three steps; Custom domains no longer does; the old page only redirects", () => {
+    const d = read(`${APP}/(protected)/settings/integrations/page.tsx`);
+    assert.match(d, /isDirector\(user\) \? getCompanySender\(\)/);
+    assert.match(d, /<SenderEmailPanel/);
+    assert.match(read(`${APP}/(protected)/settings/integrations/SenderEmailPanel.tsx`), /EmailSenderManager/);
+    assert.ok(!read(`${APP}/(protected)/settings/domains/page.tsx`).includes("EmailSender"));
     const m = read(`${APP}/(protected)/settings/email/EmailSenderManager.tsx`);
     for (const s of ["Step 1.", "Step 2.", "Step 3.", "Waiting for DNS", "Verified", "Problem"]) assert.ok(m.includes(s), s);
     assert.ok(!read(`${APP}/(protected)/settings/email/page.tsx`).includes("EmailSenderManager"));

@@ -12,7 +12,7 @@ export const MOVED_URLS: { from: string; to: string }[] = [
   { from: "/commandos/chatbot/voice", to: "/commandos/analytics#ai-voice" },
   { from: "/commandos/chatbot/voice/config", to: `${INTEGRATIONS}?open=elevenlabs&tab=settings` },
   { from: "/commandos/chatbot/voice-conversations", to: `${INTEGRATIONS}?open=elevenlabs&tab=conversations` },
-  { from: "/commandos/settings/email", to: "/commandos/settings/domains#sender-email" },
+  { from: "/commandos/settings/email", to: `${INTEGRATIONS}?open=sender-email` },
   ...["talentos", "sprintos", "cashflow-ai", "spendiq", "cohort-ai", "playbook-ai", "viralpulse-ai", "rankmax-ai", "sitecraft-ai", "agentos", "cybervault", "evaliq"].map((p) => ({
     from: `${PRODUCT_SETTINGS}/${p}`,
     to: `${PRODUCT_SETTINGS}?open=${p}`,

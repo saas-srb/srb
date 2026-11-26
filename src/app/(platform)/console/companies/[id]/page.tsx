@@ -1,5 +1,5 @@
 import CompanyProductsCard from "./CompanyProductsCard";
-import { NEEDS_ONE_OF, SELLABLE_PRODUCTS } from "@/lib/platform/products/selection";
+import { SELLABLE_PRODUCTS } from "@/lib/platform/products/selection";
 import type { ModuleKey } from "@/lib/platform/onboarding/catalog";
 import { getCompany } from "@/lib/platform/tenancy/companies";
 import PanelPageHeader from "@/components/platform/panel/PanelPageHeader";
@@ -202,7 +202,7 @@ export default async function ConsoleCompanyPage({ params }: { params: Promise<{
           <CompanyProductsCard
             key={JSON.stringify([owned?.products, owned?.website])}
             companyId={company.id}
-            choices={[...SELLABLE_PRODUCTS, ...(Object.keys(NEEDS_ONE_OF) as ModuleKey[])].map((k) => ({ key: k, name: registry.find((r) => r.key === k)?.name ?? k }))}
+            choices={SELLABLE_PRODUCTS.map((k) => ({ key: k, name: registry.find((r) => r.key === k)?.name ?? k }))}
             current={!owned?.products || owned.products.mode === "all" ? null : owned.products.keys}
             website={owned?.website?.mode ?? "platform"}
             externalUrl={owned?.website?.externalUrl ?? ""}

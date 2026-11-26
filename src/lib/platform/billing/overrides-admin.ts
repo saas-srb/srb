@@ -88,7 +88,7 @@ export async function getOverridesDetail(companyId: string): Promise<OverridesDe
   });
   const planFlags = new Set(plan?.flags ?? []);
   const flags: SwitchRow[] = PLAN_FLAGS.map((f) => ({ key: f.key, label: f.label, plan: planFlags.has(f.key), effective: ents.flags === null || ents.flags.includes(f.key), override: o?.flags?.[f.key] ? { on: o.flags[f.key].on, until: iso(o.flags[f.key].until) } : null }));
-  const planIncludes = (key: string) => !plan || plan.modules === "all" || MODULES.some((m) => m.key === key && m.core) || plan.modules.includes(key as never);
+  const planIncludes = (key: string) => !plan || plan.modules === "all" || key === "messenger" || key === "intelligence" || MODULES.some((m) => m.key === key && m.core) || plan.modules.includes(key as never);
   const modules: SwitchRow[] = MODULES.map((m) => ({
     key: m.key,
     label: m.label,

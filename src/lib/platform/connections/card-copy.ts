@@ -1,5 +1,6 @@
 /** The one sentence on each Integrations card: verb first, plain words, no jargon. (The longer explanation lives inside the card's panel.) */
 export const CARD_COPY: Record<string, string> = {
+  "sender-email": "Send your emails from your own business address.",
   smtp: "Send emails through your own mail server.",
   resend: "Send emails through your Resend account.",
   sendgrid: "Send emails through your SendGrid account.",

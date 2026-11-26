@@ -29,10 +29,21 @@ import { IconTile, StatusBadge } from "@/components/settings/SettingsCard";
 import { filterCards, readFilter } from "@/components/settings/model";
 import { integrationCardData } from "@/components/settings/adapters";
 import ManagedPanel from "./ManagedPanel";
+import SenderEmailPanel from "./SenderEmailPanel";
+import { isDirector } from "@/lib/access/director";
+import { getCompanySender, type SenderView } from "@/lib/platform/email/sender";
 
 export const metadata: Metadata = { title: "Integrations", robots: { index: false, follow: false } };
 
 const PATH = "/commandos/settings/integrations";
+const SENDER_CARD = "sender-email";
+
+/** The company's own "from" address: a card of its own, shown to the Director (who alone may change it). */
+function senderCard(sender: SenderView | null, usedBy: string[]): IntegrationCard {
+  const status = !sender ? "using_srb" : sender.status === "verified" ? "using_own" : "needs_attention";
+  const note = status === "needs_attention" ? (sender!.status === "failed" ? "Verification failed. Open the card and check the DNS records." : "Waiting for your DNS records.") : null;
+  return { key: SENDER_CARD, name: "Sender email address", description: CARD_COPY[SENDER_CARD], category: "email", status, note, usedBy, kind: "panel", canSrb: true, testable: false, appliesToAll: true };
+}
 
 /** The cards: ONE per provider or service, even when several products use it. */
 async function buildCards(registry: RegistryProduct[], unavailable: ReadonlySet<string>): Promise<IntegrationCard[]> {
@@ -65,13 +76,14 @@ async function buildCards(registry: RegistryProduct[], unavailable: ReadonlySet<
 
 /** One place for every third-party service. A card per service; Configure opens it in a panel on the right. */
 export default async function IntegrationsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  await requireWorkspaceAccess("company.integrations");
+  const user = await requireWorkspaceAccess("company.integrations");
   const sp = await searchParams;
   const open = typeof sp.open === "string" ? sp.open : "";
   const tab = typeof sp.tab === "string" ? sp.tab : "";
   const registry = await listPanels();
   const unavailable = await unavailablePanelKeys(await currentCompanyId());
-  const [cards, dealFlowStatus] = await Promise.all([buildCards(registry, unavailable), getIntegrationsStatus()]);
+  const [built, dealFlowStatus, sender] = await Promise.all([buildCards(registry, unavailable), getIntegrationsStatus(), isDirector(user) ? getCompanySender() : Promise.resolve(undefined)]);
+  const cards = sender === undefined ? built : [senderCard(sender, []), ...built];
   const filter = readFilter(sp);
   const data = cards.map(integrationCardData);
   const shown = filterCards(data, filter);
@@ -93,6 +105,8 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
     if (current.kind === "page") {
       const meta = providerByKey.get(current.key);
       panel = <ManagedPanel provider={current.key} name={current.name} text={current.key === "storage" ? "Uploaded files, documents and backups are kept in your workspace storage, managed for you. Press Test to write, read back and remove a small test file." : current.key === "webhooks" ? "Press Test to send a signed test message to every webhook your automations call." : `${current.description} Press Test to check the connection safely.`} href={meta?.managedElsewhere?.href ?? (current.key === "webhooks" ? "/commandos/settings/automations" : null)} linkLabel={meta?.managedElsewhere ? `Open ${meta.managedElsewhere.label}` : current.key === "webhooks" ? "Open Automations" : null} />;
+    } else if (current.key === SENDER_CARD) {
+      panel = <SenderEmailPanel sender={sender ?? null} />;
     } else if (current.key === "dealflow-sync") {
       panel = <DealFlowSyncStatus integrations={dealFlowStatus} />;
     } else if (current.key === "ai-chatbot") {
@@ -131,7 +145,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
         <SettingsGroups cards={shown} categories={CARD_CATEGORIES} />
       </div>
       {current && panel && (
-        <SidePanel title={current.name} description={CARD_COPY[current.key] ?? current.description} closeHref={PATH} expandable={current.key === "ai-chatbot" || current.key === "elevenlabs" || current.key === "dealflow-sync"} icon={<IconTile icon={integrationCardData(current).icon} />} badge={<StatusBadge status={integrationCardData(current).status} />}>{panel}</SidePanel>
+        <SidePanel title={current.name} description={CARD_COPY[current.key] ?? current.description} closeHref={PATH} expandable={current.key === "ai-chatbot" || current.key === "elevenlabs" || current.key === "dealflow-sync" || current.key === SENDER_CARD} icon={<IconTile icon={integrationCardData(current).icon} />} badge={<StatusBadge status={integrationCardData(current).status} />}>{panel}</SidePanel>
       )}
     </div>
   );

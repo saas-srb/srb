@@ -59,7 +59,6 @@ export const SAAS_BRAND = {
 /** Where visitors land to start: the registration flow every customer uses. */
 export const SAAS_PATHS = {
   register: "/signup",
-  login: "/login",
   demo: "/demo",
   pricing: "/pricing",
   contact: "/contact",

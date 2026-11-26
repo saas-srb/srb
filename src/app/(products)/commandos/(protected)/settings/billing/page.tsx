@@ -4,7 +4,7 @@ import { productPrice } from "@/lib/platform/billing/pricing";
 import { disabledPanelKeys, listPanels, panelNameMap } from "@/lib/platform/panels/store";
 import { whiteLabelProductName } from "@/lib/platform/panels/types";
 import { getCompany } from "@/lib/platform/tenancy/companies";
-import { NEEDS_ONE_OF, SELLABLE_PRODUCTS } from "@/lib/platform/products/selection";
+import { SELLABLE_PRODUCTS } from "@/lib/platform/products/selection";
 import type { ModuleKey } from "@/lib/platform/onboarding/catalog";
 import { getCompanyIdentity } from "@/lib/platform/company-identity";
 import { billingDetailsFromIdentity } from "@/lib/platform/billing/company-details-prefill";
@@ -96,8 +96,7 @@ export default async function BillingSettingsPage() {
   const nameOf = (k: string) => whiteLabelProductName(names(k));
   const keysOf = (s: typeof state.current) => (s.mode === "all" ? null : (s.keys as string[]));
   const listed = (s: typeof state.current) => (s.mode === "all" ? "All products" : s.keys.map(nameOf).join(", "));
-  const choices = [...SELLABLE_PRODUCTS, ...(Object.keys(NEEDS_ONE_OF) as ModuleKey[])]
-    .filter((k) => k !== "messenger" || keysOf(state.current)?.includes(k))
+  const choices = [...SELLABLE_PRODUCTS]
     .filter((k) => registry.find((p) => p.key === k)?.active !== false && !hiddenByPlatform.has(k))
     .map((k) => ({ key: k as string, name: nameOf(k), description: registry.find((p) => p.key === k)?.description ?? "" }));
   const showcase = buildShowcase(plans).filter((p) => p.id !== "enterprise");

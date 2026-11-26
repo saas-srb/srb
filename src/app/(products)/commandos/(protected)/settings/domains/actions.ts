@@ -13,9 +13,9 @@ async function requireOwner() {
   return user;
 }
 
-export async function addDomainAction(host: string): Promise<DomainActionResult> {
+export async function addDomainAction(host: string, use?: string): Promise<DomainActionResult> {
   await requireOwner();
-  return addCustomDomain(String(host ?? ""));
+  return addCustomDomain(String(host ?? ""), use === "app" ? "app" : "website");
 }
 
 export async function verifyDomainAction(host: string): Promise<DomainActionResult> {

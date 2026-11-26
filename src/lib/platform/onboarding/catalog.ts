@@ -71,7 +71,7 @@ export function rolesForPreset(preset: string): string[] | null {
 export const MODULES = [
   { key: "workspace", label: "CommandOS", description: "Everyone's home screen", core: true },
   { key: "admin", label: "CommandOS Command Center", description: "Company dashboard, users & roles", core: true },
-  { key: "messenger", label: "Huddle", description: "Channels, DMs, meetings, calls", core: true },
+  { key: "messenger", label: "Huddle", description: "Channels, DMs, meetings, calls", core: false },
   { key: "hrms", label: "TalentOS", description: "Employees, attendance, leave, payroll, recruitment", core: false },
   { key: "pms", label: "SprintOS", description: "Clients, projects, tasks, timesheets, costing", core: false },
   { key: "lms", label: "DealFlow", description: "Leads, pipeline, campaigns, offers", core: false },

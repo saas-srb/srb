@@ -176,8 +176,8 @@ async function main() {
     for (const k of ["product.hrms", "product.pms", "product.fms", "product.lms", "product.messenger", "analytics.fms", "analytics.portal", "analytics.workspace"]) assert.ok(a.has(k), k);
     assert.ok(!a.has("platform.panel"), "tenant never sees the Platform link");
     const nav = await navOf(acme, admin);
-    assert.deepEqual(nav.sections.map((s) => s.key), ["dashboard", "panels", "analytics", "manage", "company", "insight", "account"]);
-    assert.deepEqual(nav.sections.filter((s) => s.sidebar).map((s) => s.key), ["dashboard", "company", "insight"], "Engagement & Insights is last in the sidebar");
+    assert.deepEqual(nav.sections.map((s) => s.key), ["dashboard", "panels", "analytics", "manage", "company", "insight", "support", "account"]);
+    assert.deepEqual(nav.sections.filter((s) => s.sidebar).map((s) => s.key), ["dashboard", "company", "insight", "support"], "Help & support (ResolveIQ) is last in the sidebar");
     assert.ok(a.has("manage.push"), "website push notifications are available to the workspace admin");
     // Growth has no Training: switched off for the company, so absent from the navigation altogether.
     assert.ok(!a.has("product.tms") && !nav.lockedKeys.includes("product.tms"), "a product switched off for the company is hidden, not locked");
@@ -187,8 +187,8 @@ async function main() {
     const a = await allowed(acme, hr);
     for (const k of ["product.hrms", "product.messenger", "product.sop", "product.ots", "analytics.hrms", "analytics.messenger", "analytics.workspace"]) assert.ok(a.has(k), k);
     for (const k of [...COMPANY_KEYS, ...MANAGE_KEYS, "product.pms", "product.fms", "analytics.fms", "analytics.pms", "analytics.lms", "analytics.portal", "platform.panel"]) assert.ok(!a.has(k), k);
-    assert.deepEqual((await navOf(acme, hr)).sections.map((s) => s.key), ["dashboard", "panels", "analytics", "insight", "account"]);
-    assert.deepEqual((await navOf(acme, hr)).sections.filter((s) => s.sidebar).map((s) => s.key), ["dashboard", "insight"]);
+    assert.deepEqual((await navOf(acme, hr)).sections.map((s) => s.key), ["dashboard", "panels", "analytics", "insight", "support", "account"]);
+    assert.deepEqual((await navOf(acme, hr)).sections.filter((s) => s.sidebar).map((s) => s.key), ["dashboard", "insight", "support"]);
   });
   await check("PMS employee: own products only; lead and portal analytics are not theirs", async () => {
     const a = await allowed(acme, dev);
@@ -248,9 +248,9 @@ async function main() {
       const nav = await navOf(companyId, u);
       const sidebar = nav.sections.filter((s) => s.sidebar);
       assert.ok(!sidebar.some((s) => s.key === "panels"), `${name}: Products in the sidebar`);
-      assert.ok(!sidebar.flatMap((s) => s.items).some((i) => i.key.startsWith("panel.")), `${name}: a product link in the sidebar`);
+      assert.deepEqual(sidebar.flatMap((s) => s.items).filter((i) => i.key.startsWith("panel.")).map((i) => i.key), ["panel.support"], `${name}: only ResolveIQ is a product link in the sidebar`);
       const panels = nav.sections.find((s) => s.key === "panels");
-      assert.deepEqual((panels?.items ?? []).map((i) => i.key).sort(), nav.allowed.filter((k) => k.startsWith("panel.") || k.startsWith("product.")).sort(), `${name}: the products still resolve for the Staff Hub tiles`);
+      assert.deepEqual((panels?.items ?? []).map((i) => i.key).sort(), nav.allowed.filter((k) => (k.startsWith("panel.") && k !== "panel.support") || k.startsWith("product.")).sort(), `${name}: the products still resolve for the Staff Hub tiles`);
       assert.ok(panels && panels.items.length > 0 && panels.sidebar === false, `${name}: products section is resolved but not for the sidebar`);
       const ai = nav.sections.find((s) => s.key === "ai");
       assert.equal(ai?.sidebar ?? false, ai?.items.some((item) => item.key.startsWith("manage.chatbot.")) ?? false, `${name}: chatbot tools appear in the sidebar only when available`);

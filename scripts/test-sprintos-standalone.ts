@@ -56,7 +56,8 @@ async function main() {
 
   await runAsCompany(id, async () => {
     const hidden = await unavailablePanelKeys(id);
-    for (const p of ["/sprintos", "/sprintos/clients", "/sprintos/projects", "/sprintos/timesheets", "/sprintos/costing", "/huddle-ai", "/commandos/users/new", "/commandos/pms/projects"]) ok(hrefAvailable(p, hidden), `${p} is open`);
+    for (const p of ["/sprintos", "/sprintos/clients", "/sprintos/projects", "/sprintos/timesheets", "/sprintos/costing", "/commandos/users/new", "/commandos/pms/projects"]) ok(hrefAvailable(p, hidden), `${p} is open`);
+    ok(!hrefAvailable("/huddle-ai", hidden), "Huddle only when chosen");
 
     // --- the team comes from People & access ---
     await ensureDesignations();

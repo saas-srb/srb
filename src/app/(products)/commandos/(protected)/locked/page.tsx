@@ -27,8 +27,8 @@ export default async function LockedRoute({ searchParams }: { searchParams: Prom
     if (stateOf(item, ctx) === "open") redirect(item.href);
     itemKey = item.key;
     const meta = ctx.panels?.[item.module ?? item.panel ?? ""];
-    title = (item.section === "panels" && meta ? meta.name : item.title ?? item.label);
-    description = item.section === "panels" && meta ? meta.description : item.description ?? null;
+    title = ((item.section === "panels" || item.section === "support") && meta ? meta.name : item.title ?? item.label);
+    description = (item.section === "panels" || item.section === "support") && meta ? meta.description : item.description ?? null;
     area = item.section === "company" ? "Company settings" : meta?.name ?? null;
   } else if (sp.product && (PRODUCTS as string[]).includes(sp.product)) {
     product = sp.product;

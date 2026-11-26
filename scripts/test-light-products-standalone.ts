@@ -11,7 +11,7 @@ import { clientPromise, getPlatformDb } from "@/lib/platform/tenancy/platform-db
 import { runAsCompany } from "@/lib/platform/tenancy/context";
 import { listPlans } from "@/lib/platform/billing/plans";
 import { updateCompanySubscription } from "@/lib/platform/billing/subscription";
-import { companySubdomain } from "@/lib/platform/tenancy/provisioning";
+import { companyAppSubdomain, companySubdomain } from "@/lib/platform/tenancy/provisioning";
 import { setCompanyProducts } from "@/lib/platform/products/company-products";
 import { unavailablePanelKeys } from "@/lib/platform/panels/store";
 import { hrefAvailable } from "@/lib/platform/products/routes";
@@ -53,7 +53,8 @@ async function main() {
     return id;
   };
   const call = async (slug: string, path: string) => {
-    const host = companySubdomain(slug); // no website with us: one address
+    // With a website there are two addresses (RankMax comes with SiteCraft); otherwise one.
+    const host = slug === "rankmax" ? companyAppSubdomain(slug) : companySubdomain(slug);
     const res = await proxy(new NextRequest(`http://${host}${path}`, { headers: { host, "sec-fetch-mode": "navigate", accept: "text/html", "accept-language": "en-IN", "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/126.0 Safari/537.36" } }));
     const rewrite = res.headers.get("x-middleware-rewrite") ?? "";
     return !res.headers.get("location")?.includes("/upgrade") && !rewrite.includes("/product-unavailable") && res.status < 400;
@@ -100,7 +101,7 @@ async function main() {
 
   for (const key of ["viralpulse-ai", "rankmax-ai"]) {
     const slug = key.split("-")[0];
-    await company(slug, key === "viralpulse-ai" ? "smms" : "seo");
+    await company(slug, key === "viralpulse-ai" ? "smms" : "cms"); // RankMax comes with SiteCraft
     ok(await call(slug, `/${key}`), `${key} opens on its own`);
     ok(!(await call(slug, "/sprintos")), `${key}: no other product`);
   }

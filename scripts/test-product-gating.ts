@@ -17,7 +17,7 @@ import { unavailablePanelKeys } from "@/lib/platform/panels/store";
 import { setCompanyProducts } from "@/lib/platform/products/company-products";
 import { lockedModuleKeys } from "@/lib/platform/products/availability";
 import { productRuleFor, ruleAllows } from "@/lib/platform/products/routes";
-import { INCLUDED_WITH, ownedModules, SELLABLE_PRODUCTS } from "@/lib/platform/products/selection";
+import { INCLUDED_PRODUCTS, INCLUDED_WITH, ownedModules, SELLABLE_PRODUCTS } from "@/lib/platform/products/selection";
 import { MODULES } from "@/lib/platform/onboarding/catalog";
 import { PRODUCT_URL_SLUGS } from "@/lib/platform/saas/product-routes";
 import { proxy } from "@/proxy";
@@ -58,16 +58,17 @@ async function main() {
     ok(own.length > 0, `${key} has screens`);
     for (const u of own) {
       const rule = productRuleFor(u);
-      ok(rule && rule.modules[0] === key && (rule.modules.length === 1 || key === "portal"), `${u} belongs to ${key}`);
+      // ClientOS pages follow the product whose records they show (see `routes.ts`); the others belong to their product.
+      ok(rule && (key === "portal" || (rule.modules[0] === key && rule.modules.length === 1)), `${u} belongs to ${key}`);
     }
   }
   for (const product of SELLABLE_PRODUCTS) {
     const modules = ownedModules({ mode: "selected", keys: [product] });
     for (const u of urls) {
       const rule = productRuleFor(u);
-      if (rule && !rule.modules.some((m) => m === product || INCLUDED_WITH[product]?.includes(m)) && rule.modules.every((m) => GATED.includes(m))) assert.ok(!ruleAllows(rule, modules), `${product} alone must not open ${u}`);
+      if (rule && !rule.modules.some((m) => m === product || INCLUDED_WITH[product]?.includes(m)) && rule.modules.every((m) => GATED.includes(m) && !INCLUDED_PRODUCTS.includes(m as never))) assert.ok(!ruleAllows(rule, modules), `${product} alone must not open ${u}`);
     }
-    for (const u of ["/commandos", "/commandos/users", "/commandos/settings/billing", "/commandos/upgrade", "/huddle-ai", "/resolveiq", "/api/huddle-ai/upload"]) assert.ok(!productRuleFor(u), `${u} is open to everyone`);
+    for (const u of ["/commandos", "/commandos/users", "/commandos/settings/billing", "/commandos/upgrade", "/resolveiq", "/databrain-ai-help"]) assert.ok(!productRuleFor(u), `${u} is open to everyone`);
     const slug = PRODUCT_URL_SLUGS[product];
     const mine = productRuleFor(`/${slug}`);
     assert.ok(!mine || ruleAllows(mine, modules), `${product} opens itself`);
@@ -94,10 +95,10 @@ async function main() {
   ok((await setCompanyProducts(one, { products: "hrms" }, { id: "tester" })).ok, "TalentOS only");
 
   const locked = await lockedModuleKeys(one);
-  eq([...locked].sort(), [...GATED.filter((k) => k !== "hrms"), "website"].sort(), "every other product is locked, and there is no website");
+  eq([...locked].sort(), [...GATED.filter((k) => k !== "hrms" && k !== "intelligence"), "website"].sort(), "every other product is locked, and there is no website");
   eq((await lockedModuleKeys(all)).size, 0, "an existing company has nothing locked");
   const off = await unavailablePanelKeys(one);
-  ok(off.has("fms") && off.has("portal") && !off.has("hrms") && !off.has("messenger") && !off.has("support"), "menus, dashboard and assistant see the same list");
+  ok(off.has("fms") && off.has("portal") && !off.has("hrms") && off.has("messenger") && !off.has("intelligence") && !off.has("support"), "menus, dashboard and assistant see the same list");
 
   await runAsCompany(one, () => requireModule("hrms"));
   checks++;
@@ -113,7 +114,7 @@ async function main() {
   for (const key of GATED.filter((k) => k !== "portal")) {
     const path = `/${PRODUCT_URL_SLUGS[key]}`;
     const r = await call("onlyhr", path);
-    if (key === "hrms") ok(!r.location.includes("/upgrade") && r.status < 400, `its own product opens (${r.status} ${r.location})`);
+    if (key === "hrms" || key === "intelligence") ok(!r.location.includes("/upgrade") && r.status < 400, `its own product opens (${r.status} ${r.location})`);
     else ok(r.location.endsWith(`/commandos/upgrade?module=${key}`), `${path} leads to upgrade (${r.status} ${r.location})`);
     const other = await call("everything", path);
     ok(!other.location.includes("/upgrade") && other.status < 400, `an existing company still opens ${path} (${other.status})`);
@@ -126,7 +127,8 @@ async function main() {
   const pay = await call("onlyhr", "/pay/sometoken");
   ok(pay.status === 403 && pay.rewrite.includes("/product-unavailable"), "outsiders see 'not available'");
   ok((await call("onlyhr", "/commandos")).status < 400, "CommandOS opens");
-  ok((await call("onlyhr", "/huddle-ai")).status < 400, "Huddle opens");
+  ok((await call("onlyhr", "/huddle-ai")).location.endsWith("module=messenger"), "Huddle only when chosen");
+  ok((await call("onlyhr", "/databrain-ai")).status < 400, "DataBrain comes with every workspace");
 
   // adding the product opens it at once
   ok((await setCompanyProducts(one, { products: ["hrms", "fms"] }, { id: "tester" })).ok, "add CashFlow");

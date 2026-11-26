@@ -104,7 +104,7 @@ Counting: 2 of about 40 features done = about 5%.
 - Sidebar is exactly the owner's target (Dashboard; Organization Setup; Users & Access; Billing & plan; Branding & domains; System default; Security & Logs; Engagement; AI Chatbot (Dashboard only); Insight), same for everybody with locked items (P4). "Add a person" and "Sender email" left the sidebar; Voice and chatbot detail screens left it too. Every old address redirects (`lib/products/commandos/moved-urls.ts`).
 - Integrations: cards by plain category with SRB/own status badge, Configure opens a right-hand panel (`SidePanel`, address driven). Per-connection "Use SRB (recommended)" or "Use my own account" saved in `workspace_connections.mode` (default SRB; own keys kept; connections saved earlier count as own). AI Chatbot and Voice cards open tabbed panels that render the existing screens.
 - Product settings: card per product with Ready / Needs setup and Configure opening the existing settings screen in the same panel.
-- Custom domains has the "Send emails from your own address" section with three steps; `/commandos/settings/email` redirects there.
+- Integrations has the "Sender email address" card (Director only) with the three steps; `/commandos/settings/email` redirects there.
 - Analytics has one AI & Voice view; the Voice Dashboard address redirects to it.
 - Fixed: pages asked for navigation keys that did not exist (`company.automations`, `company.branding`, `company.roles`, `company.profile`), which would have locked Directors out since P4; a test now checks every guard key exists.
 - Tests: `npm run test:restructure` (27), `test:shell`, `test:access`, `test:people`, `test:organization`. Dev harness `/dev-editor-harness/restructure`, `scripts/shot-restructure.ts`.
