@@ -141,7 +141,7 @@ export default async function AboutPage() {
               { v: "All", l: "ready-made products", x: "Each one covers a job in your business, from sales to payroll." },
               { v: "AI", l: "built into the software", x: "Ask questions and get drafts and answers from your own records." },
               { v: "Every", l: "area of your business", x: "From sales and people to finance and your website." },
-              { v: "Step by step", l: "guides and walkthroughs", x: "Each one uses the real screen." },
+              { v: "Free", l: "to start", x: "Begin with one product. No card needed." },
             ].map((n, i) => (
               <Reveal key={n.l} delay={i * 60}>
                 <div className="h-full rounded-3xl border border-border/60 bg-gradient-to-br from-primary/[0.07] via-card to-brand-accent/[0.07] p-7 text-center shadow-sm">

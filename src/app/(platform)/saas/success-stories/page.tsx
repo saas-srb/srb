@@ -14,7 +14,6 @@ import CustomerStoriesSection from "@/components/platform/saas/CustomerStoriesSe
 import ProductLogo from "@/components/products/ProductLogo";
 import type { IconKey } from "@/lib/platform/saas/content";
 import { INDUSTRIES, USE_CASES, USE_CASE_PLAIN_TITLES } from "@/lib/platform/saas/content";
-import { TUTORIALS } from "@/lib/platform/saas/tutorials";
 import { getFeatureGroups } from "@/lib/platform/saas/modules";
 import { getFeatureModules } from "@/lib/platform/saas/modules";
 import { productPath } from "@/lib/platform/saas/product-routes";
@@ -30,7 +29,6 @@ const NAV = [
   { id: "industries", label: "By kind of business" },
   { id: "products", label: "Products used" },
   { id: "common", label: "What they share" },
-  { id: "learn", label: "Try it yourself" },
   { id: "standards", label: "How we write them" },
   { id: "share", label: "Share yours" },
 ];
@@ -212,26 +210,6 @@ export default async function SuccessStoriesPage() {
               </Reveal>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* learn */}
-      <section id="learn" className="sr-section bg-muted/10" style={{ scrollMarginTop: 140 }}>
-        <div className="sr-container">
-          <Head id="learn" title="Try it yourself," accent="step by step." lead="Follow a walkthrough in the product, with the real screen beside each step." />
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {TUTORIALS.map((t, i) => (
-              <Reveal key={t.slug} delay={(i % 3) * 60}>
-                <Link href={`/docs/walkthroughs/${t.slug}`} className="group flex h-full flex-col rounded-3xl border border-border/60 bg-card p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10">
-                  <div className="mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-wider"><span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-primary">Walkthrough</span><span className="text-muted-foreground">{t.minutes} min · {t.level}</span></div>
-                  <h3 className="text-lg font-black leading-snug group-hover:text-primary">{t.title}</h3>
-                  <p className="mt-2 flex-1 text-[15px] leading-relaxed text-muted-foreground">{t.summary}</p>
-                  <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-primary">Start the walkthrough<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></span>
-                </Link>
-              </Reveal>
-            ))}
-          </div>
-          <p className="mt-8 text-center text-sm"><Link href="/docs#walkthroughs" className="font-bold text-primary hover:underline">See all walkthroughs and guides</Link></p>
         </div>
       </section>
 

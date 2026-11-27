@@ -7,7 +7,7 @@ import { useLayoutEffect, useRef } from "react";
  * (set before paint by next-themes, changed by the website's switch or a product's theme setting) — so a page reached by a client-side
  * move from another layout (the website to sign-up, say) opens in the same theme instead of falling back to light.
  */
-export default function SrShell({ script, children }: { script: React.ReactNode; children: React.ReactNode }) {
+export default function SrShell({ script, children }: { /** Applies the saved theme before the first paint. */ script: string; children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const el = ref.current;
@@ -25,7 +25,9 @@ export default function SrShell({ script, children }: { script: React.ReactNode;
   }, []);
   return (
     <div ref={ref} className="sr" suppressHydrationWarning>
-      {script}
+      {/* Runs only in the HTML the server sends; on a client-side move the browser ignores it (React would warn about a runnable script).
+          See Next.js "Preventing flash before hydration". */}
+      <script type={typeof window === "undefined" ? "text/javascript" : "text/plain"} suppressHydrationWarning dangerouslySetInnerHTML={{ __html: script }} />
       {children}
     </div>
   );

@@ -22,7 +22,7 @@ import { isSaasPagePath } from "@/lib/platform/saas/routes";
 import { entitlementsFor } from "@/lib/platform/billing/entitlements";
 import { hrefAvailable, productRuleFor, missingModule, ruleAllows } from "@/lib/platform/products/routes";
 import type { Entitlements } from "@/lib/platform/billing/types";
-import { productKeyFromSlug, productSlugFor } from "@/lib/platform/saas/product-routes";
+import { productKeyFromSlug, productPath, productSlugFor } from "@/lib/platform/saas/product-routes";
 
 /**
  * First-touch referral capture, server side. A `?ref=CODE` on any page view
@@ -150,6 +150,15 @@ async function planGate(request: NextRequest, companyId: string | null | undefin
 /** Removed pages of the product website → where their old address leads now. */
 const REMOVED_SAAS_PAGES: Record<string, string> = { "/login": "/", "/roadmap": "/products" };
 
+/** Where an address of a removed page leads now, or undefined for a page that still exists. A product's old documentation addresses lead to its product page. */
+function removedSaasPage(pathname: string): string | undefined {
+  const path = pathname.replace(/\/+$/, "");
+  const [section, ...rest] = path.split("/").filter(Boolean);
+  if (section !== "docs" && section !== "tutorials") return REMOVED_SAAS_PAGES[path];
+  const key = rest.map((part) => productKeyFromSlug(part)).find(Boolean);
+  return key ? productPath(key) : "/products";
+}
+
 /** A kind of PDF the platform switched off (Platform Console → Documents & PDFs) answers 403 for every company. Fails open on a lookup error. */
 async function pdfGate(request: NextRequest): Promise<NextResponse | null> {
   if (request.method !== "GET") return null;
@@ -218,9 +227,9 @@ export async function proxy(request: NextRequest) {
     return hardened;
   }
 
-  // Pages the product website no longer has (people sign in at their own workspace address; there is no roadmap page):
+  // Pages the product website no longer has (people sign in at their own workspace address; there is no roadmap or documentation):
   // old links and search results lead somewhere useful.
-  const gone = isSaasHost(request.headers.get("host")) ? REMOVED_SAAS_PAGES[request.nextUrl.pathname.replace(/\/+$/, "")] : undefined;
+  const gone = isSaasHost(request.headers.get("host")) ? removedSaasPage(request.nextUrl.pathname) : undefined;
   if (gone) return NextResponse.redirect(new URL(gone, request.url), 308);
 
   // The SaaS product's own website: its public pages live under /saas and need no company.

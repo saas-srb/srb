@@ -12,10 +12,8 @@ const EXACT = new Set([
   "/faqs",
   "/ask",
   "/changelog",
-  "/docs",
   "/help",
   "/faq",
-  "/tutorials",
   "/blog",
   "/about",
   "/contact",
@@ -55,7 +53,7 @@ const EXACT = new Set([
   "/og",
 ]);
 
-const PREFIXES = ["/products/", "/features/", "/docs/", "/pricing/", "/blog/", "/tutorials/", "/modules/", "/use-cases/", "/industries/", "/resources/", "/vision/", "/product-vision/"];
+const PREFIXES = ["/products/", "/features/", "/pricing/", "/blog/", "/modules/", "/use-cases/", "/industries/", "/resources/", "/vision/", "/product-vision/"];
 
 export function isSaasPagePath(pathname: string): boolean {
   const p = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;

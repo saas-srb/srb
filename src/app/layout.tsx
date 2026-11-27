@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { jsonForScript } from "@/lib/security/json-script";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
@@ -45,14 +45,19 @@ function verificationMetadata(t: TrackingSettings): Metadata["verification"] {
   return { google: t.googleSiteVerification.length ? t.googleSiteVerification : undefined, other: Object.keys(other).length ? other : undefined };
 }
 
-const geistSans = Geist({
+// Geist is shipped with the code (src/app/fonts, SIL Open Font License), so a build or a dev server never depends on reaching Google Fonts.
+const geistSans = localFont({
+  src: "./fonts/Geist-Variable.woff2",
+  weight: "100 900",
   variable: "--font-geist-sans",
-  subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
+const geistMono = localFont({
+  src: "./fonts/GeistMono-Variable.woff2",
+  weight: "100 900",
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  adjustFontFallback: false,
+  fallback: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
 });
 
 /** App hosts (`app.…`, `<slug>-app.…`) are for signed-in work: never indexed. */

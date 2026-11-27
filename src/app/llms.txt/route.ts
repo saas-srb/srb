@@ -49,7 +49,6 @@ export async function GET() {
     `- Refund & Cancellation Policy: ${origin}/refund-policy`,
     `- Pricing: ${origin}/pricing`,
     `- All products: ${origin}/products`,
-    `- Documentation: ${origin}/docs`,
     `- FAQs: ${origin}/faqs`,
     `- Product gallery: ${origin}/gallery`,
     `- Blog and guides: ${origin}/blog`,

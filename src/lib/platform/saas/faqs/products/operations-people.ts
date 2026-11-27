@@ -673,7 +673,7 @@ export const OPERATIONS_PEOPLE_FAQS: FaqHubGroup[] = [
       },
       {
         q: "Can campaign analytics include imported advertising data?",
-        a: "Yes. Product documentation includes imported ad-platform data in campaign analytics; which campaign data exists depends on imports and attribution.",
+        a: "Yes. Campaign analytics includes imported ad-platform data; which campaign data exists depends on imports and attribution.",
         evidence: ["docs/products.md:130-132", "src/app/(products)/dealflow-ai/(protected)/campaigns/page.tsx:87-91"],
       },
       {
@@ -833,12 +833,12 @@ export const OPERATIONS_PEOPLE_FAQS: FaqHubGroup[] = [
       },
       {
         q: "Can DealFlow generate coupons or festival offers?",
-        a: "Product documentation says DealFlow AI includes company-configured festival offers and coupons; the specific options depend on company configuration.",
+        a: "Yes. DealFlow AI includes company-configured festival offers and coupons; the specific options depend on company configuration.",
         evidence: ["docs/products.md:130-137"],
       },
       {
         q: "Can referral rewards be configured without a deployment?",
-        a: "The product documentation says offers, coupons and referral rewards are configured by the company without a deployment.",
+        a: "Offers, coupons and referral rewards are configured by the company without a deployment.",
         evidence: ["docs/products.md:134-137"],
       },
       {
@@ -848,7 +848,7 @@ export const OPERATIONS_PEOPLE_FAQS: FaqHubGroup[] = [
       },
       {
         q: "Does DealFlow AI provide a website chatbot?",
-        a: "Yes. DealFlow AI manages the website's AI chatbot; product documentation describes it as providing an initial response to enquiries.",
+        a: "Yes. DealFlow AI manages the website's AI chatbot, which gives an initial response to enquiries.",
         evidence: ["docs/products.md:130-136"],
       },
       {
@@ -1070,7 +1070,7 @@ export const OPERATIONS_PEOPLE_FAQS: FaqHubGroup[] = [
       },
       {
         q: "Can payroll be calculated from attendance and leave?",
-        a: "TalentOS documentation says payroll is computed from real attendance and leave; actual calculation depends on the company's payroll setup and recorded data.",
+        a: "TalentOS computes payroll from real attendance and leave; actual calculation depends on the company's payroll setup and recorded data.",
         evidence: ["docs/products.md:73-77"],
       },
       {

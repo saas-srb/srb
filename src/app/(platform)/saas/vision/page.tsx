@@ -273,7 +273,7 @@ export default async function VisionPage() {
                   ))}
                 </ul>
                 <div className="border-t border-border/50 bg-muted/30 px-6 py-4 sm:px-8">
-                  <Link href="/docs/brand-your-workspace" className="inline-flex items-center gap-2 font-bold text-primary hover:underline">See how branding works <ArrowRight className="h-4 w-4" /></Link>
+                  <Link href="/products" className="inline-flex items-center gap-2 font-bold text-primary hover:underline">See the products <ArrowRight className="h-4 w-4" /></Link>
                 </div>
               </div>
             </Reveal>

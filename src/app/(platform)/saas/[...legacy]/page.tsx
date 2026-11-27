@@ -8,15 +8,15 @@ const MOVED: Record<string, string> = {
   ai: "/products",
   automation: "/products",
   integrations: "/products",
-  "how-it-works": "/docs",
+  "how-it-works": "/products",
   "use-cases": "/about#stories",
   industries: "/about#what-we-do",
-  resources: "/docs",
+  resources: "/products",
   changelog: "/about",
   "product-vision": "/vision",
-  help: "/docs",
+  help: "/faqs",
   faq: "/faqs",
-  tutorials: "/docs#walkthroughs",
+  tutorials: "/products",
   mission: "/about#mission",
   "what-we-do": "/about#what-we-do",
 };
@@ -28,9 +28,8 @@ export default async function LegacyRedirect({ params }: { params: Promise<{ leg
     if (productKey && second !== productSlugFor(productKey)) permanentRedirect(productPath(productKey));
   }
   if ((first === "modules" || first === "features") && second) permanentRedirect(productPath(second));
-  if (first === "resources" && second) permanentRedirect(`/docs/${second}`);
-  if (first === "tutorials" && second) permanentRedirect(`/docs/walkthroughs/${second}`);
   const to = MOVED[first];
+  // Old "resources/<page>" and "tutorials/<page>" addresses fall through to their section's entry above.
   if (!to) notFound();
   permanentRedirect(to);
 }

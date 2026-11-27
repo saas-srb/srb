@@ -1,31 +1,30 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
-import { ArrowRight, Bot, BookOpen, Check, ChevronRight, GraduationCap, Layers, Map as MapIcon, Plug, ShieldCheck, Sparkles, Users, Wallet, Zap } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUpRight, Bot, BrainCircuit, Check, CircleAlert, CircleCheckBig, MessagesSquare, Palette, Target, TrendingUp, Wand2, Workflow, PackageCheck, ShieldCheck, Sparkles, Users, Wallet, Zap } from "lucide-react";
 import { getFeatureModules } from "@/lib/platform/saas/modules";
-import { FEATURE_LISTS, PANEL_VALUE, featureCount, featuresOf } from "@/lib/platform/saas/feature-lists";
+import { FEATURE_LISTS, PANEL_VALUE, featureCount } from "@/lib/platform/saas/feature-lists";
 import { PANEL_DETAIL } from "@/lib/platform/saas/panel-detail";
 import { EXTRA_SCREENS } from "@/lib/platform/saas/site";
-import { screenFor } from "@/lib/platform/saas/screens";
-import { CtaBand, HeroCtas, PageHero, SectionHead } from "@/components/platform/saas/blocks";
+import { heroFor, marketingFor, screenFor } from "@/lib/platform/saas/screens";
 import { signupProductHref } from "@/lib/platform/billing/signup-plan-rule";
+import { INCLUDED_PRODUCTS, INCLUDED_WITH } from "@/lib/platform/products/selection";
 import ProductLogo from "@/components/products/ProductLogo";
 import Reveal from "@/components/platform/saas/Reveal";
-import { productDocsPath, productKeyFromSlug, productPath, productSlugFor } from "@/lib/platform/saas/product-routes";
+import { productKeyFromSlug, productPath, productSlugFor } from "@/lib/platform/saas/product-routes";
 import { productShort } from "@/lib/platform/saas/product-short";
 import { pageMeta } from "@/lib/platform/saas/seo-meta";
 import { PRODUCT_AUDIENCE, PRODUCT_CATEGORY, PRODUCT_SEO } from "@/lib/platform/saas/product-seo";
 import JsonLd from "@/components/platform/saas/JsonLd";
-import { breadcrumbList, faqPage, howTo, softwareApplication, webPage } from "@/lib/platform/saas/jsonld";
-import { PRODUCT_START } from "@/lib/platform/saas/product-start";
+import { breadcrumbList, howTo, softwareApplication, webPage } from "@/lib/platform/saas/jsonld";
 import { productFaqs } from "@/lib/platform/saas/product-faq";
-import { DOCS } from "@/lib/platform/saas/docs";
-import { TUTORIALS } from "@/lib/platform/saas/tutorials";
-import ProductScrollNav from "@/components/platform/saas/product/ProductScrollNav";
-import ProductFaqList from "@/components/platform/saas/ProductFaq";
-import FeatureExplorer from "@/components/platform/saas/product/FeatureExplorer";
+import { PRODUCT_STORY } from "@/lib/platform/saas/product-story";
+import SectionScrollNav from "@/components/platform/saas/SectionScrollNav";
+import NumberedHead from "@/components/platform/saas/NumberedHead";
+import { HeroCtas, PageHero } from "@/components/platform/saas/blocks";
+import FaqSection from "@/components/platform/saas/FaqSection";
 import ScrollToTop from "@/components/platform/saas/product/ScrollToTop";
-import ScreenGallery from "@/components/platform/saas/product/ScreenGallery";
 
 export const dynamic = "force-dynamic";
 
@@ -53,223 +52,301 @@ export async function generateProductMetadata(key: string): Promise<Metadata> {
   });
 }
 
+/** The page read in order: what it is, which problem it solves, where it helps, how it works, what it does, and why to use it. */
 const SECTIONS = [
-  { id: "overview", label: "Overview" },
-  { id: "why", label: "Why use it" },
-  { id: "features", label: "Features" },
+  { id: "what", label: "Overview" },
+  { id: "problems", label: "Problems" },
+  { id: "usecases", label: "Use cases" },
   { id: "how", label: "How it works" },
-  { id: "who", label: "Who uses it" },
-  { id: "extras", label: "Automations & AI" },
-  { id: "screens", label: "Screens" },
-  { id: "walkthroughs", label: "Walkthroughs" },
-  { id: "docs", label: "Docs" },
-  { id: "faq", label: "Questions" },
+  { id: "features", label: "Features" },
+  { id: "ai", label: "AI" },
+  { id: "automation", label: "Automation" },
+  { id: "who", label: "Users" },
+  { id: "why", label: "Benefits" },
+  { id: "included", label: "Works with" },
+  { id: "faq", label: "FAQ" },
 ];
 
-/** Lower-cases the first letter of a phrase unless it starts an acronym (HR, CRM, SOP…). */
-const soft = (t: string) => (/^[A-Z][a-z]/.test(t) ? t.charAt(0).toLowerCase() + t.slice(1) : t);
+const endDot = (t: string) => (/[.!?]$/.test(t) ? t : `${t}.`);
 
-/** One band of the page: full width, numbered, with the site's centred heading (label, title, a line on what it is for), then the content. Bands alternate tints. */
-const LABELS: Record<string, string> = { why: "Why use it", features: "Features", how: "How it works", who: "Who uses it", extras: "Automations & AI", screens: "Screens", walkthroughs: "Learn it", docs: "Documentation", more: "Keep exploring" };
-function Band({ id, n, title, accent, lead, tint, children }: { id: string; n: string; title: React.ReactNode; accent?: string; lead?: React.ReactNode; tint?: boolean; children: React.ReactNode }) {
+const COUNT_WORDS: Record<number, string> = { 3: "Three", 4: "Four", 5: "Five", 6: "Six" };
+const BENEFIT_ICONS = [Target, TrendingUp, Workflow, CircleCheckBig];
+const AI_ICONS = [MessagesSquare, Wand2, BrainCircuit, Bot];
+
+/** Photographs for the use-case cards; each product starts at a different one. */
+const CASE_PHOTOS = ["planning", "pair-work", "laptop-talk", "colleagues", "team-work", "office", "success", "open-office", "presentation", "team-desk", "analytics"];
+
+interface Visual { src: string; icon?: LucideIcon; title?: string; text?: string; art?: boolean; right?: boolean; sticky?: boolean }
+
+/** The picture beside a section's content: a photograph with a floating note about the section, or the product's own artwork (`art`). */
+function Picture({ src, icon: NoteIcon, title, text, art, sticky }: Visual) {
   return (
-    <section id={id} className={`sr-section ${tint ? "bg-muted/10" : ""}`} style={{ scrollMarginTop: 140 }}>
+    <Reveal className={`min-w-0 ${sticky ? "lg:sticky lg:top-40 lg:self-start" : "h-full"}`}>
+      <figure className={`group relative w-full ${art ? "flex h-full items-center" : `aspect-[16/10] overflow-hidden rounded-[28px] shadow-2xl shadow-primary/20 ring-1 ring-border/60 ${sticky ? "lg:aspect-[3/4] lg:max-h-[70vh]" : "lg:aspect-auto lg:h-full lg:min-h-[22rem]"}`}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt="" loading="lazy" decoding="async" className={art ? "h-auto w-full drop-shadow-2xl transition-transform duration-500 group-hover:scale-[1.03]" : "absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"} />
+        {!art && <span className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/5 to-primary/20" aria-hidden />}
+        {title && !art && NoteIcon && (
+          <figcaption className="absolute inset-x-4 bottom-4 hidden items-center gap-4 sm:flex rounded-2xl bg-background/90 p-4 shadow-xl ring-1 ring-border/60 backdrop-blur-md">
+            <span className="sr-icon h-11 w-11 flex-none rounded-xl"><NoteIcon className="h-5 w-5" /></span>
+            <span className="min-w-0"><span className="block font-black leading-snug text-foreground">{title}</span>{text && <span className="mt-0.5 block text-sm leading-snug text-muted-foreground">{text}</span>}</span>
+          </figcaption>
+        )}
+      </figure>
+    </Reveal>
+  );
+}
+
+/** One section of the page, headed the way the other pages head theirs: a numbered circle, what the section is, and its title. `band` paints the whole section in the brand colour. */
+function Band({ id, n, eyebrow, title, accent, lead, tint, band, visual, children }: { visual?: Visual; id: string; n: number; eyebrow: string; title: React.ReactNode; accent?: string; lead?: React.ReactNode; tint?: boolean; band?: boolean; children: React.ReactNode }) {
+  return (
+    <section id={id} className={`relative py-12 lg:py-14 ${band ? "sr-band" : `border-t border-border/50 ${tint ? "bg-muted/10" : ""}`}`} style={{ scrollMarginTop: 140 }}>
       <div className="sr-container">
-        <SectionHead n={n} center eyebrow={LABELS[id]} title={title} accent={accent} lead={lead} />
-        {children}
+        <NumberedHead n={n} eyebrow={eyebrow} title={title} accent={accent} lead={lead} band={band} />
+        {visual ? (
+          <div className={`grid gap-6 ${visual.right ? "lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]" : "lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]"}`}>
+            <div className={`min-w-0 ${visual.right ? "lg:order-2" : ""}`}><Picture {...visual} /></div>
+            <div className="min-w-0">{children}</div>
+          </div>
+        ) : children}
       </div>
     </section>
   );
 }
 
-const tile = "group relative overflow-hidden rounded-3xl border border-border/60 bg-card p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10";
+const box = "h-full rounded-3xl border border-border/60 bg-card p-6 shadow-sm sm:p-7";
+const tile = `group ${box} transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10`;
 
 export default async function ProductDetailPage({ productSlug }: { productSlug: string }) {
-  const key = productSlug;
-  const d = await load(key);
+  const d = await load(productSlug);
   if (!d) notFound();
   const { m, all, prev, next } = d;
-  if (key !== productSlugFor(m.key)) permanentRedirect(productPath(m.key));
+  if (productSlug !== productSlugFor(m.key)) permanentRedirect(productPath(m.key));
+
   const groups = FEATURE_LISTS[m.key] ?? [];
   const total = featureCount(m.key) || m.capabilities.length;
   const value = PANEL_VALUE[m.key];
   const detail = PANEL_DETAIL[m.key];
   const byKey = new Map(all.map((x) => [x.key, x]));
   const extras = (EXTRA_SCREENS[m.key] ?? []).filter((x) => screenFor(x.key));
-  const slugOf = new Map(featuresOf(m.key).map((f) => [`${f.group}::${f.name}`, f.slug]));
-  const explorerItems = groups.flatMap((g) => g.items.map((it) => { const slug = slugOf.get(`${g.title}::${it.name}`); return { name: it.name, text: it.text, group: g.title, href: slug ? productDocsPath(m.key, slug) : undefined }; }));
   const connects = (detail?.connects ?? []).flatMap((c) => { const o = byKey.get(c.panel); return o ? [{ o, text: c.text }] : []; });
-  const guides = DOCS.filter((x) => x.panel === m.key);
-  const tutorials = TUTORIALS.filter((t) => t.panel === m.key);
-  const faqs = productFaqs(m, { groups, total, value, detail, connected: connects.map((c) => c.o.name), guides: [...tutorials.map((t) => t.title), ...guides.map((g) => g.title)].slice(0, 2) });
-  const hasScreens = !!screenFor(m.key);
-  const hasExtras = m.automations.length > 0 || !!detail?.ask?.length || connects.length > 0;
-  const show: Record<string, boolean> = { why: !!value, how: !!detail, who: !!detail, extras: hasExtras, screens: hasScreens };
-  const nav = SECTIONS.filter((s) => show[s.id] !== false);
-  const numbered = nav.filter((x) => x.id !== "overview" && x.id !== "faq");
-  const num = (id: string) => String(numbered.findIndex((x) => x.id === id) + 1).padStart(2, "0");
-  const tintOf = (id: string) => numbered.findIndex((x) => x.id === id) % 2 === 0;
-  const extraCols = [!!detail?.ask?.length, m.automations.length > 0, connects.length > 0].filter(Boolean).length;
+  const story = PRODUCT_STORY[m.key];
+  const faqs = productFaqs(m, { groups, total, value, detail, story, connected: connects.map((c) => c.o.name) });
+  const shot = screenFor(m.key);
+  const photoAt = (i: number) => CASE_PHOTOS[(all.indexOf(m) * 3 + i) % CASE_PHOTOS.length];
+  // Photographs 0-2 are on the use-case cards and 3 may be the overview; every other section takes its own.
+  const photo = (i: number) => `/selfrun/photos/${photoAt(i)}.jpg`;
+  // Artwork that shows another product's screen, or a feature the product no longer has, is replaced by a photograph.
+  const artwork = ["website", "portal", "lpms"].includes(m.key) ? null : heroFor(`panel-${m.key}`);
+  // The banner already shows the product's main screen, so the overview shows another of its screens, or a photograph.
+  const picture = extras.map((x) => marketingFor(x.key)).find((x) => x && x !== marketingFor(m.key)) ?? `/selfrun/photos/${photoAt(3)}.jpg`;
+  const name = m.name.replace(/^SelfRun\s+/i, "");
+  const tagline = (PRODUCT_SEO[m.key]?.title ?? "").split(": ")[1] ?? m.headline;
 
-  const seoKeywords = PRODUCT_SEO[m.key]?.keywords ?? [];
-  const shots = [screenFor(m.key), ...extras.map((x) => screenFor(x.key))].filter((x): x is string => !!x);
-  const tagline = (PRODUCT_SEO[m.key]?.title ?? "").split(": ")[1] ?? "";
+  // What comes with what: the same rules sign-up and billing use.
+  const always = [...INCLUDED_PRODUCTS.filter((k) => k !== "admin"), "support"];
+  const brings = (INCLUDED_WITH[m.key as keyof typeof INCLUDED_WITH] ?? []) as readonly string[];
+  const parent = Object.entries(INCLUDED_WITH).find(([key, list]) => key !== m.key && (list as readonly string[]).includes(m.key))?.[0];
+  const comesWithAll = always.includes(m.key);
+  const alsoGet = [...(m.key === "cms" ? ["website"] : []), ...brings, ...always.filter((k) => k !== m.key)].flatMap((k) => { const o = byKey.get(k); return o ? [{ o, brought: !always.includes(k) }] : []; });
+  const howToGet = comesWithAll
+    ? "It comes with every workspace, whichever products you take."
+    : m.key === "website"
+      ? "Your website comes with SiteCraft."
+      : parent && !["sop"].includes(m.key)
+        ? `It comes with ${byKey.get(parent)?.name ?? parent}, at no extra charge.`
+        : "Take it on its own or with other products. Free to start, no card needed.";
+
+  const show: Record<string, boolean> = { what: !!story, problems: !!story, usecases: !!story, how: !!detail, ai: !!story, automation: !!story, who: !!detail, included: alsoGet.length > 0 || connects.length > 0 };
+  const nav = SECTIONS.filter((x) => show[x.id] !== false);
+  // Each chapter is numbered and every other one tinted, so a reader always knows where one ends and the next begins.
+  const at = (id: string) => { const i = nav.findIndex((x) => x.id === id); return { n: i + 1, tint: i % 2 === 1 }; };
+
   const ld = [
     softwareApplication({
-      path: productPath(m.key), name: m.name, alternateName: m.name.replace(/^SelfRun\s+/i, ""), description: `${m.headline}. ${m.summary}`,
-      subCategory: PRODUCT_CATEGORY[m.key], audience: PRODUCT_AUDIENCE[m.key], features: m.capabilities, keywords: seoKeywords, screenshots: shots,
+      path: productPath(m.key), name: m.name, alternateName: name, description: `${m.headline}. ${m.summary}`,
+      subCategory: PRODUCT_CATEGORY[m.key], audience: PRODUCT_AUDIENCE[m.key], features: m.capabilities, keywords: PRODUCT_SEO[m.key]?.keywords ?? [], screenshots: [shot, ...extras.map((x) => screenFor(x.key))].filter((x): x is string => !!x),
       related: connects.map(({ o }) => ({ name: o.name, path: productPath(o.key) })),
     }),
     webPage({ path: productPath(m.key), name: `${m.name}: ${PRODUCT_SEO[m.key]?.title ?? m.headline}`, description: `${m.headline}. ${m.summary}`, about: m.name }),
     breadcrumbList([{ name: "Home", path: "/" }, { name: "Products", path: "/products" }, { name: m.name, path: productPath(m.key) }]),
-    faqPage(faqs),
     ...(detail?.workflow.length ? [howTo({ path: productPath(m.key), name: `How ${m.name} works`, description: `${m.headline}. ${m.summary}`, steps: detail.workflow.map((w) => ({ name: w.title, text: w.text })) })] : []),
   ];
 
-  const endDot = (t: string) => (/[.!?]$/.test(t) ? t : `${t}.`);
-  const heroLead = (
-    <>
-      <span className="block">{endDot(m.summary)}</span>
-      <span className="mt-3 block text-[0.95em]">
-        {detail?.intro ? endDot(detail.intro) : ""}{value ? ` It takes the place of ${soft(value.replaces)}.` : ""}
-      </span>
-    </>
-  );
-  const heroNotes = ["Every feature included", ...(detail?.workflow.length ? [`${detail.workflow.length}-step workflow`] : []), "Free to start"];
-  const glance = [
-    { icon: <Layers className="h-5 w-5" />, q: "What it does", a: m.headline },
-    detail && { icon: <Users className="h-5 w-5" />, q: "Who uses it", a: detail.audience.map((a) => a.who).join(", ") },
-    value && { icon: <Wallet className="h-5 w-5" />, q: "What it takes the place of", a: value.replaces },
-    { icon: <ShieldCheck className="h-5 w-5" />, q: "What it costs", a: "Take it on its own or with the others. Free to start, no card needed." },
-  ].filter(Boolean) as { icon: React.ReactNode; q: string; a: string }[];
+  const facts = [
+    detail && { icon: Users, label: "Made for", text: detail.audience.map((a) => a.who).join(", ") },
+    value && { icon: Wallet, label: "Takes the place of", text: value.replaces },
+    { icon: PackageCheck, label: "Features", text: `${total} features, all included` },
+    { icon: ShieldCheck, label: "How you get it", text: howToGet },
+  ].filter(Boolean) as { icon: typeof Users; label: string; text: string }[];
 
   return (
     <>
       <JsonLd data={ld} />
-      <PageHero art={`product-${m.key}`} eyebrow={tagline || "Part of SelfRun AI"} title={m.name} lead={heroLead} notes={heroNotes} photo="analytics" shot={m.key} shotName={m.name}>
-        <HeroCtas />
+      <ScrollToTop pageKey={m.key} />
+
+      {/* the same banner and section menu as every other page of the website */}
+      <PageHero
+        art={`product-${m.key}`}
+        eyebrow={tagline}
+        title={m.name}
+        lead={story?.banner ?? endDot(detail?.intro ?? m.summary)}
+        notes={["Free to start", `${total} features included`, "AI built in"]}
+        photo="analytics"
+        shot={m.key}
+        shotName={m.name}
+      >
+        <HeroCtas primary={{ label: "Start free", href: signupProductHref(m.key) }} />
       </PageHero>
 
-      <ScrollToTop pageKey={m.key} />
-      <ProductScrollNav items={nav.map((x) => ({ id: x.id, label: x.label }))} name={m.name} />
+      <SectionScrollNav items={nav} label={`${m.name} sections`} numbered compact />
 
-      {/* overview */}
-      <section id="overview" className="sr-section" style={{ scrollMarginTop: 140 }}>
-        <div className="sr-container">
-          <nav aria-label="Breadcrumb" className="mb-8 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
-            <Link href="/products" className="hover:text-primary">Products</Link><ChevronRight className="h-3.5 w-3.5" />
-            <span className="font-semibold text-foreground">{m.name}</span>
-          </nav>
-          <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.1fr] lg:gap-14">
-            <div>
-              <p className="sr-eyebrow mb-3">Overview</p>
-              <h2 className="text-3xl font-black leading-[1.1] tracking-tight sm:text-4xl lg:text-5xl">What is <span className="bg-gradient-to-r from-primary to-brand-accent bg-clip-text text-transparent">{m.name.replace(/^SelfRun\s+/i, "")}?</span></h2>
-              <p className="mt-4 text-lg leading-relaxed text-muted-foreground">{detail?.intro ?? m.summary}</p>
-              <p className="mt-5 rounded-2xl border border-primary/25 bg-primary/[0.05] p-4 text-sm leading-relaxed"><b>In short.</b> <span className="text-muted-foreground">{endDot(m.description)} {m.outcome}</span></p>
-              <ul className="mt-6 grid gap-2.5 sm:grid-cols-2">
-                {m.capabilities.slice(0, 6).map((c) => <li key={c} className="flex gap-2.5 text-[15px] leading-snug"><span className="sr-circle mt-0.5 h-5 w-5 flex-none"><Check className="h-3 w-3" strokeWidth={3} /></span><span>{c}</span></li>)}
-              </ul>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link href={signupProductHref(m.key)} className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/25 transition-transform hover:-translate-y-0.5">Start free <ArrowRight className="h-4 w-4" /></Link>
-                <a href="#walkthroughs" className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-6 py-3 text-sm font-bold transition-colors hover:border-primary/40 hover:text-primary">See a walkthrough</a>
-              </div>
-            </div>
-            {screenFor(m.key) && (
-              <Reveal>
-                <figure className="relative">
-                  <div className="sr-stage p-3 sm:p-5">
-                    <div className="overflow-hidden rounded-2xl border border-border/70 bg-background shadow-2xl">
-                      <div className="flex items-center gap-1.5 border-b border-border/60 bg-muted/40 px-3.5 py-2.5"><span className="h-2.5 w-2.5 rounded-full bg-red-400/70" /><span className="h-2.5 w-2.5 rounded-full bg-amber-400/70" /><span className="h-2.5 w-2.5 rounded-full bg-emerald-400/70" /><span className="ml-3 truncate rounded-full bg-background px-3 py-0.5 text-[11px] text-muted-foreground">{m.name}</span></div>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={screenFor(m.key)!} alt={`${m.name}: a real screen`} width={1280} height={800} loading="eager" decoding="async" className="block h-auto w-full" />
-                    </div>
-                  </div>
-                  <span className="absolute -bottom-3 left-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-background px-3.5 py-1.5 text-xs font-black text-emerald-600 shadow-lg"><Check className="h-3.5 w-3.5" strokeWidth={3} />Free to start</span>
-                  <span className="absolute -top-3 right-6 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-background px-3.5 py-1.5 text-xs font-black text-primary shadow-lg"><Sparkles className="h-3.5 w-3.5" />AI built in</span>
-                  <figcaption className="mt-5 text-center text-xs text-muted-foreground">A real screen of {m.name}, captured in a demo workspace with sample data.</figcaption>
-                </figure>
-              </Reveal>
-            )}
-          </div>
-          <ul className="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="At a glance">
-            {glance.map((g, i) => (
-              <Reveal key={g.q} as="li" delay={i * 60}>
-                <div className="relative h-full overflow-hidden rounded-2xl border border-border/60 bg-card p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10">
-                  <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary to-brand-accent" aria-hidden />
-                  <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-brand-accent text-white shadow-md shadow-primary/25">{g.icon}</span>
-                  <p className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">{g.q}</p>
-                  <p className="mt-1 text-[15px] font-bold leading-snug">{g.a}</p>
-                </div>
-              </Reveal>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      {value && (
-        <Band id="why" n={num("why")} tint={tintOf("why")} title={`Why teams choose ${m.name}`} lead={`${m.name} takes the place of ${soft(value.replaces)}, and it works together with the other SelfRun AI products you switch on.`}>
-          <div className="grid gap-5 lg:grid-cols-[1fr_1.25fr]">
-            <Reveal>
-              <div className="sr-band relative flex h-full flex-col justify-between gap-8 rounded-3xl p-8 shadow-xl shadow-primary/25">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/70">Instead of</p>
-                  <p className="mt-2 text-2xl font-black leading-snug text-white/70 line-through decoration-rose-300/80 decoration-[3px]">{value.replaces}</p>
-                  <ArrowRight className="my-4 h-7 w-7 rotate-90 text-white/80" />
-                  <div className="flex items-center gap-3"><span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/30 bg-white/95 shadow-lg"><ProductLogo productKey={m.key} size={38} title={m.name} /></span><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-white/70">Use</p><p className="text-2xl font-black leading-tight text-white">{m.name}</p></div></div>
-                </div>
-                <div className="rounded-2xl bg-white/12 p-4 ring-1 ring-white/20"><p className="text-xs font-bold uppercase tracking-widest text-white/70">The result</p><p className="mt-1 font-bold leading-snug text-white">{m.outcome}</p></div>
+      {story && (
+        <Band id="what" {...at("what")} eyebrow="What is it" title="What is" accent={`${name}?`}>
+          <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
+            <Reveal className="relative">
+              <div className="sr-shot-glow" aria-hidden />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={picture} alt={`${m.name} in use`} loading="lazy" className="relative aspect-[4/3] w-full rounded-3xl object-cover shadow-2xl shadow-primary/20" />
+              <span className="absolute -bottom-5 left-5 flex items-center gap-3 rounded-2xl bg-background py-3 pl-3 pr-5 shadow-xl ring-1 ring-border/60"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted/60"><ProductLogo productKey={m.key} size={30} title={m.name} /></span><span><span className="block text-sm font-black leading-tight">{m.name}</span><span className="block text-xs font-semibold text-primary">{PRODUCT_CATEGORY[m.key] ?? "Product"}</span></span></span>
+            </Reveal>
+            <Reveal delay={80}>
+              <p className="text-lg font-bold leading-relaxed sm:text-2xl sm:leading-relaxed">{story.what}</p>
+              <div className="mt-6 rounded-r-2xl border-l-4 border-primary bg-primary/[0.07] p-6">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-primary">Why a business needs it</p>
+                <p className="mt-2 text-[17px] leading-relaxed">{story.why}</p>
               </div>
             </Reveal>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {value.benefits.map((b, i) => (
-                <Reveal key={b} delay={i * 70}>
-                  <div className={`${tile} h-full`}>
-                    <span className="pointer-events-none absolute -right-2 -top-5 select-none bg-gradient-to-b from-primary/25 to-transparent bg-clip-text text-8xl font-black leading-none text-transparent" aria-hidden>{String(i + 1).padStart(2, "0")}</span>
-                    <span className="sr-circle relative mb-4 h-9 w-9"><Check className="h-4 w-4" strokeWidth={3} /></span>
-                    <p className="relative text-lg font-bold leading-snug">{b}</p>
-                  </div>
-                </Reveal>
-              ))}
-            </div>
           </div>
+          <ul className="mt-14 grid gap-px overflow-hidden rounded-3xl bg-border/70 shadow-sm ring-1 ring-border/70 sm:grid-cols-2 lg:grid-cols-4" aria-label="At a glance">
+            {facts.map((f) => (
+              <li key={f.label} className="flex gap-4 bg-card p-6">
+                <span className="sr-icon h-11 w-11 flex-none rounded-xl"><f.icon className="h-5 w-5" /></span>
+                <span className="min-w-0"><span className="block text-[11px] font-black uppercase tracking-wider text-primary">{f.label}</span><span className="mt-1 block font-bold leading-snug">{f.text}</span></span>
+              </li>
+            ))}
+          </ul>
         </Band>
       )}
 
-      <Band id="features" n={num("features")} tint={tintOf("features")} title="Everything you can do" lead="Search, or pick a group. Open any feature to read its full guide. Every feature comes with the product.">
-        <div className="rounded-3xl border border-border/60 bg-card p-5 shadow-sm sm:p-8">
-              <FeatureExplorer productName={m.name} items={explorerItems} groups={groups.map((g) => ({ title: g.title, count: g.items.length }))} />
-            
-        </div>
-      </Band>
-
-      {detail && (
-        <Band id="how" n={num("how")} tint={tintOf("how")} title="From start to" accent="finish." lead={detail.intro}>
-          <ol className="grid gap-5 md:grid-cols-2 lg:grid-cols-4 lg:gap-0">
-            {detail.workflow.map((w, i) => (
-              <Reveal key={w.title} as="li" delay={i * 90} className="relative lg:px-2.5">
-                <div className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-border/60 bg-card p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10">
-                  <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary to-brand-accent opacity-60 transition-opacity group-hover:opacity-100" aria-hidden />
-                  <span className="pointer-events-none absolute -right-2 -top-5 select-none bg-gradient-to-b from-primary/20 to-transparent bg-clip-text text-8xl font-black leading-none text-transparent" aria-hidden>{i + 1}</span>
-                  <span className="sr-circle relative mb-5 h-12 w-12 text-lg font-black shadow-lg shadow-primary/30">{i + 1}</span>
-                  <h3 className="relative text-xl font-black leading-snug tracking-tight">{w.title}</h3>
-                  <p className="relative mt-2 text-[15px] leading-relaxed text-muted-foreground">{w.text}</p>
-                </div>
-                {i < detail.workflow.length - 1 && <span className="pointer-events-none absolute -right-3.5 top-1/2 z-10 hidden h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-border/60 bg-background text-primary shadow-md lg:flex" aria-hidden><ArrowRight className="h-4 w-4" /></span>}
+      {story && (
+        <Band id="problems" {...at("problems")} visual={{ src: photo(4), icon: CircleCheckBig, title: `${COUNT_WORDS[story.problems.length] ?? story.problems.length} problems, one product`, text: m.headline }} eyebrow="Business problems" title="The problems" accent="it solves." lead={`${COUNT_WORDS[story.problems.length] ?? story.problems.length} everyday problems that slow a business down, and how ${name} solves each one.`}>
+          <ol className="grid gap-x-5 sm:grid-cols-2">
+            {story.problems.map(([today, solved], i) => (
+              <Reveal key={today} as="li" delay={i * 70} className="row-span-2 mb-5 grid grid-rows-subgrid gap-0 sm:[&:nth-last-child(-n+2)]:mb-0">
+                <article className="group row-span-2 grid grid-rows-subgrid gap-0 overflow-hidden rounded-3xl border border-border/60 bg-card shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-primary/15">
+                  <div className="relative bg-rose-500/[0.08] px-6 pb-8 pt-5">
+                    <p className="flex items-center justify-between gap-3 text-xs font-black uppercase tracking-[0.16em] text-rose-600 dark:text-rose-400"><span className="flex items-center gap-2"><CircleAlert className="h-4 w-4" />Problem</span><span className="text-3xl font-black tracking-tight opacity-30">{String(i + 1).padStart(2, "0")}</span></p>
+                    <p className="mt-3 text-lg font-semibold leading-snug">{today}</p>
+                  </div>
+                  <div className="relative px-6 pb-5 pt-8">
+                    <span className="sr-circle absolute -top-6 left-6 h-12 w-12 ring-4 ring-card transition-transform group-hover:scale-110" aria-hidden><ArrowDown className="h-5 w-5" /></span>
+                    <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-primary"><Check className="h-4 w-4" strokeWidth={3} />Solved</p>
+                    <p className="mt-3 text-lg font-black leading-snug">{solved}</p>
+                  </div>
+                </article>
               </Reveal>
             ))}
           </ol>
         </Band>
       )}
 
+      {story && (
+        <Band id="usecases" {...at("usecases")} eyebrow="Use cases" title="Where it helps," accent="day to day." lead="Examples of real situations: who it is, and what they do in the product.">
+          <ul className="grid gap-6 md:grid-cols-3">
+            {story.useCases.map((u, i) => (
+              <Reveal key={u.title} as="li" delay={i * 80}>
+                <article className="group flex h-full flex-col overflow-hidden rounded-3xl border border-border/60 bg-card shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-primary/15">
+                  <div className="relative h-48 overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`/selfrun/photos/${photoAt(i)}.jpg`} alt="" aria-hidden loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" aria-hidden />
+                    <h3 className="absolute inset-x-5 bottom-4 text-2xl font-black leading-tight !text-white">{u.title}</h3>
+                    <span className="sr-circle absolute left-5 top-5 h-10 w-10 font-black">{i + 1}</span>
+                  </div>
+                  <div className="flex flex-1 flex-col p-6">
+                    <p className="inline-flex w-fit items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary"><Users className="h-3.5 w-3.5 flex-none" />{u.who}</p>
+                    <p className="mt-4 text-[16px] leading-relaxed text-muted-foreground">{u.story}</p>
+                  </div>
+                </article>
+              </Reveal>
+            ))}
+          </ul>
+        </Band>
+      )}
+
       {detail && (
-        <Band id="who" n={num("who")} tint={tintOf("who")} title={`Who uses ${m.name}`} lead="Everyone sees only what their role allows, so each person gets a screen that fits their job.">
-          <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {detail.audience.map((a, i) => (
-              <Reveal key={a.who} as="li" delay={i * 70}>
-                <div className="group h-full rounded-3xl border border-border/60 bg-card p-6 text-center shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10">
-                  <span className="sr-icon mx-auto mb-4 h-14 w-14 rounded-2xl transition-transform group-hover:scale-110"><Users className="h-6 w-6" /></span>
-                  <h3 className="text-lg font-black leading-snug">{a.who}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{a.does}</p>
+        <Band id="how" {...at("how")} band visual={artwork ? { src: artwork, art: true, right: true } : { src: photo(5), right: true }} eyebrow="How it works" title="From start to" accent="finish." lead="How one job moves through the product, step by step.">
+          <ol className="grid h-full gap-4 sm:grid-cols-2">
+            {detail.workflow.map((w, i) => (
+              <Reveal key={w.title} as="li" delay={i * 90}>
+                <div className="h-full rounded-[18px] bg-white/10 p-6 ring-1 ring-white/20 backdrop-blur transition-all hover:-translate-y-1 hover:bg-white/[0.16]">
+                  <p className="flex items-center gap-3"><span className="flex h-12 w-12 flex-none items-center justify-center rounded-full bg-white text-xl font-black text-[#14183a] shadow-xl">{i + 1}</span><span className="text-xs font-black uppercase tracking-[0.18em] text-white/70">Step {i + 1}</span></p>
+                  <h3 className="mt-4 text-xl font-black leading-snug text-white">{w.title}</h3>
+                  <p className="mt-2 text-[15px] leading-relaxed text-white/80">{w.text}</p>
+                </div>
+              </Reveal>
+            ))}
+          </ol>
+        </Band>
+      )}
+
+      <Band id="features" {...at("features")} visual={{ src: photo(6), icon: PackageCheck, title: `${total} features, all included`, text: `${groups.length} areas of ${name}`, sticky: true }} eyebrow="Features" title="Everything you" accent="can do." lead={`All ${total} features of ${m.name}, grouped by area.`}>
+        <div className="gap-5 md:columns-2">
+          {groups.map((g) => (
+            <div key={g.title} className="mb-5 break-inside-avoid overflow-hidden rounded-3xl border border-border/60 bg-card shadow-sm transition-shadow hover:shadow-xl hover:shadow-primary/10">
+              <h3 className="flex items-center justify-between gap-3 border-b border-border/60 bg-gradient-to-r from-primary/15 to-brand-accent/10 px-6 py-5 text-xl font-black">{g.title}<span className="whitespace-nowrap rounded-full bg-background px-3 py-1 text-xs font-bold text-primary shadow-sm">{g.items.length === 1 ? "1 feature" : `${g.items.length} features`}</span></h3>
+              <ul className="space-y-4 p-6">
+                {g.items.map((f) => (
+                  <li key={f.name} className="flex gap-3"><span className="sr-circle mt-0.5 h-5 w-5"><Check className="h-3 w-3" strokeWidth={3} /></span><span className="min-w-0"><span className="block font-bold leading-snug">{f.name}</span>{f.text && <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">{f.text}</span>}</span></li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </Band>
+
+      {story && (
+        <Band id="ai" {...at("ai")} visual={{ src: photo(7), icon: Sparkles, title: "AI built into your daily work", text: detail?.ask?.[0] ? `Ask: “${detail.ask[0]}”` : story.ai[0].title, right: true }} eyebrow="AI" title="What the AI" accent="does for you." lead={`The AI built into ${name}, and where you stay in charge.`}>
+          <ul className="grid gap-4">
+            {story.ai.map((x, i) => {
+              const AiIcon = AI_ICONS[i % AI_ICONS.length];
+              return (
+                <Reveal key={x.title} as="li" delay={i * 70}>
+                  <div className={`${tile} flex items-start gap-5`}>
+                    <span className="sr-icon h-12 w-12 flex-none rounded-2xl"><AiIcon className="h-6 w-6" /></span>
+                    <span className="min-w-0"><h3 className="text-lg font-black leading-snug">{x.title}</h3><span className="mt-1 block text-[15px] leading-relaxed text-muted-foreground">{x.text}</span></span>
+                  </div>
+                </Reveal>
+              );
+            })}
+          </ul>
+          <Reveal delay={120}>
+            <div className={`sr-band mt-5 grid items-center gap-6 rounded-[28px] p-6 text-white shadow-2xl shadow-primary/25 sm:px-8 `}>
+              <div className="flex items-start gap-5">
+                <span className="flex h-14 w-14 flex-none items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/30"><ShieldCheck className="h-7 w-7" /></span>
+                <span><span className="block text-2xl font-black">You stay in control</span><span className="mt-2 block text-[17px] leading-relaxed text-white/85">{story.aiRule}</span></span>
+              </div>
+              {detail?.ask?.length ? (
+                <div>
+                  <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-white/70"><Sparkles className="h-4 w-4" />Ask in plain English</p>
+                  <ul className="mt-3 flex flex-wrap gap-2.5">{detail.ask.map((q) => <li key={q} className="rounded-[18px] rounded-br-sm bg-white/15 px-4 py-2.5 text-[15px] font-semibold leading-snug ring-1 ring-white/25">{q}</li>)}</ul>
+                </div>
+              ) : null}
+            </div>
+          </Reveal>
+        </Band>
+      )}
+
+      {story && (
+        <Band id="automation" {...at("automation")} visual={{ src: photo(8), icon: Zap, title: "Runs while your team works", text: "No reminders to remember, no steps to forget." }} eyebrow="Automation" title="Work that happens" accent="on its own." lead="When something happens, the product takes the next step, so nobody has to remember it.">
+          <ul className="flex h-full flex-col gap-4">
+            {story.automation.map(([when, then], i) => (
+              <Reveal key={when} as="li" delay={i * 70} className="flex-1">
+                <div className="group grid h-full items-stretch gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+                  <div className="flex flex-col justify-center rounded-3xl border border-border/60 bg-card px-6 py-4 shadow-sm"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-muted-foreground">When</p><p className="mt-1 text-lg font-black leading-snug">{when}</p></div>
+                  <span className="sr-circle h-11 w-11 self-center justify-self-center shadow-lg shadow-primary/30 transition-transform duration-300 group-hover:scale-110" aria-hidden><Zap className="h-5 w-5" /></span>
+                  <div className="sr-band flex flex-col justify-center rounded-[18px] px-6 py-4 text-white shadow-lg shadow-primary/20"><p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/70">Then, by itself</p><p className="mt-1 text-lg font-black leading-snug">{then}</p></div>
                 </div>
               </Reveal>
             ))}
@@ -277,163 +354,111 @@ export default async function ProductDetailPage({ productSlug }: { productSlug: 
         </Band>
       )}
 
-      {hasExtras && (
-        <Band id="extras" n={num("extras")} tint={tintOf("extras")} title="It works while" accent="you don't." lead="Questions you can ask in plain English, things that happen on their own, and the products it can pass work to.">
-          <div className={`grid gap-5 ${extraCols === 1 ? "mx-auto max-w-2xl" : extraCols === 2 ? "lg:grid-cols-2" : "lg:grid-cols-3"}`}>
-            {detail?.ask?.length ? (
-              <Reveal>
-                <div className="h-full rounded-3xl border border-border/60 bg-card p-6 shadow-sm">
-                  <h3 className="mb-4 flex items-center gap-3 text-lg font-black"><span className="sr-icon h-11 w-11 rounded-xl"><Bot className="h-5 w-5" /></span>Ask in plain English</h3>
-                  <ul className="space-y-2.5">{detail.ask.map((q) => <li key={q} className="rounded-2xl rounded-tl-sm bg-primary/[0.07] px-4 py-3 text-[15px] font-semibold leading-snug">“{q}”</li>)}</ul>
+      {detail && (
+        <Band id="who" {...at("who")} visual={{ src: photo(9), icon: Users, title: "One product, a screen for every role", text: detail.audience.map((a) => a.who).join(", "), right: true }} eyebrow="Who uses it" title="Made for" accent="your team." lead="Everyone sees only what their role allows, so each person gets a screen that fits their job.">
+          <ul className="grid h-full gap-x-5 gap-y-12 pt-8 sm:grid-cols-2">
+            {detail.audience.map((x, i) => (
+              <Reveal key={x.who} as="li" delay={i * 60}>
+                <div className="group relative flex h-full flex-col items-center rounded-3xl border border-border/60 bg-card px-6 pb-7 pt-14 text-center shadow-sm transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10">
+                  <span className="sr-circle absolute -top-8 h-16 w-16 text-2xl font-black ring-8 ring-background transition-transform group-hover:scale-110" aria-hidden>{x.who.charAt(0)}</span>
+                  <h3 className="text-xl font-black leading-snug">{x.who}</h3>
+                  <span className="my-4 h-1 w-10 rounded-full bg-gradient-to-r from-primary to-brand-accent" aria-hidden />
+                  <p className="text-[15px] leading-relaxed text-muted-foreground">{x.does}</p>
                 </div>
               </Reveal>
-            ) : null}
-            {m.automations.length ? (
-              <Reveal delay={70}>
-                <div className="h-full rounded-3xl border border-border/60 bg-card p-6 shadow-sm">
-                  <h3 className="mb-4 flex items-center gap-3 text-lg font-black"><span className="sr-icon h-11 w-11 rounded-xl"><Zap className="h-5 w-5" /></span>Runs by itself</h3>
-                  <ul className="space-y-2.5">
-                    {m.automations.map((a) => <li key={a} className="flex items-start gap-3 text-[15px] font-semibold leading-snug"><span className="relative mt-1.5 flex h-2.5 w-2.5 flex-none"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/70" /><span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" /></span>{a}</li>)}
-                  </ul>
-                  <p className="mt-4 text-sm text-muted-foreground">Build your own in <Link href={`${productPath("workspace")}#features`} className="font-bold text-primary underline underline-offset-2">Workspace → Automations</Link>.</p>
-                </div>
-              </Reveal>
-            ) : null}
-            {connects.length ? (
-              <Reveal delay={140}>
-                <div className="h-full rounded-3xl border border-border/60 bg-card p-6 shadow-sm">
-                  <h3 className="mb-1 flex items-center gap-3 text-lg font-black"><span className="sr-icon h-11 w-11 rounded-xl"><Plug className="h-5 w-5" /></span>Works with</h3>
-                  <p className="mb-4 mt-2 text-sm text-muted-foreground">{m.name} works fully on its own. These are the other products it can pass work to, if you want it to.</p>
-                  <ul className="space-y-2.5">
-                    {connects.map(({ o, text }) => (
-                      <li key={o.key}>
-                        <Link href={productPath(o.key)} className="group flex items-start gap-3 rounded-2xl border border-border/60 bg-background p-3 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
-                          <span className="flex h-11 w-11 flex-none items-center justify-center rounded-xl border border-border/60 bg-card shadow-sm"><ProductLogo productKey={o.key} size={30} title={o.name} /></span>
-                          <span className="min-w-0"><span className="block text-sm font-black leading-snug group-hover:text-primary">{o.name}</span><span className="mt-0.5 block text-xs leading-snug text-muted-foreground">{text}</span></span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </Reveal>
-            ) : null}
-          </div>
+            ))}
+          </ul>
         </Band>
       )}
 
-      {hasScreens && (
-        <Band id="screens" n={num("screens")} tint={tintOf("screens")} title={`${m.name}, as your team sees it`} lead="Real screens of the live product, captured in a demo workspace with sample data.">
-                <ScreenGallery
-                  name={m.name}
-                  shots={[{ key: m.key, title: "Dashboard", src: screenFor(m.key)! }, ...extras.map((x) => ({ key: x.key, title: x.title, src: screenFor(x.key)! }))]}
-                />
-              
-        </Band>
-      )}
+      <Band id="why" {...at("why")} eyebrow="Why use it" title="Why use" accent={`${name}?`} lead="What changes for your business once you start using it.">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+          {/* the promise: what you get, and what it replaces */}
+          <Reveal>
+            <div className="sr-band flex h-full flex-col justify-between gap-5 rounded-[28px] p-6 text-white shadow-2xl shadow-primary/25 sm:p-7">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={photo(10)} alt="" loading="lazy" decoding="async" className="aspect-[16/6] w-full rounded-2xl object-cover shadow-xl ring-1 ring-white/25" />
+              <div>
+                <div className="flex items-center gap-4"><span className="flex h-14 w-14 flex-none items-center justify-center rounded-2xl bg-white shadow-lg"><ProductLogo productKey={m.key} size={38} title={m.name} /></span><h3 className="text-xl font-black leading-tight text-white sm:text-2xl">{m.headline}</h3></div>
+                <p className="mt-4 text-base leading-relaxed text-white/85">{m.outcome}</p>
+              </div>
+              {value && (
+                <p className="rounded-[18px] bg-white/10 px-5 py-3 ring-1 ring-white/20">
+                  <span className="block text-[11px] font-black uppercase tracking-[0.18em] text-white/70">Takes the place of</span>
+                  <span className="mt-1 block text-lg font-bold leading-snug">{value.replaces}</span>
+                </p>
+              )}
+            </div>
+          </Reveal>
+          <ul className="grid gap-5 sm:grid-cols-2">
+            {(value?.benefits ?? m.capabilities.slice(0, 4)).map((b, i) => {
+              const BenefitIcon = BENEFIT_ICONS[i % BENEFIT_ICONS.length];
+              return (
+                <Reveal key={b} as="li" delay={i * 70}>
+                  <div className={`${tile} flex items-center gap-5`}>
+                    <span className="sr-icon h-14 w-14 flex-none rounded-2xl"><BenefitIcon className="h-7 w-7" /></span>
+                    <p className="text-lg font-black leading-snug">{b}</p>
+                  </div>
+                </Reveal>
+              );
+            })}
+          </ul>
+        </div>
+        {/* what holds for every product */}
+        <Reveal delay={100}>
+          <ul className="mt-5 grid gap-px overflow-hidden rounded-3xl bg-border/70 shadow-sm ring-1 ring-border/70 md:grid-cols-3">
+            {[
+              { icon: ShieldCheck, title: "Your data stays yours", text: "Each business is kept separate, and people see only what their role allows." },
+              { icon: Palette, title: "Your own brand", text: "It carries your business name and logo, in the browser and in your own apps." },
+              { icon: PackageCheck, title: "Easy to start", text: howToGet },
+            ].map((x) => (
+              <li key={x.title} className="flex gap-4 bg-card px-6 py-4">
+                <span className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-primary/10 text-primary"><x.icon className="h-5 w-5" /></span>
+                <span className="min-w-0"><span className="block font-black leading-snug">{x.title}</span><span className="mt-1 block text-[15px] leading-relaxed text-muted-foreground">{x.text}</span></span>
+              </li>
+            ))}
+          </ul>
+        </Reveal>
+      </Band>
 
-      <Band id="walkthroughs" n={num("walkthroughs")} tint={tintOf("walkthroughs")} title={`Learn ${m.name} step by step`} lead="Learn by doing: start with the three steps, then follow a walkthrough for one job at a time, or take the quick tour of how a job moves through the product.">
-              <h3 className="mb-1 text-lg font-black">Your first three steps</h3>
-              <p className="mb-4 text-sm text-muted-foreground">First register free and switch on {m.name} in your business setup. Then:</p>
-              <ol className="mb-10 grid gap-4 sm:grid-cols-3">
-                {(PRODUCT_START[m.key] ?? [
-                  { t: "Register free", x: "Create your workspace with your work email. No card needed." },
-                  { t: `Switch on ${m.name}`, x: "Switch it on in your business setup, then invite your team and give each person a role." },
-                  { t: "Follow a walkthrough", x: tutorials[0] ? `Start with “${tutorials[0].title}” below.` : "Then open its guides in the Docs section." },
-                ]).map((st, i) => (
-                  <Reveal key={st.t} as="li" delay={i * 70} className={`${tile}`}>
-                    <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-brand-accent text-sm font-black text-white shadow-lg shadow-primary/25">{i + 1}</span>
-                    <p className="font-black leading-snug">{st.t}</p><p className="mt-1 text-[15px] text-muted-foreground">{st.x}</p>
+      {show.included && (
+        <Band id="included" {...at("included")} eyebrow="Works with" title="Better" accent="together." lead={howToGet}>
+          {[
+            { title: comesWithAll ? "Also in every workspace" : "What you also get", list: alsoGet.map(({ o, brought }) => ({ o, text: productShort(o.key, o.summary), tag: brought ? `Comes with ${name}` : "Included" })) },
+            { title: "It can pass work to", list: connects.map(({ o, text }) => ({ o, text, tag: "Connects" })) },
+          ].filter((g) => g.list.length > 0).map((g) => (
+            <div key={g.title} className="mt-10 first:mt-0">
+              <h3 className="mb-4 flex items-center gap-4 text-sm font-black uppercase tracking-[0.16em] text-muted-foreground">{g.title}<span className="h-px flex-1 bg-border" aria-hidden /></h3>
+              <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {g.list.map(({ o, text, tag }, i) => (
+                  <Reveal key={o.key} as="li" delay={i * 40}>
+                    <Link href={productPath(o.key)} className={`${tile} flex items-start gap-4`}>
+                      <span className="flex h-12 w-12 flex-none items-center justify-center rounded-xl bg-muted/60"><ProductLogo productKey={o.key} size={32} title={o.name} /></span>
+                      <span className="min-w-0 flex-1"><span className="block font-black leading-snug group-hover:text-primary">{o.name}</span><span className="mt-1 block text-sm leading-snug text-muted-foreground">{text}</span><span className="mt-2.5 inline-block rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary">{tag}</span></span>
+                      <ArrowUpRight className="h-4 w-4 flex-none text-muted-foreground/50 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary" />
+                    </Link>
                   </Reveal>
                 ))}
-              </ol>
-              <h3 className="mb-4 flex items-center gap-2 text-lg font-black"><GraduationCap className="h-5 w-5 text-primary" />{tutorials.length === 1 ? `The walkthrough for ${m.name}` : `Walkthroughs for ${m.name}`}</h3>
-              {tutorials.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {tutorials.map((t) => (
-                    <Link key={t.slug} href={`/docs/walkthroughs/${t.slug}`} className="group flex flex-col rounded-3xl border border-primary/30 bg-gradient-to-br from-card to-primary/[0.06] p-6 transition-all hover:-translate-y-1 hover:border-primary hover:shadow-xl hover:shadow-primary/10">
-                      <span className="mb-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-xs font-black uppercase tracking-wider text-primary-foreground"><GraduationCap className="h-3.5 w-3.5" />Walkthrough</span>
-                      <span className="text-xl font-black leading-snug">{t.title}</span>
-                      <span className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">{t.summary}</span>
-                      <span className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-semibold text-muted-foreground"><span>{t.steps.length} steps</span><span>{t.minutes} min</span><span>{t.level}</span><span className="ml-auto font-bold text-primary">Start the walkthrough <ArrowRight className="ml-1 inline h-4 w-4 transition-transform group-hover:translate-x-1" /></span></span>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <p className="rounded-2xl border border-dashed border-border bg-muted/30 p-5 text-[15px] text-muted-foreground">There is no step-by-step walkthrough for {m.name} yet. Its guides are in the next section, and every feature has its own guide.</p>
-              )}
-              {detail && (
-                <>
-                  <h3 className="mb-1 mt-12 flex items-center gap-2 text-lg font-black"><MapIcon className="h-5 w-5 text-primary" />Quick tour: {m.name} in {detail.workflow.length} steps</h3>
-                  <p className="mb-4 text-sm text-muted-foreground">How a job moves through {m.name}, from the first step to the last. Try it in the product after you register.</p>
-                  <ol className="grid gap-3 sm:grid-cols-2">
-                    {detail.workflow.map((w, i) => (
-                      <li key={w.title} className="flex gap-4 rounded-2xl border border-border/60 bg-background p-5 shadow-sm">
-                        <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-primary/10 text-sm font-black text-primary">{i + 1}</span>
-                        <div className="min-w-0"><span className="mb-1 inline-block rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider text-muted-foreground">Quick tour</span><p className="font-black leading-snug">{w.title}</p><p className="mt-1 text-[15px] leading-relaxed text-muted-foreground">{w.text}</p></div>
-                      </li>
-                    ))}
-                  </ol>
-                  <p className="mt-4 text-sm"><Link href={signupProductHref(m.key)} className="font-bold text-primary hover:underline">Start the tour in the product, free <ArrowRight className="ml-1 inline h-4 w-4" /></Link></p>
-                </>
-              )}
-              <p className="mt-8 text-sm"><Link href="/docs#walkthroughs" className="font-bold text-primary hover:underline">All walkthroughs for every product <ArrowRight className="ml-1 inline h-4 w-4" /></Link></p>
-            
-      </Band>
+              </ul>
+            </div>
+          ))}
+        </Band>
+      )}
 
-      <Band id="docs" n={num("docs")} tint={tintOf("docs")} title={`${m.name} documentation`} lead="Guides and references you can read any time: what each part does, how to set it up and how it fits with the rest.">
-              <div className="grid gap-4 md:grid-cols-2">
-                {guides.map((g) => (
-                  <Link key={g.slug} href={`/docs/${g.slug}`} className={`${tile} flex flex-col`}>
-                    <span className="mb-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-black uppercase tracking-wider text-foreground"><BookOpen className="h-3.5 w-3.5" />Guide</span>
-                    <span className="text-xl font-black leading-snug">{g.title}</span>
-                    <span className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">{g.summary}</span>
-                    <span className="mt-4 flex items-center gap-4 text-sm font-semibold text-muted-foreground"><span>{g.readMinutes} min read</span><span className="ml-auto font-bold text-primary">Read the guide <ArrowRight className="ml-1 inline h-4 w-4 transition-transform group-hover:translate-x-1" /></span></span>
-                  </Link>
-                ))}
-                {total > 0 && (
-                  <a href="#features" className={`${tile} flex flex-col`}>
-                    <span className="mb-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-black uppercase tracking-wider text-foreground"><Layers className="h-3.5 w-3.5" />Feature guides</span>
-                    <span className="text-xl font-black leading-snug">A guide for every feature</span>
-                    <span className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">Every feature of {m.name} has its own guide. Search the features above and open the one you need.</span>
-                    <span className="mt-4 text-sm font-bold text-primary">See the features <ArrowRight className="ml-1 inline h-4 w-4 transition-transform group-hover:translate-x-1" /></span>
-                  </a>
-                )}
-                <Link href={`/docs#${m.key}`} className="group flex flex-col justify-center rounded-3xl border border-dashed border-primary/40 bg-primary/[0.04] p-6 transition-colors hover:bg-primary/[0.08]">
-                  <span className="mb-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-xs font-black uppercase tracking-wider text-primary-foreground"><BookOpen className="h-3.5 w-3.5" />Documentation</span>
-                  <span className="text-xl font-black leading-snug">All {m.name} documentation</span>
-                  <span className="mt-1.5 text-[15px] text-muted-foreground">Every guide for {m.name} in one place, in the documentation.</span>
-                  <span className="mt-4 text-sm font-bold text-primary">Open the docs <ArrowRight className="ml-1 inline h-4 w-4 transition-transform group-hover:translate-x-1" /></span>
-                </Link>
-              </div>
-            
-      </Band>
+      {/* the questions look the same here as on every other page; this component also publishes them as structured data */}
+      <FaqSection n={String(at("faq").n).padStart(2, "0")} tone={at("faq").tint ? "muted" : undefined} extra={faqs} limit={0} lead={`The things people ask before they start with ${name}.`} />
 
-      <section className="sr-section border-t border-border/50 bg-muted/10">
+      <section className="border-t border-border/50 py-12">
         <div className="sr-container">
-          <p className="mb-6 text-center text-xs font-black uppercase tracking-[0.2em] text-primary">Keep exploring</p>
           <div className="grid gap-4 sm:grid-cols-2">
-                {[{ p: prev, dir: "Previous product" }, { p: next, dir: "Next product" }].map(({ p, dir }, i) => (
-                  <Link key={dir} data-product-link href={productPath(p.key)} className={`group relative flex items-center gap-4 overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-card to-primary/[0.06] p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10 ${i ? "sm:flex-row-reverse sm:text-right" : ""}`}>
-                    <span className="flex h-16 w-16 flex-none items-center justify-center rounded-2xl border border-border/60 bg-background shadow-sm transition-transform group-hover:scale-105"><ProductLogo productKey={p.key} size={44} title={p.name} /></span>
-                    <span className="min-w-0 flex-1"><span className="inline-block rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wider text-primary">{dir}</span><span className="mt-1 block text-lg font-black leading-snug">{p.name}</span><span className="block truncate text-sm text-muted-foreground">{productShort(p.key, p.summary)}</span></span>
-                    <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform"><ArrowRight className={`h-5 w-5 ${i ? "group-hover:translate-x-0.5" : "rotate-180 group-hover:-translate-x-0.5"}`} /></span>
-                  </Link>
-                ))}
-              </div>
-        </div>
-      </section>
-
-      <CtaBand title={`Start with ${m.name}, free.`} lead="Every feature comes with the product. No card needed." />
-
-      {/* questions: the last thing on the page, just above the footer */}
-      <section id="faq" className="scroll-mt-36 border-t border-border/50 bg-muted/30 py-14 lg:py-20">
-        <div className="sr-container max-w-4xl">
-          <div className="mb-8 text-center">
-            <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-primary">Questions</p>
-            <h2 className="text-3xl font-black leading-tight tracking-tight sm:text-4xl">Questions about {m.name}</h2>
-            <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">What people ask before they start, answered from what the product really does today.</p>
+            {[{ p: prev, dir: "Previous product" }, { p: next, dir: "Next product" }].map(({ p, dir }, i) => (
+              <Link key={dir} data-product-link href={productPath(p.key)} className={`${tile} flex items-center gap-4 ${i ? "sm:flex-row-reverse sm:text-right" : ""}`}>
+                <span className="flex h-14 w-14 flex-none items-center justify-center rounded-xl bg-muted/60"><ProductLogo productKey={p.key} size={38} title={p.name} /></span>
+                <span className="min-w-0 flex-1"><span className="block text-[11px] font-black uppercase tracking-wider text-primary">{dir}</span><span className="block text-lg font-black leading-snug">{p.name}</span><span className="block truncate text-sm text-muted-foreground">{productShort(p.key, p.summary)}</span></span>
+                <ArrowRight className={`h-5 w-5 flex-none text-primary transition-transform ${i ? "rotate-180 group-hover:-translate-x-1" : "group-hover:translate-x-1"}`} />
+              </Link>
+            ))}
           </div>
-          <ProductFaqList items={faqs} />
         </div>
       </section>
     </>

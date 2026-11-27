@@ -50,12 +50,13 @@ export default async function ProductsPage() {
             replaces: PANEL_VALUE[m.key]?.replaces,
             benefits: PANEL_VALUE[m.key]?.benefits ?? m.capabilities,
             href: productPath(m.key),
-            docsHref: `/docs#${m.key}`,
           })),
         )}
       />
 
       <FaqSection
+        n={String(groups.length + 1).padStart(2, "0")}
+        tone={groups.length % 2 ? "muted" : undefined}
         topics={[
           "AI & automation",
           "Your brand",

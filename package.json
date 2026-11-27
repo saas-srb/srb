@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test:product-story": "npx --yes tsx scripts/test-product-story.ts",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

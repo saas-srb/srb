@@ -451,7 +451,7 @@ export const AI_SUPPORT_COLLABORATION_FAQS: FaqHubGroup[] = [
       },
       {
         q: "Can DataBrain combine filters with OR?",
-        a: "The query-plan documentation specifies that filters are ANDed, so each listed filter narrows the result.",
+        a: "Filters are combined with AND, so each listed filter narrows the result.",
         evidence: ["src/lib/products/databrain-ai/query/plan.ts:91-95"],
       },
       {

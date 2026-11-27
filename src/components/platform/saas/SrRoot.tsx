@@ -15,7 +15,7 @@ export default function SrRoot({ children }: { children: React.ReactNode }) {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: css }} />
-      <SrShell script={<script dangerouslySetInnerHTML={{ __html: init }} />}>{children}</SrShell>
+      <SrShell script={init}>{children}</SrShell>
     </>
   );
 }

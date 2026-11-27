@@ -45,7 +45,8 @@ export default function FreeForeverToast() {
     return () => { window.clearTimeout(t); window.clearInterval(poll); };
   }, [path]);
 
-  if (!open || !pos || QUIET.some((q) => path === q || path.startsWith(`${q}/`))) return null;
+  // A product page has its own "Start free" button, and the card would sit on top of what is being read.
+  if (!open || !pos || path.startsWith("/products/") || QUIET.some((q) => path === q || path.startsWith(`${q}/`))) return null;
   const close = () => { closedThisLoad = true; setOpen(false); };
   const down = (e: React.PointerEvent<HTMLElement>) => {
     if ((e.target as HTMLElement).closest("a,button")) return;

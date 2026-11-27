@@ -12,7 +12,7 @@ const LEGAL_GROUPS: { title: string; note: string; icon: typeof Scale; hrefs: st
   { title: "Trust and security", note: "How the service is protected and kept running.", icon: ShieldCheck, hrefs: ["/security", "/sla", "/status"] },
 ];
 
-/** The footer: what the platform is, every product, the way in, the docs — and the legal pages beside the copyright line. */
+/** The footer: what the platform is, every product, the way in — and the legal pages beside the copyright line. */
 export default async function Footer({}: { host?: string }) {
   const CATEGORIES: { title: string; products: { label: string; href: string }[] }[] = [
     { title: "Sales & marketing", products: [
@@ -45,11 +45,11 @@ export default async function Footer({}: { host?: string }) {
     ] },
   ];
   const explore = [
+    { href: "/pricing", label: "Pricing" },
     { href: "/faqs", label: "FAQs" },
     { href: "/blog", label: "Blog" },
     { href: "/about", label: "About Us" },
     { href: "/contact", label: "Contact Us" },
-    { href: "/docs", label: "Documentation" },
   ];
   const productLinks = [
     { label: "Screen gallery", href: "/gallery" },

@@ -53,7 +53,3 @@ export function productAnalyticsPath(key: string): string {
 export function productPath(key: string): string {
   return `/products/${productSlugFor(key)}`;
 }
-
-export function productDocsPath(key: string, feature: string): string {
-  return `/docs/${productSlugFor(key)}/${feature}`;
-}

@@ -58,13 +58,13 @@ const AGENDA = [
   },
   {
     id: "learn",
-    label: "Resources",
+    label: "Explore",
     icon: BookOpen,
     title: "Everything you need to evaluate SelfRun",
-    copy: "Docs, guides, and a self-guided product tour are available right now — no booking required. Every feature has a step-by-step guide written for the person who will actually use it, not just the decision-maker.",
+    copy: "Product pages, screens and a self-guided product tour are available right now — no booking required. Each product page lists every feature and who uses it.",
     points: [
       "Interactive product tour with shared demo credentials",
-      "Step-by-step guides for every feature in every product",
+      "A page for every product with its features and real screens",
       "Architecture and security overview for your IT team",
       "Pricing calculator with real provider costs broken down",
     ],

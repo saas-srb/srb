@@ -64,7 +64,7 @@ export default async function StatusPage() {
     <>
       <JsonLd data={[webPage({ type: "WebPage", path: "/status", name: "System status", description: "Live status of SRB AI: the website and the database every workspace runs on, with any open incident notice." }), breadcrumbList([{ name: "Home", path: "/" }, { name: "Status", path: "/status" }])]} />
       <PageHero eyebrow="Status" title={all ? (open.length ? "Operational, with an open notice" : "All systems operational") : "Some systems are having trouble"} lead={`A live check of the website and the database that every ${SAAS_BRAND.name} workspace runs on, made when you opened this page (${new Date(checkedAt).toUTCString()}).`} photo="office" shot="workspace" shotName="Workspace">
-        <HeroCtas primary={{ label: "Contact us", href: "/contact" }} secondary={{ label: "Read the docs", href: "/docs" }} />
+        <HeroCtas primary={{ label: "Contact us", href: "/contact" }} secondary={{ label: "Read the FAQs", href: "/faqs" }} />
       </PageHero>
       <section className="sr-section">
         <div className="sr-container max-w-2xl">

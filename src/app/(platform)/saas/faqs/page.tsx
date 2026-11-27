@@ -64,9 +64,8 @@ export default function FaqsPage() {
       <section id="more" className="sr-section bg-muted/10" style={{ scrollMarginTop: 140 }}>
         <div className="sr-container">
           <SectionHead n="03" icon="chat" eyebrow="Still have questions" title="Can't find" accent="your answer?" lead="Another place may have it, or the team can help directly." />
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-5 md:grid-cols-3">
             {[
-              { icon: "book" as const, t: "Documentation", x: "Step-by-step guides for every product.", href: "/docs" },
               { icon: "target" as const, t: "Request a demo", x: "See it with your own scenarios.", href: "/demo" },
               { icon: "chat" as const, t: "Contact us", x: "We reply within one business day.", href: "/contact" },
               { icon: "chart" as const, t: "Status", x: "Is the platform up right now?", href: "/status" },

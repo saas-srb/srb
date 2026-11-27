@@ -16,7 +16,6 @@ export const NAV_LINKS: NavLink[] = [
   { href: "/", label: "Home", hint: "What SRB AI is and why companies use it" },
   { href: "/products", label: "Products", hint: "Every product and feature, with a details page for each" },
   { href: "/pricing", label: "Pricing", hint: "Plans, allowances and a details page for each plan" },
-  { href: "/docs", label: "Documentation", hint: "A guide for every product and every feature" },
   { href: "/about", label: "About Us", hint: "Who we are, our mission, what we do and success stories" },
   { href: "/contact", label: "Contact Us", hint: "Sales, support and security" },
 ];
@@ -308,8 +307,8 @@ export const LEGAL_EXTRA: Record<"security" | "sla", LegalDoc> = {
       {
         heading: "Questions teams ask before they switch",
         list: [
-          "Too many products for us?: Use only the products you need. Each product runs independently with its own sign-in and database, and the suite gives you one place to find product links, guides and help.",
-          "Hard for new people to learn?: Company setup walks through the profile, departments and invitations, and the documentation has step-by-step walkthroughs for the common jobs.",
+          "Too many products for us?: Use only the products you need. Each product runs independently with its own sign-in and database, and the suite gives you one place to find product links and help.",
+          "Hard for new people to learn?: Company setup walks through the profile, departments and invitations, and the AI help assistant answers “how do I…” questions on every screen.",
           "Same on a phone and a laptop?: Yes. The installable web app and the Android, iOS, Windows, macOS and Linux apps open the same workspace, so every screen and feature is the same everywhere. Each app carries your company's name and icon and is always current.",
           "Will one busy company slow the others?: Each company's AI, storage, email and voice use is capped by its plan, requests are rate-limited per session and address, and the product runs on hosting that scales out.",
           "Will AI costs run away?: No. AI is metered against the plan, shown per person and per feature on the Usage page, and paused with a clear message when the allowance is used up.",

@@ -2,18 +2,14 @@ import "server-only";
 import type { MetadataRoute } from "next";
 import { MODULE_COPY } from "@/lib/platform/saas/content";
 import { POSTS } from "@/lib/platform/saas/site";
-import { DOCS } from "@/lib/platform/saas/docs";
-import { TUTORIALS } from "@/lib/platform/saas/tutorials";
-import { FEATURE_LISTS, featuresOf } from "@/lib/platform/saas/feature-lists";
 import { listPanels } from "@/lib/platform/panels/store";
-import { productDocsPath, productPath } from "@/lib/platform/saas/product-routes";
+import { productPath } from "@/lib/platform/saas/product-routes";
 
 /** [path, priority, how often it changes]. Search engines read these as hints: the home page, products and pricing matter most. */
 const PAGES: [string, number, "daily" | "weekly" | "monthly" | "yearly"][] = [
   ["", 1, "weekly"],
   ["/products", 0.9, "weekly"],
   ["/pricing", 0.9, "weekly"],
-  ["/docs", 0.8, "weekly"],
   ["/faqs", 0.8, "weekly"],
   ["/gallery", 0.7, "monthly"],
   ["/blog", 0.8, "weekly"],
@@ -46,9 +42,6 @@ export async function saasSitemap(origin: string): Promise<MetadataRoute.Sitemap
     ...panels.map((p) => ({ path: productPath(p.key), priority: 0.9, freq: "weekly" as const })),
     ...plans.map((p) => ({ path: `/pricing/${p}`, priority: 0.6, freq: "weekly" as const })),
     ...POSTS.map((p) => ({ path: `/blog/${p.slug}`, priority: 0.7, freq: "monthly" as const, last: new Date(p.date) })),
-    ...DOCS.map((r) => ({ path: `/docs/${r.slug}`, priority: 0.6, freq: "monthly" as const })),
-    ...TUTORIALS.map((t) => ({ path: `/docs/walkthroughs/${t.slug}`, priority: 0.6, freq: "monthly" as const })),
-    ...Object.keys(FEATURE_LISTS).flatMap((k) => featuresOf(k).map((f) => ({ path: productDocsPath(k, f.slug), priority: 0.5, freq: "monthly" as const }))),
   ];
   const seen = new Set<string>();
   return rows

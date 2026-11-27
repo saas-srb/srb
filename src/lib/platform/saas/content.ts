@@ -390,7 +390,7 @@ export const RESOURCES: ResourceArticle[] = [
       { heading: "Invite your team and set roles", body: ["Invite people by email and give each one a role. A role decides which products a person can open and which actions they may take. You can fine-tune the permissions of any single person at any time."] },
       { heading: "Bring in your data", body: ["Import leads, clients or employees from a spreadsheet (CSV file) under Workspace → Import data. The importer checks every row and lists exactly what to fix before anything is saved."] },
       { heading: "Your first week", body: ["Day one: invite the team and import your contacts. Day two: set up one automation, such as notifying the owner of every new lead. Day three: choose a website theme and publish. By the end of the week your team is working inside SRB AI and the dashboards are filling with live numbers."] },
-      { heading: "If you get stuck", body: ["Every screen has the AI help assistant, which knows which screen you are on, and this documentation covers each feature step by step. You can also write to the team from the Contact page."] },
+      { heading: "If you get stuck", body: ["Every screen has the AI help assistant, which knows which screen you are on, and the help center has articles you can search. You can also write to the team from the Contact page."] },
     ],
   },
   {

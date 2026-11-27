@@ -246,7 +246,7 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
   const seatsLabel = plan.seats ? `Up to ${plan.seats.toLocaleString("en-IN")} team members` : "Unlimited team members";
   const deviceSessionLabel = isFree ? "1 active device login at a time" : "Unlimited simultaneous device logins";
   const supportLevel = isFree
-    ? "Community documentation, step-by-step guides & help desk"
+    ? "AI help assistant, help center & support requests"
     : plan.id === "starter"
       ? "Standard priority email & ticketing support (response within 24h)"
       : plan.id === "growth"
@@ -593,7 +593,7 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ pla
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{supportLevel}</p>
                 </div>
                 <div className="mt-6 rounded-2xl bg-muted/30 p-4 text-xs font-semibold text-foreground">
-                  Channels: {isFree ? "Help Center & Documentation" : plan.id === "starter" ? "Email & Ticketing" : plan.id === "growth" ? "Email, Chat & WhatsApp" : "Priority Phone, WhatsApp & Dedicated Rep"}
+                  Channels: {isFree ? "Help Center" : plan.id === "starter" ? "Email & Ticketing" : plan.id === "growth" ? "Email, Chat & WhatsApp" : "Priority Phone, WhatsApp & Dedicated Rep"}
                 </div>
               </div>
             </Reveal>

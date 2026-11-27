@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { BookOpen, Bot, Home, Layers, Mail, Menu, Newspaper, Sparkles, Tag, Users, X, type LucideIcon } from "lucide-react";
+import { Bot, Home, Layers, Mail, Menu, Newspaper, Sparkles, Tag, Users, X, type LucideIcon } from "lucide-react";
 import Logo from "@/components/platform/saas/Logo";
 import { NAV_LINKS } from "@/lib/platform/saas/site";
 import ThemeToggle from "@/components/platform/saas/ThemeToggle";
@@ -14,7 +14,6 @@ const ICON: Record<string, LucideIcon> = {
   "/products": Layers,
   "/features": Layers,
   "/pricing": Tag,
-  "/docs": BookOpen,
   "/blog": Newspaper,
   "/about": Users,
   "/contact": Mail,
